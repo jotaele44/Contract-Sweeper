@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from scripts.fetch_legislative_canonical_sources import (
     _as_string_list,
     _compact_measure_id,
@@ -9,6 +11,14 @@ from scripts.fetch_legislative_canonical_sources import (
     build_canonical_record,
     run,
 )
+
+
+@pytest.fixture(autouse=True)
+def _no_openstates_key(monkeypatch):
+    """Keep these tests offline: run() falls back to OPENSTATES_API_KEY from the
+    environment, so a real key silently turns the without-network paths into
+    live OpenStates requests (slow and rate-limit flaky)."""
+    monkeypatch.delenv("OPENSTATES_API_KEY", raising=False)
 
 
 def test_measure_id_helpers_normalize_pr_identifiers():
