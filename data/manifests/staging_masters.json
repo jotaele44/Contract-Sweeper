@@ -90,6 +90,11 @@
       "sha256": "b6da6acf3f6c866bd8a47dcb6d92e0ccce4130e543fc4af5ec7e7a423025103e",
       "size_bytes": 1290
     },
+    "data/staging/processed/pr_fec_contributions.csv": {
+      "row_count": 1049,
+      "sha256": "8b4389d6ef0cef76934b69e262271d9e9acffcd200d4cb22e04d115533862423",
+      "size_bytes": 177469
+    },
     "data/staging/processed/pr_fema_hmgp_master.csv": {
       "row_count": 0,
       "sha256": "0e97d455e15af27ad3b473e72ac1cf71af35ed728e286cad81efd5fcbc97793c",
@@ -121,7 +126,7 @@
       "size_bytes": 59368
     }
   },
-  "generated_at": "2026-07-03T12:16:14Z",
+  "generated_at": "2026-07-03T13:13:09Z",
   "note": "Row counts for the gitignored data/staging/processed masters. Committed source of truth for coverage reports in a clean checkout (the CSVs themselves are too large to track \u2014 see size-guard). Regenerate with scripts/build_staging_manifest.py after a data refresh.",
   "schema_version": "staging_masters_v1"
 }

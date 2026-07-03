@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-07-03T12:16:34.003757+00:00",
+  "generated_at": "2026-07-03T13:12:44.490380+00:00",
   "schema_version": "r5_v2",
   "passed": false,
-  "source_coverage_rate": 0.5714285714285714,
+  "source_coverage_rate": 0.6428571428571429,
   "entity_resolution_rate": 0.0,
   "entity_type_assignment_rate": 0.9987352445193929,
   "corporate_parent_uei_rate": 0.0,
@@ -10,8 +10,8 @@
   "high_value_unresolved_count": 1104,
   "subaward_linkage_rate": 0.9998330272165638,
   "execution_chain_linkage_rate": 0.9998330272165638,
-  "gate_count": 61,
-  "failed_gate_count": 11,
+  "gate_count": 62,
+  "failed_gate_count": 10,
   "thresholds": {
     "source_coverage_rate": 0.85,
     "entity_resolution_rate": 0.001,
@@ -157,16 +157,16 @@
       "gate": "required_source_nonempty",
       "source_id": "fec",
       "required": true,
-      "passed": false,
-      "observed": 0,
+      "passed": true,
+      "observed": 1,
       "threshold": 1,
-      "evidence": "",
-      "action": "backfill_or_manual_export"
+      "evidence": "data/staging/processed/pr_fec_contributions.csv",
+      "action": "ok"
     },
     {
       "gate": "source_coverage_rate",
       "passed": false,
-      "observed": 0.5714,
+      "observed": 0.6429,
       "threshold": 0.85,
       "action": "backfill_required_sources"
     },
@@ -279,6 +279,14 @@
     {
       "gate": "manifest_present_per_required",
       "source_id": "lda",
+      "passed": true,
+      "observed": "present",
+      "threshold": "present",
+      "action": "ok"
+    },
+    {
+      "gate": "manifest_present_per_required",
+      "source_id": "fec",
       "passed": true,
       "observed": "present",
       "threshold": "present",
