@@ -53,14 +53,16 @@ Then run:
 python run_pr_intake_router.py --input data/intake/pr_news/raw_items_latest.jsonl --out-dir data/exports/pr_intake_router
 ```
 
-## Downstream consumer (spiderweb-pr) — retired
+## Downstream consumer (spiderweb-pr) — revived 2026-07
 
-The cross-repo delivery to spiderweb-pr was retired in 2026-06 when spiderweb-pr
-became a producer-only federation node and removed its `intake-normalize` receiver
-(`scripts/deliver_derivatives.py` was deleted). The `spiderweb_pr_derivatives.csv`
-export had no remaining consumer, so it is no longer written. The router still
-classifies items into the spiderweb lane and reports the volume as
-`spiderweb_pr_derivative_count` in `routing_summary.json`. See `docs/INTAKE_DELIVERY.md`.
+The automated cross-repo delivery (`scripts/deliver_derivatives.py`, removed
+2026-06) stays retired, but spiderweb-pr now consumes the derivatives file: its
+spatial lane (`spiderweb-pr/readiness/spiderweb_spatial_lane.py`) reads
+`spiderweb_pr_derivatives.csv` from a router dropzone, validating rows against
+`spiderweb-pr/schemas/pr_intake_derivative.schema.json`. The router therefore
+writes the stream again; moving the file into a spiderweb checkout is a
+manual/operator step. Lane volume is reported as `spiderweb_pr_derivative_count`
+in `routing_summary.json`. See `docs/INTAKE_DELIVERY.md`.
 
 ## Validation invariant
 

@@ -1,4 +1,6 @@
+import csv
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -29,11 +31,18 @@ def test_route_pr_intake_cli_exports_derivative_csvs(tmp_path):
 
     assert (out_dir / "route_results.jsonl").exists()
     assert (out_dir / "moneysweep_derivatives.csv").exists()
-    # spiderweb_pr_derivatives.csv is no longer written (orphaned output removed);
-    # the spiderweb lane is still classified and reported via the summary count above.
-    assert not (out_dir / "spiderweb_pr_derivatives.csv").exists()
+    # spiderweb_pr_derivatives.csv is the router-dropzone input consumed by
+    # spiderweb-pr/readiness/spiderweb_spatial_lane.py (revived 2026-07).
+    assert (out_dir / "spiderweb_pr_derivatives.csv").exists()
     assert (out_dir / "manual_review_queue.csv").exists()
     assert (out_dir / "routing_summary.json").exists()
+
+    with (out_dir / "spiderweb_pr_derivatives.csv").open(encoding="utf-8", newline="") as fh:
+        spiderweb_rows = list(csv.DictReader(fh))
+    assert len(spiderweb_rows) == summary["spiderweb_pr_derivative_count"]
+    for row in spiderweb_rows:
+        assert re.fullmatch(r"SW-PRINTAKE-[0-9a-f]{12}", row["record_id"])
+        assert row["target_repo"] == "spiderweb-pr"
 
     saved_summary = json.loads((out_dir / "routing_summary.json").read_text(encoding="utf-8"))
     assert saved_summary == summary
