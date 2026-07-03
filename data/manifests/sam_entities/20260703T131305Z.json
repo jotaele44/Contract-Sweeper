@@ -1,0 +1,62 @@
+{
+  "manifest_type": "per_source_ingest_snapshot",
+  "schema_version": "r5_v1",
+  "source_id": "sam_entities",
+  "source_url": "https://sam.gov/data-services/Entity%20Information",
+  "producer_script": "scripts/sam_enrichment.py",
+  "generated_at": "2026-07-03T13:13:05.094017+00:00",
+  "file_count": 1,
+  "files": [
+    {
+      "file_name": "entities_resolved.csv",
+      "relative_path": "data/staging/processed/entities_resolved.csv",
+      "extension": ".csv",
+      "size_bytes": 520667,
+      "sha256": "88842d9ec2bc9c035d8581f230d94b70044608ad581edecdf0d1cfa9b6e8bedd",
+      "ingestion_timestamp_utc": "2026-07-03T13:13:05.054492+00:00",
+      "source_system": "sam_entities",
+      "source_url": "https://sam.gov/data-services/Entity%20Information",
+      "schema_version": "r5_v1",
+      "expected_years": null,
+      "row_count": 2372,
+      "column_count": 13,
+      "columns": [
+        "entity_id",
+        "normalized_name",
+        "entity_name",
+        "entity_uei",
+        "entity_type",
+        "parent_uei",
+        "parent_name",
+        "resolution_method",
+        "match_confidence",
+        "total_obligation",
+        "record_count",
+        "source_files",
+        "manual_review_required"
+      ],
+      "empty_or_header_only": false,
+      "field_completeness_pct_by_column": {
+        "entity_id": 1.0,
+        "normalized_name": 0.9987352445193929,
+        "entity_name": 0.9987352445193929,
+        "entity_uei": 0.0012647554806070826,
+        "entity_type": 1.0,
+        "parent_uei": 0.0,
+        "parent_name": 0.0,
+        "resolution_method": 1.0,
+        "match_confidence": 1.0,
+        "total_obligation": 1.0,
+        "record_count": 1.0,
+        "source_files": 1.0,
+        "manual_review_required": 1.0
+      },
+      "entity_match_rate_pct": 1.0,
+      "actual_years": [],
+      "duplicate_rate": 0.0,
+      "pk_field": null,
+      "year_coverage_pct": null,
+      "validation_status": "present"
+    }
+  ]
+}
