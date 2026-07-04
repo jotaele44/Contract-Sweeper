@@ -73,7 +73,9 @@ def test_normalize_row_maps_api_record_to_canonical_schema():
     assert row["audit_type"] == "REGULAR"
     assert row["audit_year"] == "2008"
     assert row["branch"] == "EJECUTIVA"
-    assert row["report_url"] == "https://iapconsulta.ocpr.gov.pr/OpenDoc.aspx?id=xyz&nombre=DA-08-08"
+    assert (
+        row["report_url"] == "https://iapconsulta.ocpr.gov.pr/OpenDoc.aspx?id=xyz&nombre=DA-08-08"
+    )
 
 
 @pytest.mark.unit

@@ -181,19 +181,21 @@ def fetch_all_records(
     `recordsTotal` or an intentional `max_pages` cutoff), so callers can tell
     a partial result apart from a complete one instead of treating both as a
     normal `rows > 0` success."""
-    state = {"total": None, "truncated": False}
+    total_known = False
+    truncated = False
 
     def _fetch(start: int) -> PageResult:
+        nonlocal total_known, truncated
         page_num = start // PAGE_SIZE + 1
         data = _fetch_page(session, start, logger)
         if data is None:
-            state["truncated"] = True
+            truncated = True
             return PageResult(records=[], next_marker=None)
 
         total = data.get("recordsTotal") or 0
-        if state["total"] is None:
+        if not total_known:
             logger.info(f"  recordsTotal={total:,}")
-        state["total"] = total
+            total_known = True
 
         batch = data.get("data") or []
         next_start = start + len(batch)
@@ -203,7 +205,7 @@ def fetch_all_records(
         return PageResult(records=batch, next_marker=next_marker)
 
     records = list(paginate(_fetch, start_marker=0, max_pages=max_pages))
-    return records, state["truncated"]
+    return records, truncated
 
 
 def run(root=None, max_pages=None):
@@ -260,9 +262,13 @@ def _run(root=None, force=False, max_pages=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Scrape PR OCPR audit/investigation reports from iapconsulta")
+    parser = argparse.ArgumentParser(
+        description="Scrape PR OCPR audit/investigation reports from iapconsulta"
+    )
     parser.add_argument("--force", action="store_true")
-    parser.add_argument("--max-pages", type=int, default=None, help="Limit pages fetched (smoke testing)")
+    parser.add_argument(
+        "--max-pages", type=int, default=None, help="Limit pages fetched (smoke testing)"
+    )
     args = parser.parse_args()
     result = _run(force=args.force, max_pages=args.max_pages)
     print(f"\niapconsulta scrape complete: {result['rows']:,} audit/investigation records")
