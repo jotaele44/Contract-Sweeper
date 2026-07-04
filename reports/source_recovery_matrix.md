@@ -1,16 +1,16 @@
 # Source Materialization Readiness
 
 Total sources: **142**
-Automatable: **95** (ready: **95**, need API key at run time: 12)
-Queued / excluded: **47**
+Automatable: **96** (ready: **96**, need API key at run time: 12)
+Queued / excluded: **46**
 
 ## Path types
 
 | path_type | automatable | count | recommended_action |
 | --- | --- | --- | --- |
-| `api_producer` | True | 54 | Run producer under strict preflight; public API path, set key if gated. |
+| `api_producer` | True | 55 | Run producer under strict preflight; public API path, set key if gated. |
 | `api_adapter` | True | 41 | Materialize via `python -m moneysweep.query --source <id>` (set key if gated). |
-| `manual_export` | False | 40 | Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook. |
+| `manual_export` | False | 39 | Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook. |
 | `semantic_duplicate` | False | 3 | No action; covered by sibling source. |
 | `deferred_stub` | False | 2 | Intentionally unimplemented; remains not_materialized by design. |
 | `scraper_needed` | False | 2 | Queued: needs a scraping adapter for the PR-gov HTML/PDF surface. |
@@ -61,7 +61,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `wic`
 - `wioa`
 
-## api_producer (54)
+## api_producer (55)
 
 - `aafaf`
 - `census_gov_finances`
@@ -96,6 +96,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `ncua`
 - `ngo_integration_layer`
 - `nmtc`
+- `oficina_contralor`
 - `opm_fedscope`
 - `opportunity_zones`
 - `osl_sutra_crosswalk`
@@ -123,7 +124,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `nara_catalog_aws_open_data`
 - `nara_nextgen_catalog_v3`
 
-## manual_export (40)
+## manual_export (39)
 
 - `act_toll_revenue`
 - `act_tolls_concession`
@@ -147,7 +148,6 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `loteria_pr`
 - `oatrh_payroll`
 - `ocpr_contracts`
-- `oficina_contralor`
 - `ogpe_permits`
 - `ports_airports_contracts`
 - `ports_airports_revenue`
