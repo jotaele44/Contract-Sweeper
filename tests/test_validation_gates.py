@@ -409,3 +409,65 @@ def test_manifest_gate_fires_only_for_materialized_sources(tmp_path):
     assert len(result["records"]) == 1
     assert result["records"][0]["source_id"] == src["source_id"]
     assert result["records"][0]["passed"] is False  # no manifest directory yet
+
+
+# ---------- source_freshness gate ----------
+
+from datetime import datetime, timezone  # noqa: E402
+
+
+def _freshness_repo(tmp_path: Path, *, cadence: str, manifest_stamp: str) -> Path:
+    """Minimal repo: one required source with data + one manifest at a known time."""
+    (tmp_path / "registries").mkdir(parents=True, exist_ok=True)
+    registry = {
+        "sources": [
+            {
+                "source_id": "demo_src",
+                "required": True,
+                "update_cadence": cadence,
+                "expected_outputs": ["data/staging/processed/demo.csv"],
+            }
+        ]
+    }
+    (tmp_path / "registries" / "source_registry.json").write_text(json.dumps(registry))
+    out = tmp_path / "data" / "staging" / "processed" / "demo.csv"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("col\nvalue\n", encoding="utf-8")
+    mdir = tmp_path / "data" / "manifests" / "demo_src"
+    mdir.mkdir(parents=True, exist_ok=True)
+    (mdir / f"{manifest_stamp}.json").write_text("{}", encoding="utf-8")
+    return tmp_path
+
+
+@pytest.mark.unit
+def test_source_freshness_passes_within_cadence(tmp_path):
+    root = _freshness_repo(tmp_path, cadence="monthly", manifest_stamp="20260620T000000Z")
+    now = datetime(2026, 7, 4, tzinfo=timezone.utc)  # 14 days later < 45d
+    result = vg.gate_source_freshness(root, now=now)
+    assert result["stale_count"] == 0
+    (record,) = result["records"]
+    assert record["gate"] == "source_freshness"
+    assert record["passed"] is True
+    assert record["action"] == "ok"
+
+
+@pytest.mark.unit
+def test_source_freshness_flags_stale_source(tmp_path):
+    root = _freshness_repo(tmp_path, cadence="monthly", manifest_stamp="20260101T000000Z")
+    now = datetime(2026, 7, 4, tzinfo=timezone.utc)  # ~185 days later > 45d
+    result = vg.gate_source_freshness(root, now=now)
+    assert result["stale_count"] == 1
+    (record,) = result["records"]
+    assert record["passed"] is False
+    assert record["action"] == "refresh_source"
+    assert record["observed"] > record["threshold"]
+
+
+@pytest.mark.unit
+def test_source_freshness_exempts_ad_hoc_and_unmaterialized(tmp_path):
+    root = _freshness_repo(tmp_path, cadence="ad_hoc", manifest_stamp="20200101T000000Z")
+    assert vg.gate_source_freshness(root)["records"] == []
+    # scheduled cadence but no data on disk -> exempt (covered by other gates)
+    root2 = _freshness_repo(tmp_path / "b", cadence="monthly", manifest_stamp="20200101T000000Z")
+    (root2 / "data" / "staging" / "processed" / "demo.csv").write_text("", encoding="utf-8")
+    assert vg.gate_source_freshness(root2)["records"] == []

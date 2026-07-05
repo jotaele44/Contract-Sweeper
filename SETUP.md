@@ -89,7 +89,13 @@ python3 -c "from scripts.config import *; print('Config OK')"
 
 ---
 
-## 7. Run the Full Pipeline (Requires Source Data)
+## 7. Manual-Source Drops (Operator-Gated Sources)
+
+Five required sources are operator-supplied (portals are JS-gated, credentialed,
+or export-only). See `docs/MANUAL_SOURCE_OPERATIONS.md` for what to export, the
+drop directories, update cadence, and the `source_freshness` staleness gate.
+
+## 8. Run the Full Pipeline (Requires Source Data)
 
 The production pipeline is currently **paused** pending delivery of 21 missing source files.  
 See `STATUS.md` and `reports/gap_analysis_report.csv` before running.
