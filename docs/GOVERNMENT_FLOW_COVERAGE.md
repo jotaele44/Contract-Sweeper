@@ -71,8 +71,13 @@ operator drops CSV/Excel exports there and runs `scripts/ingest_<id>.py`.
 
 ## Future vectors (not in this expansion)
 
-1. Promote the `scraper→manual_export` PR surfaces (OCPR registry, Loteria,
-   OATRH, OGPe) to live scraping adapters.
+1. Promote the remaining `scraper→manual_export` PR surfaces (Loteria, OATRH,
+   OGPe) to live scraping adapters. The canonical OCPR contract registry
+   (`ocpr_contracts`) is done — see the note above — but its entity-filtered
+   sibling views, `dtop_road_contracts` and `transit_contracts` (same
+   `consultacontratos.ocpr.gov.pr` portal, filtered to specific agency
+   codes), are still dropzone-only and haven't been switched to reuse
+   `scripts/scrape_ocpr_contracts.py`'s client.
 2. Entity-resolve recipients/payees (e.g. `ocpr_contracts.contractor_name`,
    `doj_settlements.defendant_name`) against `entities_resolved.csv` and the
    awards master.
