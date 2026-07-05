@@ -36,9 +36,13 @@ Delegate to the shared `moneysweep.runtime.dropzone_ingest.ingest_dropzone`
 helper. Each registers `authentication: manual_export` + a `manual_drop_dir`; an
 operator drops CSV/Excel exports there and runs `scripts/ingest_<id>.py`.
 
+> `ocpr_contracts` (**canonical PR contract registry**, every PR govt contract; distinct from
+> `oficina_contralor` audits) originally shipped here as a dropzone reader but has since been
+> promoted to a live scraper (`scripts/scrape_ocpr_contracts.py`, `authentication: none`) — it's
+> no longer part of this manual-dropzone tranche.
+
 | source_id | Flow | Dropzone |
 |---|---|---|
-| `ocpr_contracts` | **Canonical PR contract registry** (every PR govt contract; distinct from `oficina_contralor` audits) | `data/raw/OCPR_Contracts/` |
 | `ddec_incentives` | Act 60/20/22 tax-incentive decrees | `data/raw/DDEC_Incentives/` |
 | `crim_property_tax` | Municipal property-tax assessments & collections | `data/raw/CRIM/` |
 | `ases_plan_vital` | Plan Vital Medicaid managed-care contracts & capitation | `data/raw/ASES/` |
@@ -67,8 +71,13 @@ operator drops CSV/Excel exports there and runs `scripts/ingest_<id>.py`.
 
 ## Future vectors (not in this expansion)
 
-1. Promote the `scraper→manual_export` PR surfaces (OCPR registry, Loteria,
-   OATRH, OGPe) to live scraping adapters.
+1. Promote the remaining `scraper→manual_export` PR surfaces (Loteria, OATRH,
+   OGPe) to live scraping adapters. The canonical OCPR contract registry
+   (`ocpr_contracts`) is done — see the note above — but its entity-filtered
+   sibling views, `dtop_road_contracts` and `transit_contracts` (same
+   `consultacontratos.ocpr.gov.pr` portal, filtered to specific agency
+   codes), are still dropzone-only and haven't been switched to reuse
+   `scripts/scrape_ocpr_contracts.py`'s client.
 2. Entity-resolve recipients/payees (e.g. `ocpr_contracts.contractor_name`,
    `doj_settlements.defendant_name`) against `entities_resolved.csv` and the
    awards master.

@@ -1904,9 +1904,9 @@
       "source_id": "ocpr_contracts",
       "family": "territorial",
       "required": false,
-      "authentication": "manual_export",
+      "authentication": "none",
       "endpoint_url": "https://consultacontratos.ocpr.gov.pr/",
-      "producer_script": "scripts/ingest_ocpr_contracts.py",
+      "producer_script": "scripts/scrape_ocpr_contracts.py",
       "expected_outputs": [
         "data/staging/processed/pr_ocpr_contracts.csv"
       ],
@@ -1914,9 +1914,8 @@
       "validation_threshold": {
         "min_rows": 1
       },
-      "manual_drop_dir": "data/raw/OCPR_Contracts/",
       "update_cadence": "ad_hoc",
-      "notes": "Canonical PR Comptroller (OCPR) contract registry \u2014 every PR government contract. Distinct from oficina_contralor (audit reports only). Interactive surface; operator-delivered exports until a scraper is built.\n"
+      "notes": "Canonical PR Comptroller (OCPR) contract registry \u2014 every PR government contract (~1.34M records). Distinct from oficina_contralor (audit reports only). Scraped live from the public consultacontratos.ocpr.gov.pr search API (anti-forgery token from one GET, then JSON search POSTs). The endpoint is slow (~20s per 100-row page), so a full materialization is a multi-hour/multi-day background job by design, same shape as the SAM.gov full-registry pull. scripts/ingest_ocpr_contracts.py remains as a manual-dropzone fallback if the scraper ever breaks.\n"
     },
     {
       "source_id": "ddec_incentives",

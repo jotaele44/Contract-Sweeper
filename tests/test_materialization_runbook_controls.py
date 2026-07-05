@@ -41,10 +41,14 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # oficina_contralor promoted manual_export -> api_producer: it now scrapes
     # iapconsulta.ocpr.gov.pr's live search API (scripts/scrape_iapconsulta.py)
     # instead of waiting on an operator export.
+    # ocpr_contracts promoted manual_export -> api_producer: it now scrapes
+    # consultacontratos.ocpr.gov.pr's live search API
+    # (scripts/scrape_ocpr_contracts.py) instead of waiting on an operator
+    # export.
     assert snapshot["total_sources"] == 142
-    assert snapshot["automatable_total"] == 96
-    assert snapshot["automatable_ready"] == 96
-    assert snapshot["queued_excluded_total"] == 46
+    assert snapshot["automatable_total"] == 97
+    assert snapshot["automatable_ready"] == 97
+    assert snapshot["queued_excluded_total"] == 45
     assert snapshot["automatable_not_ready"] == []
 
 

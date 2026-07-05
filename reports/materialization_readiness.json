@@ -1,8 +1,8 @@
 {
   "schema_version": "r5_readiness_v1",
   "total_sources": 142,
-  "automatable_total": 96,
-  "automatable_ready": 96,
+  "automatable_total": 97,
+  "automatable_ready": 97,
   "automatable_not_ready": [],
   "automatable_needs_key_count": 12,
   "automatable_required_keys": [
@@ -17,13 +17,13 @@
     "SAM_API_KEY"
   ],
   "queued_excluded": {
-    "manual_export": 39,
+    "manual_export": 38,
     "scraper_needed": 2,
     "deferred_stub": 2,
     "semantic_duplicate": 3,
     "broken_producer": 0
   },
-  "queued_excluded_total": 46,
+  "queued_excluded_total": 45,
   "outputs": [
     "reports/source_recovery_matrix.csv",
     "reports/source_recovery_matrix.md",
