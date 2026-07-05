@@ -1,0 +1,9 @@
+FEDERATION_PY ?= python3
+
+.PHONY: offline
+
+offline:
+	$(FEDERATION_PY) scripts/offline_operator.py export
+	$(FEDERATION_PY) scripts/offline_operator.py dashboard
+	$(FEDERATION_PY) scripts/offline_operator.py package
+	$(FEDERATION_PY) scripts/validate_federation_export.py
