@@ -36,9 +36,13 @@ Delegate to the shared `moneysweep.runtime.dropzone_ingest.ingest_dropzone`
 helper. Each registers `authentication: manual_export` + a `manual_drop_dir`; an
 operator drops CSV/Excel exports there and runs `scripts/ingest_<id>.py`.
 
+> `ocpr_contracts` (**canonical PR contract registry**, every PR govt contract; distinct from
+> `oficina_contralor` audits) originally shipped here as a dropzone reader but has since been
+> promoted to a live scraper (`scripts/scrape_ocpr_contracts.py`, `authentication: none`) — it's
+> no longer part of this manual-dropzone tranche.
+
 | source_id | Flow | Dropzone |
 |---|---|---|
-| `ocpr_contracts` | **Canonical PR contract registry** (every PR govt contract; distinct from `oficina_contralor` audits) | `data/raw/OCPR_Contracts/` |
 | `ddec_incentives` | Act 60/20/22 tax-incentive decrees | `data/raw/DDEC_Incentives/` |
 | `crim_property_tax` | Municipal property-tax assessments & collections | `data/raw/CRIM/` |
 | `ases_plan_vital` | Plan Vital Medicaid managed-care contracts & capitation | `data/raw/ASES/` |
