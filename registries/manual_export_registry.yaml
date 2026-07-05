@@ -236,3 +236,105 @@ manual_exports:
       - rule: required_columns
         action: warn_if_missing
     notes: AMA / Tren Urbano (ATI) operating and O&M contracts.
+
+  # ── Required-source manual exports (workflow criteria, 2026-07) ─────────────
+  # These four required sources are operator-gated: their portals are
+  # JS/WAF-gated, credential-walled, or export-only (probe evidence in
+  # reports/federation/evidence_moneysweep-pr.jsonl). Cadence + drop procedure
+  # per source live in docs/MANUAL_SOURCE_OPERATIONS.md; staleness is enforced
+  # by the source_freshness validation gate.
+
+  - source_id: cor3
+    expected_drop_dir: data/raw/COR3/
+    expected_filename_pattern: "COR3 Transparency Portal_*.xlsx"
+    expected_columns:
+      - project_id
+      - applicant_name
+      - program
+      - municipality
+      - total_approved
+      - total_disbursed
+      - status
+    validation_rules:
+      - rule: required_columns
+        action: warn_if_missing
+      - rule: row_count_min
+        value: 1
+        action: warn_if_below
+      - rule: header_only_check
+        action: reject_if_header_only
+    notes: recovery.pr.gov transparency portal exports (Financial Summary /
+      Procurement Inventory / RFP and Contracts). Portal serves empty bodies to
+      non-browser clients (JS/WAF) — operator exports the Excel workbooks in a
+      browser and drops them here; scripts/ingest_cor3.py normalizes them.
+      Quarterly cadence.
+
+  - source_id: prasa
+    expected_drop_dir: data/raw/PRASA/
+    expected_filename_pattern: "*.csv|*.xlsx"
+    expected_columns:
+      - contract_id
+      - vendor_name
+      - contract_type
+      - contract_value
+      - award_date
+      - status
+    validation_rules:
+      - rule: required_columns
+        action: warn_if_missing
+      - rule: row_count_min
+        value: 1
+        action: warn_if_below
+      - rule: header_only_check
+        action: reject_if_header_only
+    notes: PRASA procurement exports (acueductospr.com serves HTML only; no
+      export endpoint). Operator delivers procurement files; bilingual headers
+      accepted (Contrato/Contratista). PRASA bonds are covered separately by
+      the automated emma_bonds source. Yearly cadence (CER/CIP siblings are
+      ad_hoc via prasa_cer).
+
+  - source_id: oficina_contralor
+    expected_drop_dir: "data/raw/Oficina del Contralor/"
+    expected_filename_pattern: "*.csv|*.xlsx"
+    expected_columns:
+      - entity_name
+      - audit_id
+      - audit_type
+      - audit_year
+      - finding_count
+      - municipality
+    validation_rules:
+      - rule: required_columns
+        action: warn_if_missing
+      - rule: row_count_min
+        value: 1
+        action: warn_if_below
+      - rule: header_only_check
+        action: reject_if_header_only
+    notes: OCPR audit reports/findings (ocpr.gov.pr). This source is audit
+      reports only — the contract registry (consultacontratos.ocpr.gov.pr,
+      server-rendered ASP.NET, no public JSON endpoint) is the separate
+      ocpr_contracts source. Monthly cadence.
+
+  - source_id: pr_cabilderos
+    expected_drop_dir: data/raw/Cabilderos/
+    expected_filename_pattern: "*.csv|*.xlsx"
+    expected_columns:
+      - lobbyist_name
+      - client_name
+      - registration_year
+      - agency_lobbied
+    validation_rules:
+      - rule: required_columns
+        action: warn_if_missing
+      - rule: row_count_min
+        value: 1
+        action: warn_if_below
+      - rule: header_only_check
+        action: reject_if_header_only
+    notes: OEG lobbyist (cabildero) registry. The registry host etica.pr.gov is
+      dead (gateway 502, probe 2026-07-04); the OEG's live site is eticapr.com,
+      which exposes ethics datasets via Zoho dashboards but no lobbyist-registry
+      export — request the export via the OEG public-information channel
+      (eticapr.com/nuestra-oficina/acceso-informacion-publica). Bilingual
+      headers accepted (Nombre Cabildero/Cliente). Quarterly cadence.

@@ -66,6 +66,20 @@ SUBAWARD_LINKAGE_TARGET = 0.90
 EXECUTION_CHAIN_LINKAGE_TARGET = 0.90
 DUPLICATE_RATE_LIMIT = 0.05
 HIGH_VALUE_AMOUNT_THRESHOLD = 1_000_000.0
+# Freshness: each registry source declares an update_cadence; the newest
+# per-source manifest under data/manifests/<source_id>/ records when it was
+# last materialized.  Max acceptable age = cadence period + grace, so a
+# monthly source is flagged only after ~1.5 cycles without a refresh.
+# ad_hoc / unknown cadences are exempt (no schedule to be late against).
+CADENCE_MAX_AGE_DAYS = {
+    "daily": 3,
+    "weekly": 10,
+    "monthly": 45,
+    "quarterly": 120,
+    "semiannual": 220,
+    "yearly": 400,
+    "annual": 400,
+}
 
 
 def _now_iso() -> str:
@@ -344,6 +358,64 @@ def gate_manifests_present(root: Path) -> dict[str, Any]:
     return {"records": records}
 
 
+def _latest_manifest_time(root: Path, source_id: str) -> datetime | None:
+    """Newest manifest timestamp for a source (filename stamp, mtime fallback)."""
+    manifest_dir = root / "data" / "manifests" / source_id
+    if not manifest_dir.exists():
+        return None
+    latest: datetime | None = None
+    for path in manifest_dir.glob("*.json"):
+        try:
+            ts = datetime.strptime(path.stem, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+        except ValueError:
+            ts = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
+        if latest is None or ts > latest:
+            latest = ts
+    return latest
+
+
+def gate_source_freshness(root: Path, now: datetime | None = None) -> dict[str, Any]:
+    """Warn-class gate: materialized required sources must be re-ingested on cadence.
+
+    Only sources that (a) declare a scheduled update_cadence and (b) already
+    have data are evaluated — unmaterialized sources fail
+    required_source_nonempty and manifest-less sources fail
+    manifest_present_per_required; re-flagging them here would double-penalise.
+    """
+    now = now or datetime.now(timezone.utc)
+    records: list[dict[str, Any]] = []
+    for src in required_sources(root):
+        cadence = str(src.get("update_cadence") or "").strip().lower()
+        max_age_days = CADENCE_MAX_AGE_DAYS.get(cadence)
+        if max_age_days is None:
+            continue
+        expected = src.get("expected_outputs") or []
+        has_any_output = any(
+            (root / p).exists() and (root / p).stat().st_size > 0 for p in expected
+        )
+        if not has_any_output:
+            continue
+        latest = _latest_manifest_time(root, src["source_id"])
+        if latest is None:
+            continue
+        age_days = (now - latest).total_seconds() / 86400.0
+        fresh = age_days <= max_age_days
+        records.append(
+            {
+                "gate": "source_freshness",
+                "source_id": src["source_id"],
+                "required": True,
+                "passed": fresh,
+                "observed": round(age_days, 1),
+                "threshold": max_age_days,
+                "evidence": f"cadence={cadence}; last_ingest={latest.strftime('%Y-%m-%dT%H:%M:%SZ')}",
+                "action": "ok" if fresh else "refresh_source",
+            }
+        )
+    stale = sum(1 for r in records if not r["passed"])
+    return {"stale_count": stale, "records": records}
+
+
 _RAW_PATH_PREFIXES = (
     "data/staging/raw/",
     "data/raw/",
@@ -449,6 +521,7 @@ def evaluate(root: Path) -> dict[str, Any]:
     mp = gate_manifests_present(root)
     dup = gate_duplicate_rate(root)
     sec = gate_secret_leakage(root)
+    fresh = gate_source_freshness(root)
     records = (
         sc["records"]
         + er["records"]
@@ -457,6 +530,7 @@ def evaluate(root: Path) -> dict[str, Any]:
         + mp["records"]
         + dup["records"]
         + sec["records"]
+        + fresh["records"]
     )
     passed = all(bool(r.get("passed")) for r in records)
     return {
@@ -471,6 +545,7 @@ def evaluate(root: Path) -> dict[str, Any]:
         "high_value_unresolved_count": er.get("high_value_unresolved_count", 0),
         "subaward_linkage_rate": sl["linkage_rate"],
         "execution_chain_linkage_rate": ecl["linkage_rate"],
+        "stale_source_count": fresh["stale_count"],
         "gate_count": len(records),
         "failed_gate_count": sum(1 for r in records if not r.get("passed")),
         "thresholds": {

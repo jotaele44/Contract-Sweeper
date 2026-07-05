@@ -798,7 +798,7 @@
       },
       "manual_drop_dir": "data/raw/Cabilderos/",
       "update_cadence": "quarterly",
-      "notes": "PR Office of Government Ethics (OEG) state-level lobbyist (cabildero) registry. ingest_cabilderos.py is a dropzone reader (CSV/Excel), not a live scraper - operator delivers the OEG export to data/raw/Cabilderos/. Cross-references cabildero clients with federal award recipients to surface dual-influence entities."
+      "notes": "PR Office of Government Ethics (OEG) state-level lobbyist (cabildero) registry. ingest_cabilderos.py is a dropzone reader (CSV/Excel), not a live scraper - operator delivers the OEG export to data/raw/Cabilderos/. Cross-references cabildero clients with federal award recipients to surface dual-influence entities. Probe (2026-07-04) found etica.pr.gov dead (gateway 502); the OEG's live site is eticapr.com with no lobbyist-registry export - request via the OEG public-information channel (see docs/MANUAL_SOURCE_OPERATIONS.md)."
     },
     {
       "source_id": "fec",
