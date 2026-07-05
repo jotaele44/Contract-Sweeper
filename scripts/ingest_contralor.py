@@ -6,6 +6,12 @@ and contractors. A federal award recipient with an open Contralor finding =
 compliance risk signal. Certifications show which entities are legally cleared
 to receive PR government contracts.
 
+This is the manual-dropzone fallback for the ``oficina_contralor`` source.
+The primary path is ``scripts/scrape_iapconsulta.py``, which pulls the same
+audit/investigation reports directly from the live iapconsulta.ocpr.gov.pr
+search API and writes the identical CONTRALOR_COLUMNS schema. Use this script
+if the scraper breaks or an operator has a manual export to load instead.
+
 Input:
   data/raw/Oficina del Contralor/ — CSV or Excel files from contralor.pr.gov
 
@@ -38,9 +44,11 @@ CONTRALOR_COLUMNS = [
     "finding_count",
     "finding_type",
     "contract_amount",
+    "branch",
     "municipality",
     "recommendation",
     "status",
+    "report_url",
     "source_file",
 ]
 
@@ -124,6 +132,21 @@ COL_MAP = {
         "Pueblo",
         "Ciudad",
         "municipio",
+    ],
+    "branch": [
+        "Rama",
+        "Branch",
+        "Rama Gubernamental",
+        "Government Branch",
+        "rama",
+    ],
+    "report_url": [
+        "Enlace",
+        "Link",
+        "URL",
+        "Documento",
+        "Report URL",
+        "enlace",
     ],
     "recommendation": [
         "Recomendación",

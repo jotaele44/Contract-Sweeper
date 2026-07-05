@@ -38,10 +38,13 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # Counts below are pinned to the regenerated reports/materialization_readiness.json.
     # total_sources / queued_excluded_total incremented by 1 for sba_disaster_loans_pr
     # (manual_export, queued pending an operator file drop).
+    # oficina_contralor promoted manual_export -> api_producer: it now scrapes
+    # iapconsulta.ocpr.gov.pr's live search API (scripts/scrape_iapconsulta.py)
+    # instead of waiting on an operator export.
     assert snapshot["total_sources"] == 142
-    assert snapshot["automatable_total"] == 95
-    assert snapshot["automatable_ready"] == 95
-    assert snapshot["queued_excluded_total"] == 47
+    assert snapshot["automatable_total"] == 96
+    assert snapshot["automatable_ready"] == 96
+    assert snapshot["queued_excluded_total"] == 46
     assert snapshot["automatable_not_ready"] == []
 
 
