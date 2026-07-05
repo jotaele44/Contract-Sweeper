@@ -38,3 +38,4 @@ pr_act_60_decrees,territorial,False,none,scripts/download_act60.py,data/staging/
 p3_authority,territorial,False,none,scripts/download_p3.py,data/staging/processed/pr_p3_contracts.csv,quarterly,not_materialized,
 pr_pensions,territorial,False,none,scripts/download_pr_pensions.py,data/staging/processed/pr_pension_funds.csv,yearly,not_materialized,
 rum_cover_over,territorial,False,none,scripts/download_rum_coverover.py,data/staging/processed/pr_rum_coverover.csv,yearly,not_materialized,
+donaciones_pr,political_finance,False,manual_export,scripts/ingest_donaciones.py,data/staging/processed/pr_donaciones.csv,ad_hoc,not_materialized,PR State Election Commission (CEE/CEEPUR) state-level donation registry. ingest_donaciones.py is a dropzone reader for operator-delivered CEE CSV exports — no network code. Previously mislabeled as using ingest_fec.py (federal FEC) with a wrong output path. Cross-references federal FEC via analyze_political_crossref.py.
