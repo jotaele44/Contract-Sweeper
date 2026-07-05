@@ -73,6 +73,7 @@ municipal_finance,False,api_producer,True,True,FAC_API_KEY,False,True,scripts/do
 ncua,False,api_producer,True,True,,False,True,scripts/download_ncua.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 ngo_integration_layer,False,api_producer,True,True,,False,True,scripts/ngo_integration.py,3,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 nmtc,False,api_producer,True,True,,False,True,scripts/download_nmtc.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
+ocpr_contracts,False,api_producer,True,True,,False,True,scripts/scrape_ocpr_contracts.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 oficina_contralor,True,api_producer,True,True,,False,True,scripts/scrape_iapconsulta.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 opm_fedscope,False,api_producer,True,True,,False,True,scripts/download_opm_fedscope.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 opportunity_zones,False,api_producer,True,True,,False,True,scripts/download_opportunity_zones.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
@@ -118,7 +119,6 @@ hud_drgr_authorized,True,manual_export,False,False,,False,True,scripts/ingest_hu
 irs_ctc_eitc_pr,False,manual_export,False,False,,False,True,scripts/ingest_irs_ctc_eitc_pr.py,1,0,1,data/raw/IRS_CTC_EITC/,Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook.
 loteria_pr,False,manual_export,False,False,,False,True,scripts/ingest_loteria_pr.py,1,0,1,data/raw/Loteria/,Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook.
 oatrh_payroll,False,manual_export,False,False,,False,True,scripts/ingest_oatrh_payroll.py,1,0,1,data/raw/OATRH_Payroll/,Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook.
-ocpr_contracts,False,manual_export,False,False,,False,True,scripts/ingest_ocpr_contracts.py,1,0,1,data/raw/OCPR_Contracts/,Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook.
 ogpe_permits,False,manual_export,False,False,,False,True,scripts/ingest_ogpe_permits.py,1,0,1,data/raw/OGPe/,Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook.
 ports_airports_contracts,False,manual_export,False,False,,False,True,scripts/ingest_port_airport_contracts.py,1,0,1,data/manual/ports_airports_contracts/,Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook.
 ports_airports_revenue,False,manual_export,False,False,,False,True,scripts/ingest_port_airport_revenue.py,1,0,1,data/manual/ports_airports_revenue/,Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook.
