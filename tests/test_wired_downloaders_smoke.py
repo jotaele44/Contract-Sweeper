@@ -115,7 +115,7 @@ B8_GOVFLOW_25 = [
     ("doj_settlements", "ingest_doj_settlements"),
     ("equitable_sharing", "ingest_equitable_sharing"),
     ("irs_ctc_eitc_pr", "ingest_irs_ctc_eitc_pr"),
-    ("ocpr_contracts", "ingest_ocpr_contracts"),
+    ("ocpr_contracts", "scrape_ocpr_contracts"),
     ("ddec_incentives", "ingest_ddec_incentives"),
     ("crim_property_tax", "ingest_crim_property_tax"),
     ("ases_plan_vital", "ingest_ases_plan_vital"),

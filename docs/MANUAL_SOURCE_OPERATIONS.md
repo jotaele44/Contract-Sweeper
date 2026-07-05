@@ -1,6 +1,6 @@
 # Manual Source Operations — workflow criteria for operator-gated sources
 
-Five required sources cannot be automated (automation probes 2026-07-04; evidence in
+Four required sources cannot be automated (automation probes 2026-07-04; evidence in
 `reports/federation/evidence_moneysweep-pr.jsonl`). This runbook defines the operating
 contract per source: **what to export, from where, where to drop it, how often, and how
 freshness is enforced.**
@@ -48,13 +48,6 @@ fix the raw drop and re-run the ingest.
   drawdown) that the public `hud_cdbg_dr_public` + `hud_cdbg_mit` allocations lack.
 - **Fallback:** FOIA (`docs/FOIA_REQUEST_TEMPLATES.md`).
 
-### oficina_contralor — OCPR audit reports · **monthly** (stale >45d)
-- **Portal:** https://www.ocpr.gov.pr/ (audit reports/findings). Note: the **contract registry**
-  (`consultacontratos.ocpr.gov.pr`) is the separate `ocpr_contracts` source — server-rendered
-  ASP.NET, no public JSON endpoint (probe 2026-07-04); exports for it are also operator-delivered.
-- **Export:** audit report tables (CSV/Excel).
-- **Drop:** `data/raw/Oficina del Contralor/` → `python3 scripts/ingest_contralor.py`.
-
 ### pr_cabilderos — OEG lobbyist registry · **quarterly** (stale >120d)
 - **Portal:** the registered host `etica.pr.gov` is **dead** (gateway 502, probe 2026-07-04).
   The OEG's live site is **https://eticapr.com** — it exposes ethics datasets via Zoho dashboards
@@ -81,11 +74,10 @@ fix the raw drop and re-run the ingest.
 | source | cadence | stale after | drop dir |
 |---|---|---|---|
 | hud_drgr_authorized | monthly | 45d | `data/manual/hud_drgr/` |
-| oficina_contralor | monthly | 45d | `data/raw/Oficina del Contralor/` |
 | cor3 | quarterly | 120d | `data/raw/COR3/` |
 | pr_cabilderos | quarterly | 120d | `data/raw/Cabilderos/` |
 | prasa | yearly | 400d | `data/raw/PRASA/` |
-| prasa_cer / ocpr_contracts | ad_hoc | exempt | see registry |
+| prasa_cer | ad_hoc | exempt | see registry |
 
 The `source_freshness` gate reports `refresh_source` actions in
 `data/manifests/validation_gate_report.csv`; the weekly maintenance workflow

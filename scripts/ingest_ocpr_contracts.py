@@ -5,9 +5,12 @@ Every contract granted by a PR government entity must be registered with the
 Oficina del Contralor de Puerto Rico (OCPR) at consultacontratos.ocpr.gov.pr.
 This is the canonical record of *all* PR government contracts — distinct from the
 existing ``oficina_contralor`` source, which carries only OCPR *audit reports*.
-The public registry is an interactive search surface with no machine API, so the
-ingestion path is operator-delivered CSV/Excel exports until a dedicated scraper
-is built.
+
+This is the manual-dropzone fallback for the ``ocpr_contracts`` source. The
+primary path is ``scripts/scrape_ocpr_contracts.py``, which pulls the same
+registry directly from the live consultacontratos.ocpr.gov.pr search API and
+writes the identical OUTPUT_COLUMNS schema. Use this script if the scraper
+breaks or an operator has a manual export to load instead.
 
 Place exports from https://consultacontratos.ocpr.gov.pr/ into:
   data/raw/OCPR_Contracts/
@@ -46,6 +49,7 @@ OUTPUT_COLUMNS = [
     "service_description",
     "contract_type",
     "status",
+    "document_url",
     "source_file",
 ]
 
@@ -93,6 +97,7 @@ COL_MAP = {
     ],
     "contract_type": ["tipo_contrato", "tipo", "clasificacion", "clasificación", "contract_type"],
     "status": ["estatus", "estado", "status", "vigente"],
+    "document_url": ["enlace_documento", "documento", "document_url", "url_documento", "enlace"],
 }
 
 
