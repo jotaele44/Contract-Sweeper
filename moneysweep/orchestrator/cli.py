@@ -17,6 +17,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Run only steps 1-2 (create dirs + generate instructions), then exit",
     )
     parser.add_argument(
+        "--ingest-centinelas",
+        action="store_true",
+        help=(
+            "Standalone: ingest Centinelas intake/ drops into pre-official "
+            "located-finance candidates and build the SpiderWeb contract-finance "
+            "bundle, then exit (no full pipeline)."
+        ),
+    )
+    parser.add_argument(
         "--skip-download",
         action="store_true",
         help="Skip step 3 (auto-download)",

@@ -1,8 +1,8 @@
 {
   "schema_version": "r5_readiness_v1",
-  "total_sources": 142,
-  "automatable_total": 97,
-  "automatable_ready": 97,
+  "total_sources": 143,
+  "automatable_total": 98,
+  "automatable_ready": 98,
   "automatable_not_ready": [],
   "automatable_needs_key_count": 12,
   "automatable_required_keys": [
