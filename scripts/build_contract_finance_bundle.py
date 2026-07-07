@@ -53,7 +53,11 @@ from scripts.run_contract_finance_geo_reasoning import (  # noqa: E402
 EXPORT_CONTRACT_VERSION = "1.2.0"
 PRODUCER = "moneysweep-pr"
 CENTINELAS_SOURCE_ID = "centinelas-pr"
-DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs" / "contract_finance"
+# Dedicated bundle directory. Deliberately NOT outputs/contract_finance/ — that
+# is the geo-reasoning producer's committed artifact dir, whose
+# municipality_funding_density.csv uses a different (14-column) schema; writing
+# the bundle's 4-column density there would clobber it on every refresh.
+DEFAULT_OUTPUT_DIR = REPO_ROOT / "outputs" / "contract_finance_bundle"
 
 CONTRACT_AWARDS = "contract_awards.geojson"
 FINANCIAL_FLOWS = "financial_flows.geojson"
