@@ -43,8 +43,11 @@ def is_complete() -> bool:
     return MARKER.exists() and venv_python().exists() and (DIST_DIR / "index.html").exists()
 
 
+MIN_PYTHON = (3, 10)
+
+
 def setup_python() -> None:
-    if sys.version_info < (3, 10):
+    if sys.version_info < MIN_PYTHON:
         raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
     if not venv_python().exists():
         print(f"Creating virtual environment at {VENV_DIR} …")
@@ -66,8 +69,7 @@ def setup_frontend() -> None:
     npm = shutil.which("npm")
     if npm is None:
         raise SystemExit(
-            "npm not found. Install Node.js (https://nodejs.org) and re-run "
-            "python desktop/setup.py"
+            "npm not found. Install Node.js (https://nodejs.org) and re-run python desktop/setup.py"
         )
     env = dict(os.environ)
     # Empty base makes the SPA call its API on the same origin it was served from.

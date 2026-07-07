@@ -30,7 +30,7 @@ def free_port() -> int:
         return sock.getsockname()[1]
 
 
-def start_server(port: int) -> "uvicorn.Server":
+def start_server(port: int):
     import uvicorn
 
     from desktop.app_server import app
