@@ -45,9 +45,12 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # consultacontratos.ocpr.gov.pr's live search API
     # (scripts/scrape_ocpr_contracts.py) instead of waiting on an operator
     # export.
-    assert snapshot["total_sources"] == 142
-    assert snapshot["automatable_total"] == 97
-    assert snapshot["automatable_ready"] == 97
+    # centinelas_pre_official_signals added (automatable, on-drop pre-official
+    # intake via scripts/ingest_centinelas_signals.py): total_sources and
+    # automatable_total/automatable_ready each incremented by 1.
+    assert snapshot["total_sources"] == 143
+    assert snapshot["automatable_total"] == 98
+    assert snapshot["automatable_ready"] == 98
     assert snapshot["queued_excluded_total"] == 45
     assert snapshot["automatable_not_ready"] == []
 
