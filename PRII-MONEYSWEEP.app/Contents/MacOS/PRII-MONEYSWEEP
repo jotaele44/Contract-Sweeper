@@ -6,6 +6,11 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
 cd "$REPO"
 
+# Finder launches .app bundles with a minimal PATH that omits python.org
+# (/usr/local/bin) and Homebrew (/opt/homebrew/bin, Apple silicon). Restore
+# them so python3 and npm resolve the same way they do in a normal shell.
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 notify() { osascript -e "display dialog \"$1\" buttons {\"OK\"} with title \"MoneySweep — PRII\"" >/dev/null 2>&1 || true; }
 
 PY="$(command -v python3 || true)"
