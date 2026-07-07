@@ -6,10 +6,15 @@
 # The bundle mirrors the repo layout so server/backend/main.py finds data/
 # and releases/ with its normal relative paths.
 
+import os
 from pathlib import Path
 
 REPO_ROOT = Path(SPECPATH).resolve().parent
 APP_NAME = "PRII-MONEYSWEEP"
+
+# Windowed by default (no console window for double-click users). CI sets
+# PRII_CONSOLE=1 to build a console binary it can smoke-test with visible stdio.
+CONSOLE = os.environ.get("PRII_CONSOLE") == "1"
 
 datas = [
     (str(REPO_ROOT / "dashboard" / "dist"), "dashboard/dist"),
@@ -38,7 +43,7 @@ exe = EXE(
     a.scripts,
     exclude_binaries=True,
     name=APP_NAME,
-    console=True,  # console build so CI can smoke-test stdio and the app exits cleanly
+    console=CONSOLE,
 )
 
 coll = COLLECT(
