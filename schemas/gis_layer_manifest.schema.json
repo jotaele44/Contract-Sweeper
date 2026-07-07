@@ -29,7 +29,9 @@
               "infrastructure_assets",
               "contract_flows",
               "influence_overlay",
-              "debt_fiscal_overlay"
+              "debt_fiscal_overlay",
+              "roadway_segments",
+              "corridor_join"
             ]
           },
           "path": {"type": "string", "minLength": 1},
