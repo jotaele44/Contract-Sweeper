@@ -1,7 +1,7 @@
 source_id,family,required,authentication,expected_output_count,present_count,missing_count,empty_count,source_status,total_rows_present,min_rows_threshold,first_expected_output,blocker_notes
 cor3,territorial,True,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_cor3_projects.csv,"PR Central Office for Recovery, Reconstruction and Resiliency project tracker."
 hud_drgr_authorized,manual_export,True,manual_export,2,0,2,0,not_materialized,0,1,data/staging/processed/hud_drgr_activities.csv,Credentialed DRGR portal — operator must export and drop manifests in manual_drop_dir.
-oficina_contralor,territorial,True,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_contralor_audits.csv,PR Comptroller (OCPR) audit reports and findings on government entities and contractors. Operator delivers exported CSV/Excel to the dropzone. NOTE the OCPR contract registry (consultacontratos.ocpr.g
+oficina_contralor,territorial,True,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_contralor_audits.csv,"PR Comptroller (OCPR) audit AND investigation reports (Regular/Especial/ Investigaciones — all three report types live in this one source) on government entities, scraped live from the public iapconsu"
 pr_cabilderos,lobbying,True,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_cabilderos.csv,"PR Office of Government Ethics (OEG) state-level lobbyist (cabildero) registry. ingest_cabilderos.py is a dropzone reader (CSV/Excel), not a live scraper - operator delivers the OEG export to data/raw"
 prasa,infrastructure,True,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_prasa_contracts.csv,"PRASA aqueduct/sewer authority. ingest_prasa.py is a dropzone reader (CSV/Excel), not a live scraper - operator delivers exported procurement files to data/raw/PRASA/. Includes Consulting Engineer Rep"
 lda,lobbying,True,none,14,2,12,0,partially_materialized,20039,1,data/staging/processed/lda_registrants.csv,"API-authoritative federal LDA lobbying source via LDA.gov.
@@ -34,6 +34,7 @@ ases_plan_vital,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,dat
 bde_loans,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_bde_loans.csv,"Banco de Desarrollo Economico (Economic Development Bank) territorial business loans. Distinct from federal SBA loans. Operator-delivered exports.
 "
 census_gov_finances,territorial,False,api_key:CENSUS_API_KEY,1,0,1,0,not_materialized,0,0,data/staging/processed/pr_census_gov_finances.csv,Census government-finance / tax-collection figures for PR (FIPS 72) via the Census Data API. Automatable (needs CENSUS_API_KEY); materialized by scripts/download_census_gov_finances.py. Caveat - Censu
+centinelas_pre_official_signals,pre_officialization,False,none,2,0,2,0,not_materialized,0,0,exports/centinelas_intake/funding_awards.jsonl,Centinelas (centinelas-pr) drops FINANCIAL/POLITICAL pre-officialization signals into intake/. ingest_centinelas_signals.py geo-attributes them into pre-official located-finance candidate rows (signal
 chip,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_chip.csv,
 cms_open_payments,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_cms_open_payments.csv,
 cofina,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_cofina.csv,
@@ -121,7 +122,7 @@ nmtc,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_n
 nonprofits_irs990,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_nonprofits.csv,
 oatrh_payroll,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_govt_payroll.csv,"PR central-government payroll / salaries (OATRH Nomina). Operator-delivered exports.
 "
-ocpr_contracts,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_ocpr_contracts.csv,Canonical PR Comptroller (OCPR) contract registry — every PR government contract. Distinct from oficina_contralor (audit reports only). Interactive surface; operator-delivered exports until a scraper 
+ocpr_contracts,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_ocpr_contracts.csv,Canonical PR Comptroller (OCPR) contract registry — every PR government contract (~1.34M records). Distinct from oficina_contralor (audit reports only). Scraped live from the public consultacontratos.
 ofac_sdn,entity_resolution,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_ofac_sdn.csv,
 ogpe_permits,municipal,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_ogpe_permits.csv,"OGPe construction-permit fees and green-energy incentives. Operator-delivered exports.
 "

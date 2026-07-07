@@ -45,7 +45,9 @@
     "foia_letters": "python3 scripts/build_foia_letters.py",
     "ngo_layer": "python3 scripts/ngo_integration.py",
     "export_canonical": "python3 scripts/federation_export.py --mode test",
-    "maintenance": "python3 scripts/run_maintenance.py --repo moneysweep-pr --mode audit"
+    "maintenance": "python3 scripts/run_maintenance.py --repo moneysweep-pr --mode audit",
+    "ingest_centinelas": "python3 scripts/ingest_centinelas_signals.py",
+    "build_contract_finance_bundle": "python3 scripts/build_contract_finance_bundle.py --export-dir exports/centinelas_intake"
   },
   "canonical_outputs": {
     "canonical_export_dir": "data/exports/canonical_v1_federation",

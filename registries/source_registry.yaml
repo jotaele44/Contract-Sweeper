@@ -2156,3 +2156,26 @@ sources:
   - contracts_master
   notes: Manual-review candidate queue linking legislative measures to fiscal records
     through conservative fiscal terms and agency or municipality text alignment.
+- source_id: centinelas_pre_official_signals
+  family: pre_officialization
+  required: false
+  authentication: none
+  endpoint_url: ''
+  producer_script: scripts/ingest_centinelas_signals.py
+  expected_outputs:
+  - exports/centinelas_intake/funding_awards.jsonl
+  - exports/centinelas_intake/transactions.jsonl
+  schema_version: centinelas_pre_official_candidate_v1
+  validation_threshold:
+    min_rows: 0
+    manual_review_required: true
+  update_cadence: on_drop
+  tier: T3_operational
+  role: centinelas_pre_official_located_finance_candidates
+  depends_on:
+  - contracts_master
+  notes: Centinelas (centinelas-pr) drops FINANCIAL/POLITICAL pre-officialization signals
+    into intake/. ingest_centinelas_signals.py geo-attributes them into pre-official
+    located-finance candidate rows (signal_stage=pre_official, synthetic=false) feeding
+    the contract-finance geo reasoning + bundle for the SpiderWeb spatial overlay.
+    Pre-official candidates are not officialized money.

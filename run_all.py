@@ -129,6 +129,30 @@ def main() -> int:
     logger = setup_pipeline_logging(logs_dir)
     print_banner(logger)
 
+    # Standalone Centinelas lane: consume centinelas-pr intake drops → pre-official
+    # located-finance candidates → SpiderWeb contract-finance bundle, then exit.
+    # Runs outside the 29-step master pipeline so the pre-official feed can be
+    # refreshed independently of a full producer run.
+    if getattr(args, "ingest_centinelas", False):
+        try:
+            from scripts.ingest_centinelas_signals import run as ingest_centinelas
+            from scripts.build_contract_finance_bundle import build_bundle
+
+            ingest = ingest_centinelas()
+            logger.info(
+                f"[centinelas] {ingest['status']}: {ingest['award_count']} candidate(s) "
+                f"→ {ingest['output_dir']}"
+            )
+            report = build_bundle(export_dir=ingest["output_dir"])
+            logger.info(
+                f"[centinelas] contract-finance bundle: {report['record_count']} row(s), "
+                f"{report['centinelas_pre_official']['located_count']} located pre-official"
+            )
+            return 0
+        except Exception as e:
+            logger.error(f"[centinelas] intake/bundle failed: {e}")
+            return 1
+
     # Registry readiness preflight — inspects all sources without executing any
     # producer or making network calls. Missing API keys are non-fatal; structural
     # errors abort only under --strict-preflight.

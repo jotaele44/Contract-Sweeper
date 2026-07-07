@@ -42,6 +42,7 @@ wic,False,api_adapter,True,True,,True,True,scripts/download_wic.py,1,0,1,,Materi
 wioa,False,api_adapter,True,True,,True,True,scripts/download_wioa.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 aafaf,False,api_producer,True,True,,False,True,scripts/download_aafaf.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 census_gov_finances,False,api_producer,True,True,CENSUS_API_KEY,False,True,scripts/download_census_gov_finances.py,1,0,0,,"Run producer under strict preflight; public API path, set key if gated."
+centinelas_pre_official_signals,False,api_producer,True,True,,False,True,scripts/ingest_centinelas_signals.py,2,0,0,,"Run producer under strict preflight; public API path, set key if gated."
 cofina,False,api_producer,True,True,,False,True,scripts/download_cofina.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 compras_pr,False,api_producer,True,True,,False,True,scripts/download_compras.py,2,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 cor3,True,api_producer,True,True,,False,True,scripts/download_cor3.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
