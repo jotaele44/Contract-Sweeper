@@ -34,19 +34,13 @@ def venv_python() -> Path:
     return VENV_DIR / "bin" / "python"
 
 
-def run(
-    cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
-) -> None:
+def run(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
     print(f"$ {' '.join(cmd)}")
     subprocess.run(cmd, cwd=cwd, env=env, check=True)
 
 
 def is_complete() -> bool:
-    return (
-        MARKER.exists()
-        and venv_python().exists()
-        and (DIST_DIR / "index.html").exists()
-    )
+    return MARKER.exists() and venv_python().exists() and (DIST_DIR / "index.html").exists()
 
 
 MIN_PYTHON = (3, 10)
