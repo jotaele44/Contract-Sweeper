@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from fastapi.responses import FileResponse  # noqa: E402
+from fastapi.responses import FileResponse, RedirectResponse  # noqa: E402
 from server.backend.main import app  # noqa: E402
 
 from desktop.config import DIST_DIR  # noqa: E402
@@ -50,8 +50,14 @@ async def spa_navigation(request, call_next):
 
 
 @app.get("/{full_path:path}", include_in_schema=False)
-def spa_fallback(full_path: str) -> FileResponse:
+def spa_fallback(full_path: str):
     """Serve built frontend files, falling back to index.html for SPA routes."""
+    if full_path.endswith("/"):
+        # Preserve FastAPI's usual trailing-slash behavior for API paths
+        # (e.g. /health/ -> /health) instead of swallowing them as SPA routes.
+        trimmed = "/" + full_path.strip("/")
+        if any(getattr(route, "path", None) == trimmed for route in app.routes):
+            return RedirectResponse(trimmed, status_code=307)
     if full_path:
         candidate = (DIST_DIR / full_path).resolve()
         # Keep path traversal inside the dist directory.
