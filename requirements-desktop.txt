@@ -1,0 +1,2 @@
+# Extra dependencies for the double-click desktop wrapper (see desktop/).
+pywebview>=5.0
