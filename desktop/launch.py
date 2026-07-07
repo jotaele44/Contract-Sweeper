@@ -12,6 +12,7 @@ Flags:
 
 from __future__ import annotations
 
+import os
 import socket
 import sys
 import threading
@@ -22,6 +23,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from desktop.config import APP_TITLE, HEALTH_PATH  # noqa: E402
+
+
+def finish(server) -> None:
+    """Stop the server and end the process, including lingering threads.
+
+    In frozen (PyInstaller) builds — notably windowed Windows exes — event-loop
+    threads can keep the process alive after main() returns, so every terminal
+    path must end the process explicitly.
+    """
+    server.should_exit = True
+    time.sleep(0.3)
+    os._exit(0)
 
 
 def free_port() -> int:
@@ -66,8 +79,7 @@ def main() -> None:
 
     if "--smoke" in args:
         print(f"smoke ok: {url}{HEALTH_PATH}")
-        server.should_exit = True
-        return
+        finish(server)
 
     if "--no-window" in args:
         print(f"{APP_TITLE} running at {url} (Ctrl+C to stop)")
@@ -75,7 +87,7 @@ def main() -> None:
             while True:
                 time.sleep(3600)
         except KeyboardInterrupt:
-            server.should_exit = True
+            finish(server)
         return
 
     if "--browser" not in args:
@@ -84,8 +96,7 @@ def main() -> None:
 
             webview.create_window(APP_TITLE, url, width=1280, height=860)
             webview.start()
-            server.should_exit = True
-            return
+            finish(server)
         except Exception as exc:  # noqa: BLE001 - fall back to the browser
             print(f"pywebview unavailable ({exc}); opening the default browser.")
 
@@ -97,7 +108,7 @@ def main() -> None:
         while True:
             time.sleep(3600)
     except KeyboardInterrupt:
-        server.should_exit = True
+        finish(server)
 
 
 if __name__ == "__main__":
