@@ -26,12 +26,13 @@ def built_client(tmp_path, monkeypatch):
     """A client whose DIST_DIR contains a built frontend."""
     dist = tmp_path / "dist"
     (dist / "assets").mkdir(parents=True)
-    (dist / "index.html").write_text(
-        "<!doctype html><title>app</title>", encoding="utf-8"
-    )
+    (dist / "index.html").write_text("<!doctype html><title>app</title>", encoding="utf-8")
     (dist / "assets" / "app.js").write_text("console.log(1)", encoding="utf-8")
     monkeypatch.setattr(app_server, "DIST_DIR", dist)
-    return TestClient(app_server.app)
+    # Context manager so the app's lifespan startup runs — some backends create
+    # their SQLite tables there, and /health reads them.
+    with TestClient(app_server.app) as client:
+        yield client
 
 
 def test_spa_navigation_serves_index(built_client):
@@ -78,7 +79,7 @@ def test_path_traversal_falls_back_to_index(built_client):
 
 def test_missing_build_shows_setup_page(tmp_path, monkeypatch):
     monkeypatch.setattr(app_server, "DIST_DIR", tmp_path / "nope")
-    client = TestClient(app_server.app)
-    r = client.get("/", headers={"accept": "text/html"})
+    with TestClient(app_server.app) as client:
+        r = client.get("/", headers={"accept": "text/html"})
     assert r.status_code == 503
     assert "desktop/setup.py" in r.text
