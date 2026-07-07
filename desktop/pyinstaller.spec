@@ -38,7 +38,7 @@ exe = EXE(
     a.scripts,
     exclude_binaries=True,
     name=APP_NAME,
-    console=False,
+    console=True,  # console build so CI can smoke-test stdio and the app exits cleanly
 )
 
 coll = COLLECT(
