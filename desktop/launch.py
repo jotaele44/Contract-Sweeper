@@ -22,6 +22,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Frozen windowed builds can leave the standard streams as None; give every
+# library (uvicorn logging, asyncio) a real sink so nothing deadlocks or raises
+# on a missing stream.
+for _name in ("stdout", "stderr"):
+    if getattr(sys, _name, None) is None:
+        setattr(sys, _name, open(os.devnull, "w"))  # noqa: SIM115
+
 from desktop.config import APP_TITLE, HEALTH_PATH  # noqa: E402
 
 
@@ -104,6 +111,14 @@ def main() -> None:
     server = start_server(port)
 
     if "--smoke" in args:
+        # Absolute backstop: a frozen build must never hang the CI job. If the
+        # normal exit below is somehow not reached, force-terminate.
+        def _watchdog() -> None:
+            time.sleep(60)
+            os._exit(2)
+
+        threading.Thread(target=_watchdog, name="smoke-watchdog", daemon=True).start()
+
         # Self-contained so os._exit() always runs — even if the health check
         # fails — so a frozen build can never hang CI on lingering threads.
         try:
