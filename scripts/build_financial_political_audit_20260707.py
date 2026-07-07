@@ -139,7 +139,9 @@ def main() -> int:
 
     registry_rows = [r for r in rows if r["audit_status"] != "not_considered"]
     print(f"wrote {OUT_CSV.relative_to(REPO_ROOT)} ({len(rows)} rows)")
-    print(f"  registry sources: {len(registry_rows)}  (+{len(rows) - len(registry_rows)} not_considered)")
+    print(
+        f"  registry sources: {len(registry_rows)}  (+{len(rows) - len(registry_rows)} not_considered)"
+    )
     print(f"  political/influence sources: {sum(1 for r in rows if r['is_political'])}")
     print("  needs breakdown:")
     for need, n in Counter(r["needs"] for r in rows).most_common():
