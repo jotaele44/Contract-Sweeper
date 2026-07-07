@@ -387,9 +387,20 @@ def run(root=None, force=False):
     logger = setup_logging("build_financial_flows_master")
 
     if out_path.exists() and not force:
-        rows = len(pq_read(out_path))
-        logger.info(f"  financial_flows_master.parquet exists ({rows:,} rows) — skipping.")
-        return {"rows": rows, "status": "CACHED"}
+        df_cached = pq_read(out_path)
+        rows = len(df_cached)
+        # Compute the real total from the cached frame using the same numeric
+        # coercion as the rebuild path, so CACHED and OK totals agree exactly.
+        total_amount = (
+            pd.to_numeric(df_cached.get("amount"), errors="coerce").fillna(0).sum()
+            if "amount" in df_cached.columns
+            else 0.0
+        )
+        logger.info(
+            f"  financial_flows_master.parquet exists ({rows:,} rows, "
+            f"${total_amount:,.0f}) — skipping rebuild."
+        )
+        return {"rows": rows, "total_amount": total_amount, "status": "CACHED"}
 
     logger.info("Loading upstream inputs...")
     df_fema_v2 = _load_parquet(norm_dir / "fema_pa_projects_v2.parquet", logger)
@@ -456,7 +467,7 @@ def main():
     result = run(force=args.force)
     print(
         f"\nFinancial flows master: {result['rows']:,} rows, "
-        f"${result.get('total_amount', 0):,.0f} total"
+        f"${result.get('total_amount', 0):,.0f} total ({result.get('status', '')})"
     )
     return 0
 

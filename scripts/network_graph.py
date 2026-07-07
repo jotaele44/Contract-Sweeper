@@ -69,6 +69,77 @@ def load_hierarchy(root: Path) -> pd.DataFrame | None:
     return pd.read_csv(path, dtype=str, low_memory=False, keep_default_na=False)
 
 
+# Curated parent/control relationships that carry a control semantic — the
+# federation cares about these hierarchy edges regardless of award activity.
+PARENT_MAP_CONTROL_TYPES = (
+    "INSTRUMENTALITY_OF",
+    "P3_OPERATOR_OF",
+    "CONCESSION_OPERATOR_OF",
+)
+
+
+def load_parent_map(root: Path) -> pd.DataFrame | None:
+    """Load the curated entity parent/control map (data/reference/entity_parent_map.csv).
+
+    Columns: relation_id, parent_entity_id, child_entity_id, relationship_type,
+    source_id, evidence_tier, confidence, notes.
+    """
+    path = root / "data" / "reference" / "entity_parent_map.csv"
+    if not path.exists():
+        return None
+    return pd.read_csv(path, dtype=str, low_memory=False, keep_default_na=False)
+
+
+def add_parent_map_edges(G: nx.DiGraph, parent_map: pd.DataFrame | None) -> int:
+    """Add parent_entity nodes and hierarchy/control edges from the parent map.
+
+    Returns the number of control edges added. Parent nodes are typed
+    ``parent_entity``; child nodes are added as ``controlled_entity`` only when
+    not already present (never clobbering an existing vendor/agency/parent node).
+    Only the control relationship types in PARENT_MAP_CONTROL_TYPES are wired.
+    """
+    if parent_map is None or parent_map.empty:
+        return 0
+
+    edges_added = 0
+    for _, row in parent_map.iterrows():
+        rel_type = (row.get("relationship_type") or "").strip()
+        if rel_type not in PARENT_MAP_CONTROL_TYPES:
+            continue
+        parent = (row.get("parent_entity_id") or "").strip()
+        child = (row.get("child_entity_id") or "").strip()
+        if not parent or not child or parent == child:
+            continue
+
+        # Parent always carries the parent_entity type (a parent may appear as a
+        # child elsewhere, e.g. PREPA/HTA — set node_type on the parent add and
+        # only default it on the child add so neither role clobbers the other).
+        if G.has_node(parent):
+            G.nodes[parent]["node_type"] = "parent_entity"
+            G.nodes[parent].setdefault("label", parent[:60])
+        else:
+            G.add_node(parent, node_type="parent_entity", label=parent[:60])
+        if not G.has_node(child):
+            G.add_node(child, node_type="controlled_entity", label=child[:60])
+
+        try:
+            confidence = float(row.get("confidence") or 0.0)
+        except ValueError:
+            confidence = 0.0
+        G.add_edge(
+            parent,
+            child,
+            edge_type="control",
+            relationship_type=rel_type,
+            weight=1.0,
+            evidence_tier=(row.get("evidence_tier") or "").strip(),
+            confidence=round(confidence, 4),
+            relation_id=(row.get("relation_id") or "").strip(),
+        )
+        edges_added += 1
+    return edges_added
+
+
 def build_graph(
     df: pd.DataFrame, hierarchy: pd.DataFrame | None, min_obligation: float
 ) -> nx.DiGraph:
@@ -175,12 +246,20 @@ def run(
 
     df = load_master(root)
     hierarchy = load_hierarchy(root)
+    parent_map = load_parent_map(root)
 
     if min_obligation > 0:
         df = df[df["obligated_amount"] >= min_obligation]
         logger.info(f"  Filtered to obligations ≥ ${min_obligation:,.0f}: {len(df):,} rows")
 
     G = build_graph(df, hierarchy, min_obligation)
+
+    # Overlay curated parent/control hierarchy (entity_parent_map.csv) so the
+    # federation's instrumentality / P3 / concession control edges are present
+    # alongside the vendor→agency award graph.
+    control_edges = add_parent_map_edges(G, parent_map)
+    logger.info(f"  Parent-map control edges added: {control_edges}")
+
     logger.info(
         f"  Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges "
         f"({G.number_of_nodes()} vendors/agencies)"
@@ -240,6 +319,7 @@ def run(
         "vendor_nodes": len(vendor_nodes),
         "agency_nodes": len(agency_nodes),
         "parent_entity_nodes": len(parent_nodes),
+        "control_edges": control_edges,
         "production_status": status_payload["production_status"],
         "production_status_message": status_payload["status_message"],
         "top_node_by_pagerank": top1.get("node", ""),

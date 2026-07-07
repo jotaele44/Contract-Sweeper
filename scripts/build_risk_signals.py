@@ -29,6 +29,7 @@ from moneysweep.runtime.risk_signals import (
     PROJECT_SCORE_COLUMNS,
     MUNICIPALITY_SCORE_COLUMNS,
     compute_signals,
+    quarantine_entity_scores,
 )
 from scripts.config import setup_logging
 
@@ -59,8 +60,24 @@ def run(root: Path) -> dict:
 
     out_base = root / RISK_OUT
 
+    # Raw signal evidence is written FIRST and untouched — placeholder-cited
+    # signals stay in risk_signals_master.csv as evidence. Only the *ranked*
+    # entity_risk_scores.csv (and analyst-facing top-risk views) exclude
+    # placeholder tokens; quarantined rows are set aside in a sidecar, not deleted.
     n_sig = _write_csv(out_base / "risk_signals_master.csv", signals, SIGNAL_COLUMNS)
-    n_ent = _write_csv(out_base / "entity_risk_scores.csv", entity_scores, ENTITY_SCORE_COLUMNS)
+
+    ranked_entities, quarantined_entities = quarantine_entity_scores(entity_scores)
+    n_ent = _write_csv(
+        out_base / "entity_risk_scores.csv", ranked_entities, ENTITY_SCORE_COLUMNS
+    )
+    n_quar = _write_csv(
+        out_base / "entity_risk_scores_quarantined.csv",
+        quarantined_entities,
+        ENTITY_SCORE_COLUMNS,
+    )
+    if n_quar:
+        logger.info("  Quarantined %d placeholder entity rows from ranked output", n_quar)
+
     n_proj = _write_csv(out_base / "project_risk_scores.csv", project_scores, PROJECT_SCORE_COLUMNS)
     n_muni = _write_csv(
         out_base / "municipality_risk_scores.csv", municipality_scores, MUNICIPALITY_SCORE_COLUMNS
@@ -79,6 +96,7 @@ def run(root: Path) -> dict:
         "output_rows": {
             "risk_signals_master": n_sig,
             "entity_risk_scores": n_ent,
+            "entity_risk_scores_quarantined": n_quar,
             "project_risk_scores": n_proj,
             "municipality_risk_scores": n_muni,
         },
