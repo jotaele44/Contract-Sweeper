@@ -130,7 +130,10 @@ def write_streams(streams: dict[str, Any], root: Path) -> dict[str, Any]:
         ),
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    # Diagnostic coverage only. The Hub-conformant `manifest.json`
+    # (federation_export_manifest) is produced by scripts/federation_export.py;
+    # writing coverage to a separate file avoids clobbering it.
+    (out / "coverage.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest
 
 

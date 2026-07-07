@@ -1,17 +1,35 @@
 {
-  "producer_script": "scripts/bridge_canonical_v1_federation.py",
-  "producer_phase": "CANONICAL_V1_FEDERATION_BRIDGE",
-  "gate": "NON_PRODUCTION_DIAGNOSTIC",
-  "stream_counts": {
-    "sources": 4480,
-    "entities": 200,
-    "relationships": 64
+  "created_at": "2026-06-07T01:08:53.877935+00:00",
+  "export_contract_version": "1.0.0",
+  "extracted_at": "2026-06-07T01:08:53.877935+00:00",
+  "federation": {
+    "hub_parent": "thehub-pr",
+    "producer_repo": "moneysweep-pr"
   },
-  "source_feeds": {
-    "federal_publications": 4248,
-    "canonical_v1_evidence": 232
-  },
-  "not_yet_federated_count": 0,
-  "edges_federated_pct": 100.0,
-  "generated_at": "2026-06-08T11:00:22.151313+00:00"
+  "files": [
+    {
+      "filename": "sources.jsonl",
+      "record_count": 4480,
+      "schema_id": "federation_source.schema.json",
+      "sha256": "81e0d9712a457d61b677ae7f2daa8f12c0d5840edc1ac86696f6eb43beb21f50",
+      "stream": "sources"
+    },
+    {
+      "filename": "entities.jsonl",
+      "record_count": 200,
+      "schema_id": "federation_entity.schema.json",
+      "sha256": "0da5865f2a875d441e7578283d7aeddf5deeed3aa2af6daabf75637a5ef89251",
+      "stream": "entities"
+    },
+    {
+      "filename": "relationships.jsonl",
+      "record_count": 64,
+      "schema_id": "federation_relationship.schema.json",
+      "sha256": "67b77a310678cfd5bb832f2dad4d405e30bcc3ca5b300a1237c2ee96369436e6",
+      "stream": "relationships"
+    }
+  ],
+  "mode": "test",
+  "package_id": "pkg_107242f34f66384a08b3c3827fd8604a",
+  "producer": "moneysweep-pr"
 }
