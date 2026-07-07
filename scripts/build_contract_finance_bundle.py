@@ -201,7 +201,11 @@ def build_parser() -> argparse.ArgumentParser:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
-    parser.add_argument("--export-dir", default=None, help="Export-stream dir (funding_awards.jsonl / transactions.jsonl).")
+    parser.add_argument(
+        "--export-dir",
+        default=None,
+        help="Export-stream dir (funding_awards.jsonl / transactions.jsonl).",
+    )
     parser.add_argument("--processed-dir", default=str(DEFAULT_PROCESSED_DIR))
     parser.add_argument("--crosswalk", default=str(DEFAULT_CROSSWALK))
     parser.add_argument("--build-crosswalk", action="store_true")

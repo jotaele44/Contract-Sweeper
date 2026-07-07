@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from scripts.build_contract_finance_bundle import REQUIRED_OUTPUTS, build_bundle
 from scripts.ingest_centinelas_signals import run as ingest_run
@@ -50,8 +49,16 @@ def test_bundle_from_centinelas_stream(tmp_path):
     awards = json.loads((out / "contract_awards.geojson").read_text())
     assert awards["type"] == "FeatureCollection"
     props = awards["features"][0]["properties"]
-    for key in ("record_id", "entity_id", "amount", "date", "municipality_code",
-                "municipality_name", "feature_type", "source_id"):
+    for key in (
+        "record_id",
+        "entity_id",
+        "amount",
+        "date",
+        "municipality_code",
+        "municipality_name",
+        "feature_type",
+        "source_id",
+    ):
         assert key in props
     assert props["municipality_code"] == "72113"  # Ponce
     assert props["amount"] == 1500000.0
