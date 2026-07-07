@@ -89,26 +89,39 @@ NEEDS_BY_BUCKET = {
 }
 
 
-def _refine(row: dict, needs: str, step: str) -> tuple[str, str]:
-    """Sharpen the generic bucket action with the specific key / drop-zone."""
+def _refine(row: dict, needs: str, step: str) -> tuple[str, str, str]:
+    """Sharpen the bucket action, but keep ``needs`` COARSE.
+
+    The specific key / committed-input path goes in ``needs_detail`` so that
+    grouping the CSV by ``needs`` reproduces the documented buckets (e.g. the
+    single ``api_key`` bucket of 11) without special prefix parsing. Returns
+    ``(needs, remediation_step, needs_detail)``.
+    """
     if needs == "api_key" and row.get("needs_key"):
-        return f"api_key:{row['needs_key']}", (
-            f"Set {row['needs_key']} in .env, then run "
-            f"`{row.get('producer_basename') or 'the producer'}` with egress."
+        key = row["needs_key"]
+        return (
+            needs,
+            f"Set {key} in .env, then run "
+            f"`{row.get('producer_basename') or 'the producer'}` with egress.",
+            f"api_key:{key}",
         )
     if needs in {"operator_file", "run_offline"} and row.get("offline_input"):
-        return "run_offline", (
+        # A committed input turns a manual queue into an offline run — a genuine
+        # bucket correction, so ``needs`` legitimately changes here.
+        return (
+            "run_offline",
             f"Committed input present ({row['offline_input']}); run "
-            f"`{row.get('producer_basename') or 'the producer'}` to materialize."
+            f"`{row.get('producer_basename') or 'the producer'}` to materialize.",
+            row["offline_input"],
         )
-    return needs, step
+    return needs, step, ""
 
 
 def build() -> list[dict]:
     out: list[dict] = []
     for r in build_rows():
         needs, step = NEEDS_BY_BUCKET.get(r["audit_status"], ("unknown", ""))
-        needs, step = _refine(r, needs, step)
+        needs, step, detail = _refine(r, needs, step)
         out.append(
             {
                 "source_id": r["source_id"],
@@ -122,6 +135,7 @@ def build() -> list[dict]:
                 "producer_importable": r["producer_importable"],
                 "producer_script": r["producer_script"],
                 "needs": needs,
+                "needs_detail": detail,
                 "remediation_step": step,
                 "blocker": r["blocker"],
             }

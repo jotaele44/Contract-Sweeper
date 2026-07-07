@@ -21,7 +21,7 @@ The answer is **no on two independent axes**, and they must not be conflated:
 
 | Axis | Question | Where we are |
 |---|---|---|
-| **Coverage / wiring** | Is every source declared and wired to a producer? | **High but not complete** — 137 of 142 sources are wired with **0 structural defects**, but ~37 are queued behind manual files/scrapers and **5 real sources aren't in the registry at all**. |
+| **Coverage / wiring** | Is every source declared and wired to a producer? | **High but not complete** — 137 of 142 sources are wired with **0 structural defects**, but ~37 are queued behind manual files/scrapers and **9 real datasets aren't in the registry at all** (fresh 2026-07-07 gap analysis, §6; the audit ledger's `not_considered` bucket carries only the 5-row legacy backlog). |
 | **Materialization** | Do the wired sources actually hold the data? | **Low** — committed/CI view reads **0%**; even locally only **~7 sources hold bulk data**. Of 14 **required** sources, only **5 carry genuine bulk data**. |
 
 "Ready to run" (97/97 automatable per `reports/materialization_readiness.json`) is **not** "materialized." Readiness is a static import/entrypoint check; with outbound HTTPS blocked in this environment (403), no producer can fetch data here, so live-API correctness is unverified. The two axes are the whole story: **the pipeline is well-built; it is not yet filled.**
@@ -58,7 +58,7 @@ Freshly regenerated `scripts/build_financial_source_audit.py` over the live 142-
 | `queued_manual` | 35 | **Operator drops the export file**, then run the parser/ingest. |
 | `queued_scraper` | 2 | **Build a scraping adapter** (`hacienda_sut_ivu`, `pr_act_154_excise`). |
 | `broken` | 0 | — none. |
-| `not_considered` | 5 | **No registry entry** — see §6. |
+| `not_considered` | 5 | **No registry entry** — this is the pre-existing 5-row `financial_source_coverage_gaps.csv` backlog. The fresh 2026-07-07 gap analysis (§6) supersedes it with **9** verified-absent datasets (the same 5 plus 4 new, incl. the two political disclosure surfaces). |
 
 **"Needs" rollup** (from `financial_political_source_audit_2026-07-07.csv`): egress 84 · operator_file 35 · api_key 11 · design_decision 5 · registry_intake 5 · run_offline 3 · none 2 · scraper 2.
 
@@ -113,7 +113,7 @@ The user asked specifically about the political datasets. There are **12** polit
 
 ## 6. Overlooked datasets — fresh gap analysis (2026-07-07)
 
-Each candidate below was **verified absent** from the live 142-id registry and confirmed against a primary source via web research today. Full rows in [`financial_political_coverage_gaps_2026-07-07.csv`](financial_political_coverage_gaps_2026-07-07.csv).
+**9** candidates, each **verified absent** from the live 142-id registry and confirmed against a primary source via web research today. This supersedes the audit ledger's 5-row `not_considered` backlog (§3): the 5 legacy items (`gsa_iolp_real_property`, `hmda_ffiec`, `prac_pandemic_oversight`, `pr_arbitrios_excise`, `pr_ui_trust_fund`) are all included, plus **4 new** — the two political disclosure surfaces, `faa_aip_grants`, and `ffiec_call_reports`. Full rows in [`financial_political_coverage_gaps_2026-07-07.csv`](financial_political_coverage_gaps_2026-07-07.csv).
 
 | candidate | category | flow captured | access | priority |
 |---|---|---|---|---|
