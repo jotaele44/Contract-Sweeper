@@ -116,11 +116,15 @@ def _norm_conf(value: str | None) -> float:
         return 0.0
 
 
-def build_streams(root: Path | None = None) -> dict[str, Any]:
-    """Return the three federation streams + a coverage report (no writing)."""
+def build_streams(root: Path | None = None, now: str | None = None) -> dict[str, Any]:
+    """Return the three federation streams + a coverage report (no writing).
+
+    ``now`` stamps every row's ``created_at``/``extracted_at``. It defaults to the
+    current UTC time (``_now()``); pass a fixed ISO timestamp for a deterministic,
+    byte-reproducible package (used by ``scripts/federation_export.py``)."""
     root = root or REPO_ROOT
     tables = load_all_tables(root)
-    now = _now()
+    now = now or _now()
 
     # --- sources from evidence ---
     sources: list[dict[str, Any]] = []
