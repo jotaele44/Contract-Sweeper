@@ -102,3 +102,10 @@ outputs/**/cypher_shell_candidates.txt
 
 # generated federation maintenance report (audit artifact, not committed)
 reports/maintenance/
+
+# Desktop wrapper (see desktop/README.md)
+dashboard/node_modules/
+dashboard/dist/
+desktop/.setup-complete
+dist-desktop/
+build/
