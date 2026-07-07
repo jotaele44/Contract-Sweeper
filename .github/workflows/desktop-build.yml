@@ -8,6 +8,12 @@ on:
   push:
     tags:
       - "desktop-v*"
+  pull_request:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - "requirements-desktop.txt"
+      - ".github/workflows/desktop-build.yml"
 
 permissions:
   contents: write
