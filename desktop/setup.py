@@ -34,13 +34,19 @@ def venv_python() -> Path:
     return VENV_DIR / "bin" / "python"
 
 
-def run(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
+def run(
+    cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
+) -> None:
     print(f"$ {' '.join(cmd)}")
     subprocess.run(cmd, cwd=cwd, env=env, check=True)
 
 
 def is_complete() -> bool:
-    return MARKER.exists() and venv_python().exists() and (DIST_DIR / "index.html").exists()
+    return (
+        MARKER.exists()
+        and venv_python().exists()
+        and (DIST_DIR / "index.html").exists()
+    )
 
 
 MIN_PYTHON = (3, 10)
@@ -72,8 +78,11 @@ def setup_frontend() -> None:
             "npm not found. Install Node.js (https://nodejs.org) and re-run python desktop/setup.py"
         )
     env = dict(os.environ)
-    # Empty base makes the SPA call its API on the same origin it was served from.
+    # Empty base makes the SPA call its API on the same origin it was served
+    # from. Process env beats any developer .env.local at Vite build time;
+    # repos with differently-named base vars add them via EXTRA_BUILD_ENV.
     env["VITE_API_BASE"] = ""
+    env.update(getattr(config, "EXTRA_BUILD_ENV", {}))
     if (FRONTEND_DIR / "package-lock.json").exists():
         run([npm, "ci", "--no-audit", "--no-fund"], cwd=FRONTEND_DIR, env=env)
     else:
