@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-07-04T13:18:58.250684+00:00",
+  "generated_at": "2026-07-07T12:40:02.879625+00:00",
   "schema_version": "r5_v1",
-  "total_sources": 142,
+  "total_sources": 143,
   "required_sources": 14,
   "fully_materialized": 6,
   "partially_materialized": 4,
   "not_materialized": 5,
-  "optional_not_materialized": 127,
-  "coverage_rate": 0.0423,
+  "optional_not_materialized": 128,
+  "coverage_rate": 0.042,
   "required_coverage_rate": 0.6429,
   "outputs": [
     "reports/gap_analysis_report.csv",

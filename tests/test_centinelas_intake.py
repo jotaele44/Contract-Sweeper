@@ -5,10 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from moneysweep.runtime.centinelas_intake import (
-    build_candidates,
     ingest_centinelas_drops,
     is_finance_relevant,
 )
