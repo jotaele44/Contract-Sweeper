@@ -22,7 +22,32 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Frozen windowed builds can leave the standard streams as None; give every
+# library (uvicorn logging, asyncio) a real sink so nothing deadlocks or raises
+# on a missing stream.
+for _name in ("stdout", "stderr"):
+    if getattr(sys, _name, None) is None:
+        setattr(sys, _name, open(os.devnull, "w"))  # noqa: SIM115
+
 from desktop.config import APP_TITLE, HEALTH_PATH  # noqa: E402
+
+
+def log(message: str) -> None:
+    """Print without ever raising.
+
+    Frozen windowed builds (notably on Windows) have sys.stdout/stderr set to
+    None, so a bare print() raises AttributeError. If that happened before the
+    os._exit() in finish(), the process would hang on non-daemon asyncio
+    executor threads until it was killed. Route all output through here.
+    """
+    stream = sys.stdout
+    if stream is None:
+        return
+    try:
+        stream.write(f"{message}\n")
+        stream.flush()
+    except Exception:  # noqa: BLE001 - logging must never break control flow
+        pass
 
 
 def finish(server) -> None:
@@ -71,18 +96,46 @@ def wait_healthy(url: str, timeout: float = 30.0) -> None:
 
 def main() -> None:
     args = set(sys.argv[1:])
+    argv = sys.argv[1:]
     port = free_port()
-    url = f"http://127.0.0.1:{port}"
+    base = f"http://127.0.0.1:{port}"
+
+    # Optional --route <path> opens the window/browser on a specific client
+    # route (e.g. the federation launcher at /launcher) while health checks
+    # still target the server root.
+    url = base
+    if "--route" in argv:
+        route = argv[argv.index("--route") + 1]
+        url = base + "/" + route.lstrip("/")
 
     server = start_server(port)
-    wait_healthy(url + HEALTH_PATH)
 
     if "--smoke" in args:
-        print(f"smoke ok: {url}{HEALTH_PATH}")
-        finish(server)
+        # Absolute backstop: a frozen build must never hang the CI job. If the
+        # normal exit below is somehow not reached, force-terminate.
+        def _watchdog() -> None:
+            time.sleep(60)
+            os._exit(2)
+
+        threading.Thread(target=_watchdog, name="smoke-watchdog", daemon=True).start()
+
+        # Self-contained so os._exit() always runs — even if the health check
+        # fails — so a frozen build can never hang CI on lingering threads.
+        try:
+            wait_healthy(base + HEALTH_PATH)
+            log(f"smoke ok: {base}{HEALTH_PATH}")
+            code = 0
+        except BaseException as exc:  # noqa: BLE001 - report and exit non-zero
+            log(f"smoke failed: {exc}")
+            code = 1
+        server.should_exit = True
+        time.sleep(0.3)
+        os._exit(code)
+
+    wait_healthy(base + HEALTH_PATH)
 
     if "--no-window" in args:
-        print(f"{APP_TITLE} running at {url} (Ctrl+C to stop)")
+        log(f"{APP_TITLE} running at {url} (Ctrl+C to stop)")
         try:
             while True:
                 time.sleep(3600)
@@ -98,12 +151,12 @@ def main() -> None:
             webview.start()
             finish(server)
         except Exception as exc:  # noqa: BLE001 - fall back to the browser
-            print(f"pywebview unavailable ({exc}); opening the default browser.")
+            log(f"pywebview unavailable ({exc}); opening the default browser.")
 
     import webbrowser
 
     webbrowser.open(url)
-    print(f"{APP_TITLE} running at {url} — close this window/Ctrl+C to stop.")
+    log(f"{APP_TITLE} running at {url} — close this window/Ctrl+C to stop.")
     try:
         while True:
             time.sleep(3600)
