@@ -109,3 +109,5 @@ dashboard/dist/
 desktop/.setup-complete
 dist-desktop/
 build/
+desktop/.running
+dist-smoke/

@@ -1,17 +1,21 @@
 """Launch the app as a local desktop window.
 
 Starts uvicorn on a free localhost port in a background thread, waits for the
-backend health endpoint, then opens a native window (pywebview). Falls back to
-the default browser when pywebview is unavailable.
+backend health endpoint, then opens a native window (pywebview) — showing a
+"starting…" splash until the backend is ready. Falls back to the default
+browser when pywebview is unavailable.
 
 Flags:
   --no-window   serve only; print the URL and block (Ctrl+C to stop)
   --browser     skip pywebview and open the default browser
+  --route PATH  open the window/browser on a client route (e.g. /launcher)
   --smoke       start, verify health, exit 0 (used by CI and setup checks)
 """
 
 from __future__ import annotations
 
+import contextlib
+import json
 import os
 import socket
 import sys
@@ -30,6 +34,10 @@ for _name in ("stdout", "stderr"):
         setattr(sys, _name, open(os.devnull, "w"))  # noqa: SIM115
 
 from desktop.config import APP_TITLE, HEALTH_PATH  # noqa: E402
+
+# Records the running instance (pid + url) so a second double-click reuses it
+# instead of starting another server. Lives beside this file; gitignored.
+LOCK_FILE = Path(__file__).resolve().parent / ".running"
 
 
 def log(message: str) -> None:
@@ -50,6 +58,96 @@ def log(message: str) -> None:
         pass
 
 
+def display_url(base: str, argv: list[str]) -> str:
+    """Build the URL to open in the window/browser.
+
+    --route <path> opens a specific client route (e.g. the federation launcher
+    at /launcher); health checks still target the server root (base).
+    """
+    if "--route" in argv:
+        route = argv[argv.index("--route") + 1]
+        return base + "/" + route.lstrip("/")
+    return base
+
+
+def _pid_alive(pid: int) -> bool:
+    """Non-destructive 'is this process running?' check.
+
+    On POSIX, signal 0 is a liveness probe. On Windows os.kill(pid, 0) instead
+    calls TerminateProcess (it would KILL the process), so use OpenProcess +
+    GetExitCodeProcess there and never signal it.
+    """
+    if os.name == "nt":
+        import ctypes
+
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        STILL_ACTIVE = 259
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not handle:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                return False
+            return code.value == STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _health_ok(health_url: str) -> bool:
+    try:
+        with urllib.request.urlopen(health_url, timeout=1) as response:
+            return response.status == 200
+    except Exception:  # noqa: BLE001 - unreachable == not our instance
+        return False
+
+
+# A just-launched instance is trusted for this long before its health endpoint
+# comes up, so a double-click during startup reuses it rather than racing a
+# second server.
+STARTUP_GRACE_SECONDS = 40.0
+
+
+def running_instance_base() -> str | None:
+    """Return the base origin of a live prior instance, or None (clean stale locks).
+
+    Accepts the lock when the recorded process is alive AND either its health URL
+    answers or it is still within its startup grace window — so a crash, a reused
+    PID, or a double-click mid-startup are all handled correctly.
+    """
+    try:
+        data = json.loads(LOCK_FILE.read_text(encoding="utf-8"))
+        pid = int(data["pid"])
+        base = data["base"]
+        health = data["health"]
+        born = float(data["born"])
+    except Exception:  # noqa: BLE001 - missing/garbled lock == no instance
+        return None
+    starting = (time.time() - born) < STARTUP_GRACE_SECONDS
+    if _pid_alive(pid) and (_health_ok(health) or starting):
+        return base
+    LOCK_FILE.unlink(missing_ok=True)
+    return None
+
+
+def write_lock(base: str, health_url: str) -> None:
+    payload = json.dumps(
+        {"pid": os.getpid(), "base": base, "health": health_url, "born": time.time()}
+    )
+    with contextlib.suppress(Exception):  # the lock is best-effort
+        LOCK_FILE.write_text(payload, encoding="utf-8")
+
+
+def clear_lock() -> None:
+    LOCK_FILE.unlink(missing_ok=True)
+
+
 def finish(server) -> None:
     """Stop the server and end the process, including lingering threads.
 
@@ -57,6 +155,7 @@ def finish(server) -> None:
     threads can keep the process alive after main() returns, so every terminal
     path must end the process explicitly.
     """
+    clear_lock()
     server.should_exit = True
     time.sleep(0.3)
     os._exit(0)
@@ -94,19 +193,90 @@ def wait_healthy(url: str, timeout: float = 30.0) -> None:
     raise SystemExit(f"Backend did not become healthy at {url}: {last_error}")
 
 
+# Kept as short pieces so every source line stays within strict line-length lints.
+_FONT = "-apple-system,Segoe UI,Roboto,sans-serif"
+_PAGE_CSS = (
+    "html,body{height:100%;margin:0}"
+    "body{display:flex;flex-direction:column;align-items:center;"
+    f"justify-content:center;font-family:{_FONT};background:#0f172a;color:#e2e8f0;"
+    "text-align:center;padding:0 32px}"
+    "h1{font-size:17px;margin:0 0 10px}"
+    "p{color:#94a3b8;font-size:13px;max-width:34rem}"
+    "code{background:#1e293b;padding:2px 6px;border-radius:4px}"
+    ".spin{width:34px;height:34px;border:4px solid #334155;border-top-color:#818cf8;"
+    "border-radius:50%;animation:s .8s linear infinite;margin-bottom:18px}"
+    "@keyframes s{to{transform:rotate(360deg)}}"
+)
+
+
+def _page(body: str) -> str:
+    return (
+        '<!doctype html><html><head><meta charset="utf-8">'
+        f"<style>{_PAGE_CSS}</style></head><body>{body}</body></html>"
+    )
+
+
+def _splash_html(message: str) -> str:
+    return _page(f'<div class="spin"></div><p>Starting {message}…</p>')
+
+
+def _error_html(message: str, detail: str) -> str:
+    return _page(
+        f"<h1>{message} could not start</h1>"
+        "<p>The local server did not become ready. Try again, or run "
+        "<code>python desktop/setup.py</code> from the repo to repair it.</p>"
+        f'<p style="color:#64748b">{detail}</p>'
+    )
+
+
+def _run_window(server, base: str, url: str) -> None:
+    """Open a native window on a splash, then load the app once it is healthy."""
+    import webview
+
+    window = webview.create_window(APP_TITLE, html=_splash_html(APP_TITLE), width=1280, height=860)
+
+    def _on_ready() -> None:
+        try:
+            wait_healthy(base + HEALTH_PATH)
+            window.load_url(url)
+        except BaseException as exc:  # noqa: BLE001 - show a friendly page, keep window open
+            clear_lock()  # this instance never became ready
+            log(f"backend failed to start: {exc}")
+            window.load_html(_error_html(APP_TITLE, str(exc)))
+
+    webview.start(_on_ready)
+    finish(server)
+
+
+def _block_until_interrupt(server) -> None:
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        finish(server)
+
+
 def main() -> None:
     args = set(sys.argv[1:])
     argv = sys.argv[1:]
     port = free_port()
     base = f"http://127.0.0.1:{port}"
+    url = display_url(base, argv)
 
-    # Optional --route <path> opens the window/browser on a specific client
-    # route (e.g. the federation launcher at /launcher) while health checks
-    # still target the server root.
-    url = base
-    if "--route" in argv:
-        route = argv[argv.index("--route") + 1]
-        url = base + "/" + route.lstrip("/")
+    # Single-instance guard (user-facing launches only; dev modes are exempt):
+    # reuse a running instance instead of starting a second server, applying
+    # THIS launch's --route to the existing origin. Claim the lock up front so a
+    # double-click during startup reuses us rather than racing a second server.
+    if not (args & {"--smoke", "--no-window"}):
+        existing = running_instance_base()
+        if existing:
+            import webbrowser
+
+            target = display_url(existing, argv)
+            log(f"{APP_TITLE} is already running; opening {target}")
+            webbrowser.open(target)
+            return
+        write_lock(base, base + HEALTH_PATH)
 
     server = start_server(port)
 
@@ -132,36 +302,25 @@ def main() -> None:
         time.sleep(0.3)
         os._exit(code)
 
-    wait_healthy(base + HEALTH_PATH)
-
     if "--no-window" in args:
+        wait_healthy(base + HEALTH_PATH)
         log(f"{APP_TITLE} running at {url} (Ctrl+C to stop)")
-        try:
-            while True:
-                time.sleep(3600)
-        except KeyboardInterrupt:
-            finish(server)
+        _block_until_interrupt(server)
         return
 
     if "--browser" not in args:
         try:
-            import webview
-
-            webview.create_window(APP_TITLE, url, width=1280, height=860)
-            webview.start()
-            finish(server)
+            _run_window(server, base, url)
+            return
         except Exception as exc:  # noqa: BLE001 - fall back to the browser
             log(f"pywebview unavailable ({exc}); opening the default browser.")
 
     import webbrowser
 
+    wait_healthy(base + HEALTH_PATH)
     webbrowser.open(url)
     log(f"{APP_TITLE} running at {url} — close this window/Ctrl+C to stop.")
-    try:
-        while True:
-            time.sleep(3600)
-    except KeyboardInterrupt:
-        finish(server)
+    _block_until_interrupt(server)
 
 
 if __name__ == "__main__":

@@ -15,19 +15,38 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from fastapi.responses import FileResponse, RedirectResponse  # noqa: E402
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse  # noqa: E402
 from server.backend.main import app  # noqa: E402
 
 from desktop.config import DIST_DIR  # noqa: E402
 
 _PASSTHROUGH_PREFIXES = ("/docs", "/redoc", "/openapi")
 
+_MISSING_BUILD_CSS = (
+    "html,body{height:100%;margin:0}"
+    "body{display:flex;flex-direction:column;align-items:center;"
+    "justify-content:center;font-family:-apple-system,Segoe UI,Roboto,sans-serif;"
+    "background:#0f172a;color:#e2e8f0;text-align:center;padding:0 32px}"
+    "h1{font-size:18px;margin:0 0 12px}"
+    "p{color:#94a3b8;font-size:14px;max-width:34rem}"
+    "code{background:#1e293b;padding:2px 6px;border-radius:4px}"
+)
+_MISSING_BUILD_PAGE = (
+    '<!doctype html><html><head><meta charset="utf-8"><title>Setup needed</title>'
+    f"<style>{_MISSING_BUILD_CSS}</style></head>"
+    "<body><h1>The dashboard isn't built yet</h1>"
+    "<p>Run <code>python desktop/setup.py</code> from the repository once (it "
+    "needs internet the first time) to build the interface, then reopen the app.</p>"
+    "</body></html>"
+)
 
-def _index() -> Path:
+
+def _index_response():
+    """The SPA entry point, or a friendly setup page when the build is missing."""
     index = DIST_DIR / "index.html"
-    if not index.is_file():
-        raise RuntimeError(f"Frontend build not found at {DIST_DIR}. Run: python desktop/setup.py")
-    return index
+    if index.is_file():
+        return FileResponse(index)
+    return HTMLResponse(_MISSING_BUILD_PAGE, status_code=503)
 
 
 @app.middleware("http")
@@ -45,7 +64,7 @@ async def spa_navigation(request, call_next):
         and not path.startswith(_PASSTHROUGH_PREFIXES)
         and "." not in path.rsplit("/", 1)[-1]
     ):
-        return FileResponse(_index())
+        return _index_response()
     return await call_next(request)
 
 
@@ -63,4 +82,4 @@ def spa_fallback(full_path: str):
         # Keep path traversal inside the dist directory.
         if candidate.is_file() and candidate.is_relative_to(DIST_DIR.resolve()):
             return FileResponse(candidate)
-    return FileResponse(_index())
+    return _index_response()
