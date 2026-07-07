@@ -105,7 +105,8 @@ each row is a **manual-review candidate** until accepted. Primary key `join_id`.
 | `join_id` | Deterministic project↔segment pair id (see §4) |
 | `project_id`, `project_name` | Roadway project (FK to the STIP/TIP project row) |
 | `segment_uid` | Joined segment (FK to `roadwatch_segment`) |
-| `route_id`, `km_start`, `km_end` | Project extent along the route LRS |
+| `route_id` | Route the project references |
+| `km_start`, `km_end` | Project extent along the route LRS; **optional** — blank for `route_only_promoted` / `nbi_structure_point` (no project extent) |
 | `overlap_pct` | % of the segment covered by the project extent (primary QA metric) |
 | `join_method` | How the join was made (vocabulary below) |
 | `geo_reason_code` | Spatial-resolution quality/reason code (§3.3) |
@@ -126,11 +127,21 @@ each row is a **manual-review candidate** until accepted. Primary key `join_id`.
 
 ### 3.3 Geo reason codes
 
-Reuse the controlled vocabulary shape of
+`geo_reason_code` follows the **row shape** of
 [`schemas/geo_reason_codes.schema.json`](../schemas/geo_reason_codes.schema.json)
-(`code`, `kind: geo_resolution_reason`, `description`) for `geo_reason_code`, e.g.
+(`code`, `kind: geo_resolution_reason`, `description`). Note that the *enumerated
+values* are not in that schema — they are the locked resolver vocabulary
+`GEO_RESOLUTION_REASONS` in
+[`scripts/build_geo_reason_codes.py`](../scripts/build_geo_reason_codes.py), which
+regenerates the reference table asserted for exact equality by
+[`tests/test_gis_layers.py`](../tests/test_gis_layers.py).
+
+The following RoadWatch codes are **proposed, not yet registered**:
 `km_measure_exact`, `km_measure_interpolated`, `route_only_no_km`,
-`crs_reprojected`, `boundary_split_multi_cell`, `unresolved_no_geometry`.
+`crs_reprojected`, `boundary_split_multi_cell`, `unresolved_no_geometry`. The
+implementation PR (§8) must add them to `GEO_RESOLUTION_REASONS` and regenerate
+the reference table so producers and consumers share one vocabulary; until then,
+corridor rows using these codes would carry values absent from the locked table.
 
 ### 3.4 Entity–relationship (mermaid)
 
@@ -302,10 +313,13 @@ intentionally deferred.
 
 1. Register the four inputs (done here as an overlay); merge into
    `registries/source_registry.yaml` and run `scripts/regenerate_registry_json.py`.
-2. Implement `scripts/ingest_dtop_centerline_lrs.py` (+ HPMS, NBI, STIP producers).
-3. Implement `scripts/build_roadwatch_corridor_join.py` (validates rows via
+2. Register the proposed geo reason codes (§3.3) in `GEO_RESOLUTION_REASONS`
+   (`scripts/build_geo_reason_codes.py`) and regenerate the reference table so
+   `tests/test_gis_layers.py` stays green.
+3. Implement `scripts/ingest_dtop_centerline_lrs.py` (+ HPMS, NBI, STIP producers).
+4. Implement `scripts/build_roadwatch_corridor_join.py` (validates rows via
    `moneysweep.validation.canonical_v1_schema.validate_row`, writes a provenance
    manifest).
-4. Add a `--skip-roadwatch*` flag in `moneysweep/orchestrator/cli.py` and a step
+5. Add a `--skip-roadwatch*` flag in `moneysweep/orchestrator/cli.py` and a step
    in `run_all.py`, ordered after the `depends_on` inputs.
-5. Add `tests/test_roadwatch*.py` mirroring `tests/test_infrastructure_revenue.py`.
+6. Add `tests/test_roadwatch*.py` mirroring `tests/test_infrastructure_revenue.py`.
