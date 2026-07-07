@@ -61,9 +61,7 @@ def test_cached_branch_returns_total_amount_key(tmp_path):
     """
     norm_dir = tmp_path / "data" / "normalized"
     norm_dir.mkdir(parents=True)
-    df = pd.DataFrame(
-        {col: [""] * 3 for col in bffm.FLOW_COLUMNS}
-    )
+    df = pd.DataFrame({col: [""] * 3 for col in bffm.FLOW_COLUMNS})
     df["amount"] = ["100.50", "200", "not_a_number"]
     from scripts.parquet_utils import pq_write
 

@@ -67,9 +67,7 @@ def run(root: Path) -> dict:
     n_sig = _write_csv(out_base / "risk_signals_master.csv", signals, SIGNAL_COLUMNS)
 
     ranked_entities, quarantined_entities = quarantine_entity_scores(entity_scores)
-    n_ent = _write_csv(
-        out_base / "entity_risk_scores.csv", ranked_entities, ENTITY_SCORE_COLUMNS
-    )
+    n_ent = _write_csv(out_base / "entity_risk_scores.csv", ranked_entities, ENTITY_SCORE_COLUMNS)
     n_quar = _write_csv(
         out_base / "entity_risk_scores_quarantined.csv",
         quarantined_entities,
