@@ -117,6 +117,45 @@ def test_build_coverage_shape():
     assert fx.build_coverage(_streams(), mode="production", now=_TS)["gate"] == "PRODUCTION"
 
 
+def test_synthetic_counts_flags_synthetic_rows():
+    streams = _streams()
+    assert fx._synthetic_counts(streams) == {"sources": 0, "entities": 0, "relationships": 0}
+    streams["entities"][0]["synthetic"] = True
+    assert fx._synthetic_counts(streams)["entities"] == 1
+
+
+def test_production_rejects_synthetic_but_test_allows(tmp_path, monkeypatch):
+    syn = _streams()
+    syn["entities"][0]["synthetic"] = True
+    monkeypatch.setattr(fx, "build_streams", lambda root, now=None: syn)
+    monkeypatch.setattr(fx, "merge_external_sources", lambda streams, root: 0)
+    monkeypatch.setattr(fx, "validate_rows", lambda streams, root: [])
+
+    # production must reject and write nothing
+    assert fx.main(["--mode", "production", "--out", str(tmp_path / "p")]) == 1
+    assert not (tmp_path / "p" / "manifest.json").exists()
+    # the same rows are permitted in test mode
+    assert fx.main(["--mode", "test", "--out", str(tmp_path / "t")]) == 0
+    assert (tmp_path / "t" / "manifest.json").exists()
+
+
+def test_bridge_rerun_refreshes_hub_manifest(tmp_path):
+    """A legacy-bridge rerun must keep manifest.json in sync with the streams it
+    rewrites (no stale sha256s)."""
+    import hashlib
+
+    from scripts import bridge_canonical_v1_federation as br
+
+    br.write_streams(_streams(), tmp_path)
+    pkg = tmp_path / "data" / "exports" / "canonical_v1_federation"
+    manifest = json.loads((pkg / "manifest.json").read_text())
+    assert re.fullmatch(r"pkg_[a-f0-9]{32}", manifest["package_id"])
+    assert manifest["producer"] == "moneysweep-pr"
+    assert (pkg / "coverage.json").exists()
+    for f in manifest["files"]:
+        assert f["sha256"] == hashlib.sha256((pkg / f["filename"]).read_bytes()).hexdigest()
+
+
 @pytest.mark.integration
 def test_main_end_to_end_writes_valid_package(tmp_path):
     # Runs the real bridge against repo data and writes a package to tmp_path.

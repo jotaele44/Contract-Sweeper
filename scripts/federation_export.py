@@ -68,6 +68,12 @@ def _iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _synthetic_counts(streams) -> dict:
+    """Per-stream count of rows flagged ``synthetic: true`` (a production export
+    must contain none — mirrors the federation-wide production invariant)."""
+    return {s: sum(1 for r in streams[s] if r.get("synthetic") is True) for s in STREAM_ORDER}
+
+
 def write_package(streams, out_dir: Path, *, mode: str, now: str) -> dict:
     """Write the JSONL streams + a Hub ``federation_export_manifest.json``.
 
@@ -168,6 +174,22 @@ def main(argv=None) -> int:
     if errors:
         print(json.dumps({"ok": False, "errors": errors[:50]}, indent=2))
         return 1
+    if args.mode == "production":
+        synthetic = {s: c for s, c in _synthetic_counts(streams).items() if c}
+        if synthetic:
+            total = sum(synthetic.values())
+            print(
+                json.dumps(
+                    {
+                        "ok": False,
+                        "errors": [
+                            f"production export rejects synthetic rows ({total} found: {synthetic})"
+                        ],
+                    },
+                    indent=2,
+                )
+            )
+            return 1
     if args.check:
         print(
             json.dumps(

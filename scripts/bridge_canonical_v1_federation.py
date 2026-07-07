@@ -98,12 +98,17 @@ def validate_rows(streams: dict[str, Any], root: Path) -> list[str]:
 
 
 def write_streams(streams: dict[str, Any], root: Path) -> dict[str, Any]:
+    # Delegate stream + Hub-manifest writing to the canonical export path so that
+    # rewriting the streams here always refreshes
+    # data/exports/canonical_v1_federation/manifest.json in lockstep — otherwise a
+    # bridge rerun would leave the committed Hub manifest's sha256s stale and the
+    # package invalid. Lazy import avoids an import cycle (federation_export imports
+    # merge_external_sources/validate_rows from this module).
+    from scripts.federation_export import write_package
+
     out = root / OUT_DIR
-    out.mkdir(parents=True, exist_ok=True)
-    for stream, (_schema, out_file) in STREAMS.items():
-        with (out / out_file).open("w", encoding="utf-8") as fh:
-            for row in streams[stream]:
-                fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+    now = datetime.now(timezone.utc).isoformat()
+    write_package(streams, out, mode="test", now=now)
     manifest = {
         "producer_script": "scripts/bridge_canonical_v1_federation.py",
         "producer_phase": "CANONICAL_V1_FEDERATION_BRIDGE",
@@ -128,11 +133,10 @@ def write_streams(streams: dict[str, Any], root: Path) -> dict[str, Any]:
             / max(1, len(streams["relationships"]) + len(streams["not_yet_federated"])),
             2,
         ),
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": now,
     }
-    # Diagnostic coverage only. The Hub-conformant `manifest.json`
-    # (federation_export_manifest) is produced by scripts/federation_export.py;
-    # writing coverage to a separate file avoids clobbering it.
+    # Diagnostic coverage sits alongside the Hub `manifest.json` written above by
+    # write_package (they no longer collide).
     (out / "coverage.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest
 
