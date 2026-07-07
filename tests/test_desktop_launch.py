@@ -6,6 +6,7 @@ the --route display URL, and the single-instance lock.
 
 import io
 import json
+import os
 import socket
 import sys
 from pathlib import Path
@@ -60,20 +61,52 @@ def test_wait_healthy_raises_on_closed_port():
         launch.wait_healthy(f"http://127.0.0.1:{port}/health", timeout=0.5)
 
 
-def test_single_instance_lock(tmp_path, monkeypatch):
+def test_pid_alive():
+    import os
+
+    assert launch._pid_alive(os.getpid()) is True
+    assert launch._pid_alive(2**31 - 1) is False  # implausible pid
+
+
+def test_running_instance_within_startup_grace(tmp_path, monkeypatch):
     lock = tmp_path / ".running"
     monkeypatch.setattr(launch, "LOCK_FILE", lock)
+    monkeypatch.setattr(launch, "_health_ok", lambda _url: False)  # not up yet
 
-    assert launch.running_instance_url() is None  # no lock yet
+    assert launch.running_instance_base() is None  # no lock
 
-    launch.write_lock("http://127.0.0.1:1234")
-    assert launch.running_instance_url() == "http://127.0.0.1:1234"  # our pid is alive
+    launch.write_lock("http://127.0.0.1:1234", "http://127.0.0.1:1234/health")
+    # Health is not up, but the fresh born timestamp keeps it trusted (startup).
+    assert launch.running_instance_base() == "http://127.0.0.1:1234"
 
-    # A stale pid clears the lock and reports no instance.
-    lock.write_text(json.dumps({"pid": 2**31 - 1, "url": "x"}), encoding="utf-8")
-    assert launch.running_instance_url() is None
+
+def test_running_instance_requires_health_after_grace(tmp_path, monkeypatch):
+    lock = tmp_path / ".running"
+    monkeypatch.setattr(launch, "LOCK_FILE", lock)
+    # A lock born long ago: only accepted if the health URL still answers.
+    stale = {
+        "pid": os.getpid(),
+        "base": "http://127.0.0.1:1234",
+        "health": "http://127.0.0.1:1234/health",
+        "born": 0,
+    }
+    lock.write_text(json.dumps(stale), encoding="utf-8")
+
+    monkeypatch.setattr(launch, "_health_ok", lambda _url: False)
+    assert launch.running_instance_base() is None  # stale + unhealthy → cleared
     assert not lock.exists()
 
-    launch.write_lock("u")
-    launch.clear_lock()
+    lock.write_text(json.dumps(stale), encoding="utf-8")
+    monkeypatch.setattr(launch, "_health_ok", lambda _url: True)
+    assert launch.running_instance_base() == "http://127.0.0.1:1234"  # healthy → live
+
+
+def test_stale_pid_clears_lock(tmp_path, monkeypatch):
+    lock = tmp_path / ".running"
+    monkeypatch.setattr(launch, "LOCK_FILE", lock)
+    lock.write_text(
+        json.dumps({"pid": 2**31 - 1, "base": "x", "health": "x/health", "born": 0}),
+        encoding="utf-8",
+    )
+    assert launch.running_instance_base() is None
     assert not lock.exists()

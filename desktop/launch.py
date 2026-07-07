@@ -70,23 +70,76 @@ def display_url(base: str, argv: list[str]) -> str:
     return base
 
 
-def running_instance_url() -> str | None:
-    """Return the URL of a live prior instance, or None (and clean stale locks)."""
+def _pid_alive(pid: int) -> bool:
+    """Non-destructive 'is this process running?' check.
+
+    On POSIX, signal 0 is a liveness probe. On Windows os.kill(pid, 0) instead
+    calls TerminateProcess (it would KILL the process), so use OpenProcess +
+    GetExitCodeProcess there and never signal it.
+    """
+    if os.name == "nt":
+        import ctypes
+
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        STILL_ACTIVE = 259
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not handle:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                return False
+            return code.value == STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _health_ok(health_url: str) -> bool:
+    try:
+        with urllib.request.urlopen(health_url, timeout=1) as response:
+            return response.status == 200
+    except Exception:  # noqa: BLE001 - unreachable == not our instance
+        return False
+
+
+# A just-launched instance is trusted for this long before its health endpoint
+# comes up, so a double-click during startup reuses it rather than racing a
+# second server.
+STARTUP_GRACE_SECONDS = 40.0
+
+
+def running_instance_base() -> str | None:
+    """Return the base origin of a live prior instance, or None (clean stale locks).
+
+    Accepts the lock when the recorded process is alive AND either its health URL
+    answers or it is still within its startup grace window — so a crash, a reused
+    PID, or a double-click mid-startup are all handled correctly.
+    """
     try:
         data = json.loads(LOCK_FILE.read_text(encoding="utf-8"))
         pid = int(data["pid"])
+        base = data["base"]
+        health = data["health"]
+        born = float(data["born"])
     except Exception:  # noqa: BLE001 - missing/garbled lock == no instance
         return None
-    try:
-        os.kill(pid, 0)  # signal 0 just checks existence
-    except OSError:
-        LOCK_FILE.unlink(missing_ok=True)
-        return None
-    return data.get("url")
+    starting = (time.time() - born) < STARTUP_GRACE_SECONDS
+    if _pid_alive(pid) and (_health_ok(health) or starting):
+        return base
+    LOCK_FILE.unlink(missing_ok=True)
+    return None
 
 
-def write_lock(url: str) -> None:
-    payload = json.dumps({"pid": os.getpid(), "url": url})
+def write_lock(base: str, health_url: str) -> None:
+    payload = json.dumps(
+        {"pid": os.getpid(), "base": base, "health": health_url, "born": time.time()}
+    )
     with contextlib.suppress(Exception):  # the lock is best-effort
         LOCK_FILE.write_text(payload, encoding="utf-8")
 
@@ -185,9 +238,9 @@ def _run_window(server, base: str, url: str) -> None:
     def _on_ready() -> None:
         try:
             wait_healthy(base + HEALTH_PATH)
-            write_lock(url)
             window.load_url(url)
         except BaseException as exc:  # noqa: BLE001 - show a friendly page, keep window open
+            clear_lock()  # this instance never became ready
             log(f"backend failed to start: {exc}")
             window.load_html(_error_html(APP_TITLE, str(exc)))
 
@@ -210,16 +263,20 @@ def main() -> None:
     base = f"http://127.0.0.1:{port}"
     url = display_url(base, argv)
 
-    # Single-instance guard: for user-facing launches, reuse a running instance
-    # (open its URL) instead of starting a second server. Dev modes are exempt.
+    # Single-instance guard (user-facing launches only; dev modes are exempt):
+    # reuse a running instance instead of starting a second server, applying
+    # THIS launch's --route to the existing origin. Claim the lock up front so a
+    # double-click during startup reuses us rather than racing a second server.
     if not (args & {"--smoke", "--no-window"}):
-        existing = running_instance_url()
+        existing = running_instance_base()
         if existing:
             import webbrowser
 
-            log(f"{APP_TITLE} is already running at {existing}")
-            webbrowser.open(existing)
+            target = display_url(existing, argv)
+            log(f"{APP_TITLE} is already running; opening {target}")
+            webbrowser.open(target)
             return
+        write_lock(base, base + HEALTH_PATH)
 
     server = start_server(port)
 
@@ -261,7 +318,6 @@ def main() -> None:
     import webbrowser
 
     wait_healthy(base + HEALTH_PATH)
-    write_lock(url)
     webbrowser.open(url)
     log(f"{APP_TITLE} running at {url} — close this window/Ctrl+C to stop.")
     _block_until_interrupt(server)
