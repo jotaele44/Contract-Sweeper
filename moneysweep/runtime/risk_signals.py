@@ -517,6 +517,68 @@ def _signals_stale_lineage(awards: pd.DataFrame) -> list[dict]:
     return signals
 
 
+# ---------- Placeholder-token quarantine ----------
+
+# Non-entity junk that pollutes recipient-name fields (form defaults, "unknown"
+# markers, occupation stand-ins). These must never surface in the *ranked*
+# entity_risk_scores.csv or analyst-facing top-risk lists. They are quarantined
+# from ranked outputs only — the raw risk_signals_master.csv evidence that cites
+# them is preserved untouched.
+PLACEHOLDER_ENTITY_TOKENS: frozenset[str] = frozenset(
+    {
+        "NONE",
+        "YES",
+        "NO",
+        "N/A",
+        "NA",
+        "UNKNOWN",
+        "RETIRED",
+        "SELF EMPLOYED",
+        "SELF-EMPLOYED",
+        "INDEPENDENT CONTRACTOR",
+    }
+)
+
+
+def _placeholder_key(value: Any) -> str:
+    """Uppercase + whitespace-collapse a name for exact placeholder matching.
+
+    Deliberately does NOT strip corporate suffixes (unlike ``_normalize``): we
+    match the whole string against the token set so real entities like
+    ``NORTHROP`` or ``NATIONAL BUILDERS`` are never caught by a ``NO``/``NA``
+    substring.
+    """
+    import re
+
+    if value is None:
+        return ""
+    return re.sub(r"\s+", " ", str(value).upper().strip())
+
+
+def is_placeholder_entity(name: Any) -> bool:
+    """True when ``name`` is a placeholder token, not a real entity (exact match)."""
+    return _placeholder_key(name) in PLACEHOLDER_ENTITY_TOKENS
+
+
+def quarantine_entity_scores(
+    entity_scores: list[dict],
+) -> tuple[list[dict], list[dict]]:
+    """Split ranked entity scores into (kept, quarantined) by placeholder name.
+
+    Matches on ``entity_name`` (the display name) — NOT ``entity_id``, which is
+    the suffix-stripped ``_normalize`` form and could distort matching. Order of
+    kept rows is preserved so the ranking is unchanged.
+    """
+    kept: list[dict] = []
+    quarantined: list[dict] = []
+    for row in entity_scores:
+        if is_placeholder_entity(row.get("entity_name")):
+            quarantined.append(row)
+        else:
+            kept.append(row)
+    return kept, quarantined
+
+
 # ---------- Score aggregation ----------
 
 _FAMILY_WEIGHT: dict[str, float] = {
