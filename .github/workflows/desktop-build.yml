@@ -49,17 +49,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r server/backend/requirements.txt -r requirements-desktop.txt pyinstaller
 
-      - name: Freeze desktop app
-        run: pyinstaller desktop/pyinstaller.spec --distpath dist-desktop --noconfirm
+      - name: Freeze console build (for smoke test)
+        env:
+          PRII_CONSOLE: "1"
+        run: pyinstaller desktop/pyinstaller.spec --distpath dist-smoke --noconfirm
 
       - name: Smoke test frozen app
         shell: python
         run: |
           import pathlib, subprocess, sys
           name = "PRII-MONEYSWEEP"
-          exe = pathlib.Path("dist-desktop") / name / (name + (".exe" if sys.platform == "win32" else ""))
+          exe = pathlib.Path("dist-smoke") / name / (name + (".exe" if sys.platform == "win32" else ""))
           result = subprocess.run([str(exe), "--smoke"], timeout=120)
           sys.exit(result.returncode)
+
+      - name: Freeze desktop app (windowed release)
+        run: pyinstaller desktop/pyinstaller.spec --distpath dist-desktop --noconfirm
 
       - name: Package bundle
         shell: bash
@@ -71,13 +76,30 @@ jobs:
             7z a -bd "PRII-MONEYSWEEP-${RUNNER_OS}.zip" "PRII-MONEYSWEEP" > /dev/null
           fi
 
+      - name: Package .dmg (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd dist-desktop
+          staging="dmg-staging"
+          rm -rf "$staging" && mkdir "$staging"
+          cp -R "PRII-MONEYSWEEP.app" "$staging/"
+          ln -s /Applications "$staging/Applications"
+          hdiutil create -volname "PRII-MONEYSWEEP" -srcfolder "$staging" \
+            -ov -format UDZO "PRII-MONEYSWEEP-macOS.dmg"
+          rm -rf "$staging"
+
       - uses: actions/upload-artifact@v4
         with:
           name: PRII-MONEYSWEEP-${{ runner.os }}
-          path: dist-desktop/PRII-MONEYSWEEP-*.zip
+          path: |
+            dist-desktop/PRII-MONEYSWEEP-*.zip
+            dist-desktop/PRII-MONEYSWEEP-*.dmg
 
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/desktop-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-desktop/PRII-MONEYSWEEP-*.zip
+          files: |
+            dist-desktop/PRII-MONEYSWEEP-*.zip
+            dist-desktop/PRII-MONEYSWEEP-*.dmg
