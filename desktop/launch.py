@@ -89,8 +89,17 @@ def wait_healthy(url: str, timeout: float = 30.0) -> None:
 
 def main() -> None:
     args = set(sys.argv[1:])
+    argv = sys.argv[1:]
     port = free_port()
-    url = f"http://127.0.0.1:{port}"
+    base = f"http://127.0.0.1:{port}"
+
+    # Optional --route <path> opens the window/browser on a specific client
+    # route (e.g. the federation launcher at /launcher) while health checks
+    # still target the server root.
+    url = base
+    if "--route" in argv:
+        route = argv[argv.index("--route") + 1]
+        url = base + "/" + route.lstrip("/")
 
     server = start_server(port)
 
@@ -98,8 +107,8 @@ def main() -> None:
         # Self-contained so os._exit() always runs — even if the health check
         # fails — so a frozen build can never hang CI on lingering threads.
         try:
-            wait_healthy(url + HEALTH_PATH)
-            log(f"smoke ok: {url}{HEALTH_PATH}")
+            wait_healthy(base + HEALTH_PATH)
+            log(f"smoke ok: {base}{HEALTH_PATH}")
             code = 0
         except BaseException as exc:  # noqa: BLE001 - report and exit non-zero
             log(f"smoke failed: {exc}")
@@ -108,7 +117,7 @@ def main() -> None:
         time.sleep(0.3)
         os._exit(code)
 
-    wait_healthy(url + HEALTH_PATH)
+    wait_healthy(base + HEALTH_PATH)
 
     if "--no-window" in args:
         log(f"{APP_TITLE} running at {url} (Ctrl+C to stop)")
