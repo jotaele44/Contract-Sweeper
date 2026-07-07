@@ -1,0 +1,20 @@
+#!/bin/bash
+# macOS .app launcher for the PRII desktop wrapper. Self-locating: resolves the
+# repo root from this bundle's own path, runs one-time setup, then opens the app.
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$HERE/../../.." && pwd)"
+cd "$REPO"
+
+notify() { osascript -e "display dialog \"$1\" buttons {\"OK\"} with title \"MoneySweep — PRII\"" >/dev/null 2>&1 || true; }
+
+PY="$(command -v python3 || true)"
+if [ -z "$PY" ]; then
+  notify "Python 3 is required. Install it from https://www.python.org/downloads/ and open this app again."
+  exit 1
+fi
+if ! "$PY" desktop/setup.py --ensure; then
+  notify "First-run setup could not finish. It needs internet the first time (and Node.js for the dashboard build). Open Terminal in $REPO and run: python3 desktop/setup.py"
+  exit 1
+fi
+exec .venv/bin/python desktop/launch.py 
