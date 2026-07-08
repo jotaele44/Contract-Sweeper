@@ -16,7 +16,7 @@ import json
 from collections.abc import Iterator
 from pathlib import Path
 
-from ..models import MaintenanceFinding
+from prii_maintenance import MaintenanceFinding
 
 READINESS_PATH = "reports/materialization_readiness.json"
 CANONICAL_EXPORT_DIR = "data/exports/canonical_v1_federation"
