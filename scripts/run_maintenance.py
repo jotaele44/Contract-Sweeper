@@ -12,9 +12,12 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT))  # maintenance.adapters.local is still vendored here
 
-from maintenance.runner import run_maintenance  # noqa: E402
+from maintenance.adapters import local  # noqa: E402
+from prii_maintenance import run_maintenance  # noqa: E402
+
+PROGRAM_ID = "moneysweep-pr"  # the id that used to live in maintenance/runner.py
 
 
 def main() -> int:
@@ -26,7 +29,13 @@ def main() -> int:
     ap.add_argument("--fail-on-blocker", action="store_true", help="exit 1 if promotion is blocked")
     args = ap.parse_args()
 
-    report = run_maintenance(root=REPO_ROOT, mode=args.mode, write=not args.no_write)
+    report = run_maintenance(
+        root=REPO_ROOT,
+        mode=args.mode,
+        write=not args.no_write,
+        program_id=PROGRAM_ID,
+        local_checks=local.run_checks,
+    )
     payload = report.to_dict()
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
