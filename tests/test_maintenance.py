@@ -1,4 +1,12 @@
-"""MoneySweep maintenance layer: detection, source freshness, synthetic leakage."""
+"""MoneySweep maintenance adapter: repo-specific checks + shared-package wiring.
+
+Generic detection/runner behavior now lives in thehub-pr's shared
+`prii_maintenance` package (thehub-pr/packages/prii_maintenance/tests/); this
+file keeps only the checks genuinely specific to moneysweep-pr
+(`maintenance/adapters/local.py`) plus a smoke test proving the CLI shim's
+dependency-injection wiring (`prii_maintenance.run_maintenance(...,
+local_checks=local.run_checks)`) actually invokes this repo's adapter.
+"""
 
 from __future__ import annotations
 
@@ -8,9 +16,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from maintenance import detect, run_maintenance  # noqa: E402
-from maintenance import state as state_mod  # noqa: E402
 from maintenance.adapters import local  # noqa: E402
+from prii_maintenance import run_maintenance  # noqa: E402
+from prii_maintenance import state as state_mod  # noqa: E402
 
 EXPORT_DIR = "data/exports/canonical_v1_federation"
 
@@ -41,12 +49,6 @@ def _write_export(root, *, gate, entities):
     (d / "entities.jsonl").write_text(
         "\n".join(json.dumps(e) for e in entities) + "\n", encoding="utf-8"
     )
-
-
-def test_missing_federation_json_is_critical(tmp_path):
-    state = state_mod.collect_repo_state(tmp_path)
-    findings = detect.detect_missing_required_files("moneysweep-pr", tmp_path, state)
-    assert any(f.severity == "critical" for f in findings)
 
 
 def test_readiness_missing_is_error(tmp_path):
@@ -98,8 +100,21 @@ def test_vendor_duplicate_ids_warning(tmp_path):
     assert findings[0].category == "duplicate"
 
 
-def test_audit_run_with_clean_readiness_not_blocked(tmp_path):
+# ---- shared-package wiring smoke test ----
+
+
+def test_run_maintenance_invokes_local_adapter_and_is_not_blocked_when_clean(tmp_path):
+    """Prove the CLI shim's local_checks injection actually reaches this repo's
+    adapter through the shared prii_maintenance package."""
     _write_readiness(tmp_path)
     _federation(tmp_path)
-    report = run_maintenance(root=tmp_path, mode="audit", write=False)
+
+    report = run_maintenance(
+        root=tmp_path,
+        mode="audit",
+        write=False,
+        program_id="moneysweep-pr",
+        local_checks=local.run_checks,
+    )
+
     assert report.promotion_blocked is False
