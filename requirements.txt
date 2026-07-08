@@ -1,19 +1,32 @@
-pandas>=2.0.0
-requests>=2.34.2
-lxml>=6.1.1
-pytest>=9.1.1
-pytest-cov>=7.1.0
-rapidfuzz>=3.14.5
-python-dotenv>=1.2.2
-pyarrow>=24.0.0
-# R5 foundation deps
-PyYAML>=6.0.3
-networkx>=3.6.1; python_version >= '3.11'
-networkx>=3.0; python_version < '3.11'
-# ACT/ACUDEN PDF extraction harness
-pdfplumber>=0.11.10
-# SBA disaster-loan workbook importer
-openpyxl>=3.1.0
-# Shared maintenance core (ADR 0001 Phase 3, thehub-pr). Pinned to a commit
-# SHA, not a branch — bump deliberately, one line, one PR.
+certifi==2026.6.17
+cffi==2.1.0
+charset-normalizer==3.4.9
+coverage[toml]==7.15.0
+cryptography==49.0.0
+et-xmlfile==2.0.0
+idna==3.18
+iniconfig==2.3.0
+lxml==6.1.1
+networkx==3.6.1 ; python_version >= "3.11"
+numpy==2.4.6
+openpyxl==3.1.5
+packaging==26.2
+pandas==3.0.3
+pdfminer-six==20260107
+pdfplumber==0.11.10
+pillow==12.3.0
+pluggy==1.6.0
 prii-maintenance @ git+https://github.com/jotaele44/thehub-pr.git@3c9e51e3de406f8455605a06fabd4823452d9b63#subdirectory=packages/prii_maintenance
+pyarrow==24.0.0
+pycparser==3.0
+pygments==2.20.0
+pypdfium2==5.11.0
+pytest==9.1.1
+pytest-cov==7.1.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+pyyaml==6.0.3
+rapidfuzz==3.14.5
+requests==2.34.2
+six==1.17.0
+urllib3==2.7.0
