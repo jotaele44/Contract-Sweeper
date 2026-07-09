@@ -1,21 +1,21 @@
 # ACT-family alias coverage audit
 
 - Input: `data/raw/act_transition/transition_contracts_extracted.csv`
-- Rows scanned: 1797
-- Distinct canonical clusters: 639
+- Rows scanned: 1803
+- Distinct canonical clusters: 640
 - Alias overrides loaded: 108
 
 ## Coverage summary
 
 - Matched (cluster has at least one override hit): **24**
-- Unmatched (no override hit; default-normalized canonical): **615**
+- Unmatched (no override hit; default-normalized canonical): **616**
 - Cross-source clusters (appear in ≥2 source_dataset values): **50**
 
 ## Per-source-year breakdown
 
 | source_dataset | rows | distinct canonical clusters |
 |---|---|---|
-| `ACT_2020` | 650 | 274 |
+| `ACT_2020` | 656 | 275 |
 | `ACUDEN_2024` | 1147 | 415 |
 
 ## Recommended new overrides
@@ -511,6 +511,7 @@ Every cluster where no alias override fired. The reviewer should scan for semant
 | `NUESTRA ESCUELA` | 2 | Nuestra Escuela · Nuestra Escuela Inc. | ACUDEN_2024 |
 | `NUESTRA ESCUELA CASA ROSA` | 1 | Nuestra Escuela - Casa Rosa | ACUDEN_2024 |
 | `O AND M CONSULTING ENGINEERING` | 5 | O & M CONSULTING ENGINEERING ,P.S.C. | ACT_2020 |
+| `OBRATEC CONTRATISTA GENERAL` | 6 | Obratec Contratista General, Inc. | ACT_2020 |
 | `OCEAN PARK KIDS` | 2 | Ocean Park Kids, Inc | ACUDEN_2024 |
 | `OLYMPIC PERFORMANCE` | 1 | Olympic Performance LLC | ACUDEN_2024 |
 | `OMAYRA FIGUEROA RAMOS DBA CENTRO DE CUIDO NINILANDIA` | 1 | Omayra Figueroa Ramos dba Centro de Cuido Niñilandia | ACUDEN_2024 |

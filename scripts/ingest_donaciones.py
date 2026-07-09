@@ -45,6 +45,9 @@ OUTPUT_COLUMNS = [
     "office_sought",
     "election_type",
     "report_type",
+    "candidacy_type",
+    "payment_method",
+    "event_name",
     "source_file",
 ]
 
@@ -78,6 +81,7 @@ COL_MAP = {
     "donor_zip_code": [
         "zip_donante",
         "zip",
+        "zip code",
         "codigo_postal",
         "postal_code",
         "donor_zip",
@@ -126,6 +130,7 @@ COL_MAP = {
         "partido",
         "party",
         "partido_politico",
+        "siglas",
     ],
     "office_sought": [
         "cargo",
@@ -147,6 +152,22 @@ COL_MAP = {
         "report_type",
         "report",
         "tipo_reporte",
+    ],
+    "candidacy_type": [
+        "candidatura",
+        "candidacy_type",
+        "tipo_candidatura",
+    ],
+    "payment_method": [
+        "metodo",
+        "método",
+        "payment_method",
+        "metodo_pago",
+    ],
+    "event_name": [
+        "evento",
+        "event",
+        "event_name",
     ],
 }
 
