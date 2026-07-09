@@ -40,6 +40,8 @@ CABILDEROS_COLUMNS = [
     "lobbying_subject",
     "agency_lobbied",
     "fee_amount",
+    "registro_cabildero_num",
+    "certifying_official",
     "source_file",
 ]
 
@@ -80,6 +82,9 @@ COL_MAP = {
         "Fecha Registro",
         "fecha_registro",
         "Date Registered",
+        "Fecha de Certificacion",
+        "Fecha de Certificación",
+        "certification_date",
     ],
     "expiry_date": [
         "Fecha de Expiración",
@@ -113,6 +118,17 @@ COL_MAP = {
         "Compensation",
         "honorarios",
         "fee_amount",
+    ],
+    "registro_cabildero_num": [
+        "Registro de Cabildero Num",
+        "Registro de Cabildero Núm",
+        "Registro de Cabildero Numero",
+        "registro_cabildero_num",
+    ],
+    "certifying_official": [
+        "Certifying Official",
+        "Funcionario Certificador",
+        "certifying_official",
     ],
 }
 
