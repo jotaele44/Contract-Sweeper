@@ -48,9 +48,12 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # centinelas_pre_official_signals added (automatable, on-drop pre-official
     # intake via scripts/ingest_centinelas_signals.py): total_sources and
     # automatable_total/automatable_ready each incremented by 1.
-    assert snapshot["total_sources"] == 143
-    assert snapshot["automatable_total"] == 98
-    assert snapshot["automatable_ready"] == 98
+    # sam_opportunities added (automatable via SAM_API_KEY, pre-award federal
+    # solicitations / bid notices; scripts/download_sam_opportunities.py):
+    # total_sources and automatable_total/automatable_ready each incremented by 1.
+    assert snapshot["total_sources"] == 144
+    assert snapshot["automatable_total"] == 99
+    assert snapshot["automatable_ready"] == 99
     assert snapshot["queued_excluded_total"] == 45
     assert snapshot["automatable_not_ready"] == []
 
