@@ -36,7 +36,7 @@ Run these locally before pushing — CI enforces every one:
 
 Notes:
 - Pin parity matters: CI uses the versions in `requirements-dev.txt` (e.g. mypy
-  `1.11.2`). Use those locally so results match.
+  `2.1.0`, ruff `0.15.18`). Use those locally so results match.
 - `mypy` checks `moneysweep/` (scripts are followed but not yet reported).
 - `ruff format` is the house style; a `.git-blame-ignore-revs` keeps blame readable
   across the one-time reformat.

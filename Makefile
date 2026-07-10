@@ -31,7 +31,7 @@ format:  ## ruff format — rewrite files in place
 format-check:  ## ruff format --check (gating; the CI counterpart)
 	ruff format --check .
 
-type:  ## mypy over the configured scope (pinned 1.11.2; gating in mypy.yml)
+type:  ## mypy over the configured scope (pinned 2.1.0; gating in mypy.yml)
 	$(PYTHON) -m mypy
 
 test:  ## Full pytest suite with the coverage floor from pytest.ini
