@@ -6,6 +6,12 @@
 
 The pipeline acquires, normalizes, validates, and cross-links public procurement, infrastructure, lobbying, campaign-finance, debt/fiscal-control, contractor-reference, recovery-assistance, and geospatial records. It exports reviewable records for [`thehub-pr`](https://github.com/jotaele44/thehub-pr), where cross-producer aggregation and correlation occur.
 
+> **Diagnostic-only surface (ADR 0001, Phase 2).** This repo's dashboard is a
+> development and diagnostic tool for this producer only. The supported product
+> surface for the PRII federation is the hub app
+> (`thehub-pr/server/frontend`), which renders this producer's data alongside
+> the other engines. See `thehub-pr/docs/adr/0001-federated-engines-single-hub.md`.
+
 ## Federation role
 
 | Field | Value |
@@ -20,9 +26,9 @@ The pipeline acquires, normalizes, validates, and cross-links public procurement
 
 moneysweep-pr is **not yet a production-certified master dataset**. The current state is a controlled buildout phase:
 
-- **Source registry:** 136 tracked source definitions (includes SBA disaster-loan sources).
-- **Automatable sources:** 90 marked ready by the materialization-readiness gate (13 formerly scraper-queued PR-gov sources promoted after confirming real scraping implementations).
-- **Queued / excluded sources:** 39 manual-export sources, 2 scraper-needed stubs (hacienda_sut_ivu, pr_act_154_excise), semantic duplicates, and deferred stubs remain outside the automatable target.
+- **Source registry:** 143 tracked source definitions (includes SBA disaster-loan sources; counts follow `reports/materialization_readiness.json`).
+- **Automatable sources:** 98 marked ready by the materialization-readiness gate (13 formerly scraper-queued PR-gov sources promoted after confirming real scraping implementations).
+- **Queued / excluded sources:** 38 manual-export sources, 2 scraper-needed stubs (hacienda_sut_ivu, pr_act_154_excise), semantic duplicates, and deferred stubs remain outside the automatable target.
 - **Strict preflight:** required before producer execution or promotion.
 - **Current active work:** Tranche B manual-source ingestion (7 output files seeded; operator must drop source files to populate).
 - **Last recorded full test baseline:** 2018 passed, 6 skipped, 0 failed.

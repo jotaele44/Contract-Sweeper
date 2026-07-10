@@ -1,5 +1,11 @@
 # moneysweep-pr Dashboard
 
+> **Diagnostic-only surface (ADR 0001, Phase 2).** This dashboard is a
+> development and diagnostic tool for this producer only. The supported product
+> surface for the PRII federation is the hub app
+> (`thehub-pr/server/frontend`), which renders this producer's data alongside
+> the other engines. See `thehub-pr/docs/adr/0001-federated-engines-single-hub.md`.
+
 Local-only React dashboard for the moneysweep-pr (MoneySweep / Contracts)
 module. Same federation frontend process as the others — Vite + React (JSX) +
 Tailwind + shadcn/ui + react-query, Base44 auth stripped. Data-table centric
