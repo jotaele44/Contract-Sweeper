@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "federation_export_manifest.schema.json",
+  "title": "Federation Export Manifest",
+  "description": "Generalized manifest describing one packaged producer export. Unlike a single producer's locked manifest, this accepts any producer and a variable set of streams, so the Hub can ingest heterogeneous nodes.",
+  "type": "object",
+  "required": [
+    "package_id",
+    "producer",
+    "export_contract_version",
+    "mode",
+    "created_at",
+    "federation",
+    "files"
+  ],
+  "properties": {
+    "package_id": {
+      "type": "string",
+      "pattern": "^pkg_[a-f0-9]{32}$",
+      "description": "Deterministic ID derived from sorted (filename, sha256) entries plus mode."
+    },
+    "producer": {"type": "string", "description": "Producer program_id (e.g. moneysweep-pr)."},
+    "producer_version": {"type": "string"},
+    "export_contract_version": {"type": "string"},
+    "mode": {"type": "string", "enum": ["test", "production"]},
+    "created_at": {"type": "string", "format": "date-time"},
+    "extracted_at": {"type": "string", "format": "date-time"},
+    "federation": {
+      "type": "object",
+      "description": "Cross-repo handshake. Every producer names itself and its hub parent.",
+      "required": ["producer_repo", "hub_parent"],
+      "properties": {
+        "producer_repo": {"type": "string"},
+        "hub_parent": {"type": "string", "const": "thehub-pr"},
+        "consumer_repo": {"type": "string"},
+        "consumer_component": {"type": "string"},
+        "contract": {"type": "string"}
+      }
+    },
+    "coverage_window": {
+      "type": "object",
+      "properties": {
+        "fiscal_year_min": {"type": "integer"},
+        "fiscal_year_max": {"type": "integer"}
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["filename", "stream", "record_count", "sha256", "schema_id"],
+        "properties": {
+          "filename": {"type": "string"},
+          "stream": {
+            "type": "string",
+            "enum": ["sources", "entities", "relationships", "funding_awards", "transactions", "observations", "alerts"]
+          },
+          "record_count": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "schema_id": {"type": "string"}
+        }
+      }
+    }
+  }
+}
