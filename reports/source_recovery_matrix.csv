@@ -89,6 +89,7 @@ prepa_luma_genera,False,api_producer,True,True,,False,True,scripts/download_prep
 promesa_creditors,False,api_producer,True,True,,False,True,scripts/download_promesa_creditors.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 rum_cover_over,False,api_producer,True,True,,False,True,scripts/download_rum_coverover.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 sam_exclusions,False,api_producer,True,True,SAM_API_KEY,False,True,scripts/download_sam_exclusions.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
+sam_opportunities,False,api_producer,True,True,SAM_API_KEY,False,True,scripts/download_sam_opportunities.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 sec_13f_nport,False,api_producer,True,True,,False,True,scripts/download_sec_holdings.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 sec_edgar,False,api_producer,True,True,,False,True,scripts/download_sec.py,2,0,1,,"Run producer under strict preflight; public API path, set key if gated."
 sec_officers,False,api_producer,True,True,,False,True,scripts/download_sec_officers.py,1,0,1,,"Run producer under strict preflight; public API path, set key if gated."
