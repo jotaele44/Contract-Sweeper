@@ -55,6 +55,13 @@ _DATE_FMT = "%m/%d/%Y"
 # Guard against a runaway offset loop on an unexpectedly huge result set.
 _MAX_PAGES_PER_WINDOW = 200
 
+# Post-award notice types SAM returns in the same feed. This source is defined
+# as *pre-award* solicitations / bid notices, so these are dropped before write
+# to avoid overlap with the award datasets (usaspending_*, fpds_*). Matched as
+# lowercased substrings so future variants (e.g. "Justification and Approval
+# (J&A)") are covered without an exhaustive allowlist.
+_EXCLUDED_NOTICE_SUBSTRINGS = ("award notice", "justification", "sale of surplus")
+
 OUTPUT_COLUMNS = [
     "notice_id",
     "solicitation_number",
@@ -69,6 +76,16 @@ OUTPUT_COLUMNS = [
     "active",
     "ui_link",
 ]
+
+
+def _is_pre_award(notice_type: str) -> bool:
+    """False for post-award notice types (Award Notice, J&A, surplus sales).
+
+    Records with an empty/unknown type are kept — better to retain an
+    unclassified solicitation than to silently drop a real bid notice.
+    """
+    t = (notice_type or "").strip().lower()
+    return not any(sub in t for sub in _EXCLUDED_NOTICE_SUBSTRINGS)
 
 
 def _flatten(record: dict) -> dict:
@@ -199,6 +216,14 @@ def run(
         session.close()
 
     df = pd.DataFrame(rows, columns=OUTPUT_COLUMNS)
+    if not df.empty and "notice_type" in df.columns:
+        # Keep only pre-award notices; SAM mixes award/J&A/surplus types into the
+        # same feed and those belong to the award datasets, not this source.
+        pre_mask = df["notice_type"].apply(_is_pre_award)
+        dropped = int((~pre_mask).sum())
+        if dropped:
+            logger.info(f"  Filtered out {dropped:,} non-pre-award notices (award/J&A/surplus)")
+        df = df[pre_mask].reset_index(drop=True)
     if not df.empty and "notice_id" in df.columns:
         # Overlapping windows share an inclusive boundary day; drop dupes by notice id.
         df = df.drop_duplicates(subset=["notice_id"]).reset_index(drop=True)
