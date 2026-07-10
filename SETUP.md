@@ -1,9 +1,12 @@
 # Setup Guide — moneysweep-pr
 
-**Tested on:** Python 3.9+ · Ubuntu/Debian · macOS  
+**Tested on:** Python 3.10+ · Ubuntu/Debian · macOS  
 **Estimated setup time:** 5 minutes (no data download required for tests)
 
-> Use **Python 3.11** locally (see `.python-version`) to match CI — newer interpreters (3.14+) can produce false test failures in R4.8 backfill tests due to dict-ordering changes.
+> Baseline is **Python 3.10** (ruff/mypy target `py310`; the lockfile is compiled
+> for 3.10; CI tests 3.10–3.12). Use **Python 3.11** locally (see `.python-version`)
+> for the recommended dev interpreter — newer interpreters (3.14+) can produce
+> false test failures in R4.8 backfill tests due to dict-ordering changes.
 
 ---
 
@@ -24,19 +27,39 @@ No special credentials are needed to clone — the repository is public.
 pip install -r requirements.txt
 ```
 
-Core dependencies (all available via pip, no compiled extensions required):
+`requirements.txt` carries the loose minimums below (it is kept identical to
+`requirements.in`). For a **reproducible, fully-pinned** environment matching CI,
+install from the compiled lockfile instead:
+
+```bash
+pip install -r requirements.lock     # exact pins, regenerated via `make lock`
+```
+
+To add the lint/type/test tooling (ruff, mypy, pytest-cov, pre-commit) that the
+quality gates need, use the dev set — or the Makefile, which wraps the same
+commands CI runs (`make install-dev`, then `make check`):
+
+```bash
+pip install -r requirements-dev.txt  # or: make install-dev
+```
+
+Core runtime dependencies (all available via pip, no compiled extensions required):
 
 | Package | Version | Purpose |
 |---------|---------|---------|
 | pandas | ≥2.0.0 | DataFrame processing |
-| requests | ≥2.28.0 | HTTP downloads |
-| lxml | ≥4.9.0 | XML/HTML parsing |
-| pytest | ≥7.0.0 | Test runner |
-| rapidfuzz | ≥3.0.0 | Fuzzy entity matching |
-| python-dotenv | ≥1.0.0 | `.env` loading |
-| pyarrow | ≥14.0.0 | Parquet I/O |
-| PyYAML | ≥6.0 | Registry files |
-| networkx | ≥3.0 | Graph analysis |
+| requests | ≥2.34.2 | HTTP downloads |
+| lxml | ≥6.1.1 | XML/HTML parsing |
+| pytest | ≥9.1.1 | Test runner |
+| pytest-cov | ≥7.1.0 | Coverage instrumentation |
+| rapidfuzz | ≥3.14.5 | Fuzzy entity matching |
+| python-dotenv | ≥1.2.2 | `.env` loading |
+| pyarrow | ≥24.0.0 | Parquet I/O |
+| PyYAML | ≥6.0.3 | Registry files |
+| networkx | ≥3.6.1 (py≥3.11) | Graph analysis |
+| pdfplumber | ≥0.11.10 | ACT/ACUDEN PDF extraction |
+| openpyxl | ≥3.1.0 | SBA disaster-loan workbook importer |
+| prii-maintenance | git (pinned SHA) | Shared federation maintenance core (from `thehub-pr`) |
 
 ---
 
@@ -59,13 +82,11 @@ See `docs/SECRET_HANDLING_POLICY.md` for key storage rules.
 python3 -m pytest tests/ -q
 ```
 
-Expected output on a clean clone:
-```
-594 passed, 4 skipped in ~10s
-```
-
-The 4 skipped tests require live network access or large data files.  
-All 594 passing tests run fully offline with no API keys required.
+The full suite runs fully offline with no API keys required. A small number of
+tests are skipped on a clean clone (they need live network access or large data
+files). The last recorded full baseline is in `README.md` (**2018 passed,
+6 skipped, 0 failed**) — treat that as the single source of truth rather than
+re-copying a count here.
 
 ---
 
