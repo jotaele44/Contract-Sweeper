@@ -27,6 +27,7 @@ REGISTRY_PAIRS = [
     ("schema_registry.yaml", "schema_registry.json"),
     ("manual_export_registry.yaml", "manual_export_registry.json"),
     ("endpoint_candidates.yaml", "endpoint_candidates.json"),
+    ("coverage_contracts.yaml", "coverage_contracts.json"),
 ]
 
 
