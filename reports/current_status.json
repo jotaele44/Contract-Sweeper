@@ -3,6 +3,13 @@
   "active_branch": "claude/contract-sweeper-preflight-j947j2",
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "pause_lock_active": true,
+  "source_registry_current": {
+    "authoritative_report": "reports/materialization_readiness.json",
+    "count_semantics": "current live registry",
+    "historical_counts_in_completed_entries_are_snapshots": true,
+    "total_sources": 143,
+    "source_ids_sha256": "a0cd9833004690f247d02c01ad7f363284dad8107bc773c560785a4731512efe"
+  },
   "completed": [
     "R5 gate-closure chain (PR1–PR64) — all validation gates pass",
     "EMMA municipal bonds corpus + Python 3.9 annotation sweep (#68)",

@@ -10,6 +10,7 @@ target on purpose, not by accident.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -17,6 +18,7 @@ from scripts.build_source_recovery_matrix import (
     OUT_JSON,
     PATH_TYPES,
     QUEUED_PATH_TYPES,
+    build_registry_snapshot,
     build_rows,
     build_summary,
     main,
@@ -25,6 +27,8 @@ from scripts.build_source_recovery_matrix import (
 pytestmark = pytest.mark.unit
 
 ROWS = build_rows()
+
+CURRENT_STATUS = Path(__file__).resolve().parents[1] / "reports" / "current_status.json"
 
 
 def test_every_automatable_source_is_ready():
@@ -126,3 +130,21 @@ def test_terminal_sources_never_appear_in_automatable_set():
     automatable_ids = {r["source_id"] for r in ROWS if r["automatable"]}
     overlap = automatable_ids & _TERMINAL_SOURCES
     assert overlap == set(), f"Terminal sources incorrectly marked automatable: {overlap}"
+
+
+def test_no_handmaintained_current_source_count():
+    """current_status.json must mirror the live computed count, not a hand-kept one."""
+    readiness = build_summary(build_rows())
+    status = json.loads(CURRENT_STATUS.read_text(encoding="utf-8"))
+    assert (
+        status["source_registry_current"]["total_sources"] == readiness["total_sources"]
+    )
+
+
+def test_registry_snapshot_is_deterministic():
+    """The source-id hash is a stable function of the live registry (spec §16)."""
+    a = build_registry_snapshot([{"source_id": r["source_id"]} for r in ROWS])
+    b = build_registry_snapshot([{"source_id": r["source_id"]} for r in reversed(ROWS)])
+    assert a == b
+    assert a["source_count"] == len(ROWS)
+    assert len(a["source_ids_sha256"]) == 64

@@ -1,0 +1,116 @@
+name: Source update — dispatch
+
+# On-demand runner for a single source or cadence. This is the path for
+# self-hosted long-running sources (ocpr_contracts, sam_entities full-registry
+# mode): trigger it and, if needed, target a durable runner. The source_id input
+# is validated against the live registry before anything executes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_id:
+        description: "Single source id to run (blank = use cadence)"
+        required: false
+        default: ""
+      cadence:
+        description: "Cadence to run when source_id is blank (weekly/monthly/quarterly/yearly)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Plan only, run nothing"
+        required: false
+        default: "false"
+      continue_on_error:
+        description: "Isolate per-source failures and keep going"
+        required: false
+        default: "true"
+      run_dependents:
+        description: "Trigger dependents after a changed run"
+        required: false
+        default: "true"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-update-dispatch
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  dispatch:
+    name: Dispatch run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate policy
+        run: python3 scripts/update_sources.py validate-policy
+
+      - name: Validate source_id against the registry
+        if: ${{ github.event.inputs.source_id != '' }}
+        run: |
+          python3 - "${{ github.event.inputs.source_id }}" <<'PY'
+          import sys
+          from moneysweep.runtime.source_registry import source_by_id
+          sid = sys.argv[1]
+          if source_by_id(sid) is None:
+              print(f"unknown source_id: {sid}", file=sys.stderr)
+              raise SystemExit(2)
+          print(f"source_id ok: {sid}")
+          PY
+
+      - name: Strict preflight
+        run: python3 run_all.py --only-setup --strict-preflight
+
+      - name: Dispatch run
+        env:
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+          FAC_API_KEY: ${{ secrets.FAC_API_KEY }}
+          FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+          FINANCIALDATA_API_KEY: ${{ secrets.FINANCIALDATA_API_KEY }}
+          FINANCIALDATA_LICENSE_APPROVED: ${{ secrets.FINANCIALDATA_LICENSE_APPROVED }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
+          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+        run: |
+          ARGS="run"
+          if [ -n "${{ github.event.inputs.source_id }}" ]; then
+            ARGS="$ARGS --source ${{ github.event.inputs.source_id }}"
+          elif [ -n "${{ github.event.inputs.cadence }}" ]; then
+            ARGS="$ARGS --cadence ${{ github.event.inputs.cadence }}"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          if [ "${{ github.event.inputs.continue_on_error }}" = "true" ]; then ARGS="$ARGS --continue-on-error"; fi
+          if [ "${{ github.event.inputs.run_dependents }}" != "true" ]; then ARGS="$ARGS --no-dependents"; fi
+          echo "update_sources $ARGS --json"
+          python3 scripts/update_sources.py $ARGS --json
+
+      - name: Freshness report
+        if: ${{ always() }}
+        run: python3 scripts/update_sources.py freshness --json || true
+
+      - name: Upload reports + outputs (never committed)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-update-dispatch
+          path: |
+            reports/source_freshness.csv
+            reports/source_update_state.json
+            reports/source_update_runs.local.jsonl
+            reports/source_update_failures.local.jsonl
+            data/staging/processed
+          if-no-files-found: ignore

@@ -1,0 +1,78 @@
+name: Source update — quarterly
+
+# Registry-driven source update controller, quarterly cadence. Self-hosted
+# long-running sources are excluded here; run them via source-update-dispatch on
+# a durable/self-hosted runner. GitHub cron is UTC; Puerto Rico is UTC-4 (no DST).
+
+on:
+  schedule:
+    - cron: "31 10 1 1,4,7,10 *" # quarter opening, 10:31 UTC = 06:31 AST
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Plan only, run nothing"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-update-quarterly
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  update:
+    name: Quarterly cadence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate policy
+        run: python3 scripts/update_sources.py validate-policy
+
+      - name: Strict preflight
+        run: python3 run_all.py --only-setup --strict-preflight
+
+      - name: Run quarterly cadence (github-hosted; excludes self-hosted long-running)
+        env:
+          CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
+          EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
+          FAC_API_KEY: ${{ secrets.FAC_API_KEY }}
+          FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+          FINANCIALDATA_API_KEY: ${{ secrets.FINANCIALDATA_API_KEY }}
+          FINANCIALDATA_LICENSE_APPROVED: ${{ secrets.FINANCIALDATA_LICENSE_APPROVED }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
+          OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+        run: |
+          python3 scripts/update_sources.py run --cadence quarterly --continue-on-error --json
+
+      - name: Freshness report
+        if: ${{ always() }}
+        run: python3 scripts/update_sources.py freshness --json || true
+
+      - name: Upload reports + outputs (never committed)
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-update-quarterly
+          path: |
+            reports/source_freshness.csv
+            reports/source_update_state.json
+            reports/source_update_runs.local.jsonl
+            reports/source_update_failures.local.jsonl
+            data/staging/processed
+          if-no-files-found: ignore

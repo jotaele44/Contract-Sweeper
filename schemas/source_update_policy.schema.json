@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/source_update_policy.schema.json",
+  "title": "Source Update Policy",
+  "description": "Overlay policy for the registry-driven source update controller. Keyed by source_id and merged against the canonical source registry; the controller resolves an effective policy per canonical source.",
+  "type": "object",
+  "required": ["schema_version", "timezone", "defaults", "sources"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "source_update_policy_v1"},
+    "timezone": {"type": "string"},
+    "defaults": {"$ref": "#/$defs/defaults_block"},
+    "sources": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/overlay_source_entry"}
+    }
+  },
+  "$defs": {
+    "trigger_type": {
+      "enum": ["schedule", "file_drop", "dependency", "on_drop", "manual", "disabled"]
+    },
+    "execution_backend": {
+      "enum": ["github_actions", "self_hosted", "local", "external"]
+    },
+    "empty_result_policy": {
+      "enum": ["allow", "warn", "fail", "preserve_previous"]
+    },
+    "output_change_policy": {
+      "enum": ["always", "content_hash", "row_count_or_hash", "upstream_change"]
+    },
+    "dedupe_method": {
+      "enum": ["sha256"]
+    },
+    "trigger_dependents_on": {
+      "enum": ["success", "success_with_change"]
+    },
+    "checkpoint_strategy": {
+      "enum": ["page_cursor", "entity_queue", "none"]
+    },
+    "defaults_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "execution_backend": {"$ref": "#/$defs/execution_backend"},
+        "timeout_minutes": {"type": "integer", "minimum": 1},
+        "max_retries": {"type": "integer", "minimum": 0},
+        "empty_result_policy": {"$ref": "#/$defs/empty_result_policy"},
+        "output_change_policy": {"$ref": "#/$defs/output_change_policy"},
+        "atomic_output_required": {"type": "boolean"},
+        "freshness_grace_hours": {"type": "number", "minimum": 0},
+        "row_regression_tolerance_pct": {"type": "number", "minimum": 0}
+      }
+    },
+    "overlay_source_entry": {
+      "description": "A partial override merged over defaults + inference. Only source_id is required in the raw overlay file; the effective (merged) policy is validated against effective_source_policy.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id"],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "trigger_type": {"$ref": "#/$defs/trigger_type"},
+        "enabled": {"type": "boolean"},
+        "runner": {"type": "string"},
+        "runner_args": {"type": "array", "items": {"type": "string"}},
+        "cadence": {"type": "string"},
+        "cron": {"type": "string"},
+        "execution_backend": {"$ref": "#/$defs/execution_backend"},
+        "timeout_minutes": {"type": "integer", "minimum": 1},
+        "max_retries": {"type": "integer", "minimum": 0},
+        "max_pages_per_run": {"type": "integer", "minimum": 1},
+        "checkpoint_strategy": {"$ref": "#/$defs/checkpoint_strategy"},
+        "required_secrets": {"type": "array", "items": {"type": "string"}},
+        "depends_on": {"type": "array", "items": {"type": "string"}},
+        "watch_paths": {"type": "array", "items": {"type": "string"}},
+        "filename_patterns": {"type": "array", "items": {"type": "string"}},
+        "dedupe_method": {"$ref": "#/$defs/dedupe_method"},
+        "empty_result_policy": {"$ref": "#/$defs/empty_result_policy"},
+        "output_change_policy": {"$ref": "#/$defs/output_change_policy"},
+        "trigger_dependents_on": {"$ref": "#/$defs/trigger_dependents_on"},
+        "atomic_output_required": {"type": "boolean"},
+        "freshness_sla_hours": {"type": "number", "minimum": 0},
+        "freshness_grace_hours": {"type": "number", "minimum": 0},
+        "minimum_output_rows": {"type": "integer", "minimum": 0},
+        "row_regression_tolerance_pct": {"type": "number", "minimum": 0},
+        "notes": {"type": "string"}
+      }
+    },
+    "effective_source_policy": {
+      "description": "The fully-resolved policy for one canonical source (overlay merged over defaults merged over inference). This is the object the controller validates and acts on.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "trigger_type",
+        "enabled",
+        "runner",
+        "freshness_sla_hours",
+        "timeout_minutes",
+        "max_retries",
+        "empty_result_policy"
+      ],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "trigger_type": {"$ref": "#/$defs/trigger_type"},
+        "enabled": {"type": "boolean"},
+        "runner": {"type": "string"},
+        "runner_args": {"type": "array", "items": {"type": "string"}},
+        "cadence": {"type": ["string", "null"]},
+        "cron": {"type": ["string", "null"]},
+        "execution_backend": {"$ref": "#/$defs/execution_backend"},
+        "timeout_minutes": {"type": "integer", "minimum": 1},
+        "max_retries": {"type": "integer", "minimum": 0},
+        "max_pages_per_run": {"type": ["integer", "null"], "minimum": 1},
+        "checkpoint_strategy": {"$ref": "#/$defs/checkpoint_strategy"},
+        "required_secrets": {"type": "array", "items": {"type": "string"}},
+        "depends_on": {"type": "array", "items": {"type": "string"}},
+        "watch_paths": {"type": "array", "items": {"type": "string"}},
+        "filename_patterns": {"type": "array", "items": {"type": "string"}},
+        "dedupe_method": {"$ref": "#/$defs/dedupe_method"},
+        "empty_result_policy": {"$ref": "#/$defs/empty_result_policy"},
+        "output_change_policy": {"$ref": "#/$defs/output_change_policy"},
+        "trigger_dependents_on": {"$ref": "#/$defs/trigger_dependents_on"},
+        "atomic_output_required": {"type": "boolean"},
+        "freshness_sla_hours": {"type": "number", "minimum": 0},
+        "freshness_grace_hours": {"type": "number", "minimum": 0},
+        "minimum_output_rows": {"type": "integer", "minimum": 0},
+        "row_regression_tolerance_pct": {"type": "number", "minimum": 0},
+        "path_type": {"type": "string"},
+        "required": {"type": "boolean"},
+        "terminal": {"type": "boolean"},
+        "notes": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"trigger_type": {"const": "schedule"}}},
+          "then": {"required": ["cadence"]}
+        },
+        {
+          "if": {"properties": {"trigger_type": {"const": "file_drop"}}},
+          "then": {"required": ["watch_paths", "filename_patterns", "dedupe_method"]}
+        },
+        {
+          "if": {"properties": {"trigger_type": {"const": "dependency"}}},
+          "then": {"required": ["depends_on"], "properties": {"depends_on": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"trigger_type": {"const": "on_drop"}}},
+          "then": {"required": ["watch_paths"], "properties": {"watch_paths": {"minItems": 1}}}
+        },
+        {
+          "if": {"properties": {"trigger_type": {"const": "disabled"}}},
+          "then": {"required": ["notes"], "properties": {"enabled": {"const": false}, "notes": {"minLength": 1}}}
+        }
+      ]
+    }
+  }
+}

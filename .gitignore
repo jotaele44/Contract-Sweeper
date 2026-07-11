@@ -103,6 +103,13 @@ outputs/**/cypher_shell_candidates.txt
 # generated federation maintenance report (audit artifact, not committed)
 reports/maintenance/
 
+# Source update controller — track the canonical state + freshness snapshots,
+# but keep runtime-heavy ledgers and temp output out of git (spec §20).
+reports/source_update_runs.local.jsonl
+reports/source_update_failures.local.jsonl
+reports/source_update_consumed.local.json
+reports/source_update_tmp/
+
 # Desktop wrapper (see desktop/README.md)
 dashboard/node_modules/
 dashboard/dist/

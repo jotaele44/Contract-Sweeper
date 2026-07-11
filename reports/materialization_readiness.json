@@ -24,6 +24,12 @@
     "broken_producer": 0
   },
   "queued_excluded_total": 45,
+  "source_count_provenance": {
+    "computed_from_live_registry": true,
+    "registry_schema_version": "r5_source_registry_v1",
+    "source_ids_sha256": "a0cd9833004690f247d02c01ad7f363284dad8107bc773c560785a4731512efe",
+    "historical_counts_are_non_authoritative": true
+  },
   "outputs": [
     "reports/source_recovery_matrix.csv",
     "reports/source_recovery_matrix.md",
