@@ -1,0 +1,101 @@
+{
+  "schema_version": "gap_closure_baseline_v1",
+  "baseline_commit": "d186e518f8ebb55d6151b791ef1327f40ea428ed",
+  "generated_at": "2026-07-11T18:33:14+00:00",
+  "registry": {
+    "source_count": 144,
+    "source_ids_sha256": "6c881d36265875cc6d1506c2c2fd89754850beb3bef7cf2f94d0b771da4a037b"
+  },
+  "count_surfaces": {
+    "live_registry": {
+      "source_count": 144,
+      "source_ids_sha256": "6c881d36265875cc6d1506c2c2fd89754850beb3bef7cf2f94d0b771da4a037b"
+    },
+    "materialization_readiness": {
+      "total_sources": 144,
+      "automatable_total": 99,
+      "queued_excluded_total": 45
+    },
+    "federation_source_truth": {
+      "total_sources": 143,
+      "automatable_total": 98,
+      "queued_excluded_total": 45
+    },
+    "federation_source_status_reconciliation": {
+      "canonical_source_count": 141,
+      "automatable_total": 95,
+      "queued_excluded_total": 46
+    },
+    "current_status": {
+      "source_registry_current_total": 144,
+      "materialization_readiness_truth_total": 136
+    },
+    "gap_analysis_report": {
+      "total_sources": 144,
+      "fully_materialized": 6,
+      "coverage_rate": 0.0417
+    },
+    "materialization_coverage_audit": {
+      "total_sources": 136,
+      "fully_materialized": 58,
+      "root": "/Users/jotaele/Developer/Contract-Sweeper",
+      "generated_at": "2026-06-17T19:52:11.085000+00:00"
+    }
+  },
+  "input_artifacts": {
+    "registries/source_registry.json": {
+      "sha256": "9c00de889169816bfeb913cdb3d665c9a2b82fb0acf0cdf830650ca011f44210",
+      "size_bytes": 93668
+    },
+    "reports/materialization_readiness.json": {
+      "sha256": "94c5900323c85c939cac05e9ab994118693279386344f3cddb3b1f93cd6831c7",
+      "size_bytes": 1036
+    },
+    "reports/gap_analysis_report.json": {
+      "sha256": "945525430604187ea1faa7ecbd4477449dd5340516db9193959e89c9297beb24",
+      "size_bytes": 457
+    },
+    "reports/source_registry_status.csv": {
+      "sha256": "a509235134beab3be766824047b7b3c9afd289570c8a68918289d305b8d8927d",
+      "size_bytes": 40404
+    },
+    "reports/materialization_coverage_audit.json": {
+      "sha256": "b2b32bf515b73a34c3a1006d8bfe1155c69168de9cca027712c0bd9e29ce9a9a",
+      "size_bytes": 74494
+    },
+    "reports/federation_source_status_reconciliation.json": {
+      "sha256": "f09c86449cf84bc39403dc3706d5ee50336f6c5d9c7bf6d836378f2978f08eb9",
+      "size_bytes": 2228
+    },
+    "reports/current_status.json": {
+      "sha256": "e45077550b0e67d99fbbe26a304cc28dd5669af02ddfa5974994624c60a83354",
+      "size_bytes": 21651
+    },
+    "federation.json": {
+      "sha256": "232fb39a96bd2018016ff78f47cb93b3cd07ad507169f8327ca30ffbd2a36576",
+      "size_bytes": 4412
+    },
+    "data/manifests/staging_masters.json": {
+      "sha256": "46fa60e866a513ceb058e7d4eb2242b08e6e648fb7fdaf4fdbf4fb621884ad87",
+      "size_bytes": 5507
+    }
+  },
+  "source_status_rows": 144,
+  "file_inventory": {
+    "rows": 32,
+    "disk_files": 7,
+    "manifest_only_files": 25,
+    "orphan_files": 1
+  },
+  "ledger": {
+    "rows": 19,
+    "open": 19
+  },
+  "outputs": [
+    "reports/gap_closure/baseline_manifest.json",
+    "reports/gap_closure/baseline_source_status.csv",
+    "reports/gap_closure/baseline_file_inventory.csv",
+    "reports/gap_closure/baseline_contradictions.md",
+    "reports/gap_closure/unresolved_gap_ledger.csv"
+  ]
+}
