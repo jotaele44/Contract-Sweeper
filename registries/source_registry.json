@@ -1762,6 +1762,23 @@
       "notes": "SAM.gov exclusions (debarment) list \u2014 suspended/excluded parties. Screening complement to sam_entities and ofac_sdn. Requires SAM_API_KEY.\n"
     },
     {
+      "source_id": "sam_opportunities",
+      "family": "federal",
+      "required": false,
+      "authentication": "api_key:SAM_API_KEY",
+      "endpoint_url": "https://api.sam.gov/opportunities/v2/search",
+      "producer_script": "scripts/download_sam_opportunities.py",
+      "expected_outputs": [
+        "data/staging/processed/pr_sam_opportunities.csv"
+      ],
+      "schema_version": "r5_v1",
+      "validation_threshold": {
+        "min_rows": 1
+      },
+      "update_cadence": "weekly",
+      "notes": "Pre-award federal solicitations / bid notices (Place of Performance = PR) via the SAM.gov Get Opportunities API. Compliant primary-source replacement for the commercial govcb.com aggregator. Requires SAM_API_KEY.\n"
+    },
+    {
       "source_id": "usda_farm_subsidies",
       "family": "federal",
       "required": false,

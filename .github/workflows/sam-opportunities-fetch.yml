@@ -1,0 +1,61 @@
+name: SAM Opportunities fetch
+
+# One-click refresh of the pre-award federal solicitations / bid-notice feed
+# (sam_opportunities). Manual-only by design — like highergov-fetch.yml, this runs
+# on workflow_dispatch with a double confirmation and never on a schedule (the repo
+# keeps live/egress fetches operator-triggered). Output is uploaded as an artifact,
+# never committed (data/** is gitignored). Bid response windows are short, so this
+# gives a fast ad-hoc refresh without waiting on the full materialize-sources run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'YES' (case-insensitive) to confirm fetch"
+        required: true
+        default: "no"
+      confirm_secondary:
+        description: "Type 'FETCH' (case-insensitive) to allow actual downloads"
+        required: true
+        default: "no"
+      days:
+        description: "Lookback window in days (default 365; >365 is split into API-legal windows)"
+        required: false
+        default: "365"
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+jobs:
+  fetch_sam_opportunities:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Fetch SAM.gov opportunities
+        if: ${{ secrets.SAM_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') && startsWith(toLower(github.event.inputs.confirm_secondary), 'fetch') }}
+        env:
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+        run: |
+          echo "Starting SAM.gov opportunities fetch..."
+          python3 scripts/download_sam_opportunities.py --force --days "${{ github.event.inputs.days }}"
+
+      - name: Upload SAM opportunities artifact
+        if: ${{ secrets.SAM_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') && startsWith(toLower(github.event.inputs.confirm_secondary), 'fetch') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: sam-opportunities
+          path: data/staging/processed/pr_sam_opportunities.csv
+          if-no-files-found: ignore
