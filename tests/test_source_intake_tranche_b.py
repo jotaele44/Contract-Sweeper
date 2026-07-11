@@ -96,7 +96,7 @@ def test_run_builds_lobby_and_reference_outputs(tmp_path: Path):
         [["Lobbyist A", "Client A", "2024-01-01"]],
     )
     _write_csv(
-        tmp_path / "data" / "raw" / "DCAA Active Contractors" / "vendors.csv",
+        tmp_path / "data" / "raw" / "Active Contractor Listing" / "vendors.csv",
         ["Name", "UEI", "CAGE", "Status"],
         [["Vendor A LLC", "UEI123", "1ABC2", "active"]],
     )
