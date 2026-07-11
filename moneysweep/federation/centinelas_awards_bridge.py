@@ -192,7 +192,7 @@ COMMITTED_PACKAGE_REL = "data/exports/canonical_v1_federation"
 
 def _dedup_by(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
     """Keep the first row per ``key`` (new rows precede prior ones, so new wins)."""
-    seen: set[str] = set()
+    seen: set[Any] = set()
     out: list[dict[str, Any]] = []
     for row in rows:
         k = row.get(key)
