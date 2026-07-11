@@ -1,0 +1,45 @@
+# Minimal valid source-update policy overlay used by the controller test suite.
+# Exercises one override per non-inferred trigger type against a tiny synthetic
+# registry (see tests/test_source_update_policy.py).
+schema_version: source_update_policy_v1
+timezone: America/Puerto_Rico
+defaults:
+  execution_backend: github_actions
+  timeout_minutes: 30
+  max_retries: 1
+  empty_result_policy: preserve_previous
+  output_change_policy: row_count_or_hash
+  atomic_output_required: true
+  freshness_grace_hours: 12
+  row_regression_tolerance_pct: 25
+sources:
+  - source_id: alpha_api
+    trigger_type: schedule
+    enabled: true
+    cadence: weekly
+    runner: scripts/download_alpha.py
+    freshness_sla_hours: 192
+  - source_id: beta_drop
+    trigger_type: file_drop
+    enabled: true
+    runner: scripts/ingest_beta.py
+    watch_paths:
+      - data/raw/beta/
+    filename_patterns:
+      - "*.csv"
+    dedupe_method: sha256
+    freshness_sla_hours: 2880
+  - source_id: gamma_derived
+    trigger_type: dependency
+    enabled: true
+    runner: scripts/build_gamma.py
+    depends_on:
+      - alpha_api
+    output_change_policy: upstream_change
+    freshness_sla_hours: 9000
+  - source_id: delta_disabled
+    trigger_type: disabled
+    enabled: false
+    runner: scripts/download_delta.py
+    freshness_sla_hours: 0
+    notes: Disabled terminal stub for tests.
