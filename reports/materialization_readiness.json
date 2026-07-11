@@ -1,10 +1,10 @@
 {
   "schema_version": "r5_readiness_v1",
-  "total_sources": 143,
-  "automatable_total": 98,
-  "automatable_ready": 98,
+  "total_sources": 144,
+  "automatable_total": 99,
+  "automatable_ready": 99,
   "automatable_not_ready": [],
-  "automatable_needs_key_count": 12,
+  "automatable_needs_key_count": 13,
   "automatable_required_keys": [
     "CENSUS_API_KEY",
     "EIA_API_KEY",

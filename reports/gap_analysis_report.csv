@@ -159,6 +159,7 @@ research_grants,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/pro
 rum_cover_over,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_rum_coverover.csv,
 sam_exclusions,entity_resolution,False,api_key:SAM_API_KEY,1,0,1,0,not_materialized,0,1,data/staging/processed/sam_exclusions.csv,"SAM.gov exclusions (debarment) list — suspended/excluded parties. Screening complement to sam_entities and ofac_sdn. Requires SAM_API_KEY.
 "
+sam_opportunities,federal,False,api_key:SAM_API_KEY,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sam_opportunities.csv,Pre-award federal solicitations / bid notices (Place of Performance = PR) via the SAM.gov Get Opportunities API. Compliant primary-source replacement for the commercial govcb.com aggregator. Requires 
 sba_disaster_loans_pr,manual_export,False,manual_export,2,0,2,0,not_materialized,0,1,data/staging/processed/sba_recovery_loans_pr.jsonl,"SBA Disaster Loan Data for Puerto Rico workbook (FY22 Home + FY22 Business sheets), verified-loss vs. approved-loan gap analysis. Distinct from the automated sba_loans CKAN pull above. See registries/"
 sba_loans,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sba_loans_master.csv,
 sba_ppp,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sba_ppp.csv,

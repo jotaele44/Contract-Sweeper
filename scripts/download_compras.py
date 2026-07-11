@@ -72,6 +72,13 @@ RFP_COLUMNS = [
     "due_date",
     "estimated_value",
     "status",
+    # Bid-signal deepening: notice classification, category, place, and a
+    # citable source link so an open solicitation / subasta reads as a
+    # pre-award bid signal (feeds the Centinelas -> MoneySweep lifecycle).
+    "notice_type",
+    "category",
+    "municipality",
+    "source_url",
 ]
 
 AWARD_COLUMNS = [
@@ -202,14 +209,28 @@ def _normalize_rfp(r: dict) -> dict:
         val_f = 0.0
 
     return {
-        "rfp_id": _f("id", "rfp_id", "solicitation_id", "numero"),
+        "rfp_id": _f("id", "rfp_id", "solicitation_id", "numero", "numero_subasta"),
         "title": _f("title", "titulo", "description", "descripcion"),
         "agency": agency,
         "agency_normalized": _normalize_name(agency),
         "posted_date": _f("posted_date", "fecha_publicacion", "created_at", "date_posted"),
-        "due_date": _f("due_date", "fecha_cierre", "closing_date", "deadline"),
+        # Bid closing OR opening date — subastas signal via the apertura date,
+        # which the previous mapping dropped; treat either as the bid deadline.
+        "due_date": _f(
+            "due_date",
+            "fecha_cierre",
+            "closing_date",
+            "deadline",
+            "fecha_apertura",
+            "fecha_subasta",
+            "bid_opening",
+        ),
         "estimated_value": val_f,
         "status": _f("status", "estado", "phase"),
+        "notice_type": _f("notice_type", "tipo", "type", "tipo_notificacion", "modalidad"),
+        "category": _f("category", "categoria", "clasificacion", "classification"),
+        "municipality": _f("municipality", "municipio", "pueblo", "region"),
+        "source_url": _f("source_url", "url", "link", "enlace", "detail_url"),
     }
 
 
