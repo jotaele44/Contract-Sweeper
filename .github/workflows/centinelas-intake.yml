@@ -49,3 +49,26 @@ jobs:
           name: centinelas-intake-candidates
           path: exports/centinelas_intake
           if-no-files-found: ignore
+
+      # Hop 2 trigger: notify the Hub that new upstream data was processed, so it
+      # re-runs its aggregate/ingest over the committed federation packages. The
+      # per-signal materialization into the committed canonical package is a
+      # follow-up (federation is git-pull/committed-artifact based); this wires the
+      # event so the Hub re-aggregates on each MoneySweep export.
+      - name: Notify Hub (moneysweep-export repository_dispatch)
+        if: ${{ success() }}
+        env:
+          FEDERATION_DISPATCH_TOKEN: ${{ secrets.FEDERATION_DISPATCH_TOKEN }}
+          ITEM_ID: ${{ github.event.client_payload.item_id }}
+        run: |
+          if [ -z "$FEDERATION_DISPATCH_TOKEN" ]; then
+            echo "No FEDERATION_DISPATCH_TOKEN — skipping Hub dispatch."
+            exit 0
+          fi
+          curl -sSf -X POST \
+            -H "Authorization: Bearer $FEDERATION_DISPATCH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/jotaele44/thehub-pr/dispatches \
+            -d "{\"event_type\":\"moneysweep-export\",\"client_payload\":{\"item_id\":\"${ITEM_ID}\",\"producer\":\"moneysweep-pr\"}}"
+          echo "Dispatched moneysweep-export → thehub-pr"
