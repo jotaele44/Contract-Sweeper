@@ -141,3 +141,11 @@ def fed_relationship_id(
         "rel|" + (source_node_id or "") + "|" + (edge_type or "") + "|" + (target_node_id or "")
     )
     return "rel_" + _hash(payload, 32)
+
+
+def fed_award_id(award_key: str | None) -> str:
+    """Federation awd_<32hex> derived from a funding-award key.
+
+    Matches the federation funding_award schema pattern ^awd_[a-f0-9]{32}$
+    (schemas/moneysweep_funding_award.schema.json)."""
+    return "awd_" + _hash("award|" + (award_key or ""), 32)
