@@ -114,7 +114,7 @@ def build_matrix(root: Path) -> list[dict[str, Any]]:
     hints = _ledger_acquisition_hints(root)
 
     out: list[dict[str, Any]] = []
-    for matrix_row in build_rows():
+    for matrix_row in build_rows(root):
         sid = matrix_row["source_id"]
         src = sources.get(sid, {})
         expected = src.get("expected_outputs", []) or []

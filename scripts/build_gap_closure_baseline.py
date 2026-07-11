@@ -425,7 +425,7 @@ def build_source_status_rows(root: Path) -> list[dict[str, Any]]:
     """Legacy-view status row per live source (the *pre-repair* control plane)."""
     sources = {s.get("source_id", ""): s for s in load_source_registry(root).get("sources", [])}
     rows: list[dict[str, Any]] = []
-    for matrix_row in build_rows():
+    for matrix_row in build_rows(root):
         sid = matrix_row["source_id"]
         src = sources.get(sid, {})
         expected = src.get("expected_outputs", []) or []

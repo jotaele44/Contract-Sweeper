@@ -97,3 +97,18 @@ def test_known_overrides_take_effect():
     assert POLICIES["prasa_contracts_master"].trigger_type == "dependency"
     assert POLICIES["prasa_contracts_master"].depends_on == ["prasa"]
     assert POLICIES["hacienda_sut_ivu"].trigger_type == "disabled"
+
+
+def test_manual_export_patterns_propagate_from_registry_entry():
+    """A file-drop source whose manual_export_registry entry declares patterns
+    must watch those, not the csv/xlsx defaults — act declares *.pdf, and a
+    dropped PDF has to trigger (PR #370 review finding)."""
+    act = POLICIES["act_transition_contracts"]
+    assert act.trigger_type == "file_drop"
+    assert act.watch_paths == ["data/raw/act_transition/"]
+    assert "*.pdf" in act.filename_patterns
+    assert "transition_contracts_extracted.csv" in act.filename_patterns
+    # cor3's entry declares xlsx/xls/csv — carried through the same fallback.
+    cor3 = POLICIES["cor3"]
+    assert cor3.trigger_type == "file_drop"
+    assert cor3.watch_paths, "cor3 watch path comes from its manual-export entry"

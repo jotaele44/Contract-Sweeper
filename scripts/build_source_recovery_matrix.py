@@ -110,18 +110,19 @@ QUEUED_PATH_TYPES = (
 )
 
 
-def _outputs_present(expected_outputs: list[str]) -> tuple[int, int]:
+def _outputs_present(expected_outputs: list[str], root: Path | None = None) -> tuple[int, int]:
     """Declared outputs present on disk OR recorded in the committed staging
     manifest — the same clean-checkout fallback as gap_analysis_builder, so the
     committed matrix regenerates byte-identically in CI where the gitignored
     masters are absent."""
     from scripts.gap_analysis_builder import _staging_manifest
 
-    manifest = _staging_manifest(REPO_ROOT)
+    root = root or REPO_ROOT
+    manifest = _staging_manifest(root)
     present = sum(
         1
         for p in expected_outputs
-        if p and ((REPO_ROOT / p).exists() or manifest.get(p, {}).get("row_count", 0) >= 1)
+        if p and ((root / p).exists() or manifest.get(p, {}).get("row_count", 0) >= 1)
     )
     return len(expected_outputs), present
 
@@ -133,7 +134,7 @@ def _is_deferred(src: dict) -> bool:
     return any(marker in notes for marker in DEFERRED_NOTE_MARKERS)
 
 
-def _classify(src: dict) -> str:
+def _classify(src: dict, root: Path | None = None) -> str:
     """Return the path_type for a source (priority-ordered)."""
     sid = src.get("source_id", "")
     auth = (src.get("authentication") or "").strip()
@@ -146,7 +147,7 @@ def _classify(src: dict) -> str:
     if sid in SCRAPER_NEEDED:
         return "scraper_needed"
     # Structural producer defect (import error / missing callable / missing script).
-    preflight = classify_source_readiness(REPO_ROOT, src)["readiness_status"]
+    preflight = classify_source_readiness(root or REPO_ROOT, src)["readiness_status"]
     if sid not in ADAPTER_SOURCE_IDS and preflight in STRUCTURAL_STATUSES:
         return "broken_producer"
     if sid in ADAPTER_SOURCE_IDS:
@@ -164,21 +165,28 @@ def build_registry_snapshot(sources: list[dict]) -> dict:
     }
 
 
-def build_rows() -> list[dict]:
-    sources = load_source_registry(REPO_ROOT).get("sources", [])
+def build_rows(root: Path | None = None) -> list[dict]:
+    """Readiness rows for every registered source.
+
+    ``root`` defaults to this repo checkout; callers reporting against another
+    tree (e.g. build_completeness_matrix --root) must pass it so registry,
+    outputs, and preflight all read from the same tree.
+    """
+    root = root or REPO_ROOT
+    sources = load_source_registry(root).get("sources", [])
     rows: list[dict] = []
     for src in sources:
         sid = src.get("source_id", "")
         auth = (src.get("authentication") or "").strip()
         cadence = str(src.get("update_cadence") or "").strip().lower()
         expected = list(src.get("expected_outputs") or [])
-        total, present = _outputs_present(expected)
+        total, present = _outputs_present(expected, root)
         min_rows = (src.get("validation_threshold") or {}).get("min_rows", 1)
-        path_type = _classify(src)
+        path_type = _classify(src, root)
         automatable, action = PATH_TYPES[path_type]
         needs_key = auth.split("api_key:", 1)[1] if auth.startswith("api_key:") else ""
         has_adapter = sid in ADAPTER_SOURCE_IDS
-        preflight = classify_source_readiness(REPO_ROOT, src)["readiness_status"]
+        preflight = classify_source_readiness(root, src)["readiness_status"]
         producer_importable = preflight not in STRUCTURAL_STATUSES
         # Structurally ready = automatable, has a working entrypoint, and declares outputs.
         ready = bool(automatable and (has_adapter or producer_importable) and total > 0)

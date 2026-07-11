@@ -278,7 +278,13 @@ def build_effective_policies(
                 watch_paths = [drop]
         patterns = list(override.get("filename_patterns") or [])
         if is_file_like and not patterns:
-            patterns = list(DEFAULT_FILE_DROP_PATTERNS)
+            # Carry the manual-export entry's declared pattern (pipe-separated)
+            # through with the watch path — e.g. act_transition_contracts
+            # declares *.pdf, which the csv/xlsx defaults would never match.
+            manual_pattern = str(manual_entries.get(sid, {}).get("expected_filename_pattern") or "")
+            patterns = [p.strip() for p in manual_pattern.split("|") if p.strip()] or list(
+                DEFAULT_FILE_DROP_PATTERNS
+            )
         dedupe = override.get("dedupe_method") or ("sha256" if is_file_like else None)
 
         # freshness SLA
