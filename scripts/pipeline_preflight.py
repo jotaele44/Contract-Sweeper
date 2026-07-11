@@ -141,6 +141,7 @@ def _write_preflight_report(root: Path, result: dict[str, Any], logger) -> None:
         return
     data["pipeline_preflight"] = {
         "run_at": date.today().isoformat(),
+        "count_semantics": "current live registry at preflight run time",
         "total_sources": result["total_sources"],
         "status_counts": result["status_counts"],
         "structural_errors": result["structural_errors"],

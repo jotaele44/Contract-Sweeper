@@ -26,6 +26,7 @@ Read-only triage: no network, no writes outside ``reports/``, no registry edits.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import sys
 from collections import Counter
@@ -35,6 +36,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from moneysweep.query.adapters import ADAPTER_REGISTRY, ENTITY_ADAPTER_REGISTRY
 from moneysweep.runtime.source_registry import load_source_registry
+from moneysweep.update_controller.policy import (
+    REQUIRED_DAG,
+    TERMINAL_PATH_TYPES,
+    infer_trigger_type,
+)
 from scripts.pipeline_preflight import STRUCTURAL_STATUSES, classify_source_readiness
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -137,12 +143,23 @@ def _classify(src: dict) -> str:
     return "api_producer"
 
 
+def build_registry_snapshot(sources: list[dict]) -> dict:
+    """Deterministic count + source-id hash computed from the live registry (spec §16)."""
+    source_ids = sorted(src["source_id"] for src in sources)
+    digest = hashlib.sha256(("\n".join(source_ids) + "\n").encode("utf-8")).hexdigest()
+    return {
+        "source_count": len(source_ids),
+        "source_ids_sha256": digest,
+    }
+
+
 def build_rows() -> list[dict]:
     sources = load_source_registry(REPO_ROOT).get("sources", [])
     rows: list[dict] = []
     for src in sources:
         sid = src.get("source_id", "")
         auth = (src.get("authentication") or "").strip()
+        cadence = str(src.get("update_cadence") or "").strip().lower()
         expected = list(src.get("expected_outputs") or [])
         total, present = _outputs_present(expected)
         min_rows = (src.get("validation_threshold") or {}).get("min_rows", 1)
@@ -154,10 +171,23 @@ def build_rows() -> list[dict]:
         producer_importable = preflight not in STRUCTURAL_STATUSES
         # Structurally ready = automatable, has a working entrypoint, and declares outputs.
         ready = bool(automatable and (has_adapter or producer_importable) and total > 0)
+        # Inferred trigger for the informational column; the source_update_policy
+        # overlay is authoritative at controller runtime (spec §17).
+        dag_parents = list(REQUIRED_DAG.get(sid, []))
+        trigger_type = (
+            infer_trigger_type(path_type, cadence, dag_parents, path_type == "manual_export")
+            or "disabled"
+        )
         rows.append(
             {
                 "source_id": sid,
                 "required": bool(src.get("required", False)),
+                "family": src.get("family", ""),
+                "update_cadence": cadence,
+                "authentication": auth,
+                "required_secret": needs_key,
+                "trigger_type": trigger_type,
+                "terminal": path_type in TERMINAL_PATH_TYPES,
                 "path_type": path_type,
                 "automatable": automatable,
                 "ready": ready,
@@ -180,6 +210,8 @@ def build_summary(rows: list[dict]) -> dict:
     automatable = [r for r in rows if r["automatable"]]
     queued = Counter(r["path_type"] for r in rows if not r["automatable"])
     needs_key = sorted({r["needs_key"] for r in automatable if r["needs_key"]})
+    snapshot = build_registry_snapshot([{"source_id": r["source_id"]} for r in rows])
+    reg = load_source_registry(REPO_ROOT)
     return {
         "schema_version": "r5_readiness_v1",
         "total_sources": len(rows),
@@ -190,6 +222,14 @@ def build_summary(rows: list[dict]) -> dict:
         "automatable_required_keys": needs_key,
         "queued_excluded": {k: queued.get(k, 0) for k in QUEUED_PATH_TYPES},
         "queued_excluded_total": sum(queued.values()),
+        # Count provenance: the count is always computed from the live registry;
+        # historical narrative counts are non-authoritative snapshots (spec §16).
+        "source_count_provenance": {
+            "computed_from_live_registry": True,
+            "registry_schema_version": str(reg.get("schema_version") or ""),
+            "source_ids_sha256": snapshot["source_ids_sha256"],
+            "historical_counts_are_non_authoritative": True,
+        },
         "outputs": [
             "reports/source_recovery_matrix.csv",
             "reports/source_recovery_matrix.md",
@@ -201,7 +241,7 @@ def build_summary(rows: list[dict]) -> dict:
 def _write_csv(rows: list[dict]) -> None:
     OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     with OUT_CSV.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 

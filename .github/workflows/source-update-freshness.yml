@@ -1,0 +1,53 @@
+name: Source update — freshness
+
+# Daily per-source freshness report. Read-only: computes each source's freshness
+# against its SLA from committed state and uploads the CSV as an artifact. State
+# is never committed from CI. GitHub cron is UTC; Puerto Rico is UTC-4 (no DST).
+
+on:
+  schedule:
+    - cron: "47 10 * * *" # daily 10:47 UTC = 06:47 AST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: source-update-freshness
+  cancel-in-progress: false
+
+jobs:
+  freshness:
+    name: Freshness report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Validate policy
+        run: python3 scripts/update_sources.py validate-policy
+
+      - name: Freshness report (fail only on exit 2 — a required source past SLA)
+        run: |
+          set +e
+          python3 scripts/update_sources.py freshness --json
+          code=$?
+          # exit 1 = optional/bootstrap warnings (tolerated); exit 2 = required
+          # source stale/blocked past SLA (fail the job).
+          if [ "$code" -eq 2 ]; then exit 1; fi
+          exit 0
+
+      - name: Upload freshness report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-update-freshness
+          path: reports/source_freshness.csv
+          if-no-files-found: ignore

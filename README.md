@@ -163,3 +163,17 @@ Useful flags:
 --manual-only       Alias for --skip-download
 --force-download    Re-download existing source files
 ```
+
+### Source update controller
+
+`run_all.py` remains the full producer orchestrator. A separate, registry-driven
+**source update controller** decides *whether a source is due*, isolates per-source
+failure, detects operator file-drops by hash, sequences derived sources after their
+upstreams, and reports freshness — without replacing `run_all.py`. See
+[docs/SOURCE_UPDATE_CONTROLLER.md](docs/SOURCE_UPDATE_CONTROLLER.md).
+
+```bash
+python3 scripts/update_sources.py validate-policy   # policy coverage + DAG gates (exit 2 on failure)
+python3 scripts/update_sources.py plan --due        # read-only: which sources are due (no network)
+python3 scripts/update_sources.py freshness         # per-source freshness report → reports/source_freshness.csv
+```
