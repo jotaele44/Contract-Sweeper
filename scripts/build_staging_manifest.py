@@ -10,13 +10,21 @@ This manifest records ``{row_count, sha256, size_bytes, generated_at}`` per
 processed CSV under ``data/manifests/staging_masters.json`` (which IS tracked).
 ``gap_analysis_builder._file_status`` falls back to this manifest when a declared
 output is absent, so committed reports reflect real coverage without committing
-the bulk data. Regenerate after a local data refresh:
+the bulk data.
 
-    python3 scripts/build_staging_manifest.py
+Merge semantics (default): entries for files that are absent locally are
+PRESERVED from the committed manifest — a partial checkout (e.g. this repo's
+deny-all ``data/`` gitignore) must never erase another environment's recorded
+holdings. Files present locally are re-measured and updated. Pass ``--prune``
+to intentionally drop entries whose files are absent.
+
+    python3 scripts/build_staging_manifest.py            # merge (safe default)
+    python3 scripts/build_staging_manifest.py --prune    # rebuild from disk only
 """
 
 from __future__ import annotations
 
+import argparse
 import csv
 import hashlib
 import json
@@ -49,9 +57,19 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def build_manifest(root: Path = PROJECT_ROOT) -> dict:
+def _existing_files(root: Path) -> dict[str, dict]:
+    path = root / "data" / "manifests" / "staging_masters.json"
+    try:
+        return json.loads(path.read_text(encoding="utf-8")).get("files", {})
+    except (OSError, ValueError):
+        return {}
+
+
+def build_manifest(root: Path = PROJECT_ROOT, *, prune: bool = False) -> dict:
     processed = root / "data" / "staging" / "processed"
-    files: dict[str, dict] = {}
+    # Merge default: start from the committed entries so a partial checkout
+    # never erases holdings recorded elsewhere; --prune rebuilds from disk only.
+    files: dict[str, dict] = {} if prune else dict(_existing_files(root))
     for p in sorted(processed.glob("*.csv")):
         rel = p.relative_to(root).as_posix()
         files[rel] = {
@@ -68,12 +86,20 @@ def build_manifest(root: Path = PROJECT_ROOT) -> dict:
             "(the CSVs themselves are too large to track — see size-guard). "
             "Regenerate with scripts/build_staging_manifest.py after a data refresh."
         ),
-        "files": files,
+        "files": {rel: files[rel] for rel in sorted(files)},
     }
 
 
-def main() -> int:
-    manifest = build_manifest(PROJECT_ROOT)
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="drop manifest entries whose files are absent locally "
+        "(default merges: absent files keep their committed entries)",
+    )
+    args = parser.parse_args(argv)
+    manifest = build_manifest(PROJECT_ROOT, prune=args.prune)
     MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     MANIFEST_PATH.write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"

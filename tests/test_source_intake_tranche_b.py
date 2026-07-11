@@ -59,7 +59,7 @@ def _write_csv(path: Path, header: list[str], rows: list[list[str]]) -> None:
 @pytest.mark.integration
 def test_run_builds_local_contract_output(tmp_path: Path):
     _write_csv(
-        tmp_path / "data" / "raw" / "ACT Transition Contracts" / "act.csv",
+        tmp_path / "data" / "raw" / "act_transition" / "act.csv",
         ["Contract ID", "Contratista", "Agencia", "Monto", "Status"],
         [["ACT-1", "Acme LLC", "ACT", "1000", "Active"]],
     )

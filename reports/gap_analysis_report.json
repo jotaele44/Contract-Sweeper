@@ -1,24 +1,25 @@
 {
-  "generated_at": "2026-07-11T18:49:49.658675+00:00",
+  "generated_at": "2026-07-11T19:00:10.345279+00:00",
   "schema_version": "r5_v1",
   "completeness_schema_version": "gap_closure_v1",
   "total_sources": 144,
   "required_sources": 14,
-  "fully_materialized": 6,
+  "fully_materialized": 8,
   "partially_materialized": 4,
   "not_materialized": 5,
-  "optional_not_materialized": 129,
-  "coverage_rate": 0.0417,
+  "optional_not_materialized": 127,
+  "coverage_rate": 0.0556,
   "required_coverage_rate": 0.6429,
   "contracted_sources": 20,
   "certification_counts": {
-    "provisional": 6,
-    "uncertified": 138
+    "provisional": 8,
+    "uncertified": 136
   },
   "materiality_counts": {
-    "empty": 135,
+    "empty": 133,
     "seed": 1,
-    "substantial": 8
+    "substantial": 8,
+    "validated_complete": 2
   },
   "outputs": [
     "reports/gap_analysis_report.csv",

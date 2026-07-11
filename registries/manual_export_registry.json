@@ -86,8 +86,8 @@
     },
     {
       "source_id": "act_transition_contracts",
-      "expected_drop_dir": "data/manual/act_transition/",
-      "expected_filename_pattern": "*.csv|*.xlsx|*.pdf",
+      "expected_drop_dir": "data/raw/act_transition/",
+      "expected_filename_pattern": "transition_contracts_extracted.csv|*.csv|*.xlsx|*.pdf",
       "expected_columns": [
         "contractor_name",
         "contract_number",
@@ -106,8 +106,8 @@
     },
     {
       "source_id": "acuden_2024_transition",
-      "expected_drop_dir": "data/manual/acuden_2024/",
-      "expected_filename_pattern": "*.csv|*.xlsx",
+      "expected_drop_dir": "data/raw/act_transition/",
+      "expected_filename_pattern": "transition_contracts_extracted.csv|*.csv|*.xlsx",
       "expected_columns": [
         "contract_number",
         "contractor",

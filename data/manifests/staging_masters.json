@@ -65,6 +65,16 @@
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "size_bytes": 0
     },
+    "data/staging/processed/pr_act_transition_contracts.csv": {
+      "row_count": 656,
+      "sha256": "2fa2838341c1264bc7fca281ccda12fdef5d4454a2c10bad55529752555fee45",
+      "size_bytes": 84307
+    },
+    "data/staging/processed/pr_acuden_transition.csv": {
+      "row_count": 1147,
+      "sha256": "9c88d0568cf1ab6ef14644186441c0fb43f9343a7209d39c373caab7cf22fcf8",
+      "size_bytes": 149812
+    },
     "data/staging/processed/pr_cdbg_dr_master.csv": {
       "row_count": 3808,
       "sha256": "18e33b1d79024e302d6e0f1ae272c3dcd621b6ae70316857289b886a4089404e",
@@ -126,7 +136,7 @@
       "size_bytes": 59368
     }
   },
-  "generated_at": "2026-07-03T13:13:09Z",
+  "generated_at": "2026-07-11T18:59:33Z",
   "note": "Row counts for the gitignored data/staging/processed masters. Committed source of truth for coverage reports in a clean checkout (the CSVs themselves are too large to track \u2014 see size-guard). Regenerate with scripts/build_staging_manifest.py after a data refresh.",
   "schema_version": "staging_masters_v1"
 }

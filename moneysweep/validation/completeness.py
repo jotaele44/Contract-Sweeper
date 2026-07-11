@@ -528,9 +528,11 @@ def manifest_profile(root: Path, source_id: str) -> dict[str, Any]:
     fields: dict[str, float] = {}
     monetary: dict[str, float] = {}
     for entry in data.get("files") or []:
-        for name, pct in (entry.get("field_completeness_pct") or {}).items():
+        # manifest_runtime records fractions (0-1) under a *_pct name;
+        # contracts declare percent floors (0-100) — convert here.
+        for name, fraction in (entry.get("field_completeness_pct_by_column") or {}).items():
             try:
-                fields[name] = max(float(pct), fields.get(name, 0.0))
+                fields[name] = max(float(fraction) * 100.0, fields.get(name, 0.0))
             except (TypeError, ValueError):
                 continue
         for name, total in (entry.get("monetary_totals") or {}).items():

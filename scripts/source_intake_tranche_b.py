@@ -202,9 +202,13 @@ class SourceSpec:
 
 
 SOURCE_SPECS = {
+    # act/acuden share the real dropzone declared in manual_export_registry
+    # (data/raw/act_transition/); their canonical producer is
+    # scripts/ingest_act_transition.py — this controller is the tabular
+    # fallback lane and must point at the same operator dropzone.
     "act": SourceSpec(
         "act_transition_contracts",
-        "data/raw/ACT Transition Contracts",
+        "data/raw/act_transition",
         "data/staging/processed/pr_act_transition_contracts.csv",
         "schemas/local_contracts.schema.json",
         LOCAL_CONTRACT_COLUMNS,
@@ -213,7 +217,7 @@ SOURCE_SPECS = {
     ),
     "acuden": SourceSpec(
         "acuden_2024_transition",
-        "data/raw/ACUDEN Transition Contracts",
+        "data/raw/act_transition",
         "data/staging/processed/pr_acuden_transition.csv",
         "schemas/local_contracts.schema.json",
         LOCAL_CONTRACT_COLUMNS,

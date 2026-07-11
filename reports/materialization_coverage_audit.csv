@@ -6,13 +6,13 @@ usaspending_prime,federal,True,none,2,1,5147,partially_materialized,bulk,substan
 hud_cdbg_dr_public,federal,True,none,1,1,3808,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_cdbg_dr_master.csv
 sam_entities,entity_resolution,True,api_key:SAM_API_KEY,2,1,2372,partially_materialized,bulk,substantial,unverifiable,uncertified,data/staging/processed/enrichment/vendor_uei_index.csv
 fema_pa_openfema_v2,federal,True,none,1,1,2000,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_fema_pa_master.csv
+acuden_2024_transition,manual_export,False,manual_export,1,1,1147,fully_materialized,bulk,validated_complete,meets_contract,provisional,data/staging/processed/pr_acuden_transition.csv
 fec,political_finance,True,api_key:FEC_API_KEY,1,1,1049,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_fec_contributions.csv
+act_transition_contracts,manual_export,False,manual_export,1,1,656,fully_materialized,moderate,validated_complete,meets_contract,provisional,data/staging/processed/pr_act_transition_contracts.csv
 emma_bonds,bonds,True,none,2,2,35,fully_materialized,seed_stub,seed,unverifiable,provisional,data/staging/processed/pr_emma_bonds.csv
 aafaf,territorial,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_aafaf_budget.csv
 act_toll_revenue,infrastructure_revenue,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_act_toll_revenue.csv
 act_tolls_concession,infrastructure,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_act_tolls.csv
-act_transition_contracts,manual_export,False,manual_export,1,0,0,not_materialized,empty,empty,below_contract,uncertified,data/staging/processed/pr_act_transition_contracts.csv
-acuden_2024_transition,manual_export,False,manual_export,1,0,0,not_materialized,empty,empty,below_contract,uncertified,data/staging/processed/pr_acuden_transition.csv
 ases_plan_vital,territorial,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_ases_contracts.csv
 bde_loans,territorial,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_bde_loans.csv
 census_gov_finances,territorial,False,api_key:CENSUS_API_KEY,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_census_gov_finances.csv

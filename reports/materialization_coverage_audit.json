@@ -1,41 +1,54 @@
 {
-  "generated_at": "2026-07-11T18:49:50.068051+00:00",
+  "generated_at": "2026-07-11T19:00:11.283669+00:00",
   "schema_version": "coverage_audit_v1",
   "root": ".",
   "committed_ci_view": {
     "source": "reports/gap_analysis_report.json",
-    "generated_at": "2026-07-11T18:49:49.658675+00:00",
-    "fully_materialized": 6,
+    "generated_at": "2026-07-11T19:00:10.345279+00:00",
+    "fully_materialized": 8,
     "partially_materialized": 4,
-    "coverage_rate": 0.0417,
+    "coverage_rate": 0.0556,
     "note": "reflects a clean/CI checkout where gitignored data/staging/processed/pr_*.csv masters are absent"
   },
   "local_truth_summary": {
     "total_sources": 144,
     "required_sources": 14,
-    "fully_materialized": 6,
+    "fully_materialized": 8,
     "partially_materialized": 4,
-    "not_materialized": 134,
+    "not_materialized": 132,
     "no_outputs_declared": 0,
     "required_fully_materialized": 6,
-    "tier_bulk": 8,
-    "tier_moderate": 0,
+    "tier_bulk": 9,
+    "tier_moderate": 1,
     "tier_seed_stub": 1,
-    "tier_empty": 135,
-    "total_local_rows": 52417,
-    "coverage_rate_fully": 0.0417,
-    "materialized_any_data": 9
+    "tier_empty": 133,
+    "total_local_rows": 54220,
+    "coverage_rate_fully": 0.0556,
+    "materialized_any_data": 11
   },
   "processed_file_inventory": {
     "processed_dir": "data/staging/processed",
-    "total_csv_files": 0,
-    "total_rows_on_disk": 0,
-    "registry_accounted_rows": 0,
+    "total_csv_files": 2,
+    "total_rows_on_disk": 1803,
+    "registry_accounted_rows": 1803,
     "orphan_rows": 0,
     "orphan_file_count": 0,
     "intermediate_rows": 0,
     "intermediate_file_count": 0,
-    "files": []
+    "files": [
+      {
+        "file": "pr_acuden_transition.csv",
+        "rows": 1147,
+        "claimed_by": "acuden_2024_transition",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_act_transition_contracts.csv",
+        "rows": 656,
+        "claimed_by": "act_transition_contracts",
+        "classification": "declared"
+      }
+    ]
   },
   "sources": [
     {
@@ -151,6 +164,22 @@
       "certification_status": "provisional"
     },
     {
+      "source_id": "acuden_2024_transition",
+      "family": "manual_export",
+      "required": false,
+      "authentication": "manual_export",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 1147,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "bulk",
+      "first_expected_output": "data/staging/processed/pr_acuden_transition.csv",
+      "materiality_label": "validated_complete",
+      "coverage_status": "meets_contract",
+      "certification_status": "provisional"
+    },
+    {
       "source_id": "fec",
       "family": "political_finance",
       "required": true,
@@ -164,6 +193,22 @@
       "first_expected_output": "data/staging/processed/pr_fec_contributions.csv",
       "materiality_label": "substantial",
       "coverage_status": "unverifiable",
+      "certification_status": "provisional"
+    },
+    {
+      "source_id": "act_transition_contracts",
+      "family": "manual_export",
+      "required": false,
+      "authentication": "manual_export",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 656,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/pr_act_transition_contracts.csv",
+      "materiality_label": "validated_complete",
+      "coverage_status": "meets_contract",
       "certification_status": "provisional"
     },
     {
@@ -228,38 +273,6 @@
       "first_expected_output": "data/staging/processed/pr_act_tolls.csv",
       "materiality_label": "empty",
       "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
-    },
-    {
-      "source_id": "act_transition_contracts",
-      "family": "manual_export",
-      "required": false,
-      "authentication": "manual_export",
-      "expected_output_count": 1,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "not_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/pr_act_transition_contracts.csv",
-      "materiality_label": "empty",
-      "coverage_status": "below_contract",
-      "certification_status": "uncertified"
-    },
-    {
-      "source_id": "acuden_2024_transition",
-      "family": "manual_export",
-      "required": false,
-      "authentication": "manual_export",
-      "expected_output_count": 1,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "not_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/pr_acuden_transition.csv",
-      "materiality_label": "empty",
-      "coverage_status": "below_contract",
       "certification_status": "uncertified"
     },
     {

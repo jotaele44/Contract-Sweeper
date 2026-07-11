@@ -59,7 +59,7 @@ structurally ready, but won't reach 100% rows until the key is set.
 ### 3. (Optional) Drop manual-export files
 Only needed to materialize the queued `manual_export` sources. Per
 `registries/manual_export_registry.yaml`, place files in each source's
-`expected_drop_dir` (e.g. `data/manual/hud_drgr/`, `data/manual/act_transition/`,
+`expected_drop_dir` (e.g. `data/manual/hud_drgr/`, `data/raw/act_transition/`,
 `data/raw/OCE/`). These are **not** part of the automatable target; skip if you
 only want the automatable set. For the five **required** operator-gated sources
 (cor3, hud_drgr_authorized, oficina_contralor, pr_cabilderos, prasa), the
