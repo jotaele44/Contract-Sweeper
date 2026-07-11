@@ -159,7 +159,10 @@ def inventory_processed_files(root: Path) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 def compute_local_coverage(root: Path) -> dict[str, Any]:
     """Per-source local materialization, computed against the working tree."""
+    from moneysweep.validation.completeness import completeness_columns, load_coverage_contracts
+
     sources = load_source_registry(root).get("sources", [])
+    contracts = load_coverage_contracts(root)
     records: list[dict[str, Any]] = []
     summary: dict[str, float] = {
         "total_sources": 0,
@@ -208,6 +211,15 @@ def compute_local_coverage(root: Path) -> dict[str, Any]:
                 "local_status": status,
                 "materiality_tier": tier,
                 "first_expected_output": expected[0] if expected else "",
+                # Contract-derived labels (gap-closure phase 1): the tier says
+                # how many rows exist; these say whether that means anything.
+                **completeness_columns(
+                    root,
+                    sid,
+                    local_rows=local_rows,
+                    materialization_status=status,
+                    contracts=contracts,
+                ),
             }
         )
 
@@ -607,7 +619,10 @@ def build_audit(root: Path, probe: bool) -> dict[str, Any]:
     result: dict[str, Any] = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "schema_version": "coverage_audit_v1",
-        "root": str(root),
+        # Portable marker, deliberately not the absolute path: an earlier
+        # committed audit recorded an operator-machine path and was
+        # irreproducible from the repo (baseline contradiction 3).
+        "root": ".",
         "committed_ci_view": read_committed_ci_view(root),
         "local_truth_summary": local["summary"],
         "processed_file_inventory": inventory,
@@ -635,6 +650,9 @@ def write_outputs(root: Path, audit: dict[str, Any]) -> tuple[Path, Path]:
         "local_rows",
         "local_status",
         "materiality_tier",
+        "materiality_label",
+        "coverage_status",
+        "certification_status",
         "first_expected_output",
     ]
     with csv_path.open("w", encoding="utf-8", newline="") as f:

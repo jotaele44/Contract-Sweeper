@@ -503,6 +503,93 @@ def compute_status_vector(
     )
 
 
+# ---------------------------------------------------------------------------
+# Committed manifest evidence (per-source ingest snapshots)
+# ---------------------------------------------------------------------------
+def manifest_profile(root: Path, source_id: str) -> dict[str, Any]:
+    """Evidence from the latest committed per-source ingest-snapshot manifest.
+
+    Reads ``data/manifests/<source_id>/<latest>.json`` and aggregates the
+    optional per-file ``field_completeness_pct`` (max per field across files)
+    and ``monetary_totals`` (summed per field). Sources whose manifests predate
+    those keys simply yield empty maps — their contracts evaluate
+    ``unverifiable``, never passing. Deterministic from committed state.
+    """
+    snap_dir = root / "data" / "manifests" / source_id
+    if not snap_dir.is_dir():
+        return {}
+    snapshots = sorted(snap_dir.glob("*.json"))
+    if not snapshots:
+        return {}
+    try:
+        data = json.loads(snapshots[-1].read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    fields: dict[str, float] = {}
+    monetary: dict[str, float] = {}
+    for entry in data.get("files") or []:
+        for name, pct in (entry.get("field_completeness_pct") or {}).items():
+            try:
+                fields[name] = max(float(pct), fields.get(name, 0.0))
+            except (TypeError, ValueError):
+                continue
+        for name, total in (entry.get("monetary_totals") or {}).items():
+            try:
+                monetary[name] = monetary.get(name, 0.0) + float(total)
+            except (TypeError, ValueError):
+                continue
+    return {
+        "field_completeness_pct": fields,
+        "monetary_totals": monetary,
+        "manifest": snapshots[-1].name,
+    }
+
+
+def completeness_columns(
+    root: Path,
+    source_id: str,
+    *,
+    local_rows: int,
+    materialization_status: str,
+    contracts: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, str]:
+    """The three contract-derived columns the gap report appends per source.
+
+    Uses only committed evidence (contracts registry + per-source manifests),
+    so regeneration is byte-identical between a working tree and a clean CI
+    checkout. Freshness is not evaluated here (reported ``unknown``-agnostic).
+    """
+    if contracts is None:
+        contracts = load_coverage_contracts(root)
+    contract = contracts.get(source_id)
+    profile = manifest_profile(root, source_id) if contract else {}
+    field_pct = profile.get("field_completeness_pct") or None
+    observed_total: float | None = None
+    monetary = (contract or {}).get("monetary_reconciliation") or {}
+    if monetary.get("amount_field"):
+        observed_total = (profile.get("monetary_totals") or {}).get(monetary["amount_field"])
+    coverage, _ = evaluate_coverage(
+        contract, unique_rows=local_rows, field_completeness_pct=field_pct
+    )
+    reconciliation = evaluate_monetary(contract, observed_total=observed_total)
+    return {
+        "materiality_label": materiality_label(
+            local_rows,
+            fixture_detected=False,
+            coverage_status=coverage,
+            freshness_status="unknown",
+        ),
+        "coverage_status": coverage,
+        "certification_status": certification_status(
+            materialization_status=materialization_status,
+            coverage_status=coverage,
+            reconciliation_status=reconciliation,
+            freshness_status="unknown",
+            fixture_detected=False,
+        ),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
