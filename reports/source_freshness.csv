@@ -118,6 +118,7 @@ research_grants,schedule,True,False,api_adapter,weekly,192.0,,,,NEVER_MATERIALIZ
 rum_cover_over,schedule,True,False,api_producer,yearly,9000.0,,,,NEVER_MATERIALIZED,,0,NEVER_RUN
 sam_entities,schedule,True,True,api_adapter,monthly,1080.0,,,,NEVER_MATERIALIZED,,0,NEVER_RUN
 sam_exclusions,schedule,True,False,api_producer,weekly,192.0,,,,NEVER_MATERIALIZED,,0,NEVER_RUN
+sam_opportunities,schedule,True,False,api_producer,weekly,192.0,,,,NEVER_MATERIALIZED,,0,NEVER_RUN
 sba_disaster_loans_pr,file_drop,True,False,manual_export,yearly,9000.0,,,,NEVER_MATERIALIZED,,0,NEVER_RUN
 sba_loans,schedule,True,False,api_adapter,quarterly,2400.0,,,,NEVER_MATERIALIZED,,0,NEVER_RUN
 sba_ppp,schedule,True,False,api_adapter,yearly,9000.0,,,,NEVER_MATERIALIZED,,0,NEVER_RUN

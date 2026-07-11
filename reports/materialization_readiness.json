@@ -1,10 +1,10 @@
 {
   "schema_version": "r5_readiness_v1",
-  "total_sources": 143,
-  "automatable_total": 98,
-  "automatable_ready": 98,
+  "total_sources": 144,
+  "automatable_total": 99,
+  "automatable_ready": 99,
   "automatable_not_ready": [],
-  "automatable_needs_key_count": 12,
+  "automatable_needs_key_count": 13,
   "automatable_required_keys": [
     "CENSUS_API_KEY",
     "EIA_API_KEY",
@@ -27,7 +27,7 @@
   "source_count_provenance": {
     "computed_from_live_registry": true,
     "registry_schema_version": "r5_source_registry_v1",
-    "source_ids_sha256": "a0cd9833004690f247d02c01ad7f363284dad8107bc773c560785a4731512efe",
+    "source_ids_sha256": "6c881d36265875cc6d1506c2c2fd89754850beb3bef7cf2f94d0b771da4a037b",
     "historical_counts_are_non_authoritative": true
   },
   "outputs": [

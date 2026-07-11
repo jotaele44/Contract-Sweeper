@@ -1,0 +1,103 @@
+name: Centinelas intake
+
+# Event-driven export hop 1 (receiver): fires when centinelas-pr emits a
+# `centinelas-signal` repository_dispatch. Materializes the signal into intake/,
+# runs the existing ingest producer to build the pre-official located-finance
+# candidate streams, and uploads them as an artifact.
+#
+# Data policy: intake/ and exports/ are gitignored — those stay artifacts. The
+# committed federation package (data/exports/canonical_v1_federation/) is NOT
+# gitignored, so the candidate is materialized into it (as a funding_awards row)
+# and committed, then the Hub is notified to re-aggregate the committed packages.
+
+on:
+  repository_dispatch:
+    types: [centinelas-signal]
+
+permissions:
+  contents: write
+
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Materialize Centinelas drop into intake/
+        env:
+          SIGNAL: ${{ toJSON(github.event.client_payload.signal) }}
+          ITEM_ID: ${{ github.event.client_payload.item_id }}
+        run: |
+          if [ -z "$ITEM_ID" ]; then echo "missing client_payload.item_id"; exit 1; fi
+          mkdir -p intake
+          printf '%s' "$SIGNAL" > "intake/${ITEM_ID}.json"
+          echo "Wrote intake/${ITEM_ID}.json"
+          cat "intake/${ITEM_ID}.json"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ingest Centinelas signals
+        run: python3 scripts/ingest_centinelas_signals.py
+
+      # Materialize the candidate into the committed canonical package as a
+      # funding_awards row (federation_export folds in
+      # exports/centinelas_intake/funding_awards.jsonl when present).
+      - name: Regenerate federation package
+        run: python3 scripts/federation_export.py --mode test
+
+      # Commit the refreshed package so the Hub's git-pull sees the new candidate.
+      # Best-effort: if main is branch-protected, the push is skipped and the
+      # package is still delivered as an artifact below (operator can apply it).
+      - name: Commit refreshed federation package
+        id: commit
+        run: |
+          git config user.name "prii-federation-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/exports/canonical_v1_federation
+          if git diff --cached --quiet; then
+            echo "No federation package change."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore(federation): materialize Centinelas candidate into canonical package [skip ci]"
+            if git push origin "HEAD:${{ github.ref_name }}"; then
+              echo "pushed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "push failed (branch protection?) — package delivered as artifact instead"
+              echo "pushed=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Upload candidate streams + federation package
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: centinelas-intake-candidates
+          path: |
+            exports/centinelas_intake
+            data/exports/canonical_v1_federation
+          if-no-files-found: ignore
+
+      # Hop 2 trigger: notify the Hub only when the refreshed package was actually
+      # pushed — otherwise the Hub would re-aggregate stale git state and miss the
+      # candidate (which is only in the uploaded artifact). No push => no dispatch.
+      - name: Notify Hub (moneysweep-export repository_dispatch)
+        if: ${{ success() && steps.commit.outputs.pushed == 'true' }}
+        env:
+          FEDERATION_DISPATCH_TOKEN: ${{ secrets.FEDERATION_DISPATCH_TOKEN }}
+          ITEM_ID: ${{ github.event.client_payload.item_id }}
+        run: |
+          if [ -z "$FEDERATION_DISPATCH_TOKEN" ]; then
+            echo "No FEDERATION_DISPATCH_TOKEN — skipping Hub dispatch."
+            exit 0
+          fi
+          curl -sSf -X POST \
+            -H "Authorization: Bearer $FEDERATION_DISPATCH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/jotaele44/thehub-pr/dispatches \
+            -d "{\"event_type\":\"moneysweep-export\",\"client_payload\":{\"item_id\":\"${ITEM_ID}\",\"producer\":\"moneysweep-pr\"}}"
+          echo "Dispatched moneysweep-export → thehub-pr"

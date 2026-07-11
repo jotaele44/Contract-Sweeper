@@ -47,7 +47,7 @@ def empty_state_template(root: Path | None = None) -> dict[str, Any]:
         "schema_version": STATE_SCHEMA_VERSION,
         "registry_snapshot": {
             "source_registry_schema_version": "r5_source_registry_v1",
-            "source_count": 143,
+            "source_count": 144,
             "source_ids_sha256": "",
             "generated_at": "",
         },

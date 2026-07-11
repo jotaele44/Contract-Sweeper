@@ -18,6 +18,7 @@ DOWNLOADER_MODULES = [
     "download_cdbg_mit",
     "download_fac",
     "download_sam_exclusions",
+    "download_sam_opportunities",
     "download_fema_ia",
     "download_opportunity_zones",
     "download_opm_fedscope",

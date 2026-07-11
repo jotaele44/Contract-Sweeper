@@ -34,7 +34,7 @@ The effective policy for each canonical source is resolved by precedence:
 
 The overlay is **keyed by `source_id`** and merged against the registry — source
 metadata is never hand-copied. There is exactly one effective policy per
-canonical source (143/143), and no orphan overrides.
+canonical source (144/144), and no orphan overrides.
 
 The authoritative count + `source_ids_sha256` are always computed from the live
 registry (`reports/materialization_readiness.json` is the authoritative computed
@@ -241,7 +241,7 @@ override. Terminal semantic duplicates (`fpds_report_builder`, `fsrs_subawards`,
 `congressional_earmarks`) and deferred NARA stubs stay permanently disabled under
 the current readiness invariant.
 
-## 143-source count reconciliation
+## Source-count reconciliation
 
 The source count and `source_ids_sha256` are always computed from the live
 registry (`build_registry_snapshot`). `reports/materialization_readiness.json`

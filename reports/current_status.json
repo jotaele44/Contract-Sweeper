@@ -7,8 +7,8 @@
     "authoritative_report": "reports/materialization_readiness.json",
     "count_semantics": "current live registry",
     "historical_counts_in_completed_entries_are_snapshots": true,
-    "total_sources": 143,
-    "source_ids_sha256": "a0cd9833004690f247d02c01ad7f363284dad8107bc773c560785a4731512efe"
+    "total_sources": 144,
+    "source_ids_sha256": "6c881d36265875cc6d1506c2c2fd89754850beb3bef7cf2f94d0b771da4a037b"
   },
   "completed": [
     "R5 gate-closure chain (PR1–PR64) — all validation gates pass",
