@@ -5,16 +5,17 @@ name: Centinelas intake
 # runs the existing ingest producer to build the pre-official located-finance
 # candidate streams, and uploads them as an artifact.
 #
-# Data policy: intake/ and exports/ are gitignored — outputs are artifacts, not
-# commits. Phase 2 (federation export + Hub dispatch) builds on the candidates
-# produced here.
+# Data policy: intake/ and exports/ are gitignored — those stay artifacts. The
+# committed federation package (data/exports/canonical_v1_federation/) is NOT
+# gitignored, so the candidate is materialized into it (as a funding_awards row)
+# and committed, then the Hub is notified to re-aggregate the committed packages.
 
 on:
   repository_dispatch:
     types: [centinelas-signal]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   intake:
@@ -42,19 +43,41 @@ jobs:
       - name: Ingest Centinelas signals
         run: python3 scripts/ingest_centinelas_signals.py
 
-      - name: Upload pre-official candidate streams
+      # Materialize the candidate into the committed canonical package as a
+      # funding_awards row (federation_export folds in
+      # exports/centinelas_intake/funding_awards.jsonl when present).
+      - name: Regenerate federation package
+        run: python3 scripts/federation_export.py --mode test
+
+      # Commit the refreshed package so the Hub's git-pull sees the new candidate.
+      # Best-effort: if main is branch-protected, the push is skipped and the
+      # package is still delivered as an artifact below (operator can apply it).
+      - name: Commit refreshed federation package
+        run: |
+          git config user.name "prii-federation-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/exports/canonical_v1_federation
+          if git diff --cached --quiet; then
+            echo "No federation package change."
+          else
+            git commit -m "chore(federation): materialize Centinelas candidate into canonical package [skip ci]"
+            git push origin "HEAD:${{ github.ref_name }}" || \
+              echo "push failed (branch protection?) — package delivered as artifact instead"
+          fi
+
+      - name: Upload candidate streams + federation package
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
           name: centinelas-intake-candidates
-          path: exports/centinelas_intake
+          path: |
+            exports/centinelas_intake
+            data/exports/canonical_v1_federation
           if-no-files-found: ignore
 
-      # Hop 2 trigger: notify the Hub that new upstream data was processed, so it
-      # re-runs its aggregate/ingest over the committed federation packages. The
-      # per-signal materialization into the committed canonical package is a
-      # follow-up (federation is git-pull/committed-artifact based); this wires the
-      # event so the Hub re-aggregates on each MoneySweep export.
+      # Hop 2 trigger: notify the Hub that new data was committed, so it re-runs
+      # its aggregate/ingest over the committed federation packages — which now
+      # carry the Centinelas candidate as a funding_awards row.
       - name: Notify Hub (moneysweep-export repository_dispatch)
         if: ${{ success() }}
         env:
