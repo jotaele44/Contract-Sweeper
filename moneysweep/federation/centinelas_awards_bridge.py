@@ -138,14 +138,18 @@ def build_centinelas_streams(root: Path | None = None, now: str | None = None) -
             (recipient_eid, recipient_name, "recipient"),
             (agency_eid, agency_name, "funding_agency"),
         ):
-            if name and eid not in seen_ent:
+            # Always emit the referenced entity so the award never carries a dangling
+            # ent_ id. Signals may omit the agency/recipient name (intake allows it),
+            # so synthesize a placeholder name in that case.
+            if eid not in seen_ent:
                 seen_ent.add(eid)
+                display_name = name or f"Unknown {etype}"
                 entities.append(
                     {
                         "entity_id": eid,
                         "source_id": src_id,
-                        "name": name,
-                        "normalized_name": name.upper(),
+                        "name": display_name,
+                        "normalized_name": display_name.upper(),
                         "entity_type": etype,
                         "jurisdiction": "PR",
                         "external_ids": {"centinelas_item_id": item_id},
@@ -183,24 +187,71 @@ def build_centinelas_streams(root: Path | None = None, now: str | None = None) -
     return {"sources": sources, "entities": entities, "funding_awards": awards}
 
 
-def merge_centinelas_awards(
-    streams: dict[str, Any], root: Path | None = None, now: str | None = None
-) -> int:
-    """Append Centinelas funding_awards (+ supporting entities/source) to ``streams``.
+COMMITTED_PACKAGE_REL = "data/exports/canonical_v1_federation"
 
-    Returns the number of funding_award rows added (0 when no candidates exist, so
-    the caller can keep ``funding_awards`` out of the package entirely)."""
+
+def _dedup_by(rows: list[dict[str, Any]], key: str) -> list[dict[str, Any]]:
+    """Keep the first row per ``key`` (new rows precede prior ones, so new wins)."""
+    seen: set[str] = set()
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        k = row.get(key)
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(row)
+    return out
+
+
+def _load_prior_centinelas(committed_dir: Path, src_id: str) -> dict[str, list]:
+    """Load the Centinelas-origin rows already committed to the federation package
+    (identified by source_id) so earlier candidates persist across rebuilds."""
+
+    def _rows(name: str) -> list[dict[str, Any]]:
+        rows = _load_candidates(committed_dir / name)
+        return [r for r in rows if r.get("source_id") == src_id]
+
+    return {
+        "sources": _rows("sources.jsonl"),
+        "entities": _rows("entities.jsonl"),
+        "funding_awards": _rows("funding_awards.jsonl"),
+    }
+
+
+def merge_centinelas_awards(
+    streams: dict[str, Any],
+    root: Path | None = None,
+    now: str | None = None,
+    committed_dir: Path | None = None,
+) -> int:
+    """Fold Centinelas funding_awards (+ supporting entities/source) into ``streams``.
+
+    Accumulates: the newly-ingested candidate is unioned with the Centinelas rows
+    already committed to the federation package (``committed_dir``, default
+    ``data/exports/canonical_v1_federation``), deduped by id (new wins). This keeps
+    earlier candidates in the committed snapshot when a later signal rebuilds the
+    package. Returns the total funding_award count (0 when there are none, so the
+    caller keeps ``funding_awards`` out of the package entirely)."""
+    root = Path(root or REPO_ROOT)
     built = build_centinelas_streams(root, now)
-    if not built["funding_awards"]:
+    src_id = fed_source_id(SOURCE_SEED)
+    prior = _load_prior_centinelas(
+        Path(committed_dir) if committed_dir else root / COMMITTED_PACKAGE_REL, src_id
+    )
+
+    awards = _dedup_by(built["funding_awards"] + prior["funding_awards"], "award_id")
+    if not awards:
         return 0
+    cent_sources = _dedup_by(built["sources"] + prior["sources"], "source_id")
+    cent_entities = _dedup_by(built["entities"] + prior["entities"], "entity_id")
 
     existing_src = {s.get("source_id") for s in streams.get("sources", [])}
     existing_ent = {e.get("entity_id") for e in streams.get("entities", [])}
     streams.setdefault("sources", []).extend(
-        s for s in built["sources"] if s["source_id"] not in existing_src
+        s for s in cent_sources if s["source_id"] not in existing_src
     )
     streams.setdefault("entities", []).extend(
-        e for e in built["entities"] if e["entity_id"] not in existing_ent
+        e for e in cent_entities if e["entity_id"] not in existing_ent
     )
-    streams["funding_awards"] = streams.get("funding_awards", []) + built["funding_awards"]
-    return len(built["funding_awards"])
+    streams["funding_awards"] = streams.get("funding_awards", []) + awards
+    return len(awards)

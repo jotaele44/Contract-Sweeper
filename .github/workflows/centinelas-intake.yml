@@ -53,16 +53,22 @@ jobs:
       # Best-effort: if main is branch-protected, the push is skipped and the
       # package is still delivered as an artifact below (operator can apply it).
       - name: Commit refreshed federation package
+        id: commit
         run: |
           git config user.name "prii-federation-bot"
           git config user.email "actions@users.noreply.github.com"
           git add data/exports/canonical_v1_federation
           if git diff --cached --quiet; then
             echo "No federation package change."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
           else
             git commit -m "chore(federation): materialize Centinelas candidate into canonical package [skip ci]"
-            git push origin "HEAD:${{ github.ref_name }}" || \
+            if git push origin "HEAD:${{ github.ref_name }}"; then
+              echo "pushed=true" >> "$GITHUB_OUTPUT"
+            else
               echo "push failed (branch protection?) — package delivered as artifact instead"
+              echo "pushed=false" >> "$GITHUB_OUTPUT"
+            fi
           fi
 
       - name: Upload candidate streams + federation package
@@ -75,11 +81,11 @@ jobs:
             data/exports/canonical_v1_federation
           if-no-files-found: ignore
 
-      # Hop 2 trigger: notify the Hub that new data was committed, so it re-runs
-      # its aggregate/ingest over the committed federation packages — which now
-      # carry the Centinelas candidate as a funding_awards row.
+      # Hop 2 trigger: notify the Hub only when the refreshed package was actually
+      # pushed — otherwise the Hub would re-aggregate stale git state and miss the
+      # candidate (which is only in the uploaded artifact). No push => no dispatch.
       - name: Notify Hub (moneysweep-export repository_dispatch)
-        if: ${{ success() }}
+        if: ${{ success() && steps.commit.outputs.pushed == 'true' }}
         env:
           FEDERATION_DISPATCH_TOKEN: ${{ secrets.FEDERATION_DISPATCH_TOKEN }}
           ITEM_ID: ${{ github.event.client_payload.item_id }}

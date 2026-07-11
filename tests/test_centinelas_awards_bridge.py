@@ -104,3 +104,55 @@ def test_merge_appends_and_dedups(tmp_path):
     assert added == 1
     assert len(streams["funding_awards"]) == 1
     assert streams["sources"] and streams["entities"]
+
+
+def test_blank_names_emit_placeholder_entities_no_dangling_refs(tmp_path):
+    """A signal with no recipient/agency name still yields resolvable ent_ refs."""
+    blank = {**_CANDIDATE, "recipient_entity_id": "", "funding_agency_entity_id": ""}
+    _write_candidates(tmp_path, [blank])
+    built = build_centinelas_streams(root=tmp_path, now="2026-07-11T00:00:00+00:00")
+    award = built["funding_awards"][0]
+    ent_ids = {e["entity_id"] for e in built["entities"]}
+    assert award["recipient_entity_id"] in ent_ids
+    assert award["funding_agency_entity_id"] in ent_ids
+    names = {e["name"] for e in built["entities"]}
+    assert "Unknown recipient" in names and "Unknown funding_agency" in names
+
+
+def test_prior_committed_awards_are_preserved(tmp_path):
+    """A later signal must not drop earlier candidates from the committed package."""
+    from moneysweep.runtime.canonical_ids import fed_source_id
+
+    src_id = fed_source_id("centinelas-pr")
+    committed = tmp_path / "data" / "exports" / "canonical_v1_federation"
+    committed.mkdir(parents=True, exist_ok=True)
+    prior_award = {
+        "award_id": "awd_" + "a" * 32,
+        "source_id": src_id,
+        "recipient_entity_id": "ent_" + "b" * 32,
+        "funding_agency_entity_id": "ent_" + "c" * 32,
+        "amount": 500.0,
+        "currency": "USD",
+        "fiscal_year": 2025,
+        "award_type": "pre_official_signal",
+        "award_date": "2025-01-01",
+        "confidence": 0.5,
+        "lineage": {"producer_script": "x", "producer_phase": "y", "source_inputs": ["z"]},
+        "synthetic": False,
+        "created_at": "2025-01-01T00:00:00+00:00",
+        "extracted_at": "2025-01-01T00:00:00+00:00",
+    }
+    (committed / "funding_awards.jsonl").write_text(
+        json.dumps(prior_award) + "\n", encoding="utf-8"
+    )
+    (committed / "entities.jsonl").write_text("", encoding="utf-8")
+    (committed / "sources.jsonl").write_text("", encoding="utf-8")
+
+    # A new, different candidate arrives.
+    _write_candidates(tmp_path, [_CANDIDATE])
+    streams = {"sources": [], "entities": [], "relationships": []}
+    added = merge_centinelas_awards(streams, root=tmp_path, now="2026-07-11T00:00:00+00:00")
+
+    award_ids = {a["award_id"] for a in streams["funding_awards"]}
+    assert prior_award["award_id"] in award_ids, "prior committed award must persist"
+    assert added == 2  # prior + new
