@@ -57,8 +57,11 @@ jobs:
           HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
           OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
         run: |
-          python3 scripts/update_sources.py run --cadence quarterly --continue-on-error --json
+          args=(run --cadence quarterly --continue-on-error)
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          python3 scripts/update_sources.py "${args[@]}" --json
 
       - name: Freshness report
         if: ${{ always() }}

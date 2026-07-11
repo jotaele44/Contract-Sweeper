@@ -165,3 +165,29 @@ def test_freshness_exit_codes():
     assert freshness_exit_code([_fr("NEVER_MATERIALIZED")]) == 1
     assert freshness_exit_code([_fr("DUE", required=False)]) == 1
     assert freshness_exit_code([_fr("STALE", required=True)]) == 2
+
+
+def test_is_run_failure_classification():
+    # successes + benign non-runs are not failures
+    for ok in (
+        "SUCCESS_WITH_CHANGE",
+        "SUCCESS_NO_CHANGE",
+        "EMPTY_EXPECTED",
+        "CHECKPOINTED",
+        "DISABLED",
+        "NOT_DUE",
+        "MANUAL_INPUT_MISSING",
+        "DEPENDENCY_NOT_READY",
+        "MISSING_SECRET",
+    ):
+        assert cli.is_run_failure(ok) is False, ok
+    # real failures (incl. those an auto-triggered dependent can return) count
+    for bad in (
+        "PRODUCER_EXECUTION_FAILED",
+        "PRODUCER_IMPORT_FAILED",
+        "OUTPUT_MISSING",
+        "OUTPUT_REGRESSION",
+        "SCHEMA_FAILED",
+        "FRESHNESS_FAILED",
+    ):
+        assert cli.is_run_failure(bad) is True, bad

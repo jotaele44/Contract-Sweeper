@@ -16,11 +16,33 @@ from pathlib import Path
 from typing import Any
 
 from moneysweep.runtime.source_registry import load_source_registry
+from moneysweep.update_controller.models import SUCCESS_STATUSES, ExecutionStatus
 from moneysweep.update_controller.policy import (
     REPO_ROOT,
     build_effective_policies,
     validate_policy,
 )
+
+# Statuses that are NOT an execution failure for exit-code purposes: successes
+# plus benign non-runs (skipped/blocked/not-due). Everything else — producer,
+# output, schema, regression, freshness failures — counts as a failure and must
+# surface in the run exit code (spec §11), including for auto-triggered
+# dependents so scheduled workflows don't go green on a broken downstream.
+_RUN_FAILURE_EXEMPT: frozenset[str] = SUCCESS_STATUSES | frozenset(
+    {
+        ExecutionStatus.NOT_DUE.value,
+        ExecutionStatus.DISABLED.value,
+        ExecutionStatus.MANUAL_INPUT_MISSING.value,
+        ExecutionStatus.DEPENDENCY_NOT_READY.value,
+        ExecutionStatus.MISSING_SECRET.value,
+    }
+)
+
+
+def is_run_failure(status: str) -> bool:
+    """True if a run-result status should mark the batch as failed."""
+    return status not in _RUN_FAILURE_EXEMPT
+
 
 FRESHNESS_CSV = "reports/source_freshness.csv"
 FRESHNESS_COLUMNS = [
@@ -218,7 +240,6 @@ def cmd_run(args: argparse.Namespace) -> int:
     from moneysweep.update_controller.executor import run_source
     from moneysweep.update_controller.planner import _dotenv, build_plan
     from moneysweep.update_controller.state import load_state, write_state
-    from moneysweep.update_controller.models import SUCCESS_STATUSES, ExecutionStatus
 
     policies = build_effective_policies(args.root, args.policy)
     state = load_state(args.root, args.state, policies=policies)
@@ -257,13 +278,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             write_state(state, args.root, args.state)
         if res["status"] == ExecutionStatus.SUCCESS_WITH_CHANGE.value:
             changed_parents.add(it.source_id)
-        if res["status"] not in SUCCESS_STATUSES and res["status"] not in (
-            ExecutionStatus.NOT_DUE.value,
-            ExecutionStatus.DISABLED.value,
-            ExecutionStatus.MANUAL_INPUT_MISSING.value,
-            ExecutionStatus.DEPENDENCY_NOT_READY.value,
-            ExecutionStatus.MISSING_SECRET.value,
-        ):
+        if is_run_failure(res["status"]):
             failed = True
             if not args.continue_on_error:
                 break
@@ -288,6 +303,13 @@ def cmd_run(args: argparse.Namespace) -> int:
             )
             results.append(res)
             write_state(state, args.root, args.state)
+            # A failed auto-triggered dependent must surface in the exit code so
+            # scheduled workflows don't go green while downstream outputs are
+            # stale/broken (respecting --continue-on-error for the batch).
+            if is_run_failure(res["status"]):
+                failed = True
+                if not args.continue_on_error:
+                    break
 
     _emit(
         {

@@ -59,11 +59,15 @@ jobs:
 
       - name: Validate source_id against the registry
         if: ${{ github.event.inputs.source_id != '' }}
+        env:
+          SOURCE_ID: ${{ github.event.inputs.source_id }}
         run: |
-          python3 - "${{ github.event.inputs.source_id }}" <<'PY'
+          python3 - <<'PY'
+          import os
           import sys
           from moneysweep.runtime.source_registry import source_by_id
-          sid = sys.argv[1]
+
+          sid = os.environ["SOURCE_ID"]
           if source_by_id(sid) is None:
               print(f"unknown source_id: {sid}", file=sys.stderr)
               raise SystemExit(2)
@@ -85,18 +89,25 @@ jobs:
           HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
           OPENSTATES_API_KEY: ${{ secrets.OPENSTATES_API_KEY }}
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+          # Inputs passed via env (never interpolated into the script) so a
+          # malicious dispatch value cannot inject shell that runs under the
+          # secrets above. Referenced only as quoted "$VAR" in a bash array.
+          SOURCE_ID: ${{ github.event.inputs.source_id }}
+          CADENCE: ${{ github.event.inputs.cadence }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+          CONTINUE_ON_ERROR: ${{ github.event.inputs.continue_on_error }}
+          RUN_DEPENDENTS: ${{ github.event.inputs.run_dependents }}
         run: |
-          ARGS="run"
-          if [ -n "${{ github.event.inputs.source_id }}" ]; then
-            ARGS="$ARGS --source ${{ github.event.inputs.source_id }}"
-          elif [ -n "${{ github.event.inputs.cadence }}" ]; then
-            ARGS="$ARGS --cadence ${{ github.event.inputs.cadence }}"
+          args=(run)
+          if [ -n "$SOURCE_ID" ]; then
+            args+=(--source "$SOURCE_ID")
+          elif [ -n "$CADENCE" ]; then
+            args+=(--cadence "$CADENCE")
           fi
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
-          if [ "${{ github.event.inputs.continue_on_error }}" = "true" ]; then ARGS="$ARGS --continue-on-error"; fi
-          if [ "${{ github.event.inputs.run_dependents }}" != "true" ]; then ARGS="$ARGS --no-dependents"; fi
-          echo "update_sources $ARGS --json"
-          python3 scripts/update_sources.py $ARGS --json
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+          if [ "$CONTINUE_ON_ERROR" = "true" ]; then args+=(--continue-on-error); fi
+          if [ "$RUN_DEPENDENTS" != "true" ]; then args+=(--no-dependents); fi
+          python3 scripts/update_sources.py "${args[@]}" --json
 
       - name: Freshness report
         if: ${{ always() }}
