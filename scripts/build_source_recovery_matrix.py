@@ -111,7 +111,18 @@ QUEUED_PATH_TYPES = (
 
 
 def _outputs_present(expected_outputs: list[str]) -> tuple[int, int]:
-    present = sum(1 for p in expected_outputs if p and (REPO_ROOT / p).exists())
+    """Declared outputs present on disk OR recorded in the committed staging
+    manifest — the same clean-checkout fallback as gap_analysis_builder, so the
+    committed matrix regenerates byte-identically in CI where the gitignored
+    masters are absent."""
+    from scripts.gap_analysis_builder import _staging_manifest
+
+    manifest = _staging_manifest(REPO_ROOT)
+    present = sum(
+        1
+        for p in expected_outputs
+        if p and ((REPO_ROOT / p).exists() or manifest.get(p, {}).get("row_count", 0) >= 1)
+    )
     return len(expected_outputs), present
 
 
