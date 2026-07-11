@@ -1,0 +1,51 @@
+name: Centinelas intake
+
+# Event-driven export hop 1 (receiver): fires when centinelas-pr emits a
+# `centinelas-signal` repository_dispatch. Materializes the signal into intake/,
+# runs the existing ingest producer to build the pre-official located-finance
+# candidate streams, and uploads them as an artifact.
+#
+# Data policy: intake/ and exports/ are gitignored — outputs are artifacts, not
+# commits. Phase 2 (federation export + Hub dispatch) builds on the candidates
+# produced here.
+
+on:
+  repository_dispatch:
+    types: [centinelas-signal]
+
+permissions:
+  contents: read
+
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Materialize Centinelas drop into intake/
+        env:
+          SIGNAL: ${{ toJSON(github.event.client_payload.signal) }}
+          ITEM_ID: ${{ github.event.client_payload.item_id }}
+        run: |
+          if [ -z "$ITEM_ID" ]; then echo "missing client_payload.item_id"; exit 1; fi
+          mkdir -p intake
+          printf '%s' "$SIGNAL" > "intake/${ITEM_ID}.json"
+          echo "Wrote intake/${ITEM_ID}.json"
+          cat "intake/${ITEM_ID}.json"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ingest Centinelas signals
+        run: python3 scripts/ingest_centinelas_signals.py
+
+      - name: Upload pre-official candidate streams
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: centinelas-intake-candidates
+          path: exports/centinelas_intake
+          if-no-files-found: ignore
