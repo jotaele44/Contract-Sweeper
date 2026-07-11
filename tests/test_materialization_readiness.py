@@ -136,9 +136,7 @@ def test_no_handmaintained_current_source_count():
     """current_status.json must mirror the live computed count, not a hand-kept one."""
     readiness = build_summary(build_rows())
     status = json.loads(CURRENT_STATUS.read_text(encoding="utf-8"))
-    assert (
-        status["source_registry_current"]["total_sources"] == readiness["total_sources"]
-    )
+    assert status["source_registry_current"]["total_sources"] == readiness["total_sources"]
 
 
 def test_registry_snapshot_is_deterministic():
