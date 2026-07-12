@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from scripts.validate_skills import CHECKS, run_all
+from scripts.validate_skills import CHECKS, check_activation, run_all
 
 pytestmark = pytest.mark.unit
 
@@ -38,6 +38,17 @@ def test_committed_packet_passes_every_check():
     results = run_all(ROOT)
     failures = {name: errs for name, errs in results.items() if errs}
     assert not failures, f"skill packet validation failed: {failures}"
+
+
+def test_activation_check_requires_a_matrix(tmp_path):
+    # The activation matrix is the routing-coverage artifact; a missing or empty
+    # matrix must fail the check, not silently pass (a no-op "ok").
+    (tmp_path / "skill-registry.yaml").write_text(
+        (ROOT / "skill-registry.yaml").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    assert check_activation(tmp_path), "missing activation-matrix.yaml must fail"
+    (tmp_path / "activation-matrix.yaml").write_text("{}", encoding="utf-8")
+    assert check_activation(tmp_path), "empty activation-matrix.yaml must fail"
 
 
 def test_registry_validates_against_declared_schema():

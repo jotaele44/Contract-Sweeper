@@ -336,13 +336,22 @@ def check_export_contract(root: Path) -> list[str]:
 
 
 def check_activation(root: Path) -> list[str]:
+    """The activation matrix is the packet's prompt-routing coverage artifact, so
+    a missing or empty matrix is a failure — not a silent pass. Every registered
+    skill must have at least one positive case, and every case must route to a
+    known skill or a declared route."""
     errors: list[str] = []
     cfg = _packet_config(root)
     routes = {str(r) for r in (cfg.get("activation_routes") or ["clarify"])}
     matrix = _load_yaml(root, ACTIVATION)
+    if not matrix:
+        return [f"{ACTIVATION} is missing or empty (activation coverage is required)"]
+    buckets = {b: (matrix.get(b) or []) for b in ("positive", "negative", "ambiguous")}
+    if not any(buckets.values()):
+        errors.append(f"{ACTIVATION} declares no activation cases in any bucket")
     known = {s.get("skill_id") for s in _registry_skills(root)}
-    for bucket in ("positive", "negative", "ambiguous"):
-        for case in matrix.get(bucket) or []:
+    for bucket, cases in buckets.items():
+        for case in cases:
             expect = case.get("expect")
             if expect not in known and expect not in routes:
                 errors.append(
@@ -350,6 +359,10 @@ def check_activation(root: Path) -> list[str]:
                 )
             if not case.get("prompt"):
                 errors.append(f"activation[{bucket}]: a case is missing its prompt")
+    covered = {case.get("expect") for case in buckets["positive"]}
+    for sid in sorted(s for s in known if s):
+        if sid not in covered:
+            errors.append(f"activation: skill '{sid}' has no positive activation case")
     return errors
 
 
