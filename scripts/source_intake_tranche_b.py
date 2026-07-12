@@ -358,9 +358,7 @@ def materialize_spec(root: Path, spec: SourceSpec, force: bool = False) -> dict:
         # rows tagged for this spec's dataset so each source is attributed
         # correctly instead of ingesting the other's rows.
         if spec.dataset_filter and DATASET_PARTITION_COLUMN in raw.columns:
-            raw = raw[
-                raw[DATASET_PARTITION_COLUMN].astype(str).str.strip() == spec.dataset_filter
-            ]
+            raw = raw[raw[DATASET_PARTITION_COLUMN].astype(str).str.strip() == spec.dataset_filter]
             if raw.empty:
                 continue
         frames.append(

@@ -69,12 +69,9 @@ def test_shared_extract_partition_tokens_present_in_extract():
         reader = csv.DictReader(handle)
         assert reader.fieldnames is not None
         assert DATASET_PARTITION_COLUMN in reader.fieldnames, (
-            f"{DATASET_PARTITION_COLUMN} column absent from extract header "
-            f"{reader.fieldnames}"
+            f"{DATASET_PARTITION_COLUMN} column absent from extract header {reader.fieldnames}"
         )
-        present_tokens = {
-            (row.get(DATASET_PARTITION_COLUMN) or "").strip() for row in reader
-        }
+        present_tokens = {(row.get(DATASET_PARTITION_COLUMN) or "").strip() for row in reader}
 
     for source_id, token in SHARED_EXTRACT_DATASET_FILTERS.items():
         assert token in present_tokens, (
