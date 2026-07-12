@@ -82,6 +82,23 @@ data/**
 !data/raw/follow_the_money/**.csv
 !data/raw/torres_rosa_consultation/**
 
+# Cabilderos (lobbyist registry) + Donaciones (campaign donations) manual drops.
+# Operator-delivered CSV extracts belong in git as part of the audit trail; the
+# deny-all data/** above otherwise swallows them (only README.md/.gitkeep were
+# re-included). Binary xlsx are intentionally NOT allow-listed here — keep large
+# spreadsheet blobs out of git; commit their derived CSVs instead.
+!data/raw/Cabilderos/**.csv
+!data/raw/Donaciones/**.csv
+
+# Donor-lookup reference exports (data/raw/reference/donantes_lookup/). git is
+# allowed to descend into the tree (so the folder README, allow-listed above,
+# is tracked), but the source files there are binary xlsx (potentially large)
+# and stay OUT of git by policy. Track derived CSV summaries explicitly if any
+# are produced later.
+!data/raw/reference/
+!data/raw/reference/**/
+!data/raw/reference/donantes_lookup/**.csv
+
 # Spaces-in-name dir kept for ACT/ACUDES transition PDFs already in history
 # (#200's snake_case rename didn't reach this one). New files inside go through
 # the same deny-by-extension rules as the rest of data/raw/.

@@ -15,7 +15,26 @@ from typing import Iterable
 
 import pandas as pd
 
-SUPPORTED_TABULAR_SUFFIXES = {".csv", ".xlsx", ".xls"}
+from scripts.source_intake_paths import (
+    SUPPORTED_TABULAR_SUFFIXES,
+    discover_tabular_files,
+)
+
+__all__ = [
+    "SUPPORTED_TABULAR_SUFFIXES",
+    "discover_tabular_files",
+    "LoadedTable",
+    "normalize_name",
+    "safe_text",
+    "file_sha256",
+    "read_tabular_file",
+    "load_tabular_dropzone",
+    "resolve_column",
+    "map_frame",
+    "ensure_required_columns",
+    "write_canonical_csv",
+    "read_csv_rows",
+]
 
 _SPACE_RE = re.compile(r"\s+")
 _STRIP_RE = re.compile(r"[^\w\s]")
@@ -74,18 +93,6 @@ def file_sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
-
-
-def discover_tabular_files(dropzone: Path) -> list[Path]:
-    if not dropzone.exists():
-        return []
-    return [
-        path
-        for path in sorted(dropzone.iterdir())
-        if path.is_file()
-        and path.suffix.lower() in SUPPORTED_TABULAR_SUFFIXES
-        and not path.name.startswith("~")
-    ]
 
 
 def read_tabular_file(path: Path) -> pd.DataFrame:

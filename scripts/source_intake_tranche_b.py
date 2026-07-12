@@ -20,6 +20,10 @@ from scripts.source_intake_helpers import (
     normalize_name,
     write_canonical_csv,
 )
+from scripts.source_intake_paths import (
+    DATASET_PARTITION_COLUMN,
+    SHARED_EXTRACT_DATASET_FILTERS,
+)
 
 LOCAL_CONTRACT_COLUMNS = [
     "source_id",
@@ -109,7 +113,15 @@ CONTRACTOR_REFERENCE_COLUMNS = [
 
 LOCAL_CONTRACT_MAP = {
     "record_id": ["record_id", "id", "ID", "Número", "Numero", "Row ID"],
-    "contract_id": ["contract_id", "Contract ID", "Contrato", "Contract Number"],
+    "contract_id": [
+        "contract_id",
+        "Contract ID",
+        "Contrato",
+        "Contract Number",
+        # ACT/ACUDEN committed extract (transition_contracts_extracted.csv)
+        "contract_number",
+        "base_contract_number",
+    ],
     "contract_title": [
         "contract_title",
         "Title",
@@ -119,12 +131,20 @@ LOCAL_CONTRACT_MAP = {
     ],
     "contractor_name": ["contractor_name", "Contratista", "Contractor", "Vendor Name"],
     "agency_name": ["agency_name", "Agencia", "Agency", "Entidad", "Department"],
-    "amount": ["amount", "Monto", "Amount", "Contract Value", "Total"],
-    "start_date": ["start_date", "Fecha Inicio", "Start Date"],
-    "end_date": ["end_date", "Fecha Fin", "End Date"],
-    "fiscal_year": ["fiscal_year", "FY", "Año Fiscal", "Fiscal Year"],
+    "amount": [
+        "amount",
+        "Monto",
+        "Amount",
+        "Contract Value",
+        "Total",
+        "amount_numeric",
+        "amount_raw",
+    ],
+    "start_date": ["start_date", "Fecha Inicio", "Start Date", "start_date_raw", "award_date_raw"],
+    "end_date": ["end_date", "Fecha Fin", "End Date", "end_date_raw"],
+    "fiscal_year": ["fiscal_year", "FY", "Año Fiscal", "Fiscal Year", "transition_year"],
     "municipality": ["municipality", "Municipio", "Municipality", "Ciudad"],
-    "procurement_type": ["procurement_type", "Tipo", "Type", "Award Type"],
+    "procurement_type": ["procurement_type", "Tipo", "Type", "Award Type", "service_type"],
     "status": ["status", "Estado", "Estatus", "Status"],
 }
 PROJECT_MAP = {
@@ -199,6 +219,9 @@ class SourceSpec:
     columns: list[str]
     column_map: dict[str, list[str]]
     dedupe_columns: tuple[str, ...]
+    # When the dropzone holds a single combined extract keyed by
+    # DATASET_PARTITION_COLUMN, restrict this spec to its own dataset token.
+    dataset_filter: str | None = None
 
 
 SOURCE_SPECS = {
@@ -214,6 +237,7 @@ SOURCE_SPECS = {
         LOCAL_CONTRACT_COLUMNS,
         LOCAL_CONTRACT_MAP,
         ("contract_id", "contractor_name"),
+        dataset_filter=SHARED_EXTRACT_DATASET_FILTERS["act_transition_contracts"],
     ),
     "acuden": SourceSpec(
         "acuden_2024_transition",
@@ -223,6 +247,7 @@ SOURCE_SPECS = {
         LOCAL_CONTRACT_COLUMNS,
         LOCAL_CONTRACT_MAP,
         ("contract_id", "contractor_name"),
+        dataset_filter=SHARED_EXTRACT_DATASET_FILTERS["acuden_2024_transition"],
     ),
     "prasa_projects": SourceSpec(
         "prasa_completed_projects",
@@ -326,16 +351,27 @@ def materialize_spec(root: Path, spec: SourceSpec, force: bool = False) -> dict:
         }
 
     loaded = load_tabular_dropzone(root / spec.dropzone)
-    frames = [
-        map_frame(
-            table.frame,
-            spec.column_map,
-            spec.columns,
-            spec.source_id,
-            table.path.name,
+    frames = []
+    for table in loaded:
+        raw = table.frame
+        # ACT/ACUDEN share one dropzone and one combined extract; keep only the
+        # rows tagged for this spec's dataset so each source is attributed
+        # correctly instead of ingesting the other's rows.
+        if spec.dataset_filter and DATASET_PARTITION_COLUMN in raw.columns:
+            raw = raw[
+                raw[DATASET_PARTITION_COLUMN].astype(str).str.strip() == spec.dataset_filter
+            ]
+            if raw.empty:
+                continue
+        frames.append(
+            map_frame(
+                raw,
+                spec.column_map,
+                spec.columns,
+                spec.source_id,
+                table.path.name,
+            )
         )
-        for table in loaded
-    ]
     frame = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=spec.columns)
     frame = _postprocess(spec, frame)
     missing = ensure_required_columns(frame, spec.columns)
