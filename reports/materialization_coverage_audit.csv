@@ -12,6 +12,7 @@ fec,political_finance,True,api_key:FEC_API_KEY,1,1,1049,fully_materialized,bulk,
 municipal_finance,municipal,False,api_key:FAC_API_KEY,1,1,785,fully_materialized,moderate,partial,uncontracted,provisional,data/staging/processed/pr_municipal_finance.csv
 act_transition_contracts,manual_export,False,manual_export,1,1,656,fully_materialized,moderate,validated_complete,meets_contract,provisional,data/staging/processed/pr_act_transition_contracts.csv
 eia_power_sector,federal,False,api_key:EIA_API_KEY,1,1,620,fully_materialized,moderate,partial,uncontracted,provisional,data/staging/processed/pr_eia_power_sector.csv
+fec_committees,political_finance,False,api_key:FEC_API_KEY,3,1,86,partially_materialized,moderate,partial,uncontracted,uncertified,data/staging/processed/pr_fec_committees.csv
 emma_bonds,bonds,True,none,2,2,35,fully_materialized,seed_stub,seed,unverifiable,provisional,data/staging/processed/pr_emma_bonds.csv
 aafaf,territorial,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_aafaf_budget.csv
 act_toll_revenue,infrastructure_revenue,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_act_toll_revenue.csv
@@ -47,7 +48,6 @@ estadisticas_pr_external_trade,territorial,False,none,1,0,0,not_materialized,emp
 exim_bank,federal,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_exim.csv
 fcc_usf,federal,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_fcc_usf.csv
 fdic,federal,False,none,2,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_fdic_financials.csv
-fec_committees,political_finance,False,api_key:FEC_API_KEY,3,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_fec_committees.csv
 federal_audit_clearinghouse,federal,False,api_key:FAC_API_KEY,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_single_audits.csv
 fema_hmgp,federal,False,none,1,0,0,not_materialized,empty,empty,unverifiable,uncertified,data/staging/processed/pr_fema_hmgp_master.csv
 fema_individual_assistance,federal,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_fema_ia.csv
@@ -119,8 +119,8 @@ promesa_creditors,territorial,False,none,1,0,0,not_materialized,empty,empty,unco
 prpha_housing_subsidy,territorial,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_prpha_subsidies.csv
 research_grants,federal,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_research_master.csv
 rum_cover_over,territorial,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_rum_coverover.csv
-sam_exclusions,entity_resolution,False,api_key:SAM_API_KEY,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/sam_exclusions.csv
-sam_opportunities,federal,False,api_key:SAM_API_KEY,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_sam_opportunities.csv
+sam_exclusions,entity_resolution,False,api_key:SAM_API_KEY,1,0,0,partially_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/sam_exclusions.csv
+sam_opportunities,federal,False,api_key:SAM_API_KEY,1,0,0,partially_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_sam_opportunities.csv
 sba_disaster_loans_pr,manual_export,False,manual_export,2,0,0,not_materialized,empty,empty,unverifiable,uncertified,data/staging/processed/sba_recovery_loans_pr.jsonl
 sba_loans,federal,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_sba_loans_master.csv
 sba_ppp,federal,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_sba_ppp.csv

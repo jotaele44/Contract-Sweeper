@@ -2,3 +2,6 @@ file,rows,classification,claimed_by
 pr_fred_timeseries.csv,2138,declared,fred_timeseries
 pr_municipal_finance.csv,785,declared,municipal_finance
 pr_eia_power_sector.csv,620,declared,eia_power_sector
+pr_fec_committees.csv,86,declared,fec_committees
+pr_sam_opportunities.csv,0,declared,sam_opportunities
+sam_exclusions.csv,0,declared,sam_exclusions

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T21:38:13.474048+00:00",
+  "generated_at": "2026-07-12T22:03:51.669049+00:00",
   "schema_version": "coverage_audit_v1",
   "root": ".",
   "committed_ci_view": {
@@ -14,23 +14,23 @@
     "total_sources": 144,
     "required_sources": 14,
     "fully_materialized": 12,
-    "partially_materialized": 4,
-    "not_materialized": 128,
+    "partially_materialized": 7,
+    "not_materialized": 125,
     "no_outputs_declared": 0,
     "required_fully_materialized": 6,
     "tier_bulk": 10,
-    "tier_moderate": 3,
+    "tier_moderate": 4,
     "tier_seed_stub": 1,
-    "tier_empty": 130,
-    "total_local_rows": 57763,
+    "tier_empty": 129,
+    "total_local_rows": 57849,
     "coverage_rate_fully": 0.0833,
-    "materialized_any_data": 14
+    "materialized_any_data": 15
   },
   "processed_file_inventory": {
     "processed_dir": "data/staging/processed",
-    "total_csv_files": 3,
-    "total_rows_on_disk": 3543,
-    "registry_accounted_rows": 3543,
+    "total_csv_files": 6,
+    "total_rows_on_disk": 3629,
+    "registry_accounted_rows": 3629,
     "orphan_rows": 0,
     "orphan_file_count": 0,
     "intermediate_rows": 0,
@@ -52,6 +52,24 @@
         "file": "pr_eia_power_sector.csv",
         "rows": 620,
         "claimed_by": "eia_power_sector",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_fec_committees.csv",
+        "rows": 86,
+        "claimed_by": "fec_committees",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_sam_opportunities.csv",
+        "rows": 0,
+        "claimed_by": "sam_opportunities",
+        "classification": "declared"
+      },
+      {
+        "file": "sam_exclusions.csv",
+        "rows": 0,
+        "claimed_by": "sam_exclusions",
         "classification": "declared"
       }
     ]
@@ -264,6 +282,22 @@
       "materiality_label": "partial",
       "coverage_status": "uncontracted",
       "certification_status": "provisional"
+    },
+    {
+      "source_id": "fec_committees",
+      "family": "political_finance",
+      "required": false,
+      "authentication": "api_key:FEC_API_KEY",
+      "expected_output_count": 3,
+      "present_count": 1,
+      "local_rows": 86,
+      "min_rows_threshold": 1,
+      "local_status": "partially_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/pr_fec_committees.csv",
+      "materiality_label": "partial",
+      "coverage_status": "uncontracted",
+      "certification_status": "uncertified"
     },
     {
       "source_id": "emma_bonds",
@@ -821,22 +855,6 @@
       "local_status": "not_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/pr_fdic_financials.csv",
-      "materiality_label": "empty",
-      "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
-    },
-    {
-      "source_id": "fec_committees",
-      "family": "political_finance",
-      "required": false,
-      "authentication": "api_key:FEC_API_KEY",
-      "expected_output_count": 3,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "not_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/pr_fec_committees.csv",
       "materiality_label": "empty",
       "coverage_status": "uncontracted",
       "certification_status": "uncertified"
@@ -1986,7 +2004,7 @@
       "present_count": 0,
       "local_rows": 0,
       "min_rows_threshold": 1,
-      "local_status": "not_materialized",
+      "local_status": "partially_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/sam_exclusions.csv",
       "materiality_label": "empty",
@@ -2002,7 +2020,7 @@
       "present_count": 0,
       "local_rows": 0,
       "min_rows_threshold": 1,
-      "local_status": "not_materialized",
+      "local_status": "partially_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/pr_sam_opportunities.csv",
       "materiality_label": "empty",

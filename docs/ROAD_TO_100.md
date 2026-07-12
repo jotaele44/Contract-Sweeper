@@ -28,14 +28,17 @@ CSVs stay gitignored under `data/**` by design; the tracked evidence is
 | FRED (PR macro time series) | `download_fred.py` | **2,138 rows**, 8/8 series — OK |
 | EIA (PR power sector) | `download_eia.py` | **620 rows**, 5/5 series — OK |
 | FAC (municipal single audits) | `download_fac_municipal.py` | **785 rows** — OK |
-| FEC | `download_fec.py` | live (HTTP 200) but long-running; not fully captured this pass |
-| SAM exclusions | `download_sam_exclusions.py` | live but long-running; not fully captured this pass |
+| FEC committees | `download_fec_committees.py` | **86 rows** (partial — run hit the time cap) |
+| FEC filings | `download_fec.py` | live (HTTP 200) but too slow to complete within the run cap |
+| SAM opportunities | `download_sam_opportunities.py` | ran; 0 rows for the PR date window |
+| SAM exclusions | `download_sam_exclusions.py` | download endpoint failed all retries; 0 rows |
 | OpenStates (legislative canonical) | `fetch_legislative_canonical_sources.py` | ran; 0 rows (SUTRA fallback / query tuning needed) |
 | LDA | `fetch_lda_gov.py` | reachable anonymously (HTTP 200); supplied token invalid, so anonymous access is used |
-| HIGHERGOV | `fetch_highergov_api.py` | 403 — supplied key carries stray wrapping quotes; needs re-issue |
+| HIGHERGOV | `fetch_highergov_api.py` | **key rejected (403)** even after stripping stray wrapping quotes — a valid key is needed |
 
-`materialized_any_data` in the coverage audit rose **11 → 14**. Still key-blocked (keys not supplied
-or invalid): `CENSUS_API_KEY`, `PROPUBLICA_API_KEY`; the `NREL` host is blocked at the proxy. Full
+`materialized_any_data` in the coverage audit rose **11 → 15** (FRED, EIA, FAC, FEC committees).
+Still key-blocked or incomplete: `CENSUS_API_KEY` and `PROPUBLICA_API_KEY` (not supplied), HIGHERGOV
+(key rejected), `NREL` (host proxy-blocked), and the slow FEC-filings / SAM download paths. Full
 production certification of all 99 automatable sources remains the larger, longer run.
 
 ## Done
