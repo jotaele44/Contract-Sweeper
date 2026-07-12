@@ -234,6 +234,7 @@ def check_command_resolution(root: Path) -> list[str]:
 
 def check_path_resolution(root: Path) -> list[str]:
     errors: list[str] = []
+    root_resolved = root.resolve()
     for skill in _registry_skills(root):
         sid = skill.get("skill_id", "<unknown>")
         for key in ("local_scripts", "reads", "writes"):
@@ -241,7 +242,17 @@ def check_path_resolution(root: Path) -> list[str]:
                 # writes may legitimately not exist yet; only path-check inputs.
                 if key == "writes":
                     continue
-                if not (root / rel).exists():
+                # Contract: these are repo-relative paths. Reject absolute paths
+                # or ones that escape the repo root (../, symlink-free) — a skill
+                # must not authorize resources outside the repository boundary.
+                if Path(rel).is_absolute():
+                    errors.append(f"{sid}: {key} path is not repo-relative: {rel}")
+                    continue
+                target = (root / rel).resolve()
+                if target != root_resolved and root_resolved not in target.parents:
+                    errors.append(f"{sid}: {key} path escapes the repo root: {rel}")
+                    continue
+                if not target.exists():
                     errors.append(f"{sid}: {key} path does not exist: {rel}")
     return errors
 

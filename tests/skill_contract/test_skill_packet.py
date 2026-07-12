@@ -11,7 +11,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from scripts.validate_skills import CHECKS, check_activation, run_all
+from scripts.validate_skills import (
+    CHECKS,
+    check_activation,
+    check_path_resolution,
+    run_all,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -49,6 +54,19 @@ def test_activation_check_requires_a_matrix(tmp_path):
     assert check_activation(tmp_path), "missing activation-matrix.yaml must fail"
     (tmp_path / "activation-matrix.yaml").write_text("{}", encoding="utf-8")
     assert check_activation(tmp_path), "empty activation-matrix.yaml must fail"
+
+
+def test_path_resolution_rejects_out_of_repo_paths(tmp_path):
+    # reads/local_scripts are repo-relative by contract; absolute or ../ paths
+    # must be rejected so a packet cannot authorize resources outside the repo.
+    reg = {
+        "schema_version": "prii_skill_registry_v1",
+        "skills": [{"skill_id": "x", "reads": ["/etc/hostname", "../outside.txt"]}],
+    }
+    (tmp_path / "skill-registry.yaml").write_text(yaml.safe_dump(reg), encoding="utf-8")
+    errors = check_path_resolution(tmp_path)
+    assert any("not repo-relative" in e for e in errors), errors
+    assert any("escapes the repo root" in e for e in errors), errors
 
 
 def test_registry_validates_against_declared_schema():
