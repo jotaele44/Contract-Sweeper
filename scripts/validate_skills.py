@@ -1,12 +1,26 @@
-"""Offline validator for the MoneySweep PRII skill packet (blueprint §9).
+"""Offline validator for a PRII skill packet — federation-wide, repo-portable.
 
-Runs the ten packet checks with no network and no live source acquisition:
+Runs ten packet checks with no network and no live source acquisition:
 structure, registry, command-resolution, path-resolution, boundary-policy,
-mode-safety, coverage-accounting, export-contract (local), activation, drift.
+mode-safety, coverage-accounting, export-contract, activation, drift.
 
-Each check is a function returning ``list[str]`` of human-readable errors
-(empty = pass). ``run_all`` aggregates them; the CLI exits non-zero on any
-failure. Stdlib + PyYAML only (matches scripts/regenerate_registry_json.py).
+This is the single Hub-owned validator; the same file is copied byte-identical
+into every federation repo (moneysweep-pr, centinelas-pr, thehub-pr, …).
+Repo-specific behavior is driven by a ``packet_config:`` block at the top of
+``skill-registry.yaml`` — there are no repo names hardcoded here. Config keys:
+
+  boundary_owner      expected skill boundary_owner (default: owner_repo basename)
+  owner_repo          expected skill owner_repo (default: registry owner_repo)
+  command_source      federation_json | manifest_file | cli_entrypoints
+  command_source_ref  path to the command-map JSON (default: federation.json)
+  command_key         key holding the command map (default: hub_callable_commands)
+  available_commands  explicit command list (cli_entrypoints mode only)
+  activation_routes   non-skill routes allowed in the activation matrix
+  export_contract     optional {command_id, required_paths}; absent => no-op
+  coverage_report     optional path to a readiness report; absent => no-op
+
+Each check returns ``list[str]`` of errors (empty = pass). ``run_all``
+aggregates them; the CLI exits non-zero on any failure. Stdlib + PyYAML only.
 
 Usage:
   python3 scripts/validate_skills.py            # all checks, human output
@@ -34,7 +48,6 @@ SKILLS_DIR = "skills"
 REGISTRY = "skill-registry.yaml"
 ACTIVATION = "activation-matrix.yaml"
 DEPENDENCY = "dependency-graph.yaml"
-CONTRACT_SCHEMA = "schemas/prii_skill_contract.schema.json"
 
 SKILL_ID_RE = re.compile(r"^[a-z][a-z0-9-]+$")
 ALLOWED_MODES = frozenset({"read_only", "offline_write", "live_network", "promotion"})
@@ -42,7 +55,7 @@ SAFE_DEFAULT_MODES = frozenset({"read_only", "offline_write"})
 GATED_MODES = frozenset({"live_network", "promotion"})
 # Skill-folder entries that are allowed (no skill-level README, per §3).
 ALLOWED_SKILL_ENTRIES = frozenset({"SKILL.md", "agents", "references", "scripts"})
-ACTIVATION_ROUTES = frozenset({"route_to_hub", "route_to_centinelas", "clarify"})
+COMMAND_SOURCES = frozenset({"federation_json", "manifest_file", "cli_entrypoints"})
 
 
 # --------------------------------------------------------------------------- #
@@ -68,8 +81,21 @@ def _registry_skills(root: Path) -> list[dict[str, Any]]:
     return list(_load_yaml(root, REGISTRY).get("skills") or [])
 
 
-def _hub_command_ids(root: Path) -> set[str]:
-    return set(_load_json(root, "federation.json").get("hub_callable_commands") or {})
+def _packet_config(root: Path) -> dict[str, Any]:
+    """Per-repo packet configuration (top of skill-registry.yaml)."""
+    return _load_yaml(root, REGISTRY).get("packet_config") or {}
+
+
+def _command_ids(root: Path, cfg: dict[str, Any]) -> set[str]:
+    """The set of command IDs a skill may reference, per the packet's
+    command_source: a JSON command map (federation_json / manifest_file) or an
+    explicit list (cli_entrypoints, for repos with no federation manifest)."""
+    source = cfg.get("command_source", "federation_json")
+    if source == "cli_entrypoints":
+        return {str(c) for c in (cfg.get("available_commands") or [])}
+    ref = cfg.get("command_source_ref", "federation.json")
+    key = cfg.get("command_key", "hub_callable_commands")
+    return set(_load_json(root, ref).get(key) or {})
 
 
 def _frontmatter(text: str) -> dict[str, Any] | None:
@@ -190,14 +216,19 @@ def check_skill_registry(root: Path) -> list[str]:
 
 def check_command_resolution(root: Path) -> list[str]:
     errors: list[str] = []
-    hub = _hub_command_ids(root)
-    if not hub:
-        return ["federation.json#hub_callable_commands is empty or unreadable"]
-    for skill in _registry_skills(root):
+    cfg = _packet_config(root)
+    source = cfg.get("command_source", "federation_json")
+    if source not in COMMAND_SOURCES:
+        return [f"packet_config.command_source '{source}' is not a known source"]
+    commands = _command_ids(root, cfg)
+    skills = _registry_skills(root)
+    if not commands and any(s.get("command_ids") for s in skills):
+        return [f"command source ({source}) resolved no commands but skills declare command_ids"]
+    for skill in skills:
         sid = skill.get("skill_id", "<unknown>")
         for cid in skill.get("command_ids") or []:
-            if cid not in hub:
-                errors.append(f"{sid}: command_id '{cid}' does not resolve in federation.json")
+            if cid not in commands:
+                errors.append(f"{sid}: command_id '{cid}' does not resolve ({source})")
     return errors
 
 
@@ -217,13 +248,15 @@ def check_path_resolution(root: Path) -> list[str]:
 
 def check_boundary_policy(root: Path) -> list[str]:
     errors: list[str] = []
-    owner = _load_yaml(root, REGISTRY).get("owner_repo", "jotaele44/moneysweep-pr")
+    cfg = _packet_config(root)
+    owner = cfg.get("owner_repo") or _load_yaml(root, REGISTRY).get("owner_repo") or ""
+    boundary = cfg.get("boundary_owner") or (owner.split("/")[-1] if owner else "")
     for skill in _registry_skills(root):
         sid = skill.get("skill_id", "<unknown>")
         if skill.get("owner_repo") != owner:
             errors.append(f"{sid}: owner_repo != registry owner {owner}")
-        if skill.get("boundary_owner") != "moneysweep-pr":
-            errors.append(f"{sid}: boundary_owner must be 'moneysweep-pr'")
+        if boundary and skill.get("boundary_owner") != boundary:
+            errors.append(f"{sid}: boundary_owner must be '{boundary}'")
         if not (skill.get("forbidden_operations") or []):
             errors.append(f"{sid}: forbidden_operations must be declared (boundary guard)")
     return errors
@@ -250,11 +283,18 @@ def check_mode_safety(root: Path) -> list[str]:
 
 
 def check_coverage_accounting(root: Path) -> list[str]:
-    """The readiness truth must self-reconcile (blueprint §7 rule 4)."""
+    """A declared readiness report must self-reconcile (blueprint §7 rule 4).
+
+    Presence-enabled: repos without a coverage_report in packet_config skip
+    this check (returns no errors)."""
+    cfg = _packet_config(root)
+    report = cfg.get("coverage_report")
+    if not report:
+        return []
     errors: list[str] = []
-    r = _load_json(root, "reports/materialization_readiness.json")
+    r = _load_json(root, report)
     if not r:
-        return ["reports/materialization_readiness.json unreadable"]
+        return [f"{report} unreadable"]
     total = r.get("total_sources")
     auto = r.get("automatable_total")
     queued_total = r.get("queued_excluded_total")
@@ -276,25 +316,35 @@ def check_coverage_accounting(root: Path) -> list[str]:
 
 
 def check_export_contract(root: Path) -> list[str]:
-    """Local export-contract sanity: the export command resolves and the
-    canonical bridge exists. (Full Hub-schema compat runs in prii-check-producer-contract.)"""
+    """A declared export contract: its command resolves and required paths exist.
+
+    Presence-enabled: repos without an export_contract in packet_config skip
+    this check (returns no errors)."""
+    cfg = _packet_config(root)
+    spec = cfg.get("export_contract")
+    if not spec:
+        return []
     errors: list[str] = []
-    hub = _hub_command_ids(root)
-    if "export_canonical" not in hub:
-        errors.append("federation.json missing export_canonical command")
-    if not (root / "moneysweep" / "federation" / "canonical_v1_bridge.py").exists():
-        errors.append("canonical_v1_bridge.py missing (export skill dependency)")
+    commands = _command_ids(root, cfg)
+    cid = spec.get("command_id")
+    if cid and cid not in commands:
+        errors.append(f"export_contract command_id '{cid}' does not resolve")
+    for rel in spec.get("required_paths") or []:
+        if not (root / rel).exists():
+            errors.append(f"export_contract required path missing: {rel}")
     return errors
 
 
 def check_activation(root: Path) -> list[str]:
     errors: list[str] = []
+    cfg = _packet_config(root)
+    routes = {str(r) for r in (cfg.get("activation_routes") or ["clarify"])}
     matrix = _load_yaml(root, ACTIVATION)
     known = {s.get("skill_id") for s in _registry_skills(root)}
     for bucket in ("positive", "negative", "ambiguous"):
         for case in matrix.get(bucket) or []:
             expect = case.get("expect")
-            if expect not in known and expect not in ACTIVATION_ROUTES:
+            if expect not in known and expect not in routes:
                 errors.append(
                     f"activation[{bucket}]: expect '{expect}' is not a skill or known route"
                 )
