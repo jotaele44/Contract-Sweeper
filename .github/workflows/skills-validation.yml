@@ -1,0 +1,57 @@
+name: Skills Validation
+
+# Offline validator for the PRII skill packet (blueprint §9). No network, no live
+# source acquisition — it only inspects skills/, skill-registry.yaml,
+# activation-matrix.yaml, dependency-graph.yaml, federation.json, schemas, and
+# the referenced scripts/reports. Gates merges on packet drift.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+      - "skill-registry.yaml"
+      - "activation-matrix.yaml"
+      - "dependency-graph.yaml"
+      - "federation.json"
+      - "schemas/**"
+      - "scripts/validate_skills.py"
+      - "tests/skill_contract/**"
+      - ".github/workflows/skills-validation.yml"
+  pull_request:
+    paths:
+      - "skills/**"
+      - "skill-registry.yaml"
+      - "activation-matrix.yaml"
+      - "dependency-graph.yaml"
+      - "federation.json"
+      - "schemas/**"
+      - "scripts/validate_skills.py"
+      - "tests/skill_contract/**"
+      - ".github/workflows/skills-validation.yml"
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  validate-skill-packet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # One offline validator implements all ten packet checks (structure,
+      # registry, command-resolution, path-resolution, boundary-policy,
+      # mode-safety, coverage-accounting, export-contract, activation, drift).
+      - name: Validate skill packet
+        run: python3 scripts/validate_skills.py
+
+      - name: Skill-contract test fixtures
+        run: python3 -m pytest tests/skill_contract/ -q -p no:cacheprovider --no-cov

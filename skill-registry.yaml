@@ -1,0 +1,332 @@
+# PRII Skill Registry — moneysweep-pr
+#
+# Machine-readable skill-to-command map (blueprint §7). One entry per skill in
+# skills/, each conforming to prii_skill_contract_v1
+# (schemas/prii_skill_contract.schema.json). Validated by
+# scripts/validate_skills.py.
+#
+# Invariants the registry enforces (blueprint §7 contract rules):
+#   - command_ids resolve ONLY through federation.json#hub_callable_commands;
+#     non-hub-callable scripts go in local_scripts (path-checked).
+#   - Skills default to read_only / offline plan; live_network and promotion
+#     modes require explicit user authorization.
+#   - No skill silently crosses a repository ownership boundary
+#     (Hub aggregation/correlation and Centinelas collection stay out).
+#   - Coverage claims cite the readiness truth + registry hash; secrets are
+#     reported by name/presence only, never value.
+
+schema_version: prii_skill_registry_v1
+owner_repo: jotaele44/moneysweep-pr
+federation_role: public_money_intelligence_node
+
+skills:
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-operator
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "general MoneySweep orientation, status, or routing"
+      - "which command / skill handles X"
+    allowed_modes: [read_only]
+    default_mode: read_only
+    command_ids: []
+    local_scripts: []
+    reads:
+      - federation.json
+      - reports/current_status.json
+      - reports/materialization_readiness.json
+    outputs:
+      - "active vector, readiness truth, blockers, next-command routing"
+    stop_conditions:
+      - "ambiguous target"
+      - "requested action is owned by thehub-pr or another producer"
+    evidence_requirements:
+      - "cite reports/materialization_readiness.json for any source count"
+      - "quote federation_readiness_gate blockers verbatim"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "cross-producer correlation (Hub-owned)"
+      - "presenting the diagnostic dashboard as a product surface"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-run-preflight
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "preflight, setup, structural readiness before a pipeline run"
+    allowed_modes: [read_only, offline_write]
+    default_mode: read_only
+    command_ids: [setup, strict_preflight]
+    local_scripts: [scripts/pipeline_preflight.py]
+    outputs:
+      - "checked sources, structural errors, missing keys, exit semantics"
+    stop_conditions:
+      - "any structural error before live execution"
+    evidence_requirements:
+      - "distinguish missing API key from structural failure"
+      - "report exit code semantics of strict preflight"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "proceeding to live execution while structural errors exist"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-plan-source-updates
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "due sources, freshness, drop scans, source-specific refresh"
+    allowed_modes: [read_only, offline_write, live_network]
+    default_mode: read_only
+    command_ids: []
+    local_scripts: [scripts/update_sources.py]
+    reads: [registries/source_update_policy.yaml, registries/manual_export_registry.yaml]
+    outputs:
+      - "policy validation, DAG-safe plan, freshness report, exclusions"
+    requires_user_authorization:
+      - "live_network refresh execution"
+    stop_conditions:
+      - "invalid policy or DAG"
+      - "missing manual drop for a file-drop source"
+      - "live run not authorized"
+    evidence_requirements:
+      - "DAG parents ordered before derived sources"
+      - "freshness SLA source cited from source_update_policy.yaml"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "executing a live refresh without explicit authorization"
+      - "bypassing the update-controller policy/DAG"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-recover-source-coverage
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "materialization recovery and 0-to-100 gap closure"
+    allowed_modes: [read_only, offline_write]
+    default_mode: read_only
+    command_ids: [materialization_matrix, gap_matrix]
+    local_scripts:
+      - scripts/audit_materialization_coverage.py
+      - scripts/build_completeness_matrix.py
+      - scripts/build_gap_closure_baseline.py
+    reads: [reports/materialization_readiness.json, reports/gap_closure/unresolved_gap_ledger.csv]
+    outputs:
+      - "denominator, automatable/queued split, unresolved ledger, contradictions"
+    stop_conditions:
+      - "source-count disagreement across surfaces"
+      - "unclassified source"
+      - "proposed denominator inflation (e.g. identifier range as universe)"
+    evidence_requirements:
+      - "every coverage % declares numerator, denominator, exclusions, failures, registry SHA"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "reporting a completeness % without its denominator + registry hash"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-ingest-manual-source
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "PDF/XLSX/CSV file drop and Tranche B manual intake"
+    allowed_modes: [read_only, offline_write]
+    default_mode: read_only
+    command_ids: []
+    local_scripts: [scripts/source_intake_tranche_b.py]
+    reads: [registries/manual_export_registry.yaml]
+    outputs:
+      - "file hash, inventory, parser result, schema/row checks, lineage, review queue"
+    stop_conditions:
+      - "missing file, provenance, parser, or schema"
+      - "automatic promotion requested"
+    evidence_requirements:
+      - "raw-file sha256 + row counts before and after normalization"
+      - "source-document provenance retained"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "promoting a manual source to production without the declared gates"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-audit-financial-gaps
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "missing financial domains, periods, fields, agencies, municipalities"
+    allowed_modes: [read_only]
+    default_mode: read_only
+    command_ids: [gap_matrix]
+    local_scripts:
+      - scripts/build_financial_source_audit.py
+      - scripts/build_completeness_matrix.py
+      - scripts/build_gap_closure_baseline.py
+    outputs:
+      - "gap matrix with denominators, priority, owner, acquisition path"
+    stop_conditions:
+      - "unknown denominator"
+      - "duplicate source counted twice"
+      - "unresolved contradiction"
+    evidence_requirements:
+      - "each gap row carries a denominator source and an acquisition path"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "adding overlapping-source rows as if separate financial events"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-resolve-entities
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "vendor/person aliases, UEI/DUNS/LEI and parent-child matching"
+    allowed_modes: [read_only, offline_write]
+    default_mode: read_only
+    command_ids: []
+    local_scripts: [scripts/entity_resolution.py]
+    outputs:
+      - "candidate matches, evidence fields, confidence, conflict queue"
+    stop_conditions:
+      - "weak identifier-only match on a high-value entity"
+      - "competing parents"
+      - "unreviewed alias override"
+    evidence_requirements:
+      - "match class + supporting fields per candidate; aliases preserved"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "name-only automatic merge of high-value entities"
+      - "deriving political/risk conclusions from identity proximity alone"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-process-centinelas-handoff
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "an emerging matter becomes an official-record candidate"
+    allowed_modes: [read_only, offline_write]
+    default_mode: offline_write
+    command_ids: [ingest_centinelas, build_contract_finance_bundle]
+    local_scripts: []
+    outputs:
+      - "lifecycle stage, match candidates, official-record evidence, handoff status"
+    stop_conditions:
+      - "no officialization record (stays pre-official)"
+      - "request would duplicate Centinelas signal ownership"
+    evidence_requirements:
+      - "official-record evidence cited before promotion past pre-official"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "owning Centinelas signal collection (centinelas-pr owns it)"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-build-federation-export
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "build or test the canonical producer export package"
+    # Only offline_write (test export) is executable: federation.json declares
+    # no production export command (export_canonical is fixed to --mode test)
+    # and production_status is NON_PRODUCTION_DIAGNOSTIC. A `promotion` mode is
+    # reinstated here only when a production export command is declared and the
+    # readiness gate opens — until then, advertising it would be a contract lie.
+    allowed_modes: [offline_write]
+    default_mode: offline_write
+    command_ids: [export_canonical]
+    local_scripts: [moneysweep/federation/canonical_v1_bridge.py]
+    outputs:
+      - "streams, manifest, hashes, counts, schemas, compatibility result"
+    stop_conditions:
+      - "production export requested: no production command declared in federation.json (only export_canonical --mode test) and production_status is NON_PRODUCTION_DIAGNOSTIC"
+      - "synthetic/live data mixing"
+    evidence_requirements:
+      - "manifest with deterministic IDs, hashes, counts, lineage, test/prod mode"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "mixing synthetic/test records into any export package"
+      - "advertising an executable production/promotion export while federation.json declares no production export command"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-assess-promotion-readiness
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "decide whether a source or package can be promoted"
+    allowed_modes: [read_only]
+    default_mode: read_only
+    command_ids: [materialization_matrix, test_suite]
+    local_scripts:
+      - scripts/run_production_status_gate.py
+      - scripts/run_promotion_guard.py
+    reads: [reports/materialization_readiness.json, data/exports/production_status.json]
+    outputs:
+      - "pass/fail matrix, evidence, blockers, rollback target"
+    stop_conditions:
+      - "any failed gate"
+      - "source-count mismatch"
+      - "lineage or review gap"
+    evidence_requirements:
+      - "every gate result cited; federation_readiness_gate blockers quoted verbatim"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "passing promotion while federation.json reports live-execution blockers"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
+    skill_id: prii-check-producer-contract
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "shared PRII manifest/export compatibility check against the Hub"
+    allowed_modes: [read_only]
+    default_mode: read_only
+    command_ids: []
+    local_scripts: []
+    reads: [federation.json, schemas/prii_skill_contract.schema.json]
+    outputs:
+      - "manifest, commands, outputs, readiness, schema and boundary checks"
+    stop_conditions:
+      - "local contract diverges from the Hub contract"
+    evidence_requirements:
+      - "cite the manifest key and schema version that diverged"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "asserting Hub-side compatibility without the Hub schema in hand"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity

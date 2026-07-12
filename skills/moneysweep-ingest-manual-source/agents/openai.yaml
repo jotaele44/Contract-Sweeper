@@ -1,0 +1,24 @@
+# OpenAI-runtime agent manifest for moneysweep-ingest-manual-source.
+# SKILL.md is canonical; keep fields synced with skill-registry.yaml.
+schema_version: prii_openai_agent_v1
+name: moneysweep-ingest-manual-source
+description: >-
+  Stages a dropped PDF/XLSX/CSV manual source (Tranche B intake) — file sha256,
+  inventory, parser result, schema/row checks, lineage, and review queue. Default
+  read-only inspect/dry-run; never auto-promotes a manual source to production.
+instructions_ref: ../SKILL.md
+owner_repo: jotaele44/moneysweep-pr
+default_mode: read_only
+allowed_modes: [read_only, offline_write]
+command_ids: []
+stop_conditions:
+  - missing file, provenance, parser, or schema
+  - automatic promotion requested
+result_envelope:
+  - status
+  - commands_considered
+  - commands_run
+  - artifacts
+  - blockers
+  - contradictions
+  - next_safe_action
