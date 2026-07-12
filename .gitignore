@@ -48,6 +48,8 @@ data/**
 !data/staging/processed/**/
 !data/raw/
 !data/raw/**/
+!data/manual/
+!data/manual/**/
 !data/raw/act_transition/
 !data/raw/HigherGov/
 !data/raw/documents/
@@ -66,6 +68,8 @@ data/**
 !data/staging/expansion/DOWNLOAD_INSTRUCTIONS.md
 !data/staging/expansion/manifest.json
 !data/**/.gitkeep
+# Dropzone operator instructions (gap-closure wave2b) — docs only, never data.
+!data/raw/**/README.md
 
 # Specific tracked raw drops (manual-source intakes already in history)
 !data/raw/act_transition/**

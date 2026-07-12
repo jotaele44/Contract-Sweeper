@@ -215,16 +215,16 @@
       "verify automatable_ready == automatable_total and each automatable source fully_materialized"
     ],
     "gate": "strict preflight must pass before each producer run",
-    "queued_excluded": "46 sources not in the automatable target: 2 scraper_needed (hacienda_sut_ivu and pr_act_154_excise — true stubs), 39 manual_export (operator files), 3 semantic_duplicate (sibling-covered), 2 deferred_stub (NARA)",
+    "queued_excluded": "45 sources not in the automatable target: 2 scraper_needed (hacienda_sut_ivu and pr_act_154_excise — true stubs), 38 manual_export (operator files), 3 semantic_duplicate (sibling-covered), 2 deferred_stub (NARA)",
     "future_work": "integrate the manual datasets (ACT/ACUDEN/PRASA/cabilderos/DCAA) via Tranche B operator file drops in dedicated egress-enabled PRs"
   },
   "materialization_readiness_truth": {
-    "total_sources": 136,
-    "automatable_total": 90,
-    "automatable_ready": 90,
-    "queued_excluded_total": 46,
+    "total_sources": 144,
+    "automatable_total": 99,
+    "automatable_ready": 99,
+    "queued_excluded_total": 45,
     "queued_excluded": {
-      "manual_export": 39,
+      "manual_export": 38,
       "scraper_needed": 2,
       "semantic_duplicate": 3,
       "deferred_stub": 2,

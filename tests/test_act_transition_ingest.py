@@ -76,7 +76,8 @@ def test_run_materializes_processed_output_from_pdf(tmp_path: Path):
     from reportlab.lib.pagesizes import letter
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 
-    pdf_path = tmp_path / "data" / "manual" / "act_transition" / "act_sample.pdf"
+    # The shared PDF archive dir; the name must match the source's ACT*.pdf glob.
+    pdf_path = tmp_path / "data" / "raw" / "Vigentes al Momento de Transición" / "ACT sample.pdf"
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
     doc = SimpleDocTemplate(str(pdf_path), pagesize=letter)
     table = Table(
@@ -110,7 +111,12 @@ def test_run_materializes_processed_output_from_pdf(tmp_path: Path):
     )
     doc.build([table])
 
-    result = run(root=tmp_path, source="act")
+    # Without --from-pdf the run must stay on the deterministic committed-
+    # extract path and see nothing in this throwaway root.
+    offline = run(root=tmp_path, source="act")
+    assert offline["status"] == "EMPTY"
+
+    result = run(root=tmp_path, source="act", from_pdf=True)
     assert result["status"] == "OK"
     assert result["rows"] >= 1
 

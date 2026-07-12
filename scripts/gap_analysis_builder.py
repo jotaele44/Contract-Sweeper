@@ -92,13 +92,24 @@ def _file_status(root: Path, rel_path: str) -> dict:
     return {"status": "present", "size_bytes": size, "row_count": row_count}
 
 
-def _source_status(root: Path, src: dict) -> str:
-    """Materialization status for one source, derived from expected_outputs on disk."""
+def _source_status(root: Path, src: dict, file_statuses: list[dict] | None = None) -> str:
+    """Materialization status for one source, derived from expected_outputs on disk.
+
+    The single status authority: ``build_gap_analysis`` passes its precomputed
+    per-file statuses through ``file_statuses`` instead of duplicating this
+    logic inline (the old inline copy emitted a divergent ``below_threshold``
+    value for the under-min_rows case; that value is retired — under-threshold
+    is ``partially_materialized`` everywhere).
+    """
     expected = src.get("expected_outputs", [])
     if not expected:
         return "no_outputs_declared"
     min_rows = src.get("validation_threshold", {}).get("min_rows", 1)
-    statuses = [_file_status(root, rel) for rel in expected]
+    statuses = (
+        file_statuses
+        if file_statuses is not None
+        else [_file_status(root, rel) for rel in expected]
+    )
     present = [f for f in statuses if f["status"] == "present"]
     missing = [f for f in statuses if f["status"] == "missing"]
     empty = [f for f in statuses if f["status"] in ("empty", "header_only")]
@@ -157,7 +168,10 @@ def write_status_csv(root: Path, sources: list[dict] | None = None) -> Path:
 
 
 def build_gap_analysis(root: Path) -> dict[str, Any]:
+    from moneysweep.validation.completeness import completeness_columns, load_coverage_contracts
+
     sources = _read_registry(root)
+    contracts = load_coverage_contracts(root)
     records: list[dict] = []
     summary: dict[str, int] = {
         "total_sources": 0,
@@ -191,22 +205,11 @@ def build_gap_analysis(root: Path) -> dict[str, Any]:
         missing = [f for f in file_statuses if f["status"] == "missing"]
         empty = [f for f in file_statuses if f["status"] in ("empty", "header_only")]
 
-        if not expected:
-            source_status = "no_outputs_declared"
-        elif missing and not present:
-            source_status = "not_materialized"
-        elif missing or empty:
-            source_status = "partially_materialized"
-        else:
-            # All present — check min_rows for CSVs
-            under_threshold = [
-                f for f in present if f["row_count"] != -1 and f["row_count"] < min_rows
-            ]
-            source_status = "below_threshold" if under_threshold else "fully_materialized"
+        source_status = _source_status(root, src, file_statuses)
 
         if source_status == "fully_materialized":
             summary["fully_materialized"] += 1
-        elif source_status in ("partially_materialized", "below_threshold"):
+        elif source_status == "partially_materialized":
             summary["partially_materialized"] += 1
         elif source_status == "not_materialized":
             if required:
@@ -231,6 +234,16 @@ def build_gap_analysis(root: Path) -> dict[str, Any]:
                 "min_rows_threshold": min_rows,
                 "first_expected_output": expected[0] if expected else "",
                 "blocker_notes": src.get("notes", "")[:200] if src.get("notes") else "",
+                # Contract-derived view (gap-closure phase 1): appended columns,
+                # computed from committed evidence only — see
+                # moneysweep/validation/completeness.py.
+                **completeness_columns(
+                    root,
+                    sid,
+                    local_rows=total_rows,
+                    materialization_status=source_status,
+                    contracts=contracts,
+                ),
             }
         )
 
@@ -241,9 +254,7 @@ def build_gap_analysis(root: Path) -> dict[str, Any]:
             if r["source_status"] == "not_materialized"
             else 1
             if r["source_status"] == "partially_materialized"
-            else 2
-            if r["source_status"] == "below_threshold"
-            else 3,
+            else 2,
             r["source_id"],
         )
     )
@@ -271,12 +282,26 @@ def build_gap_analysis(root: Path) -> dict[str, Any]:
         else 1.0
     )
 
+    certification_counts: dict[str, int] = {}
+    materiality_counts: dict[str, int] = {}
+    for r in records:
+        certification_counts[r["certification_status"]] = (
+            certification_counts.get(r["certification_status"], 0) + 1
+        )
+        materiality_counts[r["materiality_label"]] = (
+            materiality_counts.get(r["materiality_label"], 0) + 1
+        )
+
     result = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "schema_version": "r5_v1",
+        "completeness_schema_version": "gap_closure_v1",
         **summary,
         "coverage_rate": round(coverage_rate, 4),
         "required_coverage_rate": round(required_coverage, 4),
+        "contracted_sources": sum(1 for r in records if contracts.get(r["source_id"])),
+        "certification_counts": dict(sorted(certification_counts.items())),
+        "materiality_counts": dict(sorted(materiality_counts.items())),
         "outputs": [
             "reports/gap_analysis_report.csv",
             "reports/gap_analysis_report.json",

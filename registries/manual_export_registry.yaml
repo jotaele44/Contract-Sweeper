@@ -69,8 +69,8 @@ manual_exports:
     notes: PR Department of State corporate registry (rceweb.estado.pr.gov). No public bulk API.
 
   - source_id: act_transition_contracts
-    expected_drop_dir: data/manual/act_transition/
-    expected_filename_pattern: "*.csv|*.xlsx|*.pdf"
+    expected_drop_dir: data/raw/act_transition/
+    expected_filename_pattern: "transition_contracts_extracted.csv|*.csv|*.xlsx|*.pdf"
     expected_columns:
       - contractor_name
       - contract_number
@@ -84,8 +84,8 @@ manual_exports:
     notes: PR ACT transition contracts (Autopistas de Puerto Rico, Autopistas Metropolitanas, Ferrovial Agroman, LPC&D, etc.). Long-horizon concession entries.
 
   - source_id: acuden_2024_transition
-    expected_drop_dir: data/manual/acuden_2024/
-    expected_filename_pattern: "*.csv|*.xlsx"
+    expected_drop_dir: data/raw/act_transition/
+    expected_filename_pattern: "transition_contracts_extracted.csv|*.csv|*.xlsx"
     expected_columns:
       - contract_number
       - contractor
@@ -99,7 +99,7 @@ manual_exports:
     notes: ACUDEN 2024 transition contract file. Mostly transfer-of-funds contracts to municipalities, daycare operators, nonprofits, and individuals.
 
   - source_id: dcaa_active_contractors
-    expected_drop_dir: data/manual/dcaa_active_contractors/
+    expected_drop_dir: data/raw/Active Contractor Listing/
     expected_filename_pattern: "*.csv|*.xlsx|*.pdf"
     expected_columns:
       - contractor_name
@@ -338,3 +338,24 @@ manual_exports:
       export — request the export via the OEG public-information channel
       (eticapr.com/nuestra-oficina/acceso-informacion-publica). Bilingual
       headers accepted (Nombre Cabildero/Cliente). Quarterly cadence.
+
+  - source_id: donaciones_pr
+    expected_drop_dir: data/raw/Donaciones/
+    expected_filename_pattern: "Donaciones_*.csv|*.csv"
+    expected_columns:
+      - donor_name
+      - amount
+      - date
+    validation_rules:
+      - rule: required_columns
+        action: warn_if_missing
+      - rule: row_count_min
+        value: 1
+        action: warn_if_below
+      - rule: header_only_check
+        action: reject_if_header_only
+    notes: CEE (ceepur.org) campaign-donation exports. Manual portal export; the
+      2026-03-20 export (Donaciones_20260320.csv, 4,686 rows) is the current
+      attested snapshot per the donaciones_pr coverage contract. Bilingual
+      headers accepted; scripts/ingest_donaciones.py maps Zip Code, Siglas,
+      Candidatura, Método, and Evento. Retain original CEE identifiers.

@@ -1,0 +1,47 @@
+{
+  "schema_version": "completeness_matrix_v1",
+  "total_sources": 144,
+  "contracted_sources": 20,
+  "by_wired_status": {
+    "deferred": 2,
+    "manual_dropzone": 38,
+    "scraper_stub": 2,
+    "semantic_duplicate": 3,
+    "wired_adapter": 41,
+    "wired_producer": 58
+  },
+  "by_acquisition_status": {
+    "acquired_ingested": 3,
+    "automated": 96,
+    "not_acquired": 45
+  },
+  "by_materialization_status": {
+    "fully_materialized": 8,
+    "not_materialized": 132,
+    "partially_materialized": 4
+  },
+  "by_coverage_status": {
+    "below_contract": 1,
+    "meets_contract": 2,
+    "uncontracted": 124,
+    "unverifiable": 17
+  },
+  "by_reconciliation_status": {
+    "not_applicable": 142,
+    "not_evaluated": 2
+  },
+  "by_certification_status": {
+    "provisional": 8,
+    "uncertified": 136
+  },
+  "by_materiality_label": {
+    "empty": 133,
+    "seed": 1,
+    "substantial": 8,
+    "validated_complete": 2
+  },
+  "outputs": [
+    "reports/completeness_matrix.csv",
+    "reports/completeness_matrix.json"
+  ]
+}

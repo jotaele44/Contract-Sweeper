@@ -11,22 +11,28 @@ test (`tests/test_materialization_readiness.py`).
 
 ## Readiness snapshot (current)
 
-See `reports/materialization_readiness.json`:
+`reports/materialization_readiness.json` is the **only** authoritative count
+surface — it is regenerated from the live registry and byte-pinned by
+`tests/test_materialization_readiness.py` and
+`tests/test_source_count_reconciliation.py`. Do not freeze its numbers into
+prose; earlier revisions of this runbook did (124/68/56) and drifted three
+registry generations behind. At this writing the report says:
 
-- **124** total registered sources
-- **68 automatable** — all structurally `ready` (adapter or importable producer
+- **144** total registered sources
+- **99 automatable** — all structurally `ready` (adapter or importable producer
   + declared outputs). This is the fill target. Includes the free, keyless
   entity-resolution sources `gleif_lei` and `sec_officers` that replace the
   removed paid OpenCorporates source.
-- Automatable sources that need an API key at run time: `SAM_API_KEY`,
-  `LDA_API_KEY`, `FEC_API_KEY`, `FAC_API_KEY`, `HIGHERGOV_API_KEY` (and optional,
+- Automatable sources that need an API key at run time: see
+  `automatable_required_keys` in the readiness report (and optional,
   license-gated `FINANCIALDATA_API_KEY`, disabled by default). OpenCorporates was
   removed entirely; its replacements (`gleif_lei`, `sec_officers`) are keyless.
-- **56 queued / excluded** (not part of the automatable target):
-  - `manual_export` (36) — operator-supplied files (see step 3); includes the
+- **45 queued / excluded** (not part of the automatable target), per the
+  report's `queued_excluded` breakdown:
+  - `manual_export` (38) — operator-supplied files (see step 3); includes the
     infrastructure revenue (toll/fare/utility-rate/port-fee) and infrastructure
     contract (DTOP roads, ports/airports, transit) dropzones.
-  - `scraper_needed` (15) — PR-gov HTML/PDF surfaces; need a scraping adapter.
+  - `scraper_needed` (2) — `hacienda_sut_ivu`, `pr_act_154_excise`; true stubs.
   - `semantic_duplicate` (3) — covered by a sibling source; never materialize alone.
   - `deferred_stub` (2) — NARA; intentionally unimplemented.
 
@@ -53,7 +59,7 @@ structurally ready, but won't reach 100% rows until the key is set.
 ### 3. (Optional) Drop manual-export files
 Only needed to materialize the queued `manual_export` sources. Per
 `registries/manual_export_registry.yaml`, place files in each source's
-`expected_drop_dir` (e.g. `data/manual/hud_drgr/`, `data/manual/act_transition/`,
+`expected_drop_dir` (e.g. `data/manual/hud_drgr/`, `data/raw/act_transition/`,
 `data/raw/OCE/`). These are **not** part of the automatable target; skip if you
 only want the automatable set. For the five **required** operator-gated sources
 (cor3, hud_drgr_authorized, oficina_contralor, pr_cabilderos, prasa), the
@@ -85,9 +91,10 @@ python3 scripts/build_source_recovery_matrix.py
 Success criteria:
 - `reports/materialization_readiness.json`: `automatable_ready == automatable_total`.
 - `reports/gap_analysis_report.json`: every **automatable** source shows
-  `fully_materialized` (note: overall `coverage_rate` is over *all 124* sources,
-  so it will not reach 1.0 while the 56 queued sources remain unmaterialized —
-  judge success against the automatable subset and `required_coverage_rate`).
+  `fully_materialized` (note: overall `coverage_rate` is over *all* registered
+  sources, so it will not reach 1.0 while the queued sources remain
+  unmaterialized — judge success against the automatable subset and
+  `required_coverage_rate`).
 
 ## Definition of done (per source)
 
@@ -97,8 +104,9 @@ has `row_count ≥ validation_threshold.min_rows`.
 
 ## Out of scope (separate, future work)
 
-Building the 20 `scraper_needed` PR-gov adapters and integrating the manual
-datasets (ACT/ACUDEN/PRASA/cabilderos/DCAA). Until then, those sources stay
+Building the remaining `scraper_needed` PR-gov adapters (`hacienda_sut_ivu`,
+`pr_act_154_excise`) and integrating the manual datasets
+(ACT/ACUDEN/PRASA/cabilderos/DCAA). Until then, those sources stay
 queued and excluded from the automatable target by design.
 
 ## Live materialization (egress-capable runner)
