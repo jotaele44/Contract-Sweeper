@@ -15,7 +15,26 @@ from typing import Iterable
 
 import pandas as pd
 
-SUPPORTED_TABULAR_SUFFIXES = {".csv", ".xlsx", ".xls"}
+from scripts.source_intake_paths import (
+    SUPPORTED_TABULAR_SUFFIXES,
+    discover_tabular_files,
+)
+
+__all__ = [
+    "SUPPORTED_TABULAR_SUFFIXES",
+    "discover_tabular_files",
+    "LoadedTable",
+    "normalize_name",
+    "safe_text",
+    "file_sha256",
+    "read_tabular_file",
+    "load_tabular_dropzone",
+    "resolve_column",
+    "map_frame",
+    "ensure_required_columns",
+    "write_canonical_csv",
+    "read_csv_rows",
+]
 
 _SPACE_RE = re.compile(r"\s+")
 _STRIP_RE = re.compile(r"[^\w\s]")
@@ -76,18 +95,6 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def discover_tabular_files(dropzone: Path) -> list[Path]:
-    if not dropzone.exists():
-        return []
-    return [
-        path
-        for path in sorted(dropzone.iterdir())
-        if path.is_file()
-        and path.suffix.lower() in SUPPORTED_TABULAR_SUFFIXES
-        and not path.name.startswith("~")
-    ]
-
-
 def read_tabular_file(path: Path) -> pd.DataFrame:
     """Read CSV/XLS/XLSX using deterministic fallback behavior."""
 
@@ -143,6 +150,21 @@ def resolve_column(columns: Iterable[str], candidates: Iterable[str]) -> str | N
     return None
 
 
+def resolve_columns(columns: Iterable[str], candidates: Iterable[str]) -> list[str]:
+    """All actual columns matching ``candidates``, in candidate-preference order.
+
+    Same matching as :func:`resolve_column` but returns every hit (deduped) instead
+    of only the first, so a caller can coalesce across partially-populated columns
+    (e.g. ``amount_numeric`` then ``amount_raw``) rather than committing to one.
+    """
+    resolved: list[str] = []
+    for candidate in candidates:
+        actual = resolve_column(columns, [candidate])
+        if actual is not None and actual not in resolved:
+            resolved.append(actual)
+    return resolved
+
+
 def map_frame(
     frame: pd.DataFrame,
     column_map: dict[str, list[str]],
@@ -157,8 +179,20 @@ def map_frame(
     out: dict[str, object] = {}
     for output_col in output_columns:
         candidates = column_map.get(output_col, [])
-        source_col = resolve_column(frame.columns, candidates)
-        out[output_col] = frame[source_col].fillna("").astype(str) if source_col else ""
+        present = resolve_columns(frame.columns, candidates)
+        if not present:
+            out[output_col] = ""
+            continue
+        # Per-row coalesce across the present candidate columns in preference order,
+        # so a blank in the preferred column (e.g. amount_numeric where numeric parsing
+        # failed) falls back to the next (amount_raw) instead of blanking the whole
+        # column. Identical to the previous single-column pick when only one candidate
+        # column is present.
+        series = frame[present[0]].fillna("").astype(str)
+        for col in present[1:]:
+            fallback = frame[col].fillna("").astype(str)
+            series = series.mask(series == "", fallback)
+        out[output_col] = series
 
     result = pd.DataFrame(out)
     for col in output_columns:
