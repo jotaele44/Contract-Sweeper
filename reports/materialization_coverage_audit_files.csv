@@ -1,3 +1,4 @@
 file,rows,classification,claimed_by
-pr_acuden_transition.csv,1147,declared,acuden_2024_transition
-pr_act_transition_contracts.csv,656,declared,act_transition_contracts
+pr_fred_timeseries.csv,2138,declared,fred_timeseries
+pr_municipal_finance.csv,785,declared,municipal_finance
+pr_eia_power_sector.csv,620,declared,eia_power_sector

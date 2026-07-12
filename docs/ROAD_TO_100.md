@@ -15,6 +15,29 @@ wired and ready; what is left is (a) running them against live endpoints with
 credentials, (b) hand-ingesting the manual-export tranche, and (c) finishing the
 entity-dedup chain.
 
+## Live materialization — verified this session (keyed run)
+
+With operator-supplied API keys and outbound egress via the environment proxy, the key-gated
+producers were run against their **live** endpoints. Keys were used as environment variables only
+and never committed — the pre-commit `scripts/scan_for_secrets.py` gate is clean (0 findings). Raw
+CSVs stay gitignored under `data/**` by design; the tracked evidence is
+`reports/materialization_coverage_audit.*`, which now records the materialized rows.
+
+| Source | Producer | Result |
+|---|---|---|
+| FRED (PR macro time series) | `download_fred.py` | **2,138 rows**, 8/8 series — OK |
+| EIA (PR power sector) | `download_eia.py` | **620 rows**, 5/5 series — OK |
+| FAC (municipal single audits) | `download_fac_municipal.py` | **785 rows** — OK |
+| FEC | `download_fec.py` | live (HTTP 200) but long-running; not fully captured this pass |
+| SAM exclusions | `download_sam_exclusions.py` | live but long-running; not fully captured this pass |
+| OpenStates (legislative canonical) | `fetch_legislative_canonical_sources.py` | ran; 0 rows (SUTRA fallback / query tuning needed) |
+| LDA | `fetch_lda_gov.py` | reachable anonymously (HTTP 200); supplied token invalid, so anonymous access is used |
+| HIGHERGOV | `fetch_highergov_api.py` | 403 — supplied key carries stray wrapping quotes; needs re-issue |
+
+`materialized_any_data` in the coverage audit rose **11 → 14**. Still key-blocked (keys not supplied
+or invalid): `CENSUS_API_KEY`, `PROPUBLICA_API_KEY`; the `NREL` host is blocked at the proxy. Full
+production certification of all 99 automatable sources remains the larger, longer run.
+
 ## Done
 
 - **~24K LOC of core pipeline** (registry-driven `run_all.py`, 82 wired producer
