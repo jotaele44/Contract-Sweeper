@@ -357,7 +357,13 @@ def materialize_spec(root: Path, spec: SourceSpec, force: bool = False) -> dict:
         # ACT/ACUDEN share one dropzone and one combined extract; keep only the
         # rows tagged for this spec's dataset so each source is attributed
         # correctly instead of ingesting the other's rows.
-        if spec.dataset_filter and DATASET_PARTITION_COLUMN in raw.columns:
+        if spec.dataset_filter:
+            if DATASET_PARTITION_COLUMN not in raw.columns:
+                # A spec that must partition a shared extract cannot safely ingest a
+                # file lacking the partition column (another source's file, or an
+                # operator's unpartitioned CSV) — that would map foreign rows into
+                # this source. Skip the file rather than fall through to ingest-all.
+                continue
             raw = raw[raw[DATASET_PARTITION_COLUMN].astype(str).str.strip() == spec.dataset_filter]
             if raw.empty:
                 continue
