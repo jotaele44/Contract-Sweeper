@@ -1,0 +1,38 @@
+"""The committed PRII skill packet passes every validator check.
+
+This is the master gate: it runs scripts/validate_skills.run_all over the real
+repo and asserts zero errors across all ten checks (blueprint §9)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from scripts.validate_skills import CHECKS, run_all
+
+pytestmark = pytest.mark.unit
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_all_ten_checks_are_registered():
+    # Blueprint §9 defines ten jobs; the validator must implement all of them.
+    assert set(CHECKS) == {
+        "skill-structure",
+        "skill-registry",
+        "command-resolution",
+        "path-resolution",
+        "boundary-policy",
+        "mode-safety",
+        "coverage-accounting",
+        "export-contract",
+        "activation",
+        "drift",
+    }
+
+
+def test_committed_packet_passes_every_check():
+    results = run_all(ROOT)
+    failures = {name: errs for name, errs in results.items() if errs}
+    assert not failures, f"skill packet validation failed: {failures}"
