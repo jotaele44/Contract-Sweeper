@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/prii_skill_contract.schema.json",
+  "title": "PRII Skill Contract v1",
+  "description": "Federation-wide contract for a repository skill. Each skill-registry entry declares its ownership boundary, allowed execution modes, the federation command IDs it may invoke, and the evidence/stop conditions that keep it honest. Skills orchestrate existing commands and interpret outputs; they never duplicate pipeline, registry, readiness, entity-resolution, or export logic. Validated by scripts/validate_skills.py (stdlib only, no jsonschema).",
+  "type": "object",
+  "required": ["schema_version", "skills"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "prii_skill_registry_v1"},
+    "owner_repo": {"type": "string"},
+    "federation_role": {"type": "string"},
+    "skills": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/skill_contract"}
+    }
+  },
+  "$defs": {
+    "mode": {"enum": ["read_only", "offline_write", "live_network", "promotion"]},
+    "policy_required": {"enum": ["required", "required_when_inferred", "required_for_ambiguity", "reject_in_production", "optional"]},
+    "skill_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "skill_id",
+        "owner_repo",
+        "federation_role",
+        "trigger_intents",
+        "allowed_modes",
+        "default_mode",
+        "command_ids",
+        "boundary_owner",
+        "forbidden_operations",
+        "stop_conditions",
+        "evidence_requirements"
+      ],
+      "properties": {
+        "schema_version": {"const": "prii_skill_contract_v1"},
+        "skill_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]+$"},
+        "owner_repo": {"type": "string", "minLength": 1},
+        "federation_role": {"type": "string", "minLength": 1},
+        "trigger_intents": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "allowed_modes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/mode"}},
+        "default_mode": {"$ref": "#/$defs/mode"},
+        "command_ids": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "description": "Resolve through federation.json#hub_callable_commands. Local (non-hub-callable) scripts go in local_scripts instead."
+        },
+        "local_scripts": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "description": "Repo-relative script paths the skill invokes that are NOT hub-callable commands. Path-checked, not command-resolved."
+        },
+        "inputs": {"type": "array", "items": {"type": "string"}},
+        "outputs": {"type": "array", "items": {"type": "string"}},
+        "reads": {"type": "array", "items": {"type": "string"}},
+        "writes": {"type": "array", "items": {"type": "string"}},
+        "requires_secrets": {"type": "array", "items": {"type": "string"}},
+        "requires_user_authorization": {"type": "array", "items": {"type": "string"}},
+        "preconditions": {"type": "array", "items": {"type": "string"}},
+        "postconditions": {"type": "array", "items": {"type": "string"}},
+        "stop_conditions": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "evidence_requirements": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "boundary_owner": {"type": "string", "minLength": 1},
+        "forbidden_operations": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "synthetic_data_policy": {"$ref": "#/$defs/policy_required"},
+        "provenance_policy": {"$ref": "#/$defs/policy_required"},
+        "confidence_policy": {"$ref": "#/$defs/policy_required"},
+        "review_queue_policy": {"$ref": "#/$defs/policy_required"}
+      }
+    }
+  }
+}

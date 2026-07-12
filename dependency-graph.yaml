@@ -1,0 +1,36 @@
+# Skill activation / dependency model (blueprint §8).
+#
+# Edges are "may hand off to". Invariants are hard gates the validator and
+# tests enforce: no execution skill bypasses preflight; no export bypasses the
+# contract check; no promotion assessment passes while federation.json reports
+# live-execution blockers. Every node must be a skill_id in skill-registry.yaml.
+
+schema_version: prii_dependency_graph_v1
+
+root: moneysweep-operator
+
+edges:
+  moneysweep-operator:
+    - moneysweep-run-preflight
+    - moneysweep-plan-source-updates
+    - moneysweep-audit-financial-gaps
+    - moneysweep-resolve-entities
+    - moneysweep-process-centinelas-handoff
+    - moneysweep-build-federation-export
+  moneysweep-plan-source-updates:
+    - moneysweep-recover-source-coverage
+    - moneysweep-ingest-manual-source
+  moneysweep-build-federation-export:
+    - prii-check-producer-contract
+    - moneysweep-assess-promotion-readiness
+
+invariants:
+  - id: preflight-gates-execution
+    rule: "no skill with live_network or promotion in allowed_modes may run its live path without moneysweep-run-preflight passing first"
+    applies_to: [moneysweep-plan-source-updates]
+  - id: export-gated-by-contract
+    rule: "moneysweep-build-federation-export must pass prii-check-producer-contract before any production export (reinstated when a production export command is declared; only test-mode export is executable today)"
+    applies_to: [moneysweep-build-federation-export]
+  - id: promotion-blocked-by-manifest
+    rule: "moneysweep-assess-promotion-readiness cannot return pass while federation.json federation_readiness_gate.ready_for_hub_live_execution is false"
+    applies_to: [moneysweep-assess-promotion-readiness]

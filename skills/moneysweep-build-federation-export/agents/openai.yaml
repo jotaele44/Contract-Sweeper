@@ -1,0 +1,25 @@
+# OpenAI-runtime agent manifest for moneysweep-build-federation-export.
+# SKILL.md is canonical; keep fields synced with skill-registry.yaml.
+schema_version: prii_openai_agent_v1
+name: moneysweep-build-federation-export
+description: >-
+  Builds/tests MoneySweep's canonical federation export package. Runs the
+  authoritative export entry point in test mode only — federation.json declares
+  no production export command and the repo is NON_PRODUCTION_DIAGNOSTIC, so no
+  promotion mode is advertised. Never mixes synthetic and live data.
+instructions_ref: ../SKILL.md
+owner_repo: jotaele44/moneysweep-pr
+default_mode: offline_write
+allowed_modes: [offline_write]
+command_ids: [export_canonical]
+stop_conditions:
+  - production export requested (no production command declared; NON_PRODUCTION_DIAGNOSTIC)
+  - synthetic/live data mixing
+result_envelope:
+  - status
+  - commands_considered
+  - commands_run
+  - artifacts
+  - blockers
+  - contradictions
+  - next_safe_action
