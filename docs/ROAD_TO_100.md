@@ -39,7 +39,9 @@ CSVs stay gitignored under `data/**` by design; the tracked evidence is
 `materialized_any_data` in the coverage audit rose **11 → 15** (FRED, EIA, FAC, FEC committees).
 Still key-blocked or incomplete: `CENSUS_API_KEY` and `PROPUBLICA_API_KEY` (not supplied), HIGHERGOV
 (key rejected), `NREL` (host proxy-blocked), and the slow FEC-filings / SAM download paths. Full
-production certification of all 99 automatable sources remains the larger, longer run.
+production certification of all 99 automatable sources remains the larger, longer run. See
+`docs/CERTIFICATION_STATUS.md` for the exact gate conditions (CI lock + runtime + required-source
+coverage) and the maintainer release-cut path — and why the CENSUS/PROPUBLICA keys do not move it.
 
 ## Done
 
