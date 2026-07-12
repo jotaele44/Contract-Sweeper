@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-12T22:03:51.669049+00:00",
+  "generated_at": "2026-07-12T22:58:23.463530+00:00",
   "schema_version": "coverage_audit_v1",
   "root": ".",
   "committed_ci_view": {
@@ -18,19 +18,19 @@
     "not_materialized": 125,
     "no_outputs_declared": 0,
     "required_fully_materialized": 6,
-    "tier_bulk": 10,
-    "tier_moderate": 4,
+    "tier_bulk": 9,
+    "tier_moderate": 5,
     "tier_seed_stub": 1,
     "tier_empty": 129,
-    "total_local_rows": 57849,
+    "total_local_rows": 57071,
     "coverage_rate_fully": 0.0833,
     "materialized_any_data": 15
   },
   "processed_file_inventory": {
     "processed_dir": "data/staging/processed",
-    "total_csv_files": 6,
-    "total_rows_on_disk": 3629,
-    "registry_accounted_rows": 3629,
+    "total_csv_files": 9,
+    "total_rows_on_disk": 3900,
+    "registry_accounted_rows": 3900,
     "orphan_rows": 0,
     "orphan_file_count": 0,
     "intermediate_rows": 0,
@@ -55,8 +55,26 @@
         "classification": "declared"
       },
       {
+        "file": "pr_fec_contributions.csv",
+        "rows": 271,
+        "claimed_by": "fec",
+        "classification": "declared"
+      },
+      {
         "file": "pr_fec_committees.csv",
         "rows": 86,
+        "claimed_by": "fec_committees",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_fec_disbursements.csv",
+        "rows": 0,
+        "claimed_by": "fec_committees",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_fec_independent_expenditures.csv",
+        "rows": 0,
         "claimed_by": "fec_committees",
         "classification": "declared"
       },
@@ -220,22 +238,6 @@
       "certification_status": "provisional"
     },
     {
-      "source_id": "fec",
-      "family": "political_finance",
-      "required": true,
-      "authentication": "api_key:FEC_API_KEY",
-      "expected_output_count": 1,
-      "present_count": 1,
-      "local_rows": 1049,
-      "min_rows_threshold": 1,
-      "local_status": "fully_materialized",
-      "materiality_tier": "bulk",
-      "first_expected_output": "data/staging/processed/pr_fec_contributions.csv",
-      "materiality_label": "substantial",
-      "coverage_status": "unverifiable",
-      "certification_status": "provisional"
-    },
-    {
       "source_id": "municipal_finance",
       "family": "municipal",
       "required": false,
@@ -281,6 +283,22 @@
       "first_expected_output": "data/staging/processed/pr_eia_power_sector.csv",
       "materiality_label": "partial",
       "coverage_status": "uncontracted",
+      "certification_status": "provisional"
+    },
+    {
+      "source_id": "fec",
+      "family": "political_finance",
+      "required": true,
+      "authentication": "api_key:FEC_API_KEY",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 271,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/pr_fec_contributions.csv",
+      "materiality_label": "partial",
+      "coverage_status": "unverifiable",
       "certification_status": "provisional"
     },
     {

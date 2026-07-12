@@ -8,10 +8,10 @@ sam_entities,entity_resolution,True,api_key:SAM_API_KEY,2,1,2372,partially_mater
 fred_timeseries,federal,False,api_key:FRED_API_KEY,1,1,2138,fully_materialized,bulk,substantial,uncontracted,provisional,data/staging/processed/pr_fred_timeseries.csv
 fema_pa_openfema_v2,federal,True,none,1,1,2000,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_fema_pa_master.csv
 acuden_2024_transition,manual_export,False,manual_export,1,1,1147,fully_materialized,bulk,validated_complete,meets_contract,provisional,data/staging/processed/pr_acuden_transition.csv
-fec,political_finance,True,api_key:FEC_API_KEY,1,1,1049,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_fec_contributions.csv
 municipal_finance,municipal,False,api_key:FAC_API_KEY,1,1,785,fully_materialized,moderate,partial,uncontracted,provisional,data/staging/processed/pr_municipal_finance.csv
 act_transition_contracts,manual_export,False,manual_export,1,1,656,fully_materialized,moderate,validated_complete,meets_contract,provisional,data/staging/processed/pr_act_transition_contracts.csv
 eia_power_sector,federal,False,api_key:EIA_API_KEY,1,1,620,fully_materialized,moderate,partial,uncontracted,provisional,data/staging/processed/pr_eia_power_sector.csv
+fec,political_finance,True,api_key:FEC_API_KEY,1,1,271,fully_materialized,moderate,partial,unverifiable,provisional,data/staging/processed/pr_fec_contributions.csv
 fec_committees,political_finance,False,api_key:FEC_API_KEY,3,1,86,partially_materialized,moderate,partial,uncontracted,uncertified,data/staging/processed/pr_fec_committees.csv
 emma_bonds,bonds,True,none,2,2,35,fully_materialized,seed_stub,seed,unverifiable,provisional,data/staging/processed/pr_emma_bonds.csv
 aafaf,territorial,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_aafaf_budget.csv
