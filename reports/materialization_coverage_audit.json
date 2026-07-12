@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-11T19:00:11.283669+00:00",
+  "generated_at": "2026-07-12T22:03:51.669049+00:00",
   "schema_version": "coverage_audit_v1",
   "root": ".",
   "committed_ci_view": {
@@ -13,39 +13,63 @@
   "local_truth_summary": {
     "total_sources": 144,
     "required_sources": 14,
-    "fully_materialized": 8,
-    "partially_materialized": 4,
-    "not_materialized": 132,
+    "fully_materialized": 12,
+    "partially_materialized": 7,
+    "not_materialized": 125,
     "no_outputs_declared": 0,
     "required_fully_materialized": 6,
-    "tier_bulk": 9,
-    "tier_moderate": 1,
+    "tier_bulk": 10,
+    "tier_moderate": 4,
     "tier_seed_stub": 1,
-    "tier_empty": 133,
-    "total_local_rows": 54220,
-    "coverage_rate_fully": 0.0556,
-    "materialized_any_data": 11
+    "tier_empty": 129,
+    "total_local_rows": 57849,
+    "coverage_rate_fully": 0.0833,
+    "materialized_any_data": 15
   },
   "processed_file_inventory": {
     "processed_dir": "data/staging/processed",
-    "total_csv_files": 2,
-    "total_rows_on_disk": 1803,
-    "registry_accounted_rows": 1803,
+    "total_csv_files": 6,
+    "total_rows_on_disk": 3629,
+    "registry_accounted_rows": 3629,
     "orphan_rows": 0,
     "orphan_file_count": 0,
     "intermediate_rows": 0,
     "intermediate_file_count": 0,
     "files": [
       {
-        "file": "pr_acuden_transition.csv",
-        "rows": 1147,
-        "claimed_by": "acuden_2024_transition",
+        "file": "pr_fred_timeseries.csv",
+        "rows": 2138,
+        "claimed_by": "fred_timeseries",
         "classification": "declared"
       },
       {
-        "file": "pr_act_transition_contracts.csv",
-        "rows": 656,
-        "claimed_by": "act_transition_contracts",
+        "file": "pr_municipal_finance.csv",
+        "rows": 785,
+        "claimed_by": "municipal_finance",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_eia_power_sector.csv",
+        "rows": 620,
+        "claimed_by": "eia_power_sector",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_fec_committees.csv",
+        "rows": 86,
+        "claimed_by": "fec_committees",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_sam_opportunities.csv",
+        "rows": 0,
+        "claimed_by": "sam_opportunities",
+        "classification": "declared"
+      },
+      {
+        "file": "sam_exclusions.csv",
+        "rows": 0,
+        "claimed_by": "sam_exclusions",
         "classification": "declared"
       }
     ]
@@ -148,6 +172,22 @@
       "certification_status": "uncertified"
     },
     {
+      "source_id": "fred_timeseries",
+      "family": "federal",
+      "required": false,
+      "authentication": "api_key:FRED_API_KEY",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 2138,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "bulk",
+      "first_expected_output": "data/staging/processed/pr_fred_timeseries.csv",
+      "materiality_label": "substantial",
+      "coverage_status": "uncontracted",
+      "certification_status": "provisional"
+    },
+    {
       "source_id": "fema_pa_openfema_v2",
       "family": "federal",
       "required": true,
@@ -196,6 +236,22 @@
       "certification_status": "provisional"
     },
     {
+      "source_id": "municipal_finance",
+      "family": "municipal",
+      "required": false,
+      "authentication": "api_key:FAC_API_KEY",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 785,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/pr_municipal_finance.csv",
+      "materiality_label": "partial",
+      "coverage_status": "uncontracted",
+      "certification_status": "provisional"
+    },
+    {
       "source_id": "act_transition_contracts",
       "family": "manual_export",
       "required": false,
@@ -210,6 +266,38 @@
       "materiality_label": "validated_complete",
       "coverage_status": "meets_contract",
       "certification_status": "provisional"
+    },
+    {
+      "source_id": "eia_power_sector",
+      "family": "federal",
+      "required": false,
+      "authentication": "api_key:EIA_API_KEY",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 620,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/pr_eia_power_sector.csv",
+      "materiality_label": "partial",
+      "coverage_status": "uncontracted",
+      "certification_status": "provisional"
+    },
+    {
+      "source_id": "fec_committees",
+      "family": "political_finance",
+      "required": false,
+      "authentication": "api_key:FEC_API_KEY",
+      "expected_output_count": 3,
+      "present_count": 1,
+      "local_rows": 86,
+      "min_rows_threshold": 1,
+      "local_status": "partially_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/pr_fec_committees.csv",
+      "materiality_label": "partial",
+      "coverage_status": "uncontracted",
+      "certification_status": "uncertified"
     },
     {
       "source_id": "emma_bonds",
@@ -644,22 +732,6 @@
       "certification_status": "uncertified"
     },
     {
-      "source_id": "eia_power_sector",
-      "family": "federal",
-      "required": false,
-      "authentication": "api_key:EIA_API_KEY",
-      "expected_output_count": 1,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "not_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/pr_eia_power_sector.csv",
-      "materiality_label": "empty",
-      "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
-    },
-    {
       "source_id": "emma_infra_revenue",
       "family": "infrastructure_revenue",
       "required": false,
@@ -788,22 +860,6 @@
       "certification_status": "uncertified"
     },
     {
-      "source_id": "fec_committees",
-      "family": "political_finance",
-      "required": false,
-      "authentication": "api_key:FEC_API_KEY",
-      "expected_output_count": 3,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "not_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/pr_fec_committees.csv",
-      "materiality_label": "empty",
-      "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
-    },
-    {
       "source_id": "federal_audit_clearinghouse",
       "family": "federal",
       "required": false,
@@ -911,22 +967,6 @@
       "local_status": "not_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/pr_fpds_report_builder.csv",
-      "materiality_label": "empty",
-      "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
-    },
-    {
-      "source_id": "fred_timeseries",
-      "family": "federal",
-      "required": false,
-      "authentication": "api_key:FRED_API_KEY",
-      "expected_output_count": 1,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "not_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/pr_fred_timeseries.csv",
       "materiality_label": "empty",
       "coverage_status": "uncontracted",
       "certification_status": "uncertified"
@@ -1193,15 +1233,15 @@
       "required": false,
       "authentication": "api_key:OPENSTATES_API_KEY",
       "expected_output_count": 1,
-      "present_count": 0,
+      "present_count": 1,
       "local_rows": 0,
       "min_rows_threshold": 1,
-      "local_status": "not_materialized",
+      "local_status": "fully_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/pr_legislative_measures_canonical.json",
       "materiality_label": "empty",
       "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
+      "certification_status": "provisional"
     },
     {
       "source_id": "legislative_fiscal_link_candidates",
@@ -1311,22 +1351,6 @@
       "local_status": "not_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/pr_msrb_trades.csv",
-      "materiality_label": "empty",
-      "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
-    },
-    {
-      "source_id": "municipal_finance",
-      "family": "municipal",
-      "required": false,
-      "authentication": "api_key:FAC_API_KEY",
-      "expected_output_count": 1,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "not_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/pr_municipal_finance.csv",
       "materiality_label": "empty",
       "coverage_status": "uncontracted",
       "certification_status": "uncertified"
@@ -1980,7 +2004,7 @@
       "present_count": 0,
       "local_rows": 0,
       "min_rows_threshold": 1,
-      "local_status": "not_materialized",
+      "local_status": "partially_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/sam_exclusions.csv",
       "materiality_label": "empty",
@@ -1996,7 +2020,7 @@
       "present_count": 0,
       "local_rows": 0,
       "min_rows_threshold": 1,
-      "local_status": "not_materialized",
+      "local_status": "partially_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/pr_sam_opportunities.csv",
       "materiality_label": "empty",
