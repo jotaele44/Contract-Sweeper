@@ -202,9 +202,13 @@ class SourceSpec:
 
 
 SOURCE_SPECS = {
+    # act/acuden share the real dropzone declared in manual_export_registry
+    # (data/raw/act_transition/); their canonical producer is
+    # scripts/ingest_act_transition.py — this controller is the tabular
+    # fallback lane and must point at the same operator dropzone.
     "act": SourceSpec(
         "act_transition_contracts",
-        "data/raw/ACT Transition Contracts",
+        "data/raw/act_transition",
         "data/staging/processed/pr_act_transition_contracts.csv",
         "schemas/local_contracts.schema.json",
         LOCAL_CONTRACT_COLUMNS,
@@ -213,7 +217,7 @@ SOURCE_SPECS = {
     ),
     "acuden": SourceSpec(
         "acuden_2024_transition",
-        "data/raw/ACUDEN Transition Contracts",
+        "data/raw/act_transition",
         "data/staging/processed/pr_acuden_transition.csv",
         "schemas/local_contracts.schema.json",
         LOCAL_CONTRACT_COLUMNS,
@@ -222,7 +226,7 @@ SOURCE_SPECS = {
     ),
     "prasa_projects": SourceSpec(
         "prasa_completed_projects",
-        "data/raw/PRASA Completed Projects",
+        "data/raw/PRASA/completed",
         "data/staging/processed/prasa_completed_projects.csv",
         "schemas/infrastructure_projects.schema.json",
         INFRASTRUCTURE_PROJECT_COLUMNS,
@@ -231,7 +235,7 @@ SOURCE_SPECS = {
     ),
     "prasa_cer": SourceSpec(
         "prasa_fy2024_cer",
-        "data/raw/PRASA CER",
+        "data/raw/PRASA",
         "data/staging/processed/prasa_cer_facts.csv",
         "schemas/infrastructure_fiscal_facts.schema.json",
         INFRASTRUCTURE_FACT_COLUMNS,
@@ -258,7 +262,7 @@ SOURCE_SPECS = {
     ),
     "dcaa": SourceSpec(
         "dcaa_active_contractors",
-        "data/raw/DCAA Active Contractors",
+        "data/raw/Active Contractor Listing",
         "data/staging/processed/dcaa_active_contractors.csv",
         "schemas/contractor_reference.schema.json",
         CONTRACTOR_REFERENCE_COLUMNS,

@@ -7,9 +7,10 @@ This is the registry ``producer_script`` for two manual-export sources:
 
 It closes the gap between the PDF extractor (``scripts/extract_act_acuden_pdfs.py``,
 which writes per-PDF 6-column CSVs under ``data/staging/raw/``) and the canonical
-``data/staging/processed/`` outputs the registry declares. Once an operator drops
-the source PDF in the manual drop dir, running this producer materializes the
-declared output (≥1 row ⇒ ``fully_materialized`` in gap analysis).
+``data/staging/processed/`` outputs the registry declares. The acquired source
+PDFs are archived in ``data/raw/Vigentes al Momento de Transición/`` (per-source
+globs); pass ``--from-pdf`` to re-extract from them — the default run stays on
+the deterministic committed-extract path below.
 
 Offline fallback: when no operator PDF (or pre-staged raw CSV) is available, the
 producer materializes directly from the committed 18-column extract written by
@@ -58,8 +59,11 @@ PROCESSED_OUTPUTS = {
 COMMITTED_EXTRACT = "data/raw/act_transition/transition_contracts_extracted.csv"
 EXTRACT_DATASET = {"act": "ACT_2020", "acuden": "ACUDEN_2024"}
 
-# Operator PDF drop dirs (mirrors scripts/extract_act_acuden_pdfs.py drop dirs).
-PDF_DROP_SUBDIR = {"act": "act_transition", "acuden": "acuden_2024"}
+# Where the acquired source PDFs actually live (committed; spaces-in-name dir
+# has a dedicated .gitignore carve-out). Per-source globs keep the shared
+# archive dir split correctly. Mirrors scripts/extract_act_acuden_pdfs.py.
+PDF_ARCHIVE_DIR = "data/raw/Vigentes al Momento de Transición"
+PDF_NAME_GLOB = {"act": "ACT*.pdf", "acuden": "ACUDES*.pdf"}
 
 # Canonical processed schema: extractor's 6 columns + a provenance tag.
 CANONICAL_COLUMNS = [
@@ -126,13 +130,11 @@ def _write_processed(rows: list[dict], out_path: Path) -> None:
 
 
 def _pdf_available(root: Path, source_key: str, input_dir: Path | None) -> bool:
-    """True if an operator PDF is present (so the extractor is worth importing)."""
-    drop = (
-        input_dir
-        if input_dir is not None
-        else root / "data" / "manual" / PDF_DROP_SUBDIR[source_key]
-    )
-    return drop.exists() and any(p.suffix.lower() == ".pdf" for p in drop.iterdir())
+    """True if this source's archived PDF is present (extractor worth importing)."""
+    if input_dir is not None:
+        return input_dir.exists() and any(p.suffix.lower() == ".pdf" for p in input_dir.iterdir())
+    archive = root / PDF_ARCHIVE_DIR
+    return archive.exists() and any(archive.glob(PDF_NAME_GLOB[source_key]))
 
 
 def _read_committed_extract_rows(root: Path, source_key: str) -> list[dict]:
@@ -164,15 +166,19 @@ def _read_committed_extract_rows(root: Path, source_key: str) -> list[dict]:
     return rows
 
 
-def materialize_source(root: Path, source_key: str, input_dir: Path | None, logger) -> dict:
+def materialize_source(
+    root: Path, source_key: str, input_dir: Path | None, logger, *, from_pdf: bool = False
+) -> dict:
     """Materialize one source to its processed CSV.
 
-    Prefers a freshly-extracted operator PDF; falls back to a pre-staged raw CSV;
-    falls back again to the committed offline extract. ``pdfplumber`` is imported
-    only when an actual PDF is present, so the offline path (and the readiness
-    preflight that imports this module) never touches the PDF stack.
+    Input tiers: (1) a fresh PDF extraction — only when ``from_pdf`` is set,
+    since the archived source PDFs are always present in this repo and the
+    default run must stay deterministic (committed-extract path) and free of
+    the pdfplumber stack; (2) pre-staged raw CSVs; (3) the committed offline
+    extract. ``pdfplumber`` is imported only when a PDF extraction actually
+    runs, so the readiness preflight that imports this module never touches it.
     """
-    if _pdf_available(root, source_key, input_dir):
+    if from_pdf and _pdf_available(root, source_key, input_dir):
         # Lazy import — keeps module import (and the readiness preflight) free of pdfplumber.
         from moneysweep.runtime.alias_overrides import load_overrides
         from scripts.extract_act_acuden_pdfs import extract_source
@@ -200,13 +206,20 @@ def materialize_source(root: Path, source_key: str, input_dir: Path | None, logg
     return {"source": source_key, "status": "OK", "rows": len(promoted), "output": str(out_path)}
 
 
-def run(root: Path | None = None, source: str = "all", input_dir: Path | None = None) -> dict:
+def run(
+    root: Path | None = None,
+    source: str = "all",
+    input_dir: Path | None = None,
+    from_pdf: bool = False,
+) -> dict:
     root = Path(root or PROJECT_ROOT)
     logger = setup_logging("ingest_act_transition")
     keys = list(PROCESSED_OUTPUTS) if source == "all" else [source]
     if input_dir is not None and source == "all":
         raise ValueError("--input-dir requires --source act or --source acuden")
-    results = [materialize_source(root, k, input_dir, logger) for k in keys]
+    if input_dir is not None:
+        from_pdf = True  # an explicit operator drop implies re-extraction
+    results = [materialize_source(root, k, input_dir, logger, from_pdf=from_pdf) for k in keys]
     total = sum(r["rows"] for r in results)
     return {"status": "OK" if total else "EMPTY", "rows": total, "sources": results}
 
@@ -215,8 +228,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", choices=["act", "acuden", "all"], default="all")
     parser.add_argument("--input-dir", type=Path, default=None)
+    parser.add_argument(
+        "--from-pdf",
+        action="store_true",
+        help="re-extract from the archived source PDFs (needs pdfplumber); "
+        "default is the deterministic committed-extract/staged path",
+    )
     args = parser.parse_args(argv)
-    result = run(source=args.source, input_dir=args.input_dir)
+    result = run(source=args.source, input_dir=args.input_dir, from_pdf=args.from_pdf)
     return 0 if result["rows"] else 1
 
 

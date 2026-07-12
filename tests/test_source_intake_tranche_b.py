@@ -59,7 +59,7 @@ def _write_csv(path: Path, header: list[str], rows: list[list[str]]) -> None:
 @pytest.mark.integration
 def test_run_builds_local_contract_output(tmp_path: Path):
     _write_csv(
-        tmp_path / "data" / "raw" / "ACT Transition Contracts" / "act.csv",
+        tmp_path / "data" / "raw" / "act_transition" / "act.csv",
         ["Contract ID", "Contratista", "Agencia", "Monto", "Status"],
         [["ACT-1", "Acme LLC", "ACT", "1000", "Active"]],
     )
@@ -96,7 +96,7 @@ def test_run_builds_lobby_and_reference_outputs(tmp_path: Path):
         [["Lobbyist A", "Client A", "2024-01-01"]],
     )
     _write_csv(
-        tmp_path / "data" / "raw" / "DCAA Active Contractors" / "vendors.csv",
+        tmp_path / "data" / "raw" / "Active Contractor Listing" / "vendors.csv",
         ["Name", "UEI", "CAGE", "Status"],
         [["Vendor A LLC", "UEI123", "1ABC2", "active"]],
     )

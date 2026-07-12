@@ -1,15 +1,15 @@
 {
   "schema_version": "federation_source_status_reconciliation_v1",
   "active_vector": "PREP_TRANCHE_B_MANUAL_SOURCE_INGESTION",
-  "reconciled_at": "2026-06-28",
+  "reconciled_at": "2026-07-11",
   "status": "CONTROL_PLANE_RECONCILED",
-  "canonical_source_count": 141,
+  "canonical_source_count": 144,
   "source_count_file": "reports/materialization_readiness.json",
-  "automatable_total": 95,
-  "automatable_ready": 95,
-  "queued_excluded_total": 46,
+  "automatable_total": 99,
+  "automatable_ready": 99,
+  "queued_excluded_total": 45,
   "queued_excluded": {
-    "manual_export": 39,
+    "manual_export": 38,
     "scraper_needed": 2,
     "semantic_duplicate": 3,
     "deferred_stub": 2,
@@ -31,7 +31,8 @@
     "Older next-action text may describe a stale queued breakdown. Federation readers must use the queued_excluded object in this file.",
     "Registry grew from 84 to 136 sources after the June 2026 federation readiness audit as new manual-export, SBA disaster-loan, and fiscal sources were registered.",
     "scraper_needed reduced from 15 to 2 (2026-06-22): 13 sources with real scraping implementations promoted from scraper_needed to api_producer. Only hacienda_sut_ivu and pr_act_154_excise remain as true stubs.",
-    "Reconciled from 136 to 141 sources and 90 to 95 automatable (2026-06-28): federation.json and this reconciliation file were lagging reports/materialization_readiness.json (141 total / 95 automatable / 95 ready). OpenStates runtime key added to match materialization truth. No readiness flag changed."
+    "Reconciled from 136 to 141 sources and 90 to 95 automatable (2026-06-28): federation.json and this reconciliation file were lagging reports/materialization_readiness.json (141 total / 95 automatable / 95 ready). OpenStates runtime key added to match materialization truth. No readiness flag changed.",
+    "Reconciled from 141 to 144 sources and 95 to 99 automatable (2026-07-11, gap-closure phase1a): this file, federation.json (143/98), and current_status.json's materialization_readiness_truth block (136/90) had all drifted from reports/materialization_readiness.json. tests/test_source_count_reconciliation.py now pins every committed count surface to that file so silent drift fails CI."
   ],
   "federation_gate": {
     "ready_for_hub_discovery": true,

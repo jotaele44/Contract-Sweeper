@@ -475,9 +475,9 @@
       "validation_threshold": {
         "min_rows": 1
       },
-      "manual_drop_dir": "data/manual/act_transition/",
+      "manual_drop_dir": "data/raw/act_transition/",
       "update_cadence": "ad_hoc",
-      "notes": "PR ACT transition contract files (Autopistas, Ferrovial, LPC&D, etc.). Manual export."
+      "notes": "PR ACT transition contract files (Autopistas, Ferrovial, LPC&D, etc.). Manual export. Shares the data/raw/act_transition/ dropzone with acuden_2024_transition; the committed extract's source_dataset column (ACT_2020) is the split key. Source PDFs are archived under \"data/raw/Vigentes al Momento de Transici\u00f3n/\"."
     },
     {
       "source_id": "acuden_2024_transition",
@@ -493,9 +493,9 @@
       "validation_threshold": {
         "min_rows": 1
       },
-      "manual_drop_dir": "data/manual/acuden_2024/",
+      "manual_drop_dir": "data/raw/act_transition/",
       "update_cadence": "ad_hoc",
-      "notes": "ACUDEN 2024 transition contract file. Transfer-of-funds contracts to municipalities/daycare/nonprofits."
+      "notes": "ACUDEN 2024 transition contract file. Transfer-of-funds contracts to municipalities/daycare/nonprofits. Shares the data/raw/act_transition/ dropzone with act_transition_contracts; the committed extract's source_dataset column (ACUDEN_2024) is the split key."
     },
     {
       "source_id": "dcaa_active_contractors",

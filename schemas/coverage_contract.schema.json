@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/coverage_contract.schema.json",
+  "title": "Coverage Contracts",
+  "description": "Per-source completeness contracts (gap-closure control plane). Declares the record grain, authoritative universe, uniqueness key, field-completeness floors, and monetary reconciliation a source must satisfy before it may label validated_complete. Overlay keyed by source_id; source identity stays in source_registry.yaml.",
+  "type": "object",
+  "required": ["schema_version", "defaults", "contracts"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "coverage_contracts_v1"},
+    "defaults": {"$ref": "#/$defs/defaults_block"},
+    "contracts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/contract_entry"}
+    }
+  },
+  "$defs": {
+    "canonical_grain": {
+      "enum": [
+        "contract",
+        "award",
+        "transaction",
+        "subaward",
+        "entity",
+        "filing",
+        "project",
+        "activity",
+        "donation",
+        "registration",
+        "audit_report",
+        "security",
+        "loan",
+        "payment"
+      ]
+    },
+    "geography_scope": {
+      "enum": ["PR", "US_PR", "US", "global"]
+    },
+    "authoritative_universe_method": {
+      "enum": [
+        "api_metadata",
+        "bulk_file_metadata",
+        "committed_extract_page_validation",
+        "portal_count",
+        "document_index",
+        "operator_attestation"
+      ]
+    },
+    "period_type": {
+      "enum": ["snapshot", "rolling", "bounded"]
+    },
+    "defaults_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "production_fixtures_forbidden": {"type": "boolean"},
+        "pagination_required": {"type": "boolean"}
+      }
+    },
+    "period_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end", "period_type"],
+      "properties": {
+        "start": {"type": ["string", "null"], "format": "date"},
+        "end": {"type": ["string", "null"], "format": "date"},
+        "period_type": {"$ref": "#/$defs/period_type"}
+      }
+    },
+    "monetary_reconciliation_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount_field", "tolerance_pct", "reference_total"],
+      "properties": {
+        "amount_field": {"type": "string", "minLength": 1},
+        "tolerance_pct": {"type": "number", "exclusiveMinimum": 0},
+        "reference_total": {"type": ["number", "null"]}
+      }
+    },
+    "contract_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "contract_version",
+        "canonical_grain",
+        "geography_scope",
+        "uniqueness_key"
+      ],
+      "properties": {
+        "source_id": {"type": "string", "minLength": 1},
+        "contract_version": {"type": "integer", "minimum": 1},
+        "canonical_grain": {"$ref": "#/$defs/canonical_grain"},
+        "geography_scope": {"$ref": "#/$defs/geography_scope"},
+        "period": {"$ref": "#/$defs/period_block"},
+        "authoritative_universe_method": {"$ref": "#/$defs/authoritative_universe_method"},
+        "authoritative_universe_ref": {"type": "string"},
+        "authoritative_universe_total": {"type": ["integer", "null"], "minimum": 0},
+        "uniqueness_key": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "minimum_coverage_pct": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
+        },
+        "required_field_thresholds": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "monetary_reconciliation": {"$ref": "#/$defs/monetary_reconciliation_block"},
+        "pagination_required": {"type": "boolean"},
+        "production_fixtures_forbidden": {"type": "boolean"},
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}

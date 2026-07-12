@@ -155,20 +155,33 @@ def load_overlay(root: Path | None = None, policy_path: str | Path | None = None
     return data
 
 
-def _manual_export_ids(root: Path) -> set[str]:
+def _manual_export_entries(root: Path) -> dict[str, dict]:
+    """Manual-export registry entries keyed by source_id.
+
+    The registry's real top-level key is `manual_exports`
+    (r5_manual_export_registry_v1); the legacy fallbacks matched nothing, so
+    this lookup silently returned empty until the gap-closure repair
+    (baseline contradiction 10).
+    """
     path = root / MANUAL_EXPORT_REGISTRY
     if not path.exists():
-        return set()
+        return {}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        return set()
-    entries = data.get("sources") or data.get("manual_sources") or data.get("entries") or []
-    ids: set[str] = set()
-    for e in entries:
-        if isinstance(e, dict) and e.get("source_id"):
-            ids.add(e["source_id"])
-    return ids
+        return {}
+    entries = (
+        data.get("manual_exports")
+        or data.get("sources")
+        or data.get("manual_sources")
+        or data.get("entries")
+        or []
+    )
+    return {e["source_id"]: e for e in entries if isinstance(e, dict) and e.get("source_id")}
+
+
+def _manual_export_ids(root: Path) -> set[str]:
+    return set(_manual_export_entries(root))
 
 
 # --------------------------------------------------------------------------- #
@@ -217,7 +230,8 @@ def build_effective_policies(
     overlay = load_overlay(root, policy_path)
     defaults = dict(overlay.get("defaults") or {})
     overrides = {e["source_id"]: e for e in overlay.get("sources") or [] if e.get("source_id")}
-    manual_ids = _manual_export_ids(root)
+    manual_entries = _manual_export_entries(root)
+    manual_ids = set(manual_entries)
 
     sources = load_source_registry(root).get("sources", [])
     policies: dict[str, SourceUpdatePolicy] = {}
@@ -252,15 +266,25 @@ def build_effective_policies(
         if not req_secrets and auth.startswith("api_key:"):
             req_secrets = [auth.split(":", 1)[1]]
 
-        # watch paths / patterns / dedupe for file-like triggers
+        # watch paths / patterns / dedupe for file-like triggers. Resolution
+        # order mirrors the module docstring: explicit override → canonical
+        # manual_drop_dir → manual_export_registry expected_drop_dir.
         watch_paths = list(override.get("watch_paths") or [])
         if is_file_like and not watch_paths:
-            drop = src.get("manual_drop_dir")
+            drop = src.get("manual_drop_dir") or manual_entries.get(sid, {}).get(
+                "expected_drop_dir"
+            )
             if drop:
                 watch_paths = [drop]
         patterns = list(override.get("filename_patterns") or [])
         if is_file_like and not patterns:
-            patterns = list(DEFAULT_FILE_DROP_PATTERNS)
+            # Carry the manual-export entry's declared pattern (pipe-separated)
+            # through with the watch path — e.g. act_transition_contracts
+            # declares *.pdf, which the csv/xlsx defaults would never match.
+            manual_pattern = str(manual_entries.get(sid, {}).get("expected_filename_pattern") or "")
+            patterns = [p.strip() for p in manual_pattern.split("|") if p.strip()] or list(
+                DEFAULT_FILE_DROP_PATTERNS
+            )
         dedupe = override.get("dedupe_method") or ("sha256" if is_file_like else None)
 
         # freshness SLA

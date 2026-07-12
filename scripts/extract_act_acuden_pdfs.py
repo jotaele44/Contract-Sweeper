@@ -4,8 +4,9 @@ Extract ACT and ACUDEN transition-contract tables from manually-dropped PDFs.
 The ACT and ACUDEN sources are declared in ``registries/manual_export_registry.yaml``
 with column schemas, but the underlying drops are digital-table PDFs that the
 existing CSV/XLSX ingestor (``scripts/ingest_active_contractors.py``) cannot
-read. This harness sits in front of that ingestor: operator drops PDFs into
-``data/manual/{act_transition,acuden_2024}/``, this script extracts the
+read. This harness sits in front of that ingestor: the acquired PDFs live in
+``data/raw/Vigentes al Momento de Transición/`` (per-source globs ACT*.pdf /
+ACUDES*.pdf), this script extracts the
 tabular rows into deterministic CSVs under ``data/staging/raw/``, and a
 downstream ingestor can promote them to ``data/staging/processed/`` once the
 pause-lock policy permits.
@@ -75,15 +76,19 @@ ACUDEN_COLUMNS = [
     "service_type",
 ]
 
+# Both sources' acquired PDFs live in ONE archived dir (spaces-in-name; it has
+# a dedicated .gitignore carve-out) — the per-source pdf_glob keeps them split.
 SOURCES: dict[str, dict] = {
     "act": {
-        "input_dir": "data/manual/act_transition",
+        "input_dir": "data/raw/Vigentes al Momento de Transición",
+        "pdf_glob": "ACT*.pdf",
         "output_dir": "data/staging/raw/act_transition",
         "columns": ACT_COLUMNS,
         "label": "act_transition_contracts",
     },
     "acuden": {
-        "input_dir": "data/manual/acuden_2024",
+        "input_dir": "data/raw/Vigentes al Momento de Transición",
+        "pdf_glob": "ACUDES*.pdf",
         "output_dir": "data/staging/raw/acuden_2024",
         "columns": ACUDEN_COLUMNS,
         "label": "acuden_2024_transition",
@@ -244,7 +249,12 @@ def extract_source(
         logger.warning(f"  [{label}] drop dir not found: {in_dir} — skipping")
         return {"pdfs": 0, "rows": 0, "outputs": [], "skipped": [str(in_dir)]}
 
-    pdfs = sorted(p for p in in_dir.iterdir() if p.suffix.lower() == ".pdf")
+    # An explicit --input-dir override takes every PDF in the dir; the default
+    # shared archive dir is filtered by this source's glob.
+    if input_override is not None:
+        pdfs = sorted(p for p in in_dir.iterdir() if p.suffix.lower() == ".pdf")
+    else:
+        pdfs = sorted(in_dir.glob(cfg["pdf_glob"]))
     if not pdfs:
         logger.info(f"  [{label}] no PDFs in {in_dir}")
         return {"pdfs": 0, "rows": 0, "outputs": [], "skipped": []}

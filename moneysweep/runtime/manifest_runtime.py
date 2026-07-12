@@ -67,6 +67,24 @@ _YEAR_FIELDS = (
 )
 
 
+def _is_money_column(name: str) -> bool:
+    """Columns whose sums feed monetary reconciliation (coverage contracts)."""
+    lowered = name.lower()
+    return "amount" in lowered or lowered in ("total", "obligation", "obligated", "monto")
+
+
+def _parse_money(raw: str) -> float | None:
+    cleaned = raw.strip().replace("$", "").replace(",", "")
+    if cleaned.startswith("(") and cleaned.endswith(")"):
+        cleaned = "-" + cleaned[1:-1]
+    if not cleaned:
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -98,6 +116,7 @@ def _csv_completeness_and_matches(path: Path) -> dict[str, Any]:
     fields: list[str] = []
     seen: Counter[str] = Counter()
     nonempty: Counter[str] = Counter()
+    money_sums: dict[str, float] = {}
     entity_total = 0
     entity_normalized = 0
     years: set[int] = set()
@@ -131,6 +150,10 @@ def _csv_completeness_and_matches(path: Path) -> dict[str, Any]:
                     seen[k] += 1
                     if (row.get(k) or "").strip():
                         nonempty[k] += 1
+                        if _is_money_column(k):
+                            value = _parse_money(row.get(k) or "")
+                            if value is not None:
+                                money_sums[k] = money_sums.get(k, 0.0) + value
                 # entity-name match rate proxy: how many entity-name cells normalize to non-empty.
                 for ef in _ENTITY_NAME_FIELDS:
                     if ef in row and (row.get(ef) or "").strip():
@@ -158,6 +181,9 @@ def _csv_completeness_and_matches(path: Path) -> dict[str, Any]:
     field_completeness = {k: (nonempty[k] / seen[k]) if seen[k] else 0.0 for k in fields}
     return {
         "field_completeness_pct_by_column": field_completeness,
+        # Column sums for money-like fields — the numerator for coverage-
+        # contract monetary reconciliation (moneysweep/validation/completeness).
+        "monetary_totals": {k: round(v, 2) for k, v in sorted(money_sums.items())},
         "entity_match_rate_pct": (entity_normalized / entity_total) if entity_total else None,
         "actual_years": sorted(years),
         # Rate = duplicate rows / total rows scanned (not / unique-key count).
