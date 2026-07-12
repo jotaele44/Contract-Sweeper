@@ -19,6 +19,23 @@ schema_version: prii_skill_registry_v1
 owner_repo: jotaele44/moneysweep-pr
 federation_role: public_money_intelligence_node
 
+# Per-repo configuration for the shared, Hub-owned validator
+# (scripts/validate_skills.py is byte-identical across all federation repos;
+# everything repo-specific lives here). Presence-enables optional checks:
+# export_contract and coverage_report run only when their key is present.
+packet_config:
+  owner_repo: jotaele44/moneysweep-pr
+  boundary_owner: moneysweep-pr
+  command_source: federation_json
+  command_source_ref: federation.json
+  command_key: hub_callable_commands
+  activation_routes: [route_to_hub, route_to_centinelas, clarify]
+  export_contract:
+    command_id: export_canonical
+    required_paths: [moneysweep/federation/canonical_v1_bridge.py]
+  coverage_report: reports/materialization_readiness.json
+  contract_schema: schemas/prii_skill_contract.schema.json
+
 skills:
   - schema_version: prii_skill_contract_v1
     skill_id: moneysweep-operator
