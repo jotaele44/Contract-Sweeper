@@ -105,7 +105,13 @@ def _get(session: requests.Session, url: str, params: dict, logger, sleep_s: flo
 # ---------------------------------------------------------------------------
 
 
-def _fetch_cycle(session: requests.Session, cycle: int, sleep_s: float, logger) -> list[dict]:
+def _fetch_cycle(
+    session: requests.Session,
+    cycle: int,
+    sleep_s: float,
+    logger,
+    max_pages: int | None = None,
+) -> list[dict]:
     """Fetch all Schedule A contributions from PR for one election cycle."""
     url = f"{FEC_BASE}/schedules/schedule_a/"
 
@@ -159,6 +165,8 @@ def _fetch_cycle(session: requests.Session, cycle: int, sleep_s: float, logger) 
             logger.info(f"  Cycle {cycle}: {count:,} total contributions")
 
         next_marker = None if page >= total_pages else page + 1
+        if max_pages is not None and page >= max_pages:
+            next_marker = None  # bound long PR-contribution runs
         return PageResult(recs, next_marker)
 
     return list(paginate(_fetch, start_marker=1))
@@ -173,7 +181,13 @@ def run(root: Path | None = None, api_key: str | None = None, force: bool = Fals
     return _run(root=root, api_key=api_key, force=force)
 
 
-def _run(root: Path | None = None, api_key: str | None = None, force: bool = False) -> dict:
+def _run(
+    root: Path | None = None,
+    api_key: str | None = None,
+    force: bool = False,
+    since_cycle: int | None = None,
+    max_pages: int | None = None,
+) -> dict:
     if root is None:
         root = PROJECT_ROOT
 
@@ -207,11 +221,12 @@ def _run(root: Path | None = None, api_key: str | None = None, force: bool = Fal
     else:
         session = _session(api_key)
         all_records = []
-        cycles = list(range(START_CYCLE, END_CYCLE + 2, 2))  # 2000, 2002, ..., 2024
+        start_cycle = since_cycle if since_cycle is not None else START_CYCLE
+        cycles = list(range(start_cycle, END_CYCLE + 2, 2))  # e.g. 2000, 2002, ..., current
 
         for cycle in cycles:
             logger.info(f"  Fetching cycle {cycle}...")
-            recs = _fetch_cycle(session, cycle, sleep_s, logger)
+            recs = _fetch_cycle(session, cycle, sleep_s, logger, max_pages=max_pages)
             all_records.extend(recs)
             logger.info(f"  Cycle {cycle}: {len(recs):,} records fetched")
         session.close()
@@ -281,8 +296,25 @@ def main() -> int:
         help="FEC API key (default: FEC_API_KEY env var or DEMO_KEY)",
     )
     parser.add_argument("--force", action="store_true", help="Re-download even if raw file exists")
+    parser.add_argument(
+        "--since-cycle",
+        type=int,
+        default=None,
+        help="Only fetch cycles >= this even year (e.g. 2022); default: all cycles from 2000",
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="Cap pages per cycle (per_page=100) to bound long runs with a real key",
+    )
     args = parser.parse_args()
-    summary = _run(api_key=args.api_key, force=args.force)
+    summary = _run(
+        api_key=args.api_key,
+        force=args.force,
+        since_cycle=args.since_cycle,
+        max_pages=args.max_pages,
+    )
     print(f"\nFEC download complete. {summary['rows']:,} rows.")
     return 0 if summary["status"] in ("OK", "EMPTY") else 1
 

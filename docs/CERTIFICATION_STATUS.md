@@ -43,10 +43,25 @@ In CI these always read the empty/bootstrap state, because the processed masters
 
 ### 3. Coverage gate — `moneysweep/runtime/validation_gates.py`
 Required-source coverage must be ≥ 0.85. The denominator is only the **`required: true`** sources
-(14 of them), not all 99 automatable sources. Currently `required_fully_materialized = 6 / 14 ≈ 0.43`.
-The specific unmet required sources are **`cor3`, `hud_drgr_authorized`, `oficina_contralor`** (all
-`not_materialized`), plus partials (`usaspending_prime`, `sam_entities`, `lda`). These are
-portal/manual/JS-gated — they are **not** API-key sources, so no key unlocks them.
+(14 of them), not all 99 automatable sources. Currently ≈ **0.43** (6 of 14 fully materialized). The
+14 required sources are:
+
+- **Uncertified / unmaterialized (8):** `cor3`, `hud_drgr_authorized`, `lda`, `oficina_contralor`,
+  `pr_cabilderos`, `prasa`, `sam_entities`, `usaspending_prime`.
+- **Provisional / partial (6):** `emma_bonds`, `fec`, `fema_pa_openfema_v2`, `fsrs_subawards`,
+  `hud_cdbg_dr_public`, `usaspending_subawards`.
+
+These do **not** all fall into one bucket:
+- **Portal / manual / JS-gated, no public API** — `cor3`, `oficina_contralor`, `prasa`, `pr_cabilderos`,
+  `hud_drgr_authorized`. These require manual acquisition; no API key unlocks them.
+- **API-key** — `sam_entities` needs `SAM_API_KEY` (`authentication: api_key:SAM_API_KEY`). The SAM key
+  is available, so this partial can be advanced by running the SAM entities producer.
+- **Keyless HTTP** — `usaspending_prime`, `usaspending_subawards`, `fec` (Schedule A), `lda`
+  (works anonymously), `emma_bonds`, `fema_pa_openfema_v2`, `fsrs_subawards`, `hud_cdbg_dr_public` —
+  completable by running their producers to certification.
+
+So completing this gate requires **both** the portal/manual acquisitions **and** running the keyed/keyless
+API producers (SAM entities, USAspending, FEC Schedule A, LDA, …) to a certified state.
 
 ## What the keyed live run did — and did not — do
 

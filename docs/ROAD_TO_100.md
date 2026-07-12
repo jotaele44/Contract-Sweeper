@@ -43,6 +43,21 @@ production certification of all 99 automatable sources remains the larger, longe
 `docs/CERTIFICATION_STATUS.md` for the exact gate conditions (CI lock + runtime + required-source
 coverage) and the maintainer release-cut path — and why the CENSUS/PROPUBLICA keys do not move it.
 
+### Producer optimization (follow-up)
+
+Scoping/robustness passes on the slow/empty producers, with a bounded live re-run:
+
+- **`download_fec.py`** gained `--since-cycle` / `--max-pages` flags to bound the (otherwise 2000→current,
+  all-pages) PR Schedule-A pull. A bounded run (`--since-cycle 2022 --max-pages 5`, real key) materialized
+  **271 real rows** for `fec` — a `required: true` source (previously provisional) — so it now carries live
+  contribution data.
+- **`download_fec_committees.py --skip-disbursements --skip-expenditures`** completes the committee master
+  (86 rows) fast instead of the unbounded Schedule-B/E loops.
+- **`download_sam_opportunities.py --days 1095 --state PR`** widens the (backward-only) posted-date window;
+  the full 3-year PR pull is long (capped here).
+- Still open: `sam_exclusions` (v4 endpoint returns 429/403 — key-entitlement, not a scoping issue) and the
+  OpenStates chain (needs the upstream `legislapr_discovery` probe materialized first). Documented, not faked.
+
 ## Done
 
 - **~24K LOC of core pipeline** (registry-driven `run_all.py`, 82 wired producer
