@@ -89,12 +89,14 @@ def test_fixture_07_centinelas_stays_preofficial():
     assert _has("moneysweep-process-centinelas-handoff", "stop_conditions", "official")
 
 
-# 8. Test export containing synthetic data is allowed only in test mode.
-def test_fixture_08_synthetic_allowed_only_in_test_mode():
+# 8. Export is test-mode only; a synthetic test package never becomes production.
+def test_fixture_08_export_is_test_mode_only():
     export = SKILLS["moneysweep-build-federation-export"]
     assert export["default_mode"] == "offline_write"
-    assert "promotion" in export["allowed_modes"]
-    assert "promotion" in " ".join(export.get("requires_user_authorization", []))
+    # federation.json declares no production export command, so a promotion mode
+    # is NOT advertised as executable (would be a contract lie).
+    assert "promotion" not in export["allowed_modes"]
+    assert export["synthetic_data_policy"] == "reject_in_production"
 
 
 # 9. Production export containing synthetic data must fail.

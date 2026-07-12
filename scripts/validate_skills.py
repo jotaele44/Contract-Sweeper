@@ -42,7 +42,7 @@ SAFE_DEFAULT_MODES = frozenset({"read_only", "offline_write"})
 GATED_MODES = frozenset({"live_network", "promotion"})
 # Skill-folder entries that are allowed (no skill-level README, per §3).
 ALLOWED_SKILL_ENTRIES = frozenset({"SKILL.md", "agents", "references", "scripts"})
-ACTIVATION_ROUTES = frozenset({"route_to_hub", "clarify"})
+ACTIVATION_ROUTES = frozenset({"route_to_hub", "route_to_centinelas", "clarify"})
 
 
 # --------------------------------------------------------------------------- #

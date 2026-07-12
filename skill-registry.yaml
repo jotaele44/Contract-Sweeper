@@ -252,22 +252,26 @@ skills:
     federation_role: public_money_intelligence_node
     trigger_intents:
       - "build or test the canonical producer export package"
-    allowed_modes: [offline_write, promotion]
+    # Only offline_write (test export) is executable: federation.json declares
+    # no production export command (export_canonical is fixed to --mode test)
+    # and production_status is NON_PRODUCTION_DIAGNOSTIC. A `promotion` mode is
+    # reinstated here only when a production export command is declared and the
+    # readiness gate opens — until then, advertising it would be a contract lie.
+    allowed_modes: [offline_write]
     default_mode: offline_write
     command_ids: [export_canonical]
     local_scripts: [moneysweep/federation/canonical_v1_bridge.py]
     outputs:
       - "streams, manifest, hashes, counts, schemas, compatibility result"
-    requires_user_authorization:
-      - "promotion mode (production export)"
     stop_conditions:
-      - "production mode without promotion authorization"
+      - "production export requested: no production command declared in federation.json (only export_canonical --mode test) and production_status is NON_PRODUCTION_DIAGNOSTIC"
       - "synthetic/live data mixing"
     evidence_requirements:
       - "manifest with deterministic IDs, hashes, counts, lineage, test/prod mode"
     boundary_owner: moneysweep-pr
     forbidden_operations:
-      - "mixing synthetic/test records into a production package"
+      - "mixing synthetic/test records into any export package"
+      - "advertising an executable production/promotion export while federation.json declares no production export command"
     synthetic_data_policy: reject_in_production
     provenance_policy: required
     confidence_policy: required_when_inferred

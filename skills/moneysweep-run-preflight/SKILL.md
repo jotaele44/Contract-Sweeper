@@ -14,10 +14,13 @@ owner_repo: jotaele44/moneysweep-pr
 
 # moneysweep-run-preflight
 
-Orchestrates the existing preflight; it does not reimplement it. The authority is
-`run_all.py --only-setup --strict-preflight` and `scripts/pipeline_preflight.py`
-(`classify_source_readiness`). This skill selects flags, interprets output, and
-enforces the structural gate.
+Orchestrates the existing preflight; it does not reimplement it. The read-only
+authority is `scripts/pipeline_preflight.py` (`classify_source_readiness`), which
+inspects sources without touching the workspace. The full setup wrapper
+`run_all.py --only-setup --strict-preflight` is the offline_write path: it
+creates `data/logs` and opens a pipeline log, so it is NOT read-only. This skill
+selects the right path for the requested mode, interprets output, and enforces
+the structural gate.
 
 ## When this fires
 Preflight, setup, or "is the repo safe to run the pipeline" requests.
@@ -28,12 +31,16 @@ Preflight, setup, or "is the repo safe to run the pipeline" requests.
 - Cross-producer work → `thehub-pr`.
 
 ## Procedure
-1. Default (read-only): `python3 run_all.py --only-setup --strict-preflight`.
+1. Default (read-only): run `scripts/pipeline_preflight.py`
+   (`classify_source_readiness`) — it classifies sources without creating logs
+   or mutating the workspace.
 2. Classify each source via the preflight readiness statuses; separate
    `missing_key_limited` (a key is absent — NOT a structural failure) from
    `STRUCTURAL_STATUSES` (missing producer / import error / missing callable).
-3. Report exit semantics: strict preflight is the gate; a nonzero exit or any
-   structural status blocks live execution.
+3. Only when the user authorizes offline_write, run the full setup wrapper
+   `python3 run_all.py --only-setup --strict-preflight` (this writes a pipeline
+   log under `data/logs`). Report exit semantics: strict preflight is the gate;
+   a nonzero exit or any structural status blocks live execution.
 
 ## Required outputs
 - count of sources checked; list of structural errors (with source_id + reason);

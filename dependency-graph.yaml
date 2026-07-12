@@ -27,9 +27,9 @@ edges:
 invariants:
   - id: preflight-gates-execution
     rule: "no skill with live_network or promotion in allowed_modes may run its live path without moneysweep-run-preflight passing first"
-    applies_to: [moneysweep-plan-source-updates, moneysweep-build-federation-export]
+    applies_to: [moneysweep-plan-source-updates]
   - id: export-gated-by-contract
-    rule: "moneysweep-build-federation-export must pass prii-check-producer-contract before a promotion-mode export"
+    rule: "moneysweep-build-federation-export must pass prii-check-producer-contract before any production export (reinstated when a production export command is declared; only test-mode export is executable today)"
     applies_to: [moneysweep-build-federation-export]
   - id: promotion-blocked-by-manifest
     rule: "moneysweep-assess-promotion-readiness cannot return pass while federation.json federation_readiness_gate.ready_for_hub_live_execution is false"

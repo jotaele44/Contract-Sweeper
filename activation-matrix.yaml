@@ -4,6 +4,7 @@
 # tests/skill_contract/. Each case names the expected route:
 #   - a skill_id in the registry, OR
 #   - "route_to_hub" (cross-producer correlation → thehub-pr), OR
+#   - "route_to_centinelas" (signal collection → centinelas-pr), OR
 #   - "clarify" (ambiguous; operator must ask before routing).
 # every_expected_skill must exist in skill-registry.yaml (validator-enforced).
 
@@ -38,8 +39,8 @@ negative:
     expect: route_to_hub
     reason: "cross-producer correlation is Hub-owned"
   - prompt: "collect new Centinelas signals from the source feeds"
-    expect: route_to_hub
-    reason: "Centinelas signal collection is centinelas-pr-owned"
+    expect: route_to_centinelas
+    reason: "Centinelas signal collection is centinelas-pr-owned (not the Hub)"
   - prompt: "show me the producer dashboard as the product UI"
     expect: clarify
     reason: "producer dashboard is diagnostic-only; Hub frontend is the product"
