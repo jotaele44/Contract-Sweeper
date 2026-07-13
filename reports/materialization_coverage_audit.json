@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-07-13T05:37:03.885353+00:00",
+  "generated_at": "2026-07-13T06:00:16.613129+00:00",
   "schema_version": "coverage_audit_v1",
   "root": ".",
   "committed_ci_view": {
     "source": "reports/gap_analysis_report.json",
-    "generated_at": "2026-07-11T19:00:10.345279+00:00",
-    "fully_materialized": 8,
-    "partially_materialized": 4,
-    "coverage_rate": 0.0556,
+    "generated_at": "2026-07-13T05:59:26.108379+00:00",
+    "fully_materialized": 10,
+    "partially_materialized": 2,
+    "coverage_rate": 0.0694,
     "note": "reflects a clean/CI checkout where gitignored data/staging/processed/pr_*.csv masters are absent"
   },
   "local_truth_summary": {

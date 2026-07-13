@@ -38,8 +38,14 @@ force `NON_PRODUCTION_DIAGNOSTIC`:
 
 In CI these always read the empty/bootstrap state, because the processed masters
 (`data/staging/processed/pr_*.csv`) are gitignored and absent from a clean checkout. That is captured in
-`reports/materialization_coverage_audit.json`: `committed_ci_view.fully_materialized = 8`,
-`coverage_rate ≈ 0.056` — versus `local_truth_summary.materialized_any_data = 15` after a keyed local run.
+`reports/materialization_coverage_audit.json`: `committed_ci_view.fully_materialized = 10`,
+`coverage_rate ≈ 0.069` (up from 8 / 0.056 — `lda` and `sam_entities` now reproduce as materialized in a
+clean checkout via their row-count entries in the committed `data/manifests/staging_masters.json`, which
+is the designed committed proxy for the gitignored masters) — versus
+`local_truth_summary.materialized_any_data = 15` after a keyed local run. The reproducible per-source
+status snapshot (`reports/source_registry_status.csv`, `reports/completeness_matrix.*`,
+`reports/gap_analysis_report.*`) is regenerated from the registry + manifest and is byte-identical to a
+fresh-clone regeneration; the richer data-present counts live only in `local_truth_summary` and this prose.
 
 ### 3. Coverage gate — `moneysweep/runtime/validation_gates.py`
 Required-source coverage must be ≥ 0.85. The denominator is only the **`required: true`** sources
