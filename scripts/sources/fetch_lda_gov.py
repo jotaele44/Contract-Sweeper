@@ -279,7 +279,18 @@ def collect_records(
     next_url: str | None = url
     call_fetcher = fetcher or http_json_fetcher
     while next_url:
-        payload = call_fetcher(next_url)
+        try:
+            payload = call_fetcher(next_url)
+        except Exception:  # noqa: BLE001
+            # LDA rejects deep pagination on the very large unfiltered tables
+            # (filings/contributions, ~2M rows: page>=2 returns HTTP 400) and
+            # rate-limits anonymous callers (429). If a *subsequent* page fails,
+            # retain the records already collected instead of discarding the
+            # whole endpoint — page 1 is real, authoritative data. Only re-raise
+            # when the very first page fails (nothing collected yet).
+            if out:
+                break
+            raise
         out.extend(_records_from_payload(payload))
         if limit is not None and len(out) >= limit:
             return out[:limit]

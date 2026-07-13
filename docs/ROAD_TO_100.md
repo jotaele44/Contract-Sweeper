@@ -58,6 +58,34 @@ Scoping/robustness passes on the slow/empty producers, with a bounded live re-ru
 - Still open: `sam_exclusions` (v4 endpoint returns 429/403 — key-entitlement, not a scoping issue) and the
   OpenStates chain (needs the upstream `legislapr_discovery` probe materialized first). Documented, not faked.
 
+### Reachable required-source materialization (this session)
+
+Targeted the coverage-gate denominator directly: the 14 `required: true` sources. Required-source
+coverage rose **0.43 → 0.57** (`required_fully_materialized` 6 → **8** of 14) in
+`reports/materialization_coverage_audit.json`. Per-source result:
+
+| Required source | Producer | Result |
+|---|---|---|
+| `lda` | `scripts/sources/fetch_lda_gov.py --live` | **materialized** — all 14 LDA.gov tables live (registrants 17,369 / clients 200 / lobbyists 200 / filings 25 / contributions 25 + 8 `constants/*` reference tables). Partial→**fully_materialized**. |
+| `sam_entities` | `scripts/sam_enrichment.py` | **materialized** — `enrichment/vendor_uei_index.csv` built from real PR contract vendors against the live SAM Entity-Information API; `entities_resolved.csv` already present. Partial→**fully_materialized**. Live UEI resolution was rate-limited (HTTP 429) in the bounded run — index rows carry honest per-row resolution status, not fabricated UEIs. |
+| `usaspending_prime` | `auto_download.py --only=usaspending` → `build_unified_master.py` | **blocked (honest)** — `pr_contracts_master.csv` present (5,147); the 2nd output `pr_all_awards_master.csv` is the cross-source unified master whose fail-closed builder needs ~15 upstream masters (most out-of-scope: `pr_doe_master`, `pr_dot_master`, `pr_grants_master`, `pr_sba_loans_master`, …) never materialized here. No partial aggregate fabricated. Stays partial. |
+| `emma_bonds`, `fec`, `fema_pa_openfema_v2`, `fsrs_subawards`, `hud_cdbg_dr_public`, `usaspending_subawards` | — | already `fully_materialized` (unchanged). |
+| `cor3`, `hud_drgr_authorized`, `oficina_contralor`, `pr_cabilderos`, `prasa` | — | portal / manual / JS-gated, no public API — out of scope, remain `not_materialized`. |
+
+Bonus (`required: false`): the OpenStates chain ran —
+`fetch_legislative_canonical_sources.py` (with `OPENSTATES_API_KEY`) materialized
+`legislative_canonical_sources` by cross-confirming PS 782 and RCS 14 to real OpenStates bill IDs
+(session 2025-2028). `legislapr_discovery` stays unmaterialized: `legislapr.com` is a JS-rendered SPA,
+so the HTML probe returns page-shell noise, not measure data.
+
+Producer fix (committed): `fetch_lda_gov.py` pagination is now resilient — the very large unfiltered
+`filings`/`contributions` tables (~2 M rows) reject `page>=2` with HTTP 400, and `collect_records`
+retains page-1 records instead of discarding the whole endpoint on a later-page failure.
+
+The reachable ceiling is **9/14 ≈ 0.64** (only `usaspending_prime` remains among reachable sources);
+the ≥0.85 gate is unattainable from reachable sources alone (5 portal sources are unmovable) and is
+**not** force-flipped. No gate, workflow, `federation.json`, or `*status*.json` file was touched.
+
 ## Done
 
 - **~24K LOC of core pipeline** (registry-driven `run_all.py`, 82 wired producer

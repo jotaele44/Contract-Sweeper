@@ -1,5 +1,10 @@
 {
   "files": {
+    "data/staging/processed/enrichment/vendor_uei_index.csv": {
+      "row_count": 6,
+      "sha256": "6ae61fd266e73da499718648afd57b7221cb0d4264cc92c74b2dfc27775c57b4",
+      "size_bytes": 741
+    },
     "data/staging/processed/entities_resolved.csv": {
       "row_count": 2372,
       "sha256": "88842d9ec2bc9c035d8581f230d94b70044608ad581edecdf0d1cfa9b6e8bedd",
@@ -9,6 +14,66 @@
       "row_count": 1104,
       "sha256": "a06404bbe42b26e8d1928e024aa4ad2da8119b6fdfab031d0fa435955cda54c2",
       "size_bytes": 262989
+    },
+    "data/staging/processed/lda_clients.csv": {
+      "row_count": 200,
+      "sha256": "60cb7af026956058f21609892b76099695e54037f9262035f8fe842febafb5bd",
+      "size_bytes": 44921
+    },
+    "data/staging/processed/lda_contributions.csv": {
+      "row_count": 25,
+      "sha256": "3e07755f5d9a5a384f728ece5d760043fae9dbcf0b78de4555644776df31aadf",
+      "size_bytes": 6970
+    },
+    "data/staging/processed/lda_filings.csv": {
+      "row_count": 25,
+      "sha256": "b47db9af129dec19b2cf1d6353b9221426757f2f364f5f2bb23919e0de3a5e77",
+      "size_bytes": 8773
+    },
+    "data/staging/processed/lda_lobbyists.csv": {
+      "row_count": 200,
+      "sha256": "8f6408c1b57eb0c08a78320d17f60bfc811d5003aebe3b76525706f1fbb9c9ad",
+      "size_bytes": 40439
+    },
+    "data/staging/processed/lda_ref_contribution_item_types.csv": {
+      "row_count": 5,
+      "sha256": "8fe195200506a87e53e9e27f7e4fce27b7a3b1a4133681fdc6fff163ecbed57c",
+      "size_bytes": 1505
+    },
+    "data/staging/processed/lda_ref_countries.csv": {
+      "row_count": 200,
+      "sha256": "51a88dc5c2a075456e5c4bac8808d7e76a825f26de142eb321ec8dcbf5c418de",
+      "size_bytes": 49763
+    },
+    "data/staging/processed/lda_ref_filing_types.csv": {
+      "row_count": 50,
+      "sha256": "12e57d718defa5cf84f5b387db534719035cacb9432ca66c1b0ebfe98c69b859",
+      "size_bytes": 13735
+    },
+    "data/staging/processed/lda_ref_government_entities.csv": {
+      "row_count": 200,
+      "sha256": "4e9878a0d40249cbee421b5b0fa693007badc1fc607361483087298e1363f2ce",
+      "size_bytes": 61727
+    },
+    "data/staging/processed/lda_ref_lobbying_issues.csv": {
+      "row_count": 79,
+      "sha256": "99fc7baa3eada536d1624b20fe8f191dea281e8981fbd6d3e8fa58baf8a38346",
+      "size_bytes": 22558
+    },
+    "data/staging/processed/lda_ref_lobbyist_prefixes.csv": {
+      "row_count": 7,
+      "sha256": "7a446012e902d798f2d6378eeb10acc68acce415df05a73461d8b318c9e9be4f",
+      "size_bytes": 1855
+    },
+    "data/staging/processed/lda_ref_lobbyist_suffixes.csv": {
+      "row_count": 23,
+      "sha256": "e8a1f51df5cce3776d2b87404e12ceacc0773e4d1e6e48d985b7ca41879a78dd",
+      "size_bytes": 5712
+    },
+    "data/staging/processed/lda_ref_states.csv": {
+      "row_count": 59,
+      "sha256": "7c0ca22623017384d8093c1f36f60e04b2af192eb79382c206caef4a1397b13c",
+      "size_bytes": 14416
     },
     "data/staging/processed/lda_registrants.csv": {
       "row_count": 17369,
