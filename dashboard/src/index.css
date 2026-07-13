@@ -26,6 +26,13 @@
     --input: 215 20% 16%;
     --ring: 187 100% 50%;
     --radius: 0.5rem;
+
+    /* Chart series — cyan / teal / violet / amber / rose, aligned with badge tones */
+    --chart-1: 187 100% 50%;
+    --chart-2: 170 100% 40%;
+    --chart-3: 258 90% 66%;
+    --chart-4: 38 92% 50%;
+    --chart-5: 350 89% 60%;
     --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -78,23 +85,6 @@
 
 .glow-border {
   border-color: var(--glow-border);
-}
-
-/* Streaming cursor */
-@keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
-.stream-cursor::after {
-  content: '▋';
-  animation: blink 1s infinite;
-  color: hsl(var(--primary));
-  font-family: var(--font-mono);
-}
-
-/* Leaflet dark override */
-.leaflet-container {
-  background: #0a1520 !important;
 }
 
 /* Panel glass effect */

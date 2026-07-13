@@ -8,18 +8,16 @@ export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 // (A file:// page cannot fetch at all, so standalone exports bake the data in.)
 const OFFLINE = import.meta.env.VITE_OFFLINE === '1'
 
-async function getJSON(path, fallback = null) {
+// Fetch JSON, THROWING on any failure so react-query surfaces isError/retry.
+// Offline builds resolve from the embedded snapshot instead of the network.
+async function fetchJSON(path, offlineFallback = null) {
   if (OFFLINE) {
     const key = path.split('?')[0] // server-side filters degrade to the unfiltered snapshot
-    return key in snapshot ? snapshot[key] : fallback
+    return key in snapshot ? snapshot[key] : offlineFallback
   }
-  try {
-    const res = await fetch(`${API_BASE}${path}`, { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return fallback
-    return await res.json()
-  } catch {
-    return fallback
-  }
+  const res = await fetch(`${API_BASE}${path}`, { signal: AbortSignal.timeout(8000) })
+  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`)
+  return res.json()
 }
 
 const qs = (params) => {
@@ -27,9 +25,17 @@ const qs = (params) => {
   return p.length ? '?' + new URLSearchParams(p).toString() : ''
 }
 
-export const getHealth = () => getJSON('/health', { status: 'down', rows: {} })
-export const getContracts = (f = {}) => getJSON(`/contracts${qs(f)}`, [])
-export const getEntities = (f = {}) => getJSON(`/entities${qs(f)}`, [])
-export const getEdges = (f = {}) => getJSON(`/edges${qs(f)}`, [])
-export const getMunicipalities = () => getJSON('/municipalities', [])
-export const getStats = () => getJSON('/stats', null)
+// Health is polled and drives the up/down indicator, so it stays soft: a failed
+// probe means "down", not a thrown query.
+export const getHealth = async () => {
+  try {
+    return await fetchJSON('/health', { status: 'down', rows: {} })
+  } catch {
+    return { status: 'down', rows: {} }
+  }
+}
+export const getContracts = (f = {}) => fetchJSON(`/contracts${qs(f)}`, [])
+export const getEntities = (f = {}) => fetchJSON(`/entities${qs(f)}`, [])
+export const getEdges = (f = {}) => fetchJSON(`/edges${qs(f)}`, [])
+export const getMunicipalities = () => fetchJSON('/municipalities', [])
+export const getStats = () => fetchJSON('/stats', null)

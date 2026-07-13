@@ -9,6 +9,11 @@ export function fmtMoney(v) {
   }
 }
 
+// Badge/label palettes. A single lookup helper applies the shared slate fallback
+// so every caller degrades the same way.
+const SLATE_BADGE = 'bg-slate-500/15 text-slate-300 border-slate-500/30'
+const tone = (map, key) => map[key] ?? SLATE_BADGE
+
 const ENTITY_TONE = {
   agency: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
   utility: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
@@ -16,7 +21,7 @@ const ENTITY_TONE = {
   fund: 'bg-violet-500/15 text-violet-300 border-violet-500/30',
   person: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
 }
-export const entityTone = (t) => ENTITY_TONE[t] ?? 'bg-slate-500/15 text-slate-300 border-slate-500/30'
+export const entityTone = (t) => tone(ENTITY_TONE, t)
 
 const STATUS_TONE = {
   active: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -24,7 +29,7 @@ const STATUS_TONE = {
   amended: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
   executed: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
 }
-export const statusTone = (s) => STATUS_TONE[s] ?? 'bg-slate-500/15 text-slate-300 border-slate-500/30'
+export const statusTone = (s) => tone(STATUS_TONE, s)
 
 const EDGE_TONE = {
   LOCATED_IN: 'text-teal-300',
@@ -34,3 +39,8 @@ const EDGE_TONE = {
   SUBSIDIARY_OF: 'text-sky-300',
 }
 export const edgeTone = (t) => EDGE_TONE[t] ?? 'text-slate-300'
+
+// Tranche A caveat: award amounts are frequently unpopulated. Centralized here so
+// StatsBar and MunicipalityAggregates agree on when to warn.
+export const amountsUnpopulated = (stats) => (stats?.contractsWithAmount ?? 0) === 0
+export const AMOUNTS_NOTE = 'award amounts not populated in Tranche A'
