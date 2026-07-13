@@ -21,9 +21,9 @@ _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))  # allow `import server...` regardless of CWD
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from server.backend.main import app
+from server.backend.main import app  # noqa: E402
 
 # Paths mirror the query-string-stripped keys api.js looks up in the snapshot.
 PATHS = ["/health", "/contracts", "/entities", "/edges", "/municipalities", "/stats"]

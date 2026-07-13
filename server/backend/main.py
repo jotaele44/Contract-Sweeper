@@ -46,7 +46,11 @@ app = FastAPI(title="moneysweep-pr API", version="0.1.0")
 # Dev CORS. Defaults to the Vite dev origins; override with a comma-separated
 # MONEYSWEEP_CORS_ORIGINS when the frontend runs on a different port/host.
 _default_origins = "http://localhost:5173,http://127.0.0.1:5173"
-_origins = [o.strip() for o in os.environ.get("MONEYSWEEP_CORS_ORIGINS", _default_origins).split(",") if o.strip()]
+_origins = [
+    o.strip()
+    for o in os.environ.get("MONEYSWEEP_CORS_ORIGINS", _default_origins).split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
