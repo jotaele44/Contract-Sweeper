@@ -1,36 +1,36 @@
 {
-  "generated_at": "2026-07-12T22:03:51.669049+00:00",
+  "generated_at": "2026-07-13T06:00:16.613129+00:00",
   "schema_version": "coverage_audit_v1",
   "root": ".",
   "committed_ci_view": {
     "source": "reports/gap_analysis_report.json",
-    "generated_at": "2026-07-11T19:00:10.345279+00:00",
-    "fully_materialized": 8,
-    "partially_materialized": 4,
-    "coverage_rate": 0.0556,
+    "generated_at": "2026-07-13T05:59:26.108379+00:00",
+    "fully_materialized": 10,
+    "partially_materialized": 2,
+    "coverage_rate": 0.0694,
     "note": "reflects a clean/CI checkout where gitignored data/staging/processed/pr_*.csv masters are absent"
   },
   "local_truth_summary": {
     "total_sources": 144,
     "required_sources": 14,
-    "fully_materialized": 12,
-    "partially_materialized": 7,
+    "fully_materialized": 14,
+    "partially_materialized": 5,
     "not_materialized": 125,
     "no_outputs_declared": 0,
-    "required_fully_materialized": 6,
-    "tier_bulk": 10,
-    "tier_moderate": 4,
+    "required_fully_materialized": 8,
+    "tier_bulk": 9,
+    "tier_moderate": 5,
     "tier_seed_stub": 1,
     "tier_empty": 129,
-    "total_local_rows": 57849,
-    "coverage_rate_fully": 0.0833,
+    "total_local_rows": 58150,
+    "coverage_rate_fully": 0.0972,
     "materialized_any_data": 15
   },
   "processed_file_inventory": {
     "processed_dir": "data/staging/processed",
-    "total_csv_files": 6,
-    "total_rows_on_disk": 3629,
-    "registry_accounted_rows": 3629,
+    "total_csv_files": 21,
+    "total_rows_on_disk": 4973,
+    "registry_accounted_rows": 4973,
     "orphan_rows": 0,
     "orphan_file_count": 0,
     "intermediate_rows": 0,
@@ -55,8 +55,98 @@
         "classification": "declared"
       },
       {
+        "file": "pr_fec_contributions.csv",
+        "rows": 271,
+        "claimed_by": "fec",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_clients.csv",
+        "rows": 200,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_lobbyists.csv",
+        "rows": 200,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_ref_countries.csv",
+        "rows": 200,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_ref_government_entities.csv",
+        "rows": 200,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
         "file": "pr_fec_committees.csv",
         "rows": 86,
+        "claimed_by": "fec_committees",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_ref_lobbying_issues.csv",
+        "rows": 79,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_ref_states.csv",
+        "rows": 59,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_ref_filing_types.csv",
+        "rows": 50,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_contributions.csv",
+        "rows": 25,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_filings.csv",
+        "rows": 25,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_ref_lobbyist_suffixes.csv",
+        "rows": 23,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_ref_lobbyist_prefixes.csv",
+        "rows": 7,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "lda_ref_contribution_item_types.csv",
+        "rows": 5,
+        "claimed_by": "lda",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_fec_disbursements.csv",
+        "rows": 0,
+        "claimed_by": "fec_committees",
+        "classification": "declared"
+      },
+      {
+        "file": "pr_fec_independent_expenditures.csv",
+        "rows": 0,
         "claimed_by": "fec_committees",
         "classification": "declared"
       },
@@ -81,15 +171,15 @@
       "required": true,
       "authentication": "none",
       "expected_output_count": 14,
-      "present_count": 2,
-      "local_rows": 20039,
+      "present_count": 14,
+      "local_rows": 21112,
       "min_rows_threshold": 1,
-      "local_status": "partially_materialized",
+      "local_status": "fully_materialized",
       "materiality_tier": "bulk",
       "first_expected_output": "data/staging/processed/lda_registrants.csv",
       "materiality_label": "substantial",
       "coverage_status": "unverifiable",
-      "certification_status": "uncertified"
+      "certification_status": "provisional"
     },
     {
       "source_id": "usaspending_subawards",
@@ -161,15 +251,15 @@
       "required": true,
       "authentication": "api_key:SAM_API_KEY",
       "expected_output_count": 2,
-      "present_count": 1,
-      "local_rows": 2372,
+      "present_count": 2,
+      "local_rows": 2378,
       "min_rows_threshold": 1,
-      "local_status": "partially_materialized",
+      "local_status": "fully_materialized",
       "materiality_tier": "bulk",
       "first_expected_output": "data/staging/processed/enrichment/vendor_uei_index.csv",
       "materiality_label": "substantial",
       "coverage_status": "unverifiable",
-      "certification_status": "uncertified"
+      "certification_status": "provisional"
     },
     {
       "source_id": "fred_timeseries",
@@ -220,22 +310,6 @@
       "certification_status": "provisional"
     },
     {
-      "source_id": "fec",
-      "family": "political_finance",
-      "required": true,
-      "authentication": "api_key:FEC_API_KEY",
-      "expected_output_count": 1,
-      "present_count": 1,
-      "local_rows": 1049,
-      "min_rows_threshold": 1,
-      "local_status": "fully_materialized",
-      "materiality_tier": "bulk",
-      "first_expected_output": "data/staging/processed/pr_fec_contributions.csv",
-      "materiality_label": "substantial",
-      "coverage_status": "unverifiable",
-      "certification_status": "provisional"
-    },
-    {
       "source_id": "municipal_finance",
       "family": "municipal",
       "required": false,
@@ -281,6 +355,22 @@
       "first_expected_output": "data/staging/processed/pr_eia_power_sector.csv",
       "materiality_label": "partial",
       "coverage_status": "uncontracted",
+      "certification_status": "provisional"
+    },
+    {
+      "source_id": "fec",
+      "family": "political_finance",
+      "required": true,
+      "authentication": "api_key:FEC_API_KEY",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 271,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/pr_fec_contributions.csv",
+      "materiality_label": "partial",
+      "coverage_status": "unverifiable",
       "certification_status": "provisional"
     },
     {
