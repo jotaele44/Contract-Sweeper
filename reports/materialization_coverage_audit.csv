@@ -1,10 +1,10 @@
 source_id,family,required,authentication,expected_output_count,present_count,local_rows,local_status,materiality_tier,materiality_label,coverage_status,certification_status,first_expected_output
-lda,lobbying,True,none,14,2,20039,partially_materialized,bulk,substantial,unverifiable,uncertified,data/staging/processed/lda_registrants.csv
+lda,lobbying,True,none,14,14,21112,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/lda_registrants.csv
 usaspending_subawards,federal,True,none,2,2,11978,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_subawards_master.csv
 fsrs_subawards,federal,True,none,1,1,5989,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_fsrs_subawards.csv
 usaspending_prime,federal,True,none,2,1,5147,partially_materialized,bulk,substantial,unverifiable,uncertified,data/staging/processed/pr_contracts_master.csv
 hud_cdbg_dr_public,federal,True,none,1,1,3808,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_cdbg_dr_master.csv
-sam_entities,entity_resolution,True,api_key:SAM_API_KEY,2,1,2372,partially_materialized,bulk,substantial,unverifiable,uncertified,data/staging/processed/enrichment/vendor_uei_index.csv
+sam_entities,entity_resolution,True,api_key:SAM_API_KEY,2,2,2378,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/enrichment/vendor_uei_index.csv
 fred_timeseries,federal,False,api_key:FRED_API_KEY,1,1,2138,fully_materialized,bulk,substantial,uncontracted,provisional,data/staging/processed/pr_fred_timeseries.csv
 fema_pa_openfema_v2,federal,True,none,1,1,2000,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_fema_pa_master.csv
 acuden_2024_transition,manual_export,False,manual_export,1,1,1147,fully_materialized,bulk,validated_complete,meets_contract,provisional,data/staging/processed/pr_acuden_transition.csv
