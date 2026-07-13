@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import StatsBar from '@/components/StatsBar'
 import ContractsTable from '@/components/ContractsTable'
@@ -6,32 +7,41 @@ import RelationshipGraph from '@/components/RelationshipGraph'
 import MunicipalityAggregates from '@/components/MunicipalityAggregates'
 import { Banknote } from 'lucide-react'
 
+const TABS = ['contracts', 'entities', 'graph', 'municipios']
+
 export default function Dashboard() {
+  const [params, setParams] = useSearchParams()
+  const tab = TABS.includes(params.get('tab')) ? params.get('tab') : 'contracts'
+  const setTab = (value) => setParams((prev) => {
+    prev.set('tab', value)
+    return prev
+  }, { replace: true })
+
   return (
-    <div className="flex flex-col h-screen bg-slate-950 text-slate-200">
-      <header className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-800 bg-slate-900">
-        <Banknote className="h-5 w-5 text-amber-400" />
+    <div className="flex h-screen flex-col bg-background text-foreground">
+      <header className="panel-glass flex items-center gap-2 border-b border-border px-4 py-2.5">
+        <Banknote className="h-5 w-5 text-primary" />
         <div>
-          <h1 className="text-sm font-semibold text-slate-100 leading-none">moneysweep-pr</h1>
-          <p className="text-[11px] text-slate-500 mt-0.5">Puerto Rico public-money contracts & entity network</p>
+          <h1 className="text-sm font-semibold leading-none text-foreground">moneysweep-pr</h1>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Puerto Rico public-money contracts &amp; entity network</p>
         </div>
       </header>
 
       <StatsBar />
 
-      <div className="flex-1 min-h-0 p-3">
-        <Tabs defaultValue="contracts" className="flex flex-col h-full">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl bg-slate-900">
-            <TabsTrigger value="contracts" className="text-xs">Contracts</TabsTrigger>
-            <TabsTrigger value="entities" className="text-xs">Entities</TabsTrigger>
-            <TabsTrigger value="graph" className="text-xs">Relationships</TabsTrigger>
-            <TabsTrigger value="municipios" className="text-xs">Municipios</TabsTrigger>
+      <div className="min-h-0 flex-1 p-3">
+        <Tabs value={tab} onValueChange={setTab} className="flex h-full flex-col">
+          <TabsList className="grid w-full grid-cols-4 bg-card">
+            <TabsTrigger value="contracts" className="text-xs data-[state=active]:glow-border">Contracts</TabsTrigger>
+            <TabsTrigger value="entities" className="text-xs data-[state=active]:glow-border">Entities</TabsTrigger>
+            <TabsTrigger value="graph" className="text-xs data-[state=active]:glow-border">Relationships</TabsTrigger>
+            <TabsTrigger value="municipios" className="text-xs data-[state=active]:glow-border">Municipios</TabsTrigger>
           </TabsList>
-          <div className="flex-1 min-h-0 mt-3 rounded-lg border border-slate-800 bg-slate-950 overflow-hidden">
-            <TabsContent value="contracts" className="h-full m-0"><ContractsTable /></TabsContent>
-            <TabsContent value="entities" className="h-full m-0"><EntitiesTable /></TabsContent>
-            <TabsContent value="graph" className="h-full m-0"><RelationshipGraph /></TabsContent>
-            <TabsContent value="municipios" className="h-full m-0"><MunicipalityAggregates /></TabsContent>
+          <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background/40">
+            <TabsContent value="contracts" className="m-0 h-full"><ContractsTable /></TabsContent>
+            <TabsContent value="entities" className="m-0 h-full"><EntitiesTable /></TabsContent>
+            <TabsContent value="graph" className="m-0 h-full"><RelationshipGraph /></TabsContent>
+            <TabsContent value="municipios" className="m-0 h-full"><MunicipalityAggregates /></TabsContent>
           </div>
         </Tabs>
       </div>
