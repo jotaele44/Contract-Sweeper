@@ -128,6 +128,49 @@ python3 run_all.py
 
 ---
 
+## 9. Run the Diagnostic Dashboard (Optional)
+
+The `dashboard/` React app is a **diagnostic-only** surface over the frozen
+`data/canonical_v1/*.csv`, served by the thin FastAPI read layer in
+`server/backend/main.py`. (The supported product surface is the hub app in
+`thehub-pr`; see the ADR note in `README.md`.) There are two ways to run it.
+
+**Dev mode** (two processes, hot reload):
+
+```bash
+# terminal 1 — API on :8000
+uvicorn server.backend.main:app --reload --port 8000
+
+# terminal 2 — Vite dev server on :5173 (proxies to the API above)
+cd dashboard && npm install && npm run dev
+```
+
+Open <http://localhost:5173>. If your frontend runs on a different origin, set
+`MONEYSWEEP_CORS_ORIGINS` (comma-separated) for the API, e.g.
+`MONEYSWEEP_CORS_ORIGINS=http://localhost:3000 uvicorn server.backend.main:app --port 8000`.
+
+**Desktop mode** (one process, native window — the blessed one-click path):
+
+```bash
+# double-click PRII-MONEYSWEEP.command (macOS) / .bat (Windows) / .sh (Linux),
+# or run the launcher directly:
+python desktop/launch.py           # opens a pywebview window (falls back to browser)
+python desktop/launch.py --browser # force the default browser
+python desktop/launch.py --smoke   # CI health-check-and-exit
+```
+
+**Standalone offline export** (single `file://`-openable HTML with data baked in):
+
+```bash
+cd dashboard && npm run build:export   # runs scripts/gen_dashboard_snapshot.py, then builds
+# open dashboard/export-standalone/index.html directly
+```
+
+The `snapshot` step requires the Python deps from step 2 (it drives the FastAPI
+app in-process to embed the current canonical data).
+
+---
+
 ## Troubleshooting
 
 | Problem | Fix |
