@@ -1,0 +1,54 @@
+{
+  "description": "Project-geography bridge fixture. A completed PRASA/AAA project carries project id, municipality, applicant, category, and status, providing the financial<->infrastructure join. Also includes a near-name-collision pair used to prove a name-only match is NOT auto-merged.",
+  "project": {
+    "project_id": "AAA-PR-0142",
+    "municipality": "Ponce",
+    "applicant": "Puerto Rico Aqueduct and Sewer Authority",
+    "project_category": "water_treatment",
+    "reported_status": "completed",
+    "source_record_id": "intake_completed_projects_aaa"
+  },
+  "subject": {
+    "canonical_name": "Puerto Rico Aqueduct and Sewer Authority",
+    "variants": [
+      {"name": "Puerto Rico Aqueduct and Sewer Authority", "domain": "fin_audit"},
+      {"name": "Puerto Rico Aqueduct & Sewer Authority", "domain": "fin_audit"}
+    ]
+  },
+  "relationships": [
+    {
+      "domain": "fin_audit",
+      "predicate": "OPERATES_PROJECT",
+      "object_id": "project_aaa_aaa_pr_0142",
+      "source_record_id": "intake_completed_projects_aaa",
+      "evidence_tier": "T2",
+      "assertion_type": "explicit"
+    },
+    {
+      "domain": "fin_audit",
+      "predicate": "SERVES_MUNICIPALITY",
+      "object_name": "Municipio de Ponce",
+      "source_record_id": "intake_completed_projects_aaa",
+      "evidence_tier": "T2",
+      "assertion_type": "explicit"
+    }
+  ],
+  "expected": {
+    "domains_present": ["fin_audit"],
+    "documented_edges": ["OPERATES_PROJECT", "SERVES_MUNICIPALITY"],
+    "influence_conclusion": null,
+    "cross_layer_join_pass": true
+  },
+  "name_collision": {
+    "note": "Two distinct contractors with confusingly similar names and NO shared authoritative id. Name similarity alone must not auto-merge them.",
+    "entity_a": {
+      "name": "Caribe Engineering Group, Inc.",
+      "identifiers": [{"key": "uei", "value": "UEIAAA111AAA1"}]
+    },
+    "entity_b": {
+      "name": "Caribe Engineering Group LLC",
+      "identifiers": [{"key": "uei", "value": "UEIBBB222BBB2"}]
+    },
+    "expected_decision": "not_auto_merged"
+  }
+}

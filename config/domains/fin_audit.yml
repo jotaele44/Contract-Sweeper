@@ -1,0 +1,44 @@
+version: 0.1.0
+domain: fin_audit
+title: Financial Audit Domain
+description: >-
+  Financial-audit records: contracts, grants/transfers, expenditures/debt,
+  contractors/subcontractors, and infrastructure/project finance.
+
+record_families:
+  - contract
+  - amendment
+  - award
+  - subaward
+  - grant
+  - transfer
+  - invoice
+  - payment
+  - budget
+  - debt
+  - capital_project
+
+access_class_default: public
+
+# Reused schemas that model this domain's entities/edges.
+reuses_schemas:
+  - schemas/local_contracts.schema.json
+  - schemas/moneysweep_funding_award.schema.json
+  - schemas/debt_instrument.schema.json
+  - schemas/infrastructure_projects.schema.json
+  - schemas/canonical_v1/contracts.schema.json
+  - schemas/canonical_v1/debt_instruments.schema.json
+
+# Predicates originating in this domain (subset of the fusion whitelist).
+edge_predicates:
+  - AWARDED_CONTRACT_TO
+  - AMENDS_CONTRACT
+  - TRANSFERRED_FUNDS_TO
+  - RECEIVED_GRANT_FROM
+  - SUBCONTRACTED_TO
+  - FUNDED_PROJECT
+  - OPERATES_PROJECT
+  - SERVES_MUNICIPALITY
+  - PREPARED_REPORT_FOR
+  - INSPECTED_ASSET
+  - REPORTED_EXPENDITURE_FOR
