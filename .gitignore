@@ -9,6 +9,9 @@ venv/
 dist/
 build/
 
+# macOS metadata
+.DS_Store
+
 # Coverage reports
 .coverage
 coverage.xml
