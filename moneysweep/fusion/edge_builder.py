@@ -50,16 +50,18 @@ def build_edge(
     Raises :class:`EdgeValidationError` if any safety rule is violated.
     """
     if not source_record_id:
-        raise EdgeValidationError(
-            "every edge requires a source_record_id (evidence-required rule)"
-        )
+        raise EdgeValidationError("every edge requires a source_record_id (evidence-required rule)")
     if predicate not in APPROVED_PREDICATES:
         raise EdgeValidationError(
             f"predicate {predicate!r} is not in the approved whitelist; "
             "conclusory predicates (e.g. INFLUENCED) are prohibited"
         )
 
-    assertion = AssertionType(assertion_type) if not isinstance(assertion_type, AssertionType) else assertion_type
+    assertion = (
+        AssertionType(assertion_type)
+        if not isinstance(assertion_type, AssertionType)
+        else assertion_type
+    )
     pub = (
         PublicationStatus(publication_status)
         if not isinstance(publication_status, PublicationStatus)

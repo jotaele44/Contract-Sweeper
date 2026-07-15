@@ -52,9 +52,7 @@ def _resolve_variants(variants: list[dict[str, Any]]) -> set[str]:
     for v in variants:
         name = v.get("name", "")
         person = bool(v.get("person", False))
-        ids.add(
-            canonical_ids.person_id(name) if person else canonical_ids.entity_id(name)
-        )
+        ids.add(canonical_ids.person_id(name) if person else canonical_ids.entity_id(name))
     return ids
 
 
@@ -90,7 +88,9 @@ def cross_layer_join(fixture: dict[str, Any]) -> CrossLayerJoin:
     for rel in fixture.get("relationships", []):
         domain = rel["domain"]
         object_name = rel.get("object_name", "")
-        object_id = canonical_ids.entity_id(object_name) if object_name else rel.get("object_id", "")
+        object_id = (
+            canonical_ids.entity_id(object_name) if object_name else rel.get("object_id", "")
+        )
         edge = build_edge(
             subject_entity_id=subject_id,
             predicate=rel["predicate"],
@@ -113,8 +113,7 @@ def cross_layer_join(fixture: dict[str, Any]) -> CrossLayerJoin:
     join_pass = single_canonical and len(edges) > 0
 
     # Deduplicate predicates while preserving first-seen order.
-    seen: set[str] = set()
-    documented = tuple(p for p in predicates if not (p in seen or seen.add(p)))
+    documented = tuple(dict.fromkeys(predicates))
 
     return CrossLayerJoin(
         canonical_entity=canonical_name,

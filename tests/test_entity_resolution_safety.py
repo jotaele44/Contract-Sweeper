@@ -62,7 +62,9 @@ def test_auto_merge_requires_unique_authoritative_id():
 
 @pytest.mark.unit
 def test_conflicting_authoritative_id_blocks_auto_merge():
-    features = MatchFeatures(exact_identifier=True, normalized_legal_name=1.0, address_similarity=1.0)
+    features = MatchFeatures(
+        exact_identifier=True, normalized_legal_name=1.0, address_similarity=1.0
+    )
     left = [Identifier("uei", "UEIAAA")]
     right = [Identifier("uei", "UEIBBB")]  # same key, different value
     result = resolve(features, left, right)

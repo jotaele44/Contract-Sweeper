@@ -54,7 +54,9 @@ IDENTIFIER_HIERARCHY: tuple[IdentifierKey, ...] = (
 )
 
 _BY_KEY = {ik.key: ik for ik in IDENTIFIER_HIERARCHY}
-AUTHORITATIVE_KEYS: frozenset[str] = frozenset(ik.key for ik in IDENTIFIER_HIERARCHY if ik.authoritative)
+AUTHORITATIVE_KEYS: frozenset[str] = frozenset(
+    ik.key for ik in IDENTIFIER_HIERARCHY if ik.authoritative
+)
 
 
 @dataclass(frozen=True)
@@ -102,9 +104,7 @@ def best_identifier(identifiers: list[Identifier]) -> Identifier | None:
     return min(identifiers, key=lambda i: identifier_priority(i.key))
 
 
-def has_unique_authoritative_id(
-    left: list[Identifier], right: list[Identifier]
-) -> bool:
+def has_unique_authoritative_id(left: list[Identifier], right: list[Identifier]) -> bool:
     """True if the two entities share exactly one authoritative id key whose values match.
 
     This is the precondition for an auto-merge: a single, unambiguous authoritative

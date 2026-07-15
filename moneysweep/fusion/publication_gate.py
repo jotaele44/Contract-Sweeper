@@ -55,14 +55,10 @@ def check_publishable(
         reasons.append("edge has no source_record_id (evidence-required rule)")
 
     if edge.assertion_type is AssertionType.INFERRED:
-        reasons.append(
-            "inferred edges are never published automatically; human review required"
-        )
+        reasons.append("inferred edges are never published automatically; human review required")
 
     if guilt_by_association_only:
-        reasons.append(
-            "edge basis is shared association only; guilt-by-association is prohibited"
-        )
+        reasons.append("edge basis is shared association only; guilt-by-association is prohibited")
 
     if not pii_minimized:
         reasons.append("edge carries non-minimized PII")
@@ -76,8 +72,6 @@ def check_publishable(
     else:
         # Anything not already approved through the pipeline is not publishable.
         if not (fact_checked and publication_approved):
-            reasons.append(
-                "edge has not passed fact_check + publication approval"
-            )
+            reasons.append("edge has not passed fact_check + publication approval")
 
     return PublicationDecision(publishable=not reasons, reasons=tuple(reasons))
