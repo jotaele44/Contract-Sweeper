@@ -1,0 +1,36 @@
+{
+  "report": "np_layer_readiness",
+  "version": "0.1.0",
+  "generated_at": null,
+  "domain": "np_layer",
+  "readiness": {
+    "domain_architecture_pct": null,
+    "intake_schema_pct": null,
+    "publication_governance_pct": null,
+    "legal_operating_scope_pct": null,
+    "overall_pct": null
+  },
+  "controls": {
+    "nonpartisanship_field_required": true,
+    "evidence_required_for_public_edges": true,
+    "guilt_by_association_scoring": "prohibited",
+    "right_of_reply_supported": true,
+    "correction_log_supported": true,
+    "pii_minimization_required": true
+  },
+  "publication_review_pipeline": {
+    "internal": null,
+    "legal_review": null,
+    "fact_check": null,
+    "public": null
+  },
+  "records_requests": {
+    "submitted": null,
+    "fulfilled": null,
+    "denied": null,
+    "appealed": null
+  },
+  "unresolved_legal_gaps": [
+    "nonprofit_tax_classification_pending_counsel"
+  ]
+}

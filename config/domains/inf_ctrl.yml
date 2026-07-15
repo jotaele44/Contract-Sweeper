@@ -1,0 +1,40 @@
+version: 0.1.0
+domain: inf_ctrl
+title: Influence Analysis Domain
+description: >-
+  Influence-analysis records: lobbying registrations/clients/personnel, campaign
+  and political-finance records, appointments/boards/revolving-door roles, and
+  declared organizational relationships. Documented relationships only — never
+  influence or wrongdoing conclusions (see docs/fusion_engine_methodology.md).
+
+record_families:
+  - lobby_registration
+  - lobby_client
+  - lobbyist
+  - quarterly_activity
+  - reported_expenditure
+  - appointment
+  - board_membership
+  - donation
+
+access_class_default: public
+
+reuses_schemas:
+  - schemas/lobbying_registry.schema.json
+  - schemas/influence_edges.schema.json
+
+edge_predicates:
+  - LOBBIED_FOR
+  - AUTHORIZED_PERSON_FOR
+  - EMPLOYED_BY
+  - BOARD_MEMBER_OF
+  - REGISTERED_AS
+  - AFFILIATED_WITH
+  - REPORTED_EXPENDITURE_FOR
+
+# Explicitly disallowed conclusion predicates.
+prohibited_predicates:
+  - INFLUENCED
+  - CAPTURED
+  - COORDINATED_WITH
+  - CONTROLLED_OUTCOME

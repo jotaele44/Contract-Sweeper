@@ -1,0 +1,36 @@
+{
+  "description": "Cross-layer convergence fixture. Arcadis Caribe, PSC appears in FIN_AUDIT (preparer of the PRASA/AAA FY2024 consulting-engineer report) and in INF_CTRL (a lobbying client of The RCL Group in the PR registry). Confirms pattern convergence only — not misconduct or improper influence.",
+  "subject": {
+    "canonical_name": "ARCADIS CARIBE PSC",
+    "variants": [
+      {"name": "Arcadis Caribe, PSC", "domain": "fin_audit"},
+      {"name": "ARCADIS CARIBE PSC", "domain": "inf_ctrl"},
+      {"name": "Arcadis Caribe PSC", "domain": "inf_ctrl"}
+    ]
+  },
+  "relationships": [
+    {
+      "domain": "fin_audit",
+      "predicate": "PREPARED_REPORT_FOR",
+      "object_name": "Puerto Rico Aqueduct and Sewer Authority",
+      "source_record_id": "intake_prasa_fy2024_cer",
+      "evidence_tier": "T1",
+      "assertion_type": "explicit"
+    },
+    {
+      "domain": "inf_ctrl",
+      "predicate": "LOBBIED_FOR",
+      "object_name": "The RCL Group",
+      "source_record_id": "intake_pr_lobby_registry_2026_04_18",
+      "evidence_tier": "T1",
+      "assertion_type": "explicit"
+    }
+  ],
+  "expected": {
+    "canonical_entity": "ARCADIS CARIBE PSC",
+    "domains_present": ["fin_audit", "inf_ctrl"],
+    "documented_edges": ["PREPARED_REPORT_FOR", "LOBBIED_FOR"],
+    "influence_conclusion": null,
+    "cross_layer_join_pass": true
+  }
+}

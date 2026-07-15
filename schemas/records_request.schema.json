@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "records_request.schema.json",
+  "title": "Public Records Request",
+  "description": "Tracks a public-record request through submission, response, and denial. NP_LAYER intake artifact.",
+  "type": "object",
+  "required": [
+    "request_id",
+    "agency",
+    "jurisdiction",
+    "submitted_at",
+    "status",
+    "subject"
+  ],
+  "properties": {
+    "request_id": {"type": "string", "minLength": 1},
+    "agency": {"type": "string", "minLength": 1},
+    "jurisdiction": {"type": "string", "minLength": 1},
+    "submitted_at": {"type": "string", "format": "date-time"},
+    "subject": {"type": "string", "minLength": 1, "description": "What records were requested."},
+    "status": {"type": "string", "enum": ["draft", "submitted", "acknowledged", "partially_fulfilled", "fulfilled", "denied", "appealed", "withdrawn"]},
+    "response_at": {"type": ["string", "null"], "format": "date-time"},
+    "denial_reason": {"type": ["string", "null"]},
+    "responsive_intake_ids": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "intake_id values (data_intake_record) produced by the response."
+    },
+    "legal_basis": {"type": ["string", "null"], "description": "Statute/regulation the request invokes."},
+    "notes": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

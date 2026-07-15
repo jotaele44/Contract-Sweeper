@@ -1,0 +1,45 @@
+{
+  "report": "fusion_coverage",
+  "version": "0.1.0",
+  "generated_at": null,
+  "entities": {
+    "canonical_total": null,
+    "with_authoritative_id": null,
+    "auto_merged": null,
+    "suggested_merge_queue": null,
+    "possible_relationship": null
+  },
+  "edges": {
+    "total": null,
+    "with_source_record_id": null,
+    "by_assertion_type": {
+      "explicit": null,
+      "derived": null,
+      "inferred": null
+    },
+    "by_publication_status": {
+      "internal": null,
+      "review": null,
+      "public": null
+    }
+  },
+  "coverage_by_domain": {
+    "fin_audit": null,
+    "inf_ctrl": null,
+    "shared": null
+  },
+  "cross_layer": {
+    "documented_joins": null,
+    "influence_conclusions": 0
+  },
+  "contradictions": {
+    "total": null,
+    "unresolved": null,
+    "resolved": null
+  },
+  "safety_invariants": {
+    "name_only_auto_merges": 0,
+    "edges_without_evidence": 0,
+    "public_inferred_edges_without_review": 0
+  }
+}

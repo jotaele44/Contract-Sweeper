@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "publication_review.schema.json",
+  "title": "Publication Review Record",
+  "description": "Tracks a research product through the internal -> legal_review -> fact_check -> public review pipeline. See docs/publication_and_correction_policy.md.",
+  "type": "object",
+  "required": [
+    "review_id",
+    "subject_ref",
+    "review_status",
+    "nonpartisanship_attested",
+    "updated_at"
+  ],
+  "properties": {
+    "review_id": {"type": "string", "minLength": 1},
+    "subject_ref": {"type": "string", "minLength": 1, "description": "Identifier of the reviewed product (edge_id, observation_id, dataset id, ...)."},
+    "review_status": {"type": "string", "enum": ["internal", "legal_review", "fact_check", "public"]},
+    "reviewer": {"type": ["string", "null"]},
+    "legal_signoff": {"type": "boolean"},
+    "fact_check_signoff": {"type": "boolean"},
+    "publication_approved": {"type": "boolean"},
+    "nonpartisanship_attested": {"type": "boolean"},
+    "pii_minimized": {"type": "boolean"},
+    "right_of_reply_offered": {"type": "boolean"},
+    "right_of_reply_response": {"type": ["string", "null"]},
+    "correction_log": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["changed_at", "what_changed"],
+        "properties": {
+          "changed_at": {"type": "string", "format": "date-time"},
+          "what_changed": {"type": "string", "minLength": 1},
+          "reason": {"type": ["string", "null"]},
+          "superseded_value": {"type": ["string", "null"]}
+        },
+        "additionalProperties": true
+      }
+    },
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": true
+}

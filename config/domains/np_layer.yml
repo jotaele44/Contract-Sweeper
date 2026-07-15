@@ -1,0 +1,38 @@
+version: 0.1.0
+domain: np_layer
+title: Nonprofit / Public-Interest Layer
+description: >-
+  Civic / public-interest boundary. Governs intake, review, and publication of
+  publicly available records. See docs/nonprofit_layer_legal_scope.md.
+
+# Records this domain owns (see schemas/records_request.schema.json,
+# schemas/publication_review.schema.json).
+record_families:
+  - public_record_request
+  - public_record_response
+  - public_record_denial
+  - publication_package
+  - correction_notice
+
+access_class_default: public
+publication_review_states:
+  - internal
+  - legal_review
+  - fact_check
+  - public
+
+# Hard controls (enforced in moneysweep/fusion/publication_gate.py and
+# moneysweep/domains/np_layer.py).
+controls:
+  nonpartisanship_field_required: true
+  evidence_required_for_public_edges: true
+  observation_vs_allegation_separation: true
+  guilt_by_association_scoring: prohibited
+  right_of_reply_supported: true
+  correction_log_supported: true
+  pii_minimization_required: true
+  conflict_of_interest_declarations_required: true
+
+excluded_from_initial_scope:
+  - electoral_advocacy_coordination
+  - publication_of_personal_contact_information

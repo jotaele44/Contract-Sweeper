@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fusion_observation.schema.json",
+  "title": "Fusion Observation",
+  "description": "A documented, non-conclusory cross-layer observation about a canonical entity. Records what sources show; never asserts influence, wrongdoing, or causation.",
+  "type": "object",
+  "required": [
+    "observation_id",
+    "canonical_entity_id",
+    "domains_present",
+    "documented_edge_ids",
+    "influence_conclusion",
+    "confidence",
+    "publication_status"
+  ],
+  "properties": {
+    "observation_id": {"type": "string", "minLength": 1},
+    "canonical_entity_id": {"type": "string", "minLength": 1},
+    "domains_present": {
+      "type": "array",
+      "items": {"type": "string", "enum": ["np_layer", "fin_audit", "inf_ctrl", "shared"]},
+      "minItems": 1
+    },
+    "documented_edge_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^edge_[A-Za-z0-9_]+$"}
+    },
+    "documented_predicates": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "influence_conclusion": {
+      "type": "null",
+      "description": "Always null. Influence is an analytical hypothesis, never a fusion output."
+    },
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "contradiction_status": {"type": "string", "enum": ["none", "unresolved", "resolved"]},
+    "publication_status": {"type": "string", "enum": ["internal", "review", "public"]},
+    "notes": {"type": ["string", "null"]}
+  },
+  "additionalProperties": true
+}

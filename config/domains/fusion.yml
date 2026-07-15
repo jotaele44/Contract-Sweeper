@@ -1,0 +1,73 @@
+version: 0.1.0
+domain: fusion
+title: Fusion Layer
+description: >-
+  Deterministic, evidence-backed cross-domain join layer. Resolves records to
+  canonical entities and builds typed, source-backed relationship edges. Exposes
+  documented cross-layer paths; never emits influence/wrongdoing conclusions.
+  See docs/fusion_engine_methodology.md.
+
+# Canonical identifier hierarchy. Only `authoritative: true` ids can justify an
+# auto-merge on their own (moneysweep/entity_resolution/keys.py).
+identifier_hierarchy:
+  - {priority: 1,  key: uei,               authoritative: true}
+  - {priority: 2,  key: cage,              authoritative: true}
+  - {priority: 3,  key: pr_corp_reg,       authoritative: true}
+  - {priority: 4,  key: ein,               authoritative: true}
+  - {priority: 5,  key: duns,              authoritative: true}
+  - {priority: 6,  key: agency_code,       authoritative: true}
+  - {priority: 7,  key: municipality_code, authoritative: true}
+  - {priority: 8,  key: lobby_reg_number,  authoritative: false}
+  - {priority: 9,  key: vendor_id,         authoritative: false}
+  - {priority: 10, key: internal_canonical_id, authoritative: false}
+
+# moneysweep/entity_resolution/resolver.py
+resolution_thresholds:
+  auto_merge: 0.95           # requires a unique authoritative id
+  suggested_merge: 0.85      # human review required
+  possible_relationship: 0.65
+  # below possible_relationship -> keep separate
+name_only_auto_merge: prohibited
+
+approved_predicates:
+  - AWARDED_CONTRACT_TO
+  - AMENDS_CONTRACT
+  - TRANSFERRED_FUNDS_TO
+  - RECEIVED_GRANT_FROM
+  - SUBCONTRACTED_TO
+  - LOBBIED_FOR
+  - AUTHORIZED_PERSON_FOR
+  - EMPLOYED_BY
+  - BOARD_MEMBER_OF
+  - REGISTERED_AS
+  - OWNS
+  - CONTROLS
+  - AFFILIATED_WITH
+  - OPERATES_PROJECT
+  - LOCATED_AT
+  - SERVES_MUNICIPALITY
+  - FUNDED_PROJECT
+  - INSPECTED_ASSET
+  - REPORTED_EXPENDITURE_FOR
+  - PREPARED_REPORT_FOR
+
+assertion_types:
+  - explicit
+  - derived
+  - inferred
+
+# Documented paths may be exposed; they must never be collapsed into a
+# conclusion edge (docs/fusion_engine_methodology.md §5).
+prohibited_inference_patterns:
+  - name: contractor_lobbyist_official
+    documented_path: [SUBCONTRACTED_TO_OR_AWARDED, LOBBIED_FOR, AUTHORIZED_PERSON_FOR]
+    forbidden_conclusion: INFLUENCED
+
+rules:
+  every_edge_requires_source_record_id: true
+  distinguish_explicit_derived_inferred: true
+  no_guilt_by_association: true
+  no_automatic_influence_conclusion: true
+  contradictions_are_preserved: true
+  public_edges_require_fact_check_and_publication_approval: true
+  pii_minimization_required: true
