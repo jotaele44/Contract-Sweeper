@@ -30,6 +30,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 PROMESA_COLUMNS = [
     "creditor_name",
@@ -278,15 +279,6 @@ def _try_prime_clerk(session, logger):
     except Exception as e:
         logger.warning(f"  Prime Clerk scrape failed: {e}")
     return None
-
-
-def _file_has_data(path):
-    if not path.exists():
-        return False
-    try:
-        return len(pd.read_csv(path, dtype=str, nrows=2)) > 0
-    except Exception:
-        return False
 
 
 def run(root=None):

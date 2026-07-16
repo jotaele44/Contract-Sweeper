@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 # Canonical output schema (matches build_unified_master.py CANONICAL_COLUMNS)
 MASTER_COLUMNS = [
@@ -347,15 +348,6 @@ def _find_report_builder_files(raw_dir, logger):
     for f in files:
         logger.info(f"    {f.name}")
     return files
-
-
-def _file_has_data(path):
-    if not path.exists():
-        return False
-    try:
-        return len(pd.read_csv(path, dtype=str, nrows=2)) > 0
-    except Exception:
-        return False
 
 
 def run(root=None):

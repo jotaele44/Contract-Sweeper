@@ -44,6 +44,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data, derive_fiscal_year as _derive_fiscal_year
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -145,30 +146,6 @@ def _session() -> requests.Session:
 # ---------------------------------------------------------------------------
 # Helpers (unchanged)
 # ---------------------------------------------------------------------------
-
-
-def _derive_fiscal_year(date_str) -> str:
-    """Derive fiscal year from a date string (YYYY-MM-DD). Oct-Dec → year+1."""
-    if not date_str or pd.isna(date_str):
-        return ""
-    try:
-        d = pd.to_datetime(str(date_str), errors="coerce")
-        if pd.isna(d):
-            return ""
-        return str(d.year + 1) if d.month >= 10 else str(d.year)
-    except Exception:
-        return ""
-
-
-def _file_has_data(filepath: Path) -> bool:
-    """Return True if file exists and is a readable CSV (including header-only / 0-row results)."""
-    if not filepath.exists():
-        return False
-    try:
-        pd.read_csv(filepath, dtype=str, nrows=0, low_memory=False)
-        return True
-    except Exception:
-        return False
 
 
 # ---------------------------------------------------------------------------

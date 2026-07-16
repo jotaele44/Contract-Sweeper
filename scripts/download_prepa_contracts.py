@@ -30,6 +30,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 PREPA_COLUMNS = [
     "contract_id",
@@ -222,15 +223,6 @@ def _try_fomb_prepa(session, logger):
     except Exception as e:
         logger.warning(f"  FOMB page scrape failed: {e}")
     return None
-
-
-def _file_has_data(path):
-    if not path.exists():
-        return False
-    try:
-        return len(pd.read_csv(path, dtype=str, nrows=2)) > 0
-    except Exception:
-        return False
 
 
 def run(root=None):

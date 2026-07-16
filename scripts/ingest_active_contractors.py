@@ -27,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 CONTRACTOR_COLUMNS = [
     "entity_name",
@@ -230,15 +231,6 @@ def parse_records(df: "pd.DataFrame", source_file: str = "fixture") -> "pd.DataF
     import logging
 
     return _parse_df(df, source_file, logging.getLogger("ingest_active_contractors"))
-
-
-def _file_has_data(path):
-    if not path.exists():
-        return False
-    try:
-        return len(pd.read_csv(path, dtype=str, nrows=2)) > 0
-    except Exception:
-        return False
 
 
 def run(root=None):
