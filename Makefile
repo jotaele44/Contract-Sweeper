@@ -44,10 +44,10 @@ cov:  ## pytest with a terminal coverage report
 	$(PYTHON) -m pytest --cov=scripts --cov=moneysweep --cov-report=term-missing
 
 lock:  ## Recompile requirements.lock from requirements.in (deterministic, via uv)
-	uv pip compile requirements.in --universal --python-version 3.10 -o requirements.lock
+	uv pip compile requirements.in --universal --python-version 3.13 -o requirements.lock
 
 lock-check:  ## Fail if requirements.lock is stale vs requirements.in (CI: lockfile.yml)
-	uv pip compile requirements.in --universal --python-version 3.10 -o - \
+	uv pip compile requirements.in --universal --python-version 3.13 -o - \
 		| diff -u requirements.lock - \
 		&& echo "requirements.lock is up to date"
 

@@ -17,12 +17,12 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Recompile the lockfile
-        run: uv pip compile requirements.in --universal --python-version 3.10 -o requirements.lock
+        run: uv pip compile requirements.in --universal --python-version 3.13 -o requirements.lock
 
       - name: Assert no drift
         run: |
           if ! git diff --exit-code requirements.lock; then
             echo "::error::requirements.lock is out of date with requirements.in." \
-              "Run: uv pip compile requirements.in --universal --python-version 3.10 -o requirements.lock"
+              "Run: uv pip compile requirements.in --universal --python-version 3.13 -o requirements.lock"
             exit 1
           fi

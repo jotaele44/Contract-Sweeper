@@ -4,7 +4,7 @@
 # GATING check. As of sequence task 24, scripts/ is also in scope and clean.
 # Remaining widening (future work): bring run_all.py into scope and drop
 # ignore_missing_imports per-module as third-party stubs land.
-python_version = "3.10"
+python_version = "3.13"
 ignore_missing_imports = true
 warn_unused_ignores = false
 warn_redundant_casts = true
