@@ -34,6 +34,10 @@ from moneysweep.runtime.base_downloader import (
 )
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import (
+    file_has_data as _file_has_data,
+    derive_fiscal_year as _derive_fiscal_year,
+)
 
 USASPENDING_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
 
@@ -160,27 +164,6 @@ _HTTP = HttpConfig(
 
 def _session():
     return build_session("ContractSweeper/1.0")
-
-
-def _derive_fiscal_year(date_str):
-    if not date_str or pd.isna(date_str):
-        return ""
-    try:
-        d = pd.to_datetime(str(date_str), errors="coerce")
-        if pd.isna(d):
-            return ""
-        return str(d.year + 1) if d.month >= 10 else str(d.year)
-    except Exception:
-        return ""
-
-
-def _file_has_data(filepath):
-    if not filepath.exists():
-        return False
-    try:
-        return len(pd.read_csv(filepath, dtype=str, nrows=2, low_memory=False)) > 0
-    except Exception:
-        return False
 
 
 def _fetch_page(session, payload, logger):

@@ -28,6 +28,10 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import (
+    file_has_data as _file_has_data,
+    derive_fiscal_year as _derive_fiscal_year,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -88,19 +92,6 @@ def _session() -> requests.Session:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _derive_fiscal_year(date_str) -> str:
-    """Derive US fiscal year from a date string. Oct-Dec → year+1."""
-    if not date_str or pd.isna(date_str):
-        return ""
-    try:
-        d = pd.to_datetime(str(date_str), errors="coerce")
-        if pd.isna(d):
-            return ""
-        return str(d.year + 1) if d.month >= 10 else str(d.year)
-    except Exception:
-        return ""
 
 
 def _get(session: requests.Session, url: str, params: dict, logger) -> dict | None:
@@ -413,17 +404,6 @@ def _records_to_df(records: list[dict], source_file: str) -> pd.DataFrame:
 def _csv_to_master(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
     """Map a raw CSV DataFrame (from direct dump) to canonical master columns."""
     return _records_to_df(df.to_dict("records"), source_file)
-
-
-def _file_has_data(filepath: Path) -> bool:
-    """Return True if file exists and has at least one data row."""
-    if not filepath.exists():
-        return False
-    try:
-        df = pd.read_csv(filepath, dtype=str, nrows=2, low_memory=False)
-        return len(df) > 0
-    except Exception:
-        return False
 
 
 # ---------------------------------------------------------------------------

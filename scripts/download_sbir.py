@@ -27,6 +27,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -76,15 +77,6 @@ def _session() -> requests.Session:
 # ---------------------------------------------------------------------------
 
 
-def _derive_fiscal_year(year_val) -> str:
-    if not year_val or pd.isna(year_val):
-        return ""
-    try:
-        return str(int(float(str(year_val))))
-    except Exception:
-        return ""
-
-
 def _get(session: requests.Session, url: str, params: dict, logger) -> dict | None:
     """GET with retry/backoff. Returns parsed JSON or None."""
     last_err = None
@@ -108,6 +100,16 @@ def _get(session: requests.Session, url: str, params: dict, logger) -> dict | No
             time.sleep(wait)
     logger.error(f"  All {MAX_RETRIES} attempts failed: {last_err}")
     return None
+
+
+def _derive_fiscal_year(year_val) -> str:
+    """Parse a plain numeric year value (int or float string like '2023.0') into a fiscal year string."""
+    if not year_val or pd.isna(year_val):
+        return ""
+    try:
+        return str(int(float(str(year_val))))
+    except Exception:
+        return ""
 
 
 def _paginate(session: requests.Session, logger) -> list[dict]:
@@ -208,15 +210,6 @@ def _records_to_df(records: list[dict], source_file: str) -> pd.DataFrame:
             df[c] = ""
 
     return df[MASTER_COLUMNS]
-
-
-def _file_has_data(filepath: Path) -> bool:
-    if not filepath.exists():
-        return False
-    try:
-        return len(pd.read_csv(filepath, dtype=str, nrows=2, low_memory=False)) > 0
-    except Exception:
-        return False
 
 
 # ---------------------------------------------------------------------------

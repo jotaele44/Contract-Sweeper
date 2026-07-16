@@ -31,6 +31,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 FHLB_COLUMNS = [
     "institution_name",
@@ -170,15 +171,6 @@ def _get_fhlb_advances(session, cert, inst_name, logger):
         except Exception:
             pass
     return rows
-
-
-def _file_has_data(path):
-    if not path.exists():
-        return False
-    try:
-        return len(pd.read_csv(path, dtype=str, nrows=2)) > 0
-    except Exception:
-        return False
 
 
 def run(root=None):
