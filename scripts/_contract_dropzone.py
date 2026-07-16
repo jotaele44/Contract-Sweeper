@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 CONTRACT_COLUMNS = [
     "contract_id",
@@ -210,15 +211,6 @@ def _find_files(drop_dir, logger):
     ]
     logger.info(f"  Found {len(files)} file(s) in {drop_dir}")
     return files
-
-
-def _file_has_data(path):
-    if not path.exists():
-        return False
-    try:
-        return len(pd.read_csv(path, dtype=str, nrows=2)) > 0
-    except Exception:
-        return False
 
 
 def run_contract_ingest(*, logger_name, drop_subdir, out_filename, agency, root=None, force=False):

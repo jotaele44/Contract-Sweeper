@@ -27,6 +27,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data, derive_fiscal_year as _derive_fiscal_year
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -74,15 +75,6 @@ def _session() -> requests.Session:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _derive_fiscal_year(year_val) -> str:
-    if not year_val or pd.isna(year_val):
-        return ""
-    try:
-        return str(int(float(str(year_val))))
-    except Exception:
-        return ""
 
 
 def _get(session: requests.Session, url: str, params: dict, logger) -> dict | None:
@@ -208,15 +200,6 @@ def _records_to_df(records: list[dict], source_file: str) -> pd.DataFrame:
             df[c] = ""
 
     return df[MASTER_COLUMNS]
-
-
-def _file_has_data(filepath: Path) -> bool:
-    if not filepath.exists():
-        return False
-    try:
-        return len(pd.read_csv(filepath, dtype=str, nrows=2, low_memory=False)) > 0
-    except Exception:
-        return False
 
 
 # ---------------------------------------------------------------------------

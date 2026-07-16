@@ -28,6 +28,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 NMTC_URLS = [
     "https://www.cdfifund.gov/sites/cdfi/files/documents/cdfi-nmtc-allocatees.xlsx",
@@ -172,15 +173,6 @@ def _build_output(df, logger):
         if col not in out.columns:
             out[col] = ""
     return out[NMTC_COLUMNS]
-
-
-def _file_has_data(path):
-    if not path.exists():
-        return False
-    try:
-        return len(pd.read_csv(path, dtype=str, nrows=2)) > 0
-    except Exception:
-        return False
 
 
 def run(root=None):

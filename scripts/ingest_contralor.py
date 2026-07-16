@@ -33,6 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts._download_utils import file_has_data as _file_has_data
 
 CONTRALOR_COLUMNS = [
     "entity_name",
@@ -266,15 +267,6 @@ def _find_files(raw_dir, logger):
     ]
     logger.info(f"  Found {len(files)} Contralor file(s) in {folder}")
     return files
-
-
-def _file_has_data(path):
-    if not path.exists():
-        return False
-    try:
-        return len(pd.read_csv(path, dtype=str, nrows=2)) > 0
-    except Exception:
-        return False
 
 
 def run(root=None):

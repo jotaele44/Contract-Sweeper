@@ -18,6 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scripts.config import PROJECT_ROOT, PROCESSED_DIR, setup_logging
+from scripts._download_utils import derive_fiscal_year as _derive_fiscal_year
 
 import requests
 import urllib.parse
@@ -180,23 +181,6 @@ def _paginate(
         time.sleep(SLEEP_BETWEEN_PAGES)
 
     return records
-
-
-def _derive_fiscal_year(date_str) -> int | None:
-    """
-    Derive US Federal fiscal year from an ISO date string.
-    FY starts October 1; e.g. 2017-10-01 → FY2018.
-    Returns None if date_str is missing or unparseable.
-    """
-    if not date_str or pd.isna(date_str):
-        return None
-    try:
-        dt = pd.to_datetime(str(date_str), errors="coerce")
-        if pd.isna(dt):
-            return None
-        return dt.year + 1 if dt.month >= 10 else dt.year
-    except Exception:
-        return None
 
 
 # ---------------------------------------------------------------------------
