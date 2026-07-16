@@ -28,7 +28,10 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import file_has_data as _file_has_data, derive_fiscal_year as _derive_fiscal_year
+from scripts._download_utils import (
+    file_has_data as _file_has_data,
+    derive_fiscal_year as _derive_fiscal_year,
+)
 
 # ---------------------------------------------------------------------------
 # Constants

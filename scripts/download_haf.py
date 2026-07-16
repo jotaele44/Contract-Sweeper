@@ -23,7 +23,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import file_has_data as _file_has_data, derive_fiscal_year as _derive_fiscal_year
+from scripts._download_utils import (
+    file_has_data as _file_has_data,
+    derive_fiscal_year as _derive_fiscal_year,
+)
 from moneysweep.runtime.base_downloader import (
     HttpConfig,
     PageResult,
