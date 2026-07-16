@@ -27,7 +27,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import file_has_data as _file_has_data, derive_fiscal_year as _derive_fiscal_year
+from scripts._download_utils import file_has_data as _file_has_data
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -100,6 +100,16 @@ def _get(session: requests.Session, url: str, params: dict, logger) -> dict | No
             time.sleep(wait)
     logger.error(f"  All {MAX_RETRIES} attempts failed: {last_err}")
     return None
+
+
+def _derive_fiscal_year(year_val) -> str:
+    """Parse a plain numeric year value (int or float string like '2023.0') into a fiscal year string."""
+    if not year_val or pd.isna(year_val):
+        return ""
+    try:
+        return str(int(float(str(year_val))))
+    except Exception:
+        return ""
 
 
 def _paginate(session: requests.Session, logger) -> list[dict]:

@@ -44,7 +44,7 @@ import pandas as pd
 import requests
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import file_has_data as _file_has_data, derive_fiscal_year as _derive_fiscal_year
+from scripts._download_utils import derive_fiscal_year as _derive_fiscal_year
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -146,6 +146,17 @@ def _session() -> requests.Session:
 # ---------------------------------------------------------------------------
 # Helpers (unchanged)
 # ---------------------------------------------------------------------------
+
+
+def _file_has_data(filepath: Path) -> bool:
+    """Return True if file exists and is a readable CSV (including header-only / 0-row results)."""
+    if not filepath.exists():
+        return False
+    try:
+        pd.read_csv(filepath, dtype=str, nrows=0, low_memory=False)
+        return True
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------------------
