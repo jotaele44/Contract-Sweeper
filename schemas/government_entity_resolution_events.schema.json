@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/government_entity_resolution_events.schema.json",
+  "title": "Government Entity Resolution Events",
+  "description": "Audit record of resolving a raw source reference to a canonical government entity. Preserves the raw values, the candidate set, the selected entity, the matching rule, confidence, resolver version, and review state so results are reproducible and re-adjudicable (gate ROUND_TRIP_RESOLUTION). Describes one resolution event.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "resolution_event_id",
+    "raw_values",
+    "candidates",
+    "matching_rule",
+    "confidence",
+    "resolver_version",
+    "review_state",
+    "source_assertion_id"
+  ],
+  "properties": {
+    "resolution_event_id": {"type": "string", "minLength": 1},
+    "raw_values": {
+      "type": "object",
+      "description": "Verbatim source fields presented to the resolver.",
+      "additionalProperties": {"type": ["string", "number", "boolean", "null"]}
+    },
+    "candidates": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/candidate"}
+    },
+    "selected_entity_id": {
+      "type": ["string", "null"],
+      "description": "Chosen canonical entity, or null when unresolved.",
+      "pattern": "^GOV_[A-Z0-9]{4,}$"
+    },
+    "matching_rule": {"type": "string", "minLength": 1},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "resolver_version": {"type": "string", "minLength": 1},
+    "review_state": {
+      "enum": ["unreviewed", "in_review", "accepted", "rejected", "deferred"]
+    },
+    "source_assertion_id": {"type": "string", "minLength": 1},
+    "resolved_at": {"type": "string", "format": "date-time"}
+  },
+  "$defs": {
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity_id", "score"],
+      "properties": {
+        "entity_id": {"type": "string", "pattern": "^GOV_[A-Z0-9]{4,}$"},
+        "score": {"type": "number", "minimum": 0, "maximum": 1},
+        "matching_rule": {"type": "string"}
+      }
+    }
+  }
+}

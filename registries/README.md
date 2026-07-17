@@ -1,7 +1,8 @@
 # Registries
 
-The four registries here drive source materialization, schema validation,
-endpoint resolution, and manual-export tracking. They exist in two formats:
+The registries here drive source materialization, schema validation, endpoint
+resolution, manual-export tracking, coverage contracts, and the canonical
+government-entity policy. Each regenerated registry exists in two formats:
 
 | Registry | YAML (source of truth) | JSON (runtime wire format) |
 |---|---|---|
@@ -9,6 +10,13 @@ endpoint resolution, and manual-export tracking. They exist in two formats:
 | Schema registry | `schema_registry.yaml` | `schema_registry.json` |
 | Endpoint candidates | `endpoint_candidates.yaml` | `endpoint_candidates.json` |
 | Manual export registry | `manual_export_registry.yaml` | `manual_export_registry.json` |
+| Coverage contracts | `coverage_contracts.yaml` | `coverage_contracts.json` |
+| Government entity registry | `government_entity_registry.yaml` | `government_entity_registry.json` |
+
+The regenerated pairs are wired in `REGISTRY_PAIRS` in
+`scripts/regenerate_registry_json.py`; other `.yaml` files in this directory
+(e.g. `alias_overrides.yaml`, `source_update_policy.yaml`) are read directly and
+have no generated JSON sibling.
 
 ## YAML is the source of truth
 

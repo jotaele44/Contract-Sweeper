@@ -58,10 +58,29 @@ things — bump them independently:
 
 ## The internal set (everything else)
 
-The other 21 schemas (`agency_master`, `entity_aliases`, `graph_edges`,
+The other internal schemas (`agency_master`, `entity_aliases`, `graph_edges`,
 `influence_edges`, `municipality_crosswalk`, …) describe tables this repo
 produces for its own use. They're free to evolve in single PRs without
 cross-repo sign-off.
+
+### Canonical government entity registry (internal)
+
+The `government_entity_*` schemas model the canonical Puerto Rico government
+entity registry. They are **internal / derived** — deliberately **not** part of
+the exported `moneysweep_*` contract — so they carry no cross-repo coordination
+burden. See `docs/canonical_government_entity_registry.md` and the policy
+registry in `registries/government_entity_registry.yaml`.
+
+```
+government_entities.schema.json
+government_entity_names.schema.json
+government_entity_identifiers.schema.json
+government_entity_relationships.schema.json
+government_entity_source_assertions.schema.json
+government_entity_resolution_events.schema.json
+government_entity_conflicts.schema.json
+government_entity_coverage_audit.schema.json
+```
 
 ## Versioning by directory
 

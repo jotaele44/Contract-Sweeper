@@ -1,0 +1,121 @@
+# Canonical government-entity relationship types (PR1 scaffold).
+#
+# Authoritative enum for `relationship_type` on
+# schemas/government_entity_relationships.schema.json.
+#
+# Modeling rules encoded here:
+#   * `renamed_to` preserves continuity of the SAME legal entity across a name
+#     change. It is kept distinct from merger/split/abolition/function-transfer,
+#     which change legal identity or functions (gate RELATIONSHIP_VALID).
+#   * Succession is directional and symmetric: predecessor_of <-> successor_of,
+#     and the "possible_" variants for unproven succession (gate
+#     SUCCESSION_SYMMETRY). Private operators/concessionaires are NEVER modeled as
+#     legal successors — operator_of / concessionaire_for are explicitly flagged
+#     legal_succession: false.
+version: "1.0"
+schema_version: "government_entity_relationship_types_v1"
+
+relationship_types:
+  - id: parent_of
+    label: Parent of
+    category: hierarchy
+  - id: component_of
+    label: Component of
+    category: hierarchy
+  - id: reports_to
+    label: Reports to
+    category: hierarchy
+  - id: controlled_by
+    label: Controlled by
+    category: control
+  - id: owns
+    label: Owns
+    category: control
+  - id: predecessor_of
+    label: Predecessor of
+    category: succession
+    legal_succession: true
+    inverse: successor_of
+  - id: successor_of
+    label: Successor of
+    category: succession
+    legal_succession: true
+    inverse: predecessor_of
+  - id: renamed_to
+    label: Renamed to
+    category: continuity
+    legal_succession: false
+    notes: Same legal entity, new name. NOT a merger/split/abolition.
+  - id: merged_into
+    label: Merged into
+    category: succession
+    legal_succession: true
+  - id: split_into
+    label: Split into
+    category: succession
+    legal_succession: true
+  - id: absorbed_functions_from
+    label: Absorbed functions from
+    category: function_transfer
+    legal_succession: false
+    inverse: transferred_functions_to
+    notes: Function transfer without legal succession of the whole entity.
+  - id: transferred_functions_to
+    label: Transferred functions to
+    category: function_transfer
+    legal_succession: false
+    inverse: absorbed_functions_from
+  - id: created_from
+    label: Created from
+    category: succession
+  - id: abolished_by
+    label: Abolished by
+    category: succession
+    legal_succession: true
+  - id: fiscal_agent_for
+    label: Fiscal agent for
+    category: operational
+    legal_succession: false
+  - id: bond_issuer_for
+    label: Bond issuer for
+    category: operational
+    legal_succession: false
+  - id: operator_of
+    label: Operator of
+    category: operational
+    legal_succession: false
+    notes: Private/public operator. NOT a legal successor of the owning entity.
+  - id: concessionaire_for
+    label: Concessionaire for
+    category: operational
+    legal_succession: false
+    notes: Concessionaire. NOT a legal successor of the granting entity.
+  - id: procurement_agent_for
+    label: Procurement agent for
+    category: operational
+    legal_succession: false
+  - id: oversight_of
+    label: Oversight of
+    category: oversight
+  - id: regulated_by
+    label: Regulated by
+    category: oversight
+  - id: administers_program_for
+    label: Administers program for
+    category: operational
+    legal_succession: false
+  - id: municipal_component_of
+    label: Municipal component of
+    category: hierarchy
+  - id: possible_successor_of
+    label: Possible successor of
+    category: succession
+    legal_succession: false
+    inverse: possible_predecessor_of
+    notes: Unproven succession; requires explicit evidence to promote to successor_of.
+  - id: possible_predecessor_of
+    label: Possible predecessor of
+    category: succession
+    legal_succession: false
+    inverse: possible_successor_of
+    notes: Unproven succession; requires explicit evidence to promote to predecessor_of.
