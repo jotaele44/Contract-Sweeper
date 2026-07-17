@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shlex
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -53,8 +54,8 @@ def _run_command(root: Path, command: str, timeout_s: int) -> tuple[bool, int, s
 
     try:
         completed = subprocess.run(
-            command,
-            shell=True,
+            shlex.split(command),
+            shell=False,
             cwd=str(root),
             text=True,
             capture_output=True,
@@ -320,12 +321,9 @@ def run_credentialed_endpoint_retries(
             still_blocked.append({**result, "review_status": "pending_credentials"})
             continue
 
-        command = str(
-            row.get("safe_retry_command_if_available", "")
-        ).strip() or SAFE_ENDPOINT_RETRY_COMMANDS.get(
-            producer_script,
-            "",
-        )
+        # Execute only repository-owned allowlisted commands. Endpoint ledger
+        # rows are data, not an executable command source.
+        command = SAFE_ENDPOINT_RETRY_COMMANDS.get(producer_script, "")
         if not command:
             result["retry_status"] = "missing_retry_command"
             result["failure_reason"] = "no safe retry command available"
