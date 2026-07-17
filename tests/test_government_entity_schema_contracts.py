@@ -35,29 +35,78 @@ NEW_SCHEMAS = [
 ]
 
 ENTITY_TYPE_VALUES = {
-    "constitutional_office", "executive_department", "executive_agency", "authority",
-    "public_corporation", "public_instrumentality", "board", "commission", "bureau",
-    "administration", "office", "council", "institute", "trust", "fund",
-    "public_university", "judicial_entity", "legislative_entity", "municipality",
-    "municipal_instrumentality", "regional_entity", "program_office",
-    "temporary_recovery_office", "other_public_entity",
+    "constitutional_office",
+    "executive_department",
+    "executive_agency",
+    "authority",
+    "public_corporation",
+    "public_instrumentality",
+    "board",
+    "commission",
+    "bureau",
+    "administration",
+    "office",
+    "council",
+    "institute",
+    "trust",
+    "fund",
+    "public_university",
+    "judicial_entity",
+    "legislative_entity",
+    "municipality",
+    "municipal_instrumentality",
+    "regional_entity",
+    "program_office",
+    "temporary_recovery_office",
+    "other_public_entity",
 }
 
 IDENTIFIER_SCHEME_VALUES = {
-    "ocpr_entity_code", "hacienda_agency_code", "ogp_budget_entity_code",
-    "prifas_agency_code", "procurement_entity_code", "transition_report_agency_code",
-    "cor3_applicant_id", "fema_recipient_id", "fema_subrecipient_id", "sam_uei",
-    "legacy_duns", "cage_code", "ein", "fips_county_equivalent_code", "gnis_id",
-    "municipality_code", "bond_issuer_code", "custom_source_code",
+    "ocpr_entity_code",
+    "hacienda_agency_code",
+    "ogp_budget_entity_code",
+    "prifas_agency_code",
+    "procurement_entity_code",
+    "transition_report_agency_code",
+    "cor3_applicant_id",
+    "fema_recipient_id",
+    "fema_subrecipient_id",
+    "sam_uei",
+    "legacy_duns",
+    "cage_code",
+    "ein",
+    "fips_county_equivalent_code",
+    "gnis_id",
+    "municipality_code",
+    "bond_issuer_code",
+    "custom_source_code",
 }
 
 RELATIONSHIP_TYPE_VALUES = {
-    "parent_of", "component_of", "reports_to", "controlled_by", "owns",
-    "predecessor_of", "successor_of", "renamed_to", "merged_into", "split_into",
-    "absorbed_functions_from", "transferred_functions_to", "created_from",
-    "abolished_by", "fiscal_agent_for", "bond_issuer_for", "operator_of",
-    "concessionaire_for", "procurement_agent_for", "oversight_of", "regulated_by",
-    "administers_program_for", "municipal_component_of", "possible_successor_of",
+    "parent_of",
+    "component_of",
+    "reports_to",
+    "controlled_by",
+    "owns",
+    "predecessor_of",
+    "successor_of",
+    "renamed_to",
+    "merged_into",
+    "split_into",
+    "absorbed_functions_from",
+    "transferred_functions_to",
+    "created_from",
+    "abolished_by",
+    "fiscal_agent_for",
+    "bond_issuer_for",
+    "operator_of",
+    "concessionaire_for",
+    "procurement_agent_for",
+    "oversight_of",
+    "regulated_by",
+    "administers_program_for",
+    "municipal_component_of",
+    "possible_successor_of",
     "possible_predecessor_of",
 }
 
@@ -98,33 +147,75 @@ def test_every_new_schema_loads_as_strict_draft_2020_12():
 
 def test_required_fields_present_per_schema():
     expected = {
-        "government_entities.schema.json": {"entity_id", "entity_type", "status", "source_assertion_id"},
+        "government_entities.schema.json": {
+            "entity_id",
+            "entity_type",
+            "status",
+            "source_assertion_id",
+        },
         "government_entity_names.schema.json": {
-            "entity_id", "language", "name_type", "name", "normalized_name",
-            "valid_from", "is_preferred", "source_assertion_id",
+            "entity_id",
+            "language",
+            "name_type",
+            "name",
+            "normalized_name",
+            "valid_from",
+            "is_preferred",
+            "source_assertion_id",
         },
         "government_entity_identifiers.schema.json": {
-            "entity_id", "identifier_scheme", "identifier_value", "source_system",
-            "status", "confidence", "source_assertion_id",
+            "entity_id",
+            "identifier_scheme",
+            "identifier_value",
+            "source_system",
+            "status",
+            "confidence",
+            "source_assertion_id",
         },
         "government_entity_relationships.schema.json": {
-            "subject_entity_id", "relationship_type", "object_entity_id",
-            "valid_from", "confidence", "source_assertion_id",
+            "subject_entity_id",
+            "relationship_type",
+            "object_entity_id",
+            "valid_from",
+            "confidence",
+            "source_assertion_id",
         },
         "government_entity_source_assertions.schema.json": {
-            "source_assertion_id", "source_id", "source_locator", "evidence_tier",
-            "retrieved_at", "content_hash", "verification_status",
+            "source_assertion_id",
+            "source_id",
+            "source_locator",
+            "evidence_tier",
+            "retrieved_at",
+            "content_hash",
+            "verification_status",
         },
         "government_entity_resolution_events.schema.json": {
-            "resolution_event_id", "raw_values", "candidates", "matching_rule",
-            "confidence", "resolver_version", "review_state", "source_assertion_id",
+            "resolution_event_id",
+            "raw_values",
+            "candidates",
+            "matching_rule",
+            "confidence",
+            "resolver_version",
+            "review_state",
+            "source_assertion_id",
         },
         "government_entity_conflicts.schema.json": {
-            "conflict_id", "conflict_type", "entity_ids", "status", "source_assertion_id",
+            "conflict_id",
+            "conflict_type",
+            "entity_ids",
+            "status",
+            "source_assertion_id",
         },
         "government_entity_coverage_audit.schema.json": {
-            "coverage_dimension", "denominator_source", "snapshot_date", "source_hash",
-            "denominator", "resolved", "unresolved", "excluded", "computed_pct",
+            "coverage_dimension",
+            "denominator_source",
+            "snapshot_date",
+            "source_hash",
+            "denominator",
+            "resolved",
+            "unresolved",
+            "excluded",
+            "computed_pct",
         },
     }
     for name, required in expected.items():
@@ -179,7 +270,13 @@ def test_source_system_and_provenance_required():
     assert "source_system" in ids["required"]
     assert "source_assertion_id" in ids["required"]
     assertion = _schema("government_entity_source_assertions.schema.json")
-    for field in ("source_id", "source_locator", "evidence_tier", "content_hash", "verification_status"):
+    for field in (
+        "source_id",
+        "source_locator",
+        "evidence_tier",
+        "content_hash",
+        "verification_status",
+    ):
         assert field in assertion["required"], field
 
 
@@ -198,7 +295,13 @@ def test_valid_from_valid_to_shapes_enforced():
 def test_coverage_denominator_metadata_required():
     cov = _schema("government_entity_coverage_audit.schema.json")
     required = set(cov["required"])
-    for field in ("denominator", "denominator_source", "source_hash", "snapshot_date", "computed_pct"):
+    for field in (
+        "denominator",
+        "denominator_source",
+        "source_hash",
+        "snapshot_date",
+        "computed_pct",
+    ):
         assert field in required, field
 
 
@@ -213,12 +316,25 @@ def test_immutable_id_policy_declared():
 def test_all_validation_gates_declared():
     gates = {g["id"] for g in _registry_body()["validation_gates"]}
     expected = {
-        "SCHEMA_VALID", "CANONICAL_ID_STABLE", "IDENTIFIER_NAMESPACED", "NO_UNSCOPED_CODE",
-        "TEMPORAL_NONOVERLAP", "RELATIONSHIP_VALID", "SUCCESSION_SYMMETRY", "NO_SELF_RELATION",
-        "PROVENANCE_REQUIRED", "MUNICIPALITY_COMPLETE", "CURRENT_ENTITY_COMPLETE",
-        "SOURCE_CODE_COMPLETE", "ROUND_TRIP_RESOLUTION", "CONFLICT_QUEUE_EMPTY_OR_ACCEPTED",
-        "COVERAGE_REPORT_GENERATED", "LEGACY_PROJECTION_VALID", "EXPORTED_SCHEMA_UNCHANGED",
-        "REGISTRY_YAML_JSON_SYNC", "NAME_DERIVED_ID_NOT_USED_FOR_NEW_GOV_ENTITIES",
+        "SCHEMA_VALID",
+        "CANONICAL_ID_STABLE",
+        "IDENTIFIER_NAMESPACED",
+        "NO_UNSCOPED_CODE",
+        "TEMPORAL_NONOVERLAP",
+        "RELATIONSHIP_VALID",
+        "SUCCESSION_SYMMETRY",
+        "NO_SELF_RELATION",
+        "PROVENANCE_REQUIRED",
+        "MUNICIPALITY_COMPLETE",
+        "CURRENT_ENTITY_COMPLETE",
+        "SOURCE_CODE_COMPLETE",
+        "ROUND_TRIP_RESOLUTION",
+        "CONFLICT_QUEUE_EMPTY_OR_ACCEPTED",
+        "COVERAGE_REPORT_GENERATED",
+        "LEGACY_PROJECTION_VALID",
+        "EXPORTED_SCHEMA_UNCHANGED",
+        "REGISTRY_YAML_JSON_SYNC",
+        "NAME_DERIVED_ID_NOT_USED_FOR_NEW_GOV_ENTITIES",
     }
     assert expected <= gates
 
@@ -245,7 +361,9 @@ def test_config_vocabularies_match_schema_enums():
 
     scheme_ids = {s["id"] for s in _config("identifier_schemes.yml")["identifier_schemes"]}
     assert scheme_ids == IDENTIFIER_SCHEME_VALUES
-    assert all(s.get("namespaced") is True for s in _config("identifier_schemes.yml")["identifier_schemes"])
+    assert all(
+        s.get("namespaced") is True for s in _config("identifier_schemes.yml")["identifier_schemes"]
+    )
 
     rel_ids = {r["id"] for r in _config("relationship_types.yml")["relationship_types"]}
     assert rel_ids == RELATIONSHIP_TYPE_VALUES
@@ -323,13 +441,17 @@ def test_no_exported_schema_file_changed():
     try:
         out = subprocess.run(
             ["git", "diff", "--name-only", "HEAD", "--", "schemas/"],
-            cwd=ROOT, capture_output=True, text=True, check=True,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout
     except (OSError, subprocess.CalledProcessError):
         pytest.skip("git not available")
     changed = [p for p in out.splitlines() if p]
     offenders = [
-        p for p in changed
+        p
+        for p in changed
         if (p.startswith("schemas/moneysweep_") and p.endswith(".schema.json"))
         or p.startswith("schemas/canonical_v1/")
     ]
@@ -359,76 +481,88 @@ def _validator(name: str):
 
 
 def test_instance_valid_records_pass():
-    _validator("government_entity_identifiers.schema.json").validate({
-        "entity_id": "GOV_000123",
-        "identifier_scheme": "hacienda_agency_code",
-        "identifier_value": "081",
-        "source_system": "hacienda",
-        "status": "active",
-        "confidence": 0.99,
-        "source_assertion_id": "SA_1",
-    })
-    _validator("government_entity_relationships.schema.json").validate({
-        "subject_entity_id": "GOV_0001",
-        "relationship_type": "parent_of",
-        "object_entity_id": "GOV_0002",
-        "valid_from": "2000-01-01",
-        "confidence": 0.9,
-        "source_assertion_id": "SA_1",
-    })
+    _validator("government_entity_identifiers.schema.json").validate(
+        {
+            "entity_id": "GOV_000123",
+            "identifier_scheme": "hacienda_agency_code",
+            "identifier_value": "081",
+            "source_system": "hacienda",
+            "status": "active",
+            "confidence": 0.99,
+            "source_assertion_id": "SA_1",
+        }
+    )
+    _validator("government_entity_relationships.schema.json").validate(
+        {
+            "subject_entity_id": "GOV_0001",
+            "relationship_type": "parent_of",
+            "object_entity_id": "GOV_0002",
+            "valid_from": "2000-01-01",
+            "confidence": 0.9,
+            "source_assertion_id": "SA_1",
+        }
+    )
 
 
 def test_instance_unsupported_relationship_type_rejected():
     v = _validator("government_entity_relationships.schema.json")
-    assert not v.is_valid({
-        "subject_entity_id": "GOV_0001",
-        "relationship_type": "not_a_real_type",
-        "object_entity_id": "GOV_0002",
-        "valid_from": "2000-01-01",
-        "confidence": 0.9,
-        "source_assertion_id": "SA_1",
-    })
+    assert not v.is_valid(
+        {
+            "subject_entity_id": "GOV_0001",
+            "relationship_type": "not_a_real_type",
+            "object_entity_id": "GOV_0002",
+            "valid_from": "2000-01-01",
+            "confidence": 0.9,
+            "source_assertion_id": "SA_1",
+        }
+    )
 
 
 def test_instance_missing_source_system_rejected():
     v = _validator("government_entity_identifiers.schema.json")
     # bare identifier_value without source_system/scheme is not valid
-    assert not v.is_valid({
-        "entity_id": "GOV_0001",
-        "identifier_value": "081",
-        "status": "active",
-        "confidence": 0.5,
-        "source_assertion_id": "SA_1",
-    })
+    assert not v.is_valid(
+        {
+            "entity_id": "GOV_0001",
+            "identifier_value": "081",
+            "status": "active",
+            "confidence": 0.5,
+            "source_assertion_id": "SA_1",
+        }
+    )
 
 
 def test_instance_bad_valid_from_shape_rejected():
     v = _validator("government_entity_names.schema.json")
-    assert not v.is_valid({
-        "entity_id": "GOV_0001",
-        "language": "es",
-        "name_type": "official",
-        "name": "Departamento de Hacienda",
-        "normalized_name": "departamento de hacienda",
-        "valid_from": 20000101,  # wrong type: integer, not date string/null
-        "is_preferred": True,
-        "source_assertion_id": "SA_1",
-    })
+    assert not v.is_valid(
+        {
+            "entity_id": "GOV_0001",
+            "language": "es",
+            "name_type": "official",
+            "name": "Departamento de Hacienda",
+            "normalized_name": "departamento de hacienda",
+            "valid_from": 20000101,  # wrong type: integer, not date string/null
+            "is_preferred": True,
+            "source_assertion_id": "SA_1",
+        }
+    )
 
 
 def test_instance_coverage_missing_denominator_rejected():
     v = _validator("government_entity_coverage_audit.schema.json")
-    assert not v.is_valid({
-        "coverage_dimension": "municipality",
-        "denominator_source": "census_2020",
-        "snapshot_date": "2026-01-01",
-        "source_hash": "sha256:deadbeef",
-        # denominator omitted
-        "resolved": 78,
-        "unresolved": 0,
-        "excluded": 0,
-        "computed_pct": 100.0,
-    })
+    assert not v.is_valid(
+        {
+            "coverage_dimension": "municipality",
+            "denominator_source": "census_2020",
+            "snapshot_date": "2026-01-01",
+            "source_hash": "sha256:deadbeef",
+            # denominator omitted
+            "resolved": 78,
+            "unresolved": 0,
+            "excluded": 0,
+            "computed_pct": 100.0,
+        }
+    )
 
 
 def test_instance_source_assertion_hash_rules():
