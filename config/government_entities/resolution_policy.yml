@@ -1,0 +1,52 @@
+# Canonical government-entity resolution policy (PR1 scaffold).
+#
+# Declares how raw source references are resolved to canonical government
+# entities, how resolution events are reviewed, and how identity conflicts are
+# queued and accepted. PR1 declares the policy; the runtime resolver that
+# enforces it is out of scope for PR1.
+version: "1.0"
+schema_version: "government_entity_resolution_policy_v1"
+
+resolution_policy:
+  resolver_versioning:
+    scheme: semver
+    notes: >-
+      Every resolution event records the resolver version (resolver_version) so
+      results can be reproduced and re-adjudicated when the resolver changes.
+
+  confidence_thresholds:
+    auto_accept: 0.95      # >= auto_accept: selected without human review
+    review: 0.70           # [review, auto_accept): queued for human review
+    reject: 0.70           # < reject: no candidate selected (unresolved)
+
+  matching_rules:
+    - id: exact_identifier
+      description: Exact match on a namespaced source identifier (scheme + value + source_system).
+      base_confidence: 0.99
+    - id: normalized_name_exact
+      description: Exact match on normalized_name within jurisdiction.
+      base_confidence: 0.90
+    - id: normalized_name_fuzzy
+      description: Fuzzy match on normalized_name; always routed to review.
+      base_confidence: 0.75
+    - id: alias_match
+      description: Match via a known historical name/alias with a valid interval.
+      base_confidence: 0.85
+
+  review_states:
+    - unreviewed
+    - in_review
+    - accepted
+    - rejected
+    - deferred
+
+  conflict_acceptance:
+    # Gate CONFLICT_QUEUE_EMPTY_OR_ACCEPTED: the pipeline may proceed only when
+    # the conflict queue is empty OR every open conflict has an explicit,
+    # provenance-backed acceptance.
+    statuses:
+      - open
+      - accepted
+      - rejected
+    require_provenance_on_accept: true
+    require_reviewer_on_accept: true

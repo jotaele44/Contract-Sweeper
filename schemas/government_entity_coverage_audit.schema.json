@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/government_entity_coverage_audit.schema.json",
+  "title": "Government Entity Coverage Audit",
+  "description": "A coverage snapshot measuring how completely a denominator universe (e.g. the 78 municipalities, all current entities, or a source's entity codes) resolves to canonical government entities (gates MUNICIPALITY_COMPLETE, CURRENT_ENTITY_COMPLETE, SOURCE_CODE_COMPLETE, COVERAGE_REPORT_GENERATED). The denominator source and its hash are required so a percentage can never be reported without a traceable universe. Describes one coverage-audit record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "coverage_dimension",
+    "denominator_source",
+    "snapshot_date",
+    "source_hash",
+    "denominator",
+    "resolved",
+    "unresolved",
+    "excluded",
+    "computed_pct"
+  ],
+  "properties": {
+    "coverage_dimension": {
+      "enum": ["municipality", "current_entity", "source_code"]
+    },
+    "denominator_source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity of the authoritative universe (e.g. source_id or document)."
+    },
+    "snapshot_date": {"type": "string", "format": "date"},
+    "source_hash": {
+      "type": "string",
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9:._-]*$",
+      "description": "Hash of the denominator-source snapshot (optionally algorithm-prefixed)."
+    },
+    "denominator": {"type": "integer", "minimum": 0},
+    "resolved": {"type": "integer", "minimum": 0},
+    "unresolved": {"type": "integer", "minimum": 0},
+    "excluded": {"type": "integer", "minimum": 0},
+    "computed_pct": {"type": "number", "minimum": 0, "maximum": 100},
+    "notes": {"type": "string"}
+  }
+}
