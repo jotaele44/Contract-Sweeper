@@ -98,3 +98,21 @@ for compatibility while v2 is in development. When you cut v2:
 | `<name>.schema.json` | JSON Schema file (the `.schema` suffix is the marker). |
 | `moneysweep_<name>.schema.json` | Member of the exported canonical contract. Treat as a public API surface. |
 | `schemas/canonical_v1/<name>.schema.json` | Frozen v1 snapshot for downstream-pin compatibility. |
+
+## Federation cross-reference: PR natural-features gazetteer
+
+The federation maintains a canonical Puerto Rico **natural-features gazetteer**
+(rivers, quebradas, lakes, reservoirs, wetlands, mountains, peaks, valleys,
+coastal features), owned/curated by `spiderweb-pr` and derived from USGS GNIS.
+Producers consume domain slices under one shared contract
+(`pr_natural_feature.schema.json`; see spiderweb-pr
+`docs/NATURAL_FEATURES_CONTRACT.md`).
+
+**moneysweep-pr is a non-consumer of the gazetteer** — public-money entities have
+no natural-feature records, so no slice is vendored here. Where moneysweep records
+need to line up spatially with natural features at the Hub, the join happens on the
+shared **PR municipality** vocabulary (this repo's `municipality_crosswalk.schema.json`)
+and the federation `normalized_name` key that `moneysweep_entity.schema.json`
+already carries — not by importing gazetteer records. If a future lane ever needs
+feature-level geography, add it as a vendored slice + a `pr_natural_feature`
+reference schema then, per the contract's lockstep change protocol.
