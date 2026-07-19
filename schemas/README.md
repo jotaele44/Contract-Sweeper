@@ -109,10 +109,13 @@ Producers consume domain slices under one shared contract
 `docs/NATURAL_FEATURES_CONTRACT.md`).
 
 **moneysweep-pr is a non-consumer of the gazetteer** — public-money entities have
-no natural-feature records, so no slice is vendored here. Where moneysweep records
-need to line up spatially with natural features at the Hub, the join happens on the
-shared **PR municipality** vocabulary (this repo's `municipality_crosswalk.schema.json`)
-and the federation `normalized_name` key that `moneysweep_entity.schema.json`
-already carries — not by importing gazetteer records. If a future lane ever needs
-feature-level geography, add it as a vendored slice + a `pr_natural_feature`
-reference schema then, per the contract's lockstep change protocol.
+no natural-feature records, so no slice is vendored here. Any spatial correlation
+with natural features happens at the Hub on the shared **PR municipality**
+vocabulary — this repo's `municipality_crosswalk.schema.json` and the municipality
+code / coordinates carried on award and transaction rows (the municipality code is
+the primary spatial match key; see `docs/export_mapping.md`). It is **not** a
+name-based join to feature names: `normalized_name` on `moneysweep_entity`
+canonicalizes a funding party (contractor/agency), not a place, and entity rows
+carry no geography. If a future lane ever needs feature-level geography, add it as
+a vendored slice + a `pr_natural_feature` reference schema then, per the contract's
+lockstep change protocol.
