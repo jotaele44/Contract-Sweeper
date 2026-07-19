@@ -8,10 +8,19 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import scripts.sam_enrichment as se
+from moneysweep.runtime.name_normalization import normalize_name
 from scripts.sam_enrichment import (
+    STATUS_LOOKUP_ERROR,
+    STATUS_NO_FEDERAL_MATCH,
+    STATUS_RESOLVED_LOCAL_GOV,
+    cluster_key,
+    load_municipio_index,
     load_targets,
+    local_resolve,
     name_similarity,
     normalize_vendor,
+    sam_lookup_by_name,
     vendor_hash,
 )
 
@@ -35,6 +44,106 @@ class TestNormalizeVendor:
 
     def test_collapses_whitespace(self):
         assert normalize_vendor("  Foo   Bar  ") == "FOO BAR"
+
+    def test_folds_accents(self):
+        # NFKD accent-folding so Spanish source names line up with SAM's ASCII.
+        assert normalize_vendor("Autónomo") == "AUTONOMO"
+        assert normalize_vendor("MUNICIPIO DE BAYAMÓN") == "MUNICIPIO DE BAYAMON"
+        # accented and unaccented spellings must normalize identically
+        assert normalize_vendor("Compañía Ñandú") == normalize_vendor("Compania Nandu")
+
+
+# ---------------------------------------------------------------------------
+# cluster_key — alias-cluster deduplication
+# ---------------------------------------------------------------------------
+
+
+class TestClusterKey:
+    def test_collapses_alias_variants(self):
+        canon = normalize_name("FOO CANON")
+        overrides = {
+            normalize_name("Foo One Inc"): canon,
+            normalize_name("Foo Two LLC"): canon,
+        }
+        # Both curated aliases hash to the same cache key → one lookup serves both.
+        assert cluster_key("Foo One Inc", overrides) == cluster_key("Foo Two LLC", overrides)
+
+    def test_distinct_for_unrelated_names(self):
+        assert cluster_key("Alpha Corp", {}) != cluster_key("Beta Corp", {})
+
+    def test_returns_12_chars(self):
+        assert len(cluster_key("Anything Inc", {})) == 12
+
+
+# ---------------------------------------------------------------------------
+# local_resolve / load_municipio_index — offline PR-government classification
+# ---------------------------------------------------------------------------
+
+
+class TestLocalResolve:
+    def _make_municipio_csv(self, root):
+        d = root / "data" / "reference"
+        d.mkdir(parents=True, exist_ok=True)
+        with open(d / "pr_78_municipio_crosswalk.csv", "w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=["municipality_name", "aliases"])
+            w.writeheader()
+            w.writerow(
+                {"municipality_name": "Adjuntas", "aliases": "Adjuntas|MUNICIPIO DE ADJUNTAS"}
+            )
+            w.writerow({"municipality_name": "Bayamón", "aliases": "Bayamón|MUNICIPIO DE BAYAMÓN"})
+        return root
+
+    def test_classifies_municipal_government(self, tmp_path):
+        idx = load_municipio_index(self._make_municipio_csv(tmp_path))
+        res = local_resolve("Municipio de Adjuntas", idx)
+        assert res is not None
+        assert res["resolution_status"] == STATUS_RESOLVED_LOCAL_GOV
+        assert res["uei"] == ""  # PR gov entities carry no SAM UEI by design
+
+    def test_accent_insensitive_municipio_match(self, tmp_path):
+        idx = load_municipio_index(self._make_municipio_csv(tmp_path))
+        # unaccented input still matches the accented crosswalk entry
+        assert local_resolve("Municipio de Bayamon", idx) is not None
+
+    def test_matches_english_and_autonomo_forms(self, tmp_path):
+        idx = load_municipio_index(self._make_municipio_csv(tmp_path))
+        # English "MUNICIPALITY OF X" and Spanish "MUNICIPIO AUTÓNOMO DE X" forms
+        # also classify as PR government (not just "MUNICIPIO DE X").
+        assert local_resolve("Municipality of Adjuntas", idx) is not None
+        assert local_resolve("Municipio Autónomo de Bayamón", idx) is not None
+        assert local_resolve("Autonomous Municipality of Adjuntas", idx) is not None
+
+    def test_does_not_misclassify_contractor_sharing_town_name(self, tmp_path):
+        idx = load_municipio_index(self._make_municipio_csv(tmp_path))
+        # only "MUNICIPIO DE X" forms are indexed, never the bare town name
+        assert local_resolve("Adjuntas Trucking Corp", idx) is None
+        assert local_resolve("Microsoft Inc", idx) is None
+
+
+# ---------------------------------------------------------------------------
+# sam_lookup_by_name — transient-error vs definitive-no-match signal
+# ---------------------------------------------------------------------------
+
+
+class TestLookupErrorSignal:
+    def test_transport_failure_is_errored(self, monkeypatch):
+        monkeypatch.setattr(se, "sam_call", lambda *a, **k: None)  # every call fails
+        monkeypatch.setattr(se.time, "sleep", lambda *a, **k: None)  # no retry backoff wait
+        match, errored = sam_lookup_by_name("Whatever Inc", "KEY")
+        assert match is None
+        assert errored is True
+
+    def test_empty_result_is_not_errored(self, monkeypatch):
+        monkeypatch.setattr(se, "sam_call", lambda *a, **k: {"entityData": []})
+        match, errored = sam_lookup_by_name("Whatever Inc", "KEY")
+        assert match is None
+        assert errored is False  # a real "no match" answer, not a transient error
+
+
+# reason-code constants are importable and distinct (guards accidental collisions)
+def test_reason_codes_distinct():
+    codes = {STATUS_LOOKUP_ERROR, STATUS_NO_FEDERAL_MATCH, STATUS_RESOLVED_LOCAL_GOV}
+    assert len(codes) == 3
 
 
 # ---------------------------------------------------------------------------
