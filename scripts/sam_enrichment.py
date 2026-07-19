@@ -319,8 +319,24 @@ def cluster_key(vendor_name: str, overrides: dict[str, str]) -> str:
     return hashlib.md5(canonical.encode()).hexdigest()[:12]
 
 
+# Government-marker templates for a municipio name. PR municipal payees appear
+# in the source data under several forms — Spanish ("MUNICIPIO DE X",
+# "MUNICIPIO AUTÓNOMO DE X"), English ("MUNICIPALITY OF X", "AUTONOMOUS
+# MUNICIPALITY OF X"), and a marker-only "MUNICIPIO X". Each carries an
+# unambiguous government marker, so indexing all of them stays safe against
+# contractors that merely share a town name. Accents are folded by
+# normalize_vendor() when the index is built.
+_MUNICIPIO_FORMS = (
+    "MUNICIPIO DE {n}",
+    "MUNICIPIO {n}",
+    "MUNICIPIO AUTONOMO DE {n}",
+    "MUNICIPALITY OF {n}",
+    "AUTONOMOUS MUNICIPALITY OF {n}",
+)
+
+
 def load_municipio_index(root: Path) -> set[str]:
-    """Normalized ``MUNICIPIO DE X`` forms for the 78 PR municipios.
+    """Normalized government-marked name forms for the 78 PR municipios.
 
     Used to *classify* municipal-government payees, which are structurally absent
     from SAM.gov (a federal contractor registry) and would otherwise be logged as
@@ -334,9 +350,10 @@ def load_municipio_index(root: Path) -> set[str]:
     with open(path, encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
             canonical = (row.get("municipality_name") or "").strip()
-            forms = {f"MUNICIPIO DE {canonical}"} if canonical else set()
+            forms = {tpl.format(n=canonical) for tpl in _MUNICIPIO_FORMS} if canonical else set()
             for alias in (row.get("aliases") or "").split("|"):
-                if "MUNICIPIO" in alias.upper():
+                marker = alias.upper()
+                if "MUNICIPIO" in marker or "MUNICIPALITY" in marker:
                     forms.add(alias.strip())
             for form in forms:
                 normed = normalize_vendor(form)
@@ -621,8 +638,20 @@ def run(
     checkpoint = _load_json(checkpoint_path) if resume else {}
     start_idx = checkpoint.get("last_idx", 0) if resume else 0
 
+    # Vendors that hit a transient LOOKUP_ERROR on a prior run must be revisited
+    # even though the sequential checkpoint has advanced past their index —
+    # otherwise "will retry" is a lie and every pre-checkpoint transient failure
+    # is lost. They are re-processed below regardless of start_idx.
+    retry_errored = (
+        {v for v, r in results.items() if r.get("resolution_status") == STATUS_LOOKUP_ERROR}
+        if resume
+        else set()
+    )
+
     if resume and start_idx > 0:
         logger.info(f"[RESUME] Resuming from vendor #{start_idx}")
+    if retry_errored:
+        logger.info(f"[RESUME] Revisiting {len(retry_errored):,} prior transient errors")
 
     resolved = sum(1 for r in results.values() if r.get("uei"))
     failed = []
@@ -635,8 +664,12 @@ def run(
 
     logger.info(f"[START] {datetime.now().isoformat()}")
 
-    for i, target in enumerate(targets[start_idx:], start=start_idx):
+    for i, target in enumerate(targets):
         vendor = target["vendor_name"]
+        # Skip vendors already covered by the resume checkpoint, except ones we
+        # still owe a retry for (prior transient errors).
+        if i < start_idx and vendor not in retry_errored:
+            continue
         norm = normalize_vendor(vendor)
         h = cluster_key(vendor, overrides)
 
@@ -792,7 +825,10 @@ def run(
 
     merge_into_master(results, root, output_dir, logger)
 
-    total_processed = len(targets) - start_idx
+    # `processed` is the count actually handled this run (forward scan + any
+    # revisited transient errors), which is more accurate than len - start_idx
+    # now that pre-checkpoint errors can be reprocessed.
+    total_processed = processed or (len(targets) - start_idx)
     coverage = resolved / max(total_processed, 1)
     value_resolved = sum(float(r.get("total_value", 0)) for r in results.values() if r.get("uei"))
     value_total = sum(t["total_value"] for t in targets)

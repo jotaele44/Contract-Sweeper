@@ -105,6 +105,14 @@ class TestLocalResolve:
         # unaccented input still matches the accented crosswalk entry
         assert local_resolve("Municipio de Bayamon", idx) is not None
 
+    def test_matches_english_and_autonomo_forms(self, tmp_path):
+        idx = load_municipio_index(self._make_municipio_csv(tmp_path))
+        # English "MUNICIPALITY OF X" and Spanish "MUNICIPIO AUTÓNOMO DE X" forms
+        # also classify as PR government (not just "MUNICIPIO DE X").
+        assert local_resolve("Municipality of Adjuntas", idx) is not None
+        assert local_resolve("Municipio Autónomo de Bayamón", idx) is not None
+        assert local_resolve("Autonomous Municipality of Adjuntas", idx) is not None
+
     def test_does_not_misclassify_contractor_sharing_town_name(self, tmp_path):
         idx = load_municipio_index(self._make_municipio_csv(tmp_path))
         # only "MUNICIPIO DE X" forms are indexed, never the bare town name
