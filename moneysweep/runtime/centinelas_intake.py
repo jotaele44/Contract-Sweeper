@@ -162,6 +162,7 @@ def build_candidates(
                 "municipality": _municipality_hint(payload, root),
                 "amount": _amount(payload),
                 "event_date": _event_date(payload),
+                "recipient": _first_str(payload.get("recipients")),
                 "agency": _first_str(payload.get("agencies")),
                 "source_url": _first_str(payload.get("source_url")),
                 "evidence_tier": _first_str(payload.get("evidence_tier")) or "T3",
@@ -179,6 +180,10 @@ def build_candidates(
         name = str(row.get("geo_municipality_name") or "")
         conf = str(row.get("geo_attribution_confidence") or "unknown")
         agency = str(row.get("agency") or "")
+        # The awardee (who won) is distinct from the awarding agency (the funder).
+        # Fall back to the agency only when no recipient was extracted, preserving
+        # prior behavior for non-contractor finance signals.
+        recipient = str(row.get("recipient") or "") or agency
         candidates.append(
             {
                 "award_id": f"CS-CENT-{item_id}" if item_id else "CS-CENT-UNKNOWN",
@@ -186,7 +191,7 @@ def build_candidates(
                 "amount": float(row.get("amount") or 0.0),
                 "currency": CURRENCY,
                 "award_date": str(row.get("event_date") or ""),
-                "recipient_entity_id": agency,
+                "recipient_entity_id": recipient,
                 "funding_agency_entity_id": agency,
                 "source_id": SOURCE_ID,
                 "signal_stage": str(row.get("signal_stage") or SIGNAL_STAGE),

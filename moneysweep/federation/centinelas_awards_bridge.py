@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from moneysweep.runtime.canonical_ids import fed_award_id, fed_entity_id, fed_source_id
+from moneysweep.runtime.name_normalization import normalize_name
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES_REL = "exports/centinelas_intake/funding_awards.jsonl"
@@ -149,7 +150,7 @@ def build_centinelas_streams(root: Path | None = None, now: str | None = None) -
                         "entity_id": eid,
                         "source_id": src_id,
                         "name": display_name,
-                        "normalized_name": display_name.upper(),
+                        "normalized_name": normalize_name(display_name),
                         "entity_type": etype,
                         "jurisdiction": "PR",
                         "external_ids": {"centinelas_item_id": item_id},
