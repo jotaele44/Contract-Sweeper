@@ -1,0 +1,5 @@
+promotion_mode: manual
+allow_candidate_generation: true
+allow_validation: true
+allow_automatic_promotion: false
+require_user_approval: true
