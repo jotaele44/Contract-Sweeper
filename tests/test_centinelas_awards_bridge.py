@@ -97,6 +97,29 @@ def test_supporting_entities_and_source_emitted(tmp_path):
     assert award["source_id"] in {s["source_id"] for s in built["sources"]}
 
 
+def test_distinct_recipient_and_agency_emit_two_entities(tmp_path):
+    """A candidate with a real awardee distinct from the funder yields two
+    separate entities (distinct ids, names, and entity_type)."""
+    candidate = {
+        **_CANDIDATE,
+        "recipient_entity_id": "Del Valle Group",
+        "funding_agency_entity_id": "Puerto Rico National Guard",
+    }
+    _write_candidates(tmp_path, [candidate])
+    built = build_centinelas_streams(root=tmp_path, now="2026-07-11T00:00:00+00:00")
+    award = built["funding_awards"][0]
+
+    assert award["recipient_entity_id"] != award["funding_agency_entity_id"]
+    by_id = {e["entity_id"]: e for e in built["entities"]}
+    recipient = by_id[award["recipient_entity_id"]]
+    funder = by_id[award["funding_agency_entity_id"]]
+    assert recipient["name"] == "Del Valle Group"
+    assert recipient["entity_type"] == "recipient"
+    assert recipient["normalized_name"] == "DEL VALLE GROUP"
+    assert funder["name"] == "Puerto Rico National Guard"
+    assert funder["entity_type"] == "funding_agency"
+
+
 def test_merge_appends_and_dedups(tmp_path):
     _write_candidates(tmp_path, [_CANDIDATE])
     streams = {"sources": [], "entities": [], "relationships": []}
