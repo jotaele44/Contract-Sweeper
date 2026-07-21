@@ -27,7 +27,10 @@ jobs:
           python-version: "3.13"
 
       - name: Install pip-audit
-        run: pip install pip-audit
+        run: |
+          # PRII_FETCH_HUB: requirements.lock references ../thehub-pr (editable path)
+          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
+          pip install pip-audit
 
       - name: Audit the locked dependency set
         continue-on-error: true

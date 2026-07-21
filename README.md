@@ -141,6 +141,9 @@ git clone https://github.com/jotaele44/moneysweep-pr.git
 cd moneysweep-pr
 python3 -m venv .venv
 source .venv/bin/activate
+# thehub-pr must be a sibling checkout — requirements install the shared
+# prii-maintenance library as an editable local path (../thehub-pr/packages/*):
+[ -d ../thehub-pr ] || git clone https://github.com/jotaele44/thehub-pr.git ../thehub-pr
 pip install -r requirements.txt
 python -m pytest tests/ -q
 python3 run_all.py --only-setup --strict-preflight
