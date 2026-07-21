@@ -36,6 +36,17 @@ def test_display_url_route_no_slash():
     )
 
 
+def test_display_url_route_missing_value_errors():
+    # A trailing --route used to index past argv and raise IndexError.
+    with pytest.raises(SystemExit):
+        launch.display_url("http://127.0.0.1:9", ["--route"])
+
+
+def test_display_url_route_value_is_flag_errors():
+    with pytest.raises(SystemExit):
+        launch.display_url("http://127.0.0.1:9", ["--route", "--browser"])
+
+
 def test_log_is_safe_when_stdout_none(monkeypatch):
     monkeypatch.setattr(sys, "stdout", None)
     launch.log("must not raise")  # regression: bare print() raised on frozen builds

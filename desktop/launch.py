@@ -65,7 +65,10 @@ def display_url(base: str, argv: list[str]) -> str:
     at /launcher); health checks still target the server root (base).
     """
     if "--route" in argv:
-        route = argv[argv.index("--route") + 1]
+        value_index = argv.index("--route") + 1
+        if value_index >= len(argv) or argv[value_index].startswith("--"):
+            raise SystemExit("--route requires a PATH value (e.g. --route /launcher)")
+        route = argv[value_index]
         return base + "/" + route.lstrip("/")
     return base
 
