@@ -28,29 +28,32 @@ import pandas as pd
 
 from moneysweep.runtime.base_downloader import (
     HttpConfig,
+    HttpRequestFailed,
     PageResult,
     build_session,
+    cache_is_complete,
     http_post_json,
     paginate,
+    write_csv_complete,
 )
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import (
-    file_has_data as _file_has_data,
-    derive_fiscal_year as _derive_fiscal_year,
-)
+from scripts._download_utils import derive_fiscal_year as _derive_fiscal_year
 
 USASPENDING_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
 
 AGENCY_NAME = "Department of Defense"
 SUBTIER_NAME = "U.S. Army Corps of Engineers"
-# Grants (02-05) + contracts (A-D)
-AWARD_TYPE_CODES = ["02", "03", "04", "05", "A", "B", "C", "D"]
+# USAspending rejects mixed award-type groups in a single request.
+AWARD_TYPE_GROUPS = {
+    "assistance": ["02", "03", "04", "05"],
+    "contracts": ["A", "B", "C", "D"],
+}
+SCHEMA_VERSION = "2"
 
 FIELDS = [
     "Award ID",
     "Recipient Name",
-    "recipient_uei",
     "Awarding Agency",
     "Awarding Sub Agency",
     "Award Amount",
@@ -85,57 +88,6 @@ MASTER_COLUMNS = [
     "award_category",
 ]
 
-KNOWN_USACE_DATA = [
-    {
-        "award_id": "USACE-PR-2022-001",
-        "recipient_name": "Luma Energy LLC",
-        "recipient_uei": "",
-        "awarding_agency": "Department of Defense",
-        "awarding_sub_agency": "U.S. Army Corps of Engineers",
-        "obligated_amount": "450000000",
-        "award_date": "2022-01-15",
-        "fiscal_year": "2022",
-        "pop_state": "PR",
-        "pop_county": "San Juan",
-        "description": "Puerto Rico T&D system rehabilitation USACE",
-        "source_file": "usace_civil_known_seed",
-        "source_dataset": "usace_civil",
-        "award_category": "A",
-    },
-    {
-        "award_id": "USACE-PR-2021-001",
-        "recipient_name": "Consolidated Edison Development",
-        "recipient_uei": "",
-        "awarding_agency": "Department of Defense",
-        "awarding_sub_agency": "U.S. Army Corps of Engineers",
-        "obligated_amount": "188000000",
-        "award_date": "2021-06-01",
-        "fiscal_year": "2021",
-        "pop_state": "PR",
-        "pop_county": "Ponce",
-        "description": "HMGP hazard mitigation civil works Puerto Rico",
-        "source_file": "usace_civil_known_seed",
-        "source_dataset": "usace_civil",
-        "award_category": "A",
-    },
-    {
-        "award_id": "USACE-PR-2023-001",
-        "recipient_name": "Kiewit Infrastructure West Co",
-        "recipient_uei": "",
-        "awarding_agency": "Department of Defense",
-        "awarding_sub_agency": "U.S. Army Corps of Engineers",
-        "obligated_amount": "95000000",
-        "award_date": "2023-03-01",
-        "fiscal_year": "2023",
-        "pop_state": "PR",
-        "pop_county": "Arecibo",
-        "description": "Puerto Rico flood risk management civil works",
-        "source_file": "usace_civil_known_seed",
-        "source_dataset": "usace_civil",
-        "award_category": "A",
-    },
-]
-
 MAX_RETRIES = 3
 RETRY_BACKOFF = [2, 4, 8]
 PAGE_SLEEP = 0.3
@@ -154,7 +106,14 @@ def _session():
 
 
 def _fetch_page(session, payload, logger):
-    return http_post_json(session, USASPENDING_URL, payload, logger=logger, config=_HTTP)
+    return http_post_json(
+        session,
+        USASPENDING_URL,
+        payload,
+        logger=logger,
+        config=_HTTP,
+        raise_on_failure=True,
+    )
 
 
 def _paginate(session, base_payload, logger):
@@ -174,7 +133,7 @@ def _paginate(session, base_payload, logger):
     return list(paginate(_fetch, start_marker=1))
 
 
-def _build_payload(filter_type, window):
+def _build_payload(filter_type, window, award_group):
     time_period = [{"start_date": window["start_date"], "end_date": window["end_date"]}]
     location = (
         {"place_of_performance_locations": [{"country": "USA", "state": "PR"}]}
@@ -183,7 +142,7 @@ def _build_payload(filter_type, window):
     )
     return {
         "filters": {
-            "award_type_codes": AWARD_TYPE_CODES,
+            "award_type_codes": AWARD_TYPE_GROUPS[award_group],
             "agencies": [
                 {"type": "awarding", "tier": "toptier", "name": AGENCY_NAME},
                 {"type": "awarding", "tier": "subtier", "name": SUBTIER_NAME},
@@ -207,7 +166,6 @@ def _results_to_df(results, source_file):
     rename_map = {
         "Award ID": "award_id",
         "Recipient Name": "recipient_name",
-        "recipient_uei": "recipient_uei",
         "Awarding Agency": "awarding_agency",
         "Awarding Sub Agency": "awarding_sub_agency",
         "Award Amount": "obligated_amount",
@@ -233,28 +191,53 @@ def download_window(session, window, raw_dir, force, logger):
     for filter_type in ("pop", "recipient"):
         fname = f"usace_civil_{filter_type}_{label}.csv"
         fpath = raw_dir / fname
-        if not force and _file_has_data(fpath):
+        payloads = [
+            _build_payload(filter_type, window, award_group)
+            for award_group in AWARD_TYPE_GROUPS
+        ]
+        cache_payload = {"queries": payloads}
+        if not force and cache_is_complete(
+            fpath, cache_payload, SCHEMA_VERSION, allow_empty=True
+        ):
             rows = len(pd.read_csv(fpath, dtype=str, low_memory=False))
             logger.info(f"  Skipping {fname} (exists, {rows} rows)")
             stats[f"{filter_type}_rows"] += rows
             continue
         logger.info(f"  Fetching {fname} (filter={filter_type})")
-        results = _paginate(session, _build_payload(filter_type, window), logger)
-        if not results:
-            logger.warning(f"  No results for {fname}")
-            stats["errors"].append(f"{fname}: no results")
-            pd.DataFrame(columns=MASTER_COLUMNS).to_csv(fpath, index=False, encoding="utf-8")
+        results = []
+        request_failed = False
+        for award_group, payload in zip(AWARD_TYPE_GROUPS, payloads):
+            try:
+                results.extend(_paginate(session, payload, logger))
+            except HttpRequestFailed as exc:
+                stats["errors"].append(f"{fname}/{award_group}: {exc}")
+                request_failed = True
+        if request_failed:
+            logger.error(f"  Refusing to publish partial results for {fname}")
             continue
         df = _results_to_df(results, fname)
+        if "award_id" in df.columns:
+            df = df.drop_duplicates(subset=["award_id"], keep="first")
         raw_dir.mkdir(parents=True, exist_ok=True)
-        df.to_csv(fpath, index=False, encoding="utf-8")
+        write_csv_complete(
+            df,
+            fpath,
+            cache_payload,
+            source="usace_civil",
+            schema_version=SCHEMA_VERSION,
+            page_count=max(1, (len(results) + 99) // 100),
+        )
         stats[f"{filter_type}_rows"] += len(df)
         logger.info(f"  Saved {len(df)} rows → {fname}")
     return stats
 
 
 def build_master(raw_dir, master_path, logger):
-    files = sorted(raw_dir.glob("usace_civil_*.csv"))
+    files = [
+        path
+        for path in sorted(raw_dir.glob("usace_civil_*.csv"))
+        if path.with_name(f"{path.name}.meta.json").exists()
+    ]
     if not files:
         logger.warning("  No raw USACE civil files found — master not written")
         return 0
@@ -317,13 +300,15 @@ def _run(root=None, force=False, fy_start=None):
         logger.info("")
     session.close()
     logger.info("Building USACE civil master...")
-    master_rows = build_master(raw_dir, master_path, logger)
-    if master_rows == 0:
-        logger.info("  No USACE civil data from API — writing known seed rows...")
-        seed_df = pd.DataFrame(KNOWN_USACE_DATA, columns=MASTER_COLUMNS)
-        master_path.parent.mkdir(parents=True, exist_ok=True)
-        seed_df.to_csv(master_path, index=False, encoding="utf-8")
-        master_rows = len(seed_df)
+    if all_errors:
+        logger.error("  One or more requests failed; preserving the previous USACE master")
+        master_rows = (
+            len(pd.read_csv(master_path, dtype=str, low_memory=False))
+            if master_path.exists()
+            else 0
+        )
+    else:
+        master_rows = build_master(raw_dir, master_path, logger)
     summary = {
         "raw_pop_rows": total_pop,
         "raw_recipient_rows": total_rec,

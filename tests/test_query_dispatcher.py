@@ -57,7 +57,7 @@ def test_dispatcher_returns_manual_only_for_stubbed_source(tmp_path):
     r = query(Query(municipalities=("San Juan",)), source_ids=["sam_entities"], root=tmp_path)
     assert r.outcomes["sam_entities"].status == "manual_only"
     assert r.outcomes["sam_entities"].df is None
-    assert "sam_enrichment.py" in (r.outcomes["sam_entities"].reason or "")
+    assert "run_sam_pipeline.py" in (r.outcomes["sam_entities"].reason or "")
 
 
 @pytest.mark.unit

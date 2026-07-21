@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,7 @@ RUNS_REL = "reports/source_update_runs.local.jsonl"
 FAILURES_REL = "reports/source_update_failures.local.jsonl"
 
 STATE_SCHEMA_VERSION = "source_update_state_v1"
+_LEDGER_LOCK = threading.Lock()
 
 
 def _now_iso() -> str:
@@ -173,8 +175,9 @@ def append_jsonl(root: Path, rel: str, record: dict[str, Any]) -> Path:
     """Append one JSON record as a line to a ledger file."""
     path = root / rel
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(record, sort_keys=True) + "\n")
+    with _LEDGER_LOCK:
+        with path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, sort_keys=True) + "\n")
     return path
 
 

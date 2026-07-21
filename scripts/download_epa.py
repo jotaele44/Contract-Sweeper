@@ -29,25 +29,24 @@ from moneysweep.runtime.base_downloader import (
     HttpConfig,
     PageResult,
     build_session,
+    cache_is_complete,
     http_post_json,
     paginate,
+    write_csv_complete,
 )
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import (
-    file_has_data as _file_has_data,
-    derive_fiscal_year as _derive_fiscal_year,
-)
+from scripts._download_utils import derive_fiscal_year as _derive_fiscal_year
 
 USASPENDING_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
 
 AGENCY_NAME = "Environmental Protection Agency"
 GRANT_TYPE_CODES = ["02", "03", "04", "05"]
+SCHEMA_VERSION = "2"
 
 FIELDS = [
     "Award ID",
     "Recipient Name",
-    "recipient_uei",
     "Awarding Agency",
     "Awarding Sub Agency",
     "Award Amount",
@@ -82,73 +81,6 @@ MASTER_COLUMNS = [
     "award_category",
 ]
 
-KNOWN_EPA_DATA = [
-    {
-        "award_id": "EPA-PR-2022-001",
-        "recipient_name": "Puerto Rico Aqueduct and Sewer Authority",
-        "recipient_uei": "",
-        "awarding_agency": "Environmental Protection Agency",
-        "awarding_sub_agency": "Office of Water",
-        "obligated_amount": "28000000",
-        "award_date": "2022-03-15",
-        "fiscal_year": "2022",
-        "pop_state": "PR",
-        "pop_county": "San Juan",
-        "description": "Clean Water SRF capitalization grant PR",
-        "source_file": "epa_known_seed",
-        "source_dataset": "epa",
-        "award_category": "02",
-    },
-    {
-        "award_id": "EPA-PR-2022-002",
-        "recipient_name": "Puerto Rico Environmental Quality Board",
-        "recipient_uei": "",
-        "awarding_agency": "Environmental Protection Agency",
-        "awarding_sub_agency": "Office of Air and Radiation",
-        "obligated_amount": "4200000",
-        "award_date": "2022-06-01",
-        "fiscal_year": "2022",
-        "pop_state": "PR",
-        "pop_county": "San Juan",
-        "description": "Air quality monitoring grants PR",
-        "source_file": "epa_known_seed",
-        "source_dataset": "epa",
-        "award_category": "02",
-    },
-    {
-        "award_id": "EPA-PR-2023-001",
-        "recipient_name": "Puerto Rico Dept of Natural and Environmental Resources",
-        "recipient_uei": "",
-        "awarding_agency": "Environmental Protection Agency",
-        "awarding_sub_agency": "Office of Water",
-        "obligated_amount": "18500000",
-        "award_date": "2023-04-01",
-        "fiscal_year": "2023",
-        "pop_state": "PR",
-        "pop_county": "San Juan",
-        "description": "Drinking Water SRF capitalization PR",
-        "source_file": "epa_known_seed",
-        "source_dataset": "epa",
-        "award_category": "02",
-    },
-    {
-        "award_id": "EPA-PR-2023-002",
-        "recipient_name": "Municipality of San Juan",
-        "recipient_uei": "",
-        "awarding_agency": "Environmental Protection Agency",
-        "awarding_sub_agency": "Office of Environmental Justice",
-        "obligated_amount": "1000000",
-        "award_date": "2023-09-01",
-        "fiscal_year": "2023",
-        "pop_state": "PR",
-        "pop_county": "San Juan",
-        "description": "Environmental justice cooperative agreement PR",
-        "source_file": "epa_known_seed",
-        "source_dataset": "epa",
-        "award_category": "04",
-    },
-]
-
 MAX_RETRIES = 3
 RETRY_BACKOFF = [2, 4, 8]
 PAGE_SLEEP = 0.3
@@ -167,7 +99,14 @@ def _session():
 
 
 def _fetch_page(session, payload, logger):
-    return http_post_json(session, USASPENDING_URL, payload, logger=logger, config=_HTTP)
+    return http_post_json(
+        session,
+        USASPENDING_URL,
+        payload,
+        logger=logger,
+        config=_HTTP,
+        raise_on_failure=True,
+    )
 
 
 def _paginate(session, base_payload, logger):
@@ -243,28 +182,34 @@ def download_window(session, window, raw_dir, force, logger):
     for filter_type in ("pop", "recipient"):
         fname = f"epa_{filter_type}_{label}.csv"
         fpath = raw_dir / fname
-        if not force and _file_has_data(fpath):
+        payload = _build_payload(filter_type, window)
+        if not force and cache_is_complete(
+            fpath, payload, SCHEMA_VERSION, allow_empty=True
+        ):
             rows = len(pd.read_csv(fpath, dtype=str, low_memory=False))
-            logger.info(f"  Skipping {fname} (exists, {rows} rows)")
+            logger.info(f"  Skipping {fname} (complete cache, {rows} rows)")
             stats[f"{filter_type}_rows"] += rows
             continue
         logger.info(f"  Fetching {fname} (filter={filter_type})")
-        results = _paginate(session, _build_payload(filter_type, window), logger)
-        if not results:
-            logger.warning(f"  No results for {fname}")
-            stats["errors"].append(f"{fname}: no results")
-            pd.DataFrame(columns=MASTER_COLUMNS).to_csv(fpath, index=False, encoding="utf-8")
-            continue
+        results = _paginate(session, payload, logger)
         df = _results_to_df(results, fname)
-        raw_dir.mkdir(parents=True, exist_ok=True)
-        df.to_csv(fpath, index=False, encoding="utf-8")
+        write_csv_complete(
+            df,
+            fpath,
+            payload,
+            source="usaspending:epa",
+            schema_version=SCHEMA_VERSION,
+            page_count=max(1, (len(results) + 99) // 100),
+        )
         stats[f"{filter_type}_rows"] += len(df)
-        logger.info(f"  Saved {len(df)} rows → {fname}")
+        logger.info(f"  Saved complete cache: {len(df)} rows → {fname}")
     return stats
 
 
 def build_master(raw_dir, master_path, logger):
-    files = sorted(raw_dir.glob("epa_*.csv"))
+    files = sorted(
+        f for f in raw_dir.glob("epa_*.csv") if f.with_name(f"{f.name}.meta.json").exists()
+    )
     if not files:
         logger.warning("  No raw EPA files found — master not written")
         return 0
@@ -327,13 +272,15 @@ def _run(root=None, force=False, fy_start=None):
         logger.info("")
     session.close()
     logger.info("Building EPA master...")
-    master_rows = build_master(raw_dir, master_path, logger)
-    if master_rows == 0:
-        logger.info("  No EPA data from API — writing known seed rows...")
-        seed_df = pd.DataFrame(KNOWN_EPA_DATA, columns=MASTER_COLUMNS)
-        master_path.parent.mkdir(parents=True, exist_ok=True)
-        seed_df.to_csv(master_path, index=False, encoding="utf-8")
-        master_rows = len(seed_df)
+    if all_errors:
+        logger.error("  One or more requests failed; preserving the previous EPA master")
+        master_rows = (
+            len(pd.read_csv(master_path, dtype=str, low_memory=False))
+            if master_path.exists()
+            else 0
+        )
+    else:
+        master_rows = build_master(raw_dir, master_path, logger)
     summary = {
         "raw_pop_rows": total_pop,
         "raw_recipient_rows": total_rec,

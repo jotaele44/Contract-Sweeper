@@ -1,80 +1,145 @@
-"""
-SAM pipeline — one command, monthly.
+"""Offline-first SAM entity resolution with an optional bounded API residual.
 
-Runs, in order:
-  1. ingest_sam_bulk.py     offline bulk join against newest SAM_PUBLIC_MONTHLY_V2_*.dat
-                            (resolves the bulk of vendors + confirms k2 candidates, no API)
-  2. sam_enrichment.py      API mop-up of the residual, with a daily-quota guard
-                            (skip with --skip-api; cap with --max-api, default 900)
-  3. merge_sam_bulk_master  fold authoritative + confirmed matches into master_enriched.csv
-
-Each step is independently resumable. The API step is rate-limited (SAM allows
-~1,000 requests/day); --max-api stops cleanly and checkpoints, so rerunning the
-next day continues where it left off.
+The default path never requires a SAM key: it preserves source UEIs, consumes a
+monthly public extract when present, applies local classifications/cache entries,
+merges the index into the staging master, and rebuilds ``entities_resolved.csv``.
+Live name search must be explicitly requested and is protected by both a request
+budget and a sustained-failure circuit breaker.
 
 Usage:
-  python3 scripts/run_sam_pipeline.py                 # full monthly run
-  python3 scripts/run_sam_pipeline.py --skip-api      # offline only (bulk + merge)
-  python3 scripts/run_sam_pipeline.py --max-api 500   # tighter daily budget
-  python3 scripts/run_sam_pipeline.py --dat /path/to/extract.dat
+  python3 scripts/run_sam_pipeline.py
+  python3 scripts/run_sam_pipeline.py --dat /path/to/SAM_PUBLIC_MONTHLY_V2.dat
+  python3 scripts/run_sam_pipeline.py --use-api --max-api 100
 """
 
 from __future__ import annotations
 
 import argparse
-import subprocess
+import os
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
-PY = sys.executable or "python3"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts.config import setup_logging
 
 
-def step(title: str, cmd: list[str], allow_failure: bool = False) -> None:
-    print(f"\n{'=' * 64}\n[STEP] {title}\n{'=' * 64}", flush=True)
-    r = subprocess.run(cmd, cwd=str(ROOT))
-    if r.returncode != 0:
-        if allow_failure:
-            # sam_enrichment exits non-zero when the coverage gate fails; that is
-            # a warning for the residual mop-up, not a pipeline-fatal error.
-            print(f"[WARN] step '{title}' returned {r.returncode} (continuing)", flush=True)
-            return
-        raise SystemExit(f"[FAIL] step '{title}' returned {r.returncode}")
+def _find_dat(root: Path, explicit: str | Path | None) -> Path | None:
+    if explicit:
+        path = Path(explicit)
+        if not path.exists():
+            raise FileNotFoundError(f"SAM monthly extract not found: {path}")
+        return path
+    search_dirs = [root / "data" / "raw" / "sam"]
+    if os.environ.get("SAM_BULK_DIR"):
+        search_dirs.insert(0, Path(os.environ["SAM_BULK_DIR"]))
+    candidates: list[Path] = []
+    for directory in search_dirs:
+        if directory.exists():
+            candidates.extend(directory.glob("SAM_PUBLIC_MONTHLY_V2_*.dat"))
+    return sorted(candidates)[-1] if candidates else None
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description="Run the full SAM resolution pipeline")
-    ap.add_argument("--dat", help="Path to SAM_PUBLIC_MONTHLY_V2_*.dat (default: auto-detect)")
-    ap.add_argument("--skip-api", action="store_true", help="Offline only: bulk join + merge")
-    ap.add_argument(
-        "--max-api", type=int, default=900, help="Daily API lookup budget (default 900)"
-    )
-    args = ap.parse_args()
+def run(
+    root: Path | None = None,
+    *,
+    dat: str | Path | None = None,
+    use_api: bool = False,
+    max_api: int = 100,
+    circuit_breaker_failures: int = 3,
+) -> dict[str, Any]:
+    """Run all offline resolution layers, then an optional live residual pass."""
+    root = Path(root or ROOT)
+    logger = setup_logging("run_sam_pipeline")
 
-    bulk = [PY, "scripts/ingest_sam_bulk.py"]
-    if args.dat:
-        bulk += ["--dat", args.dat]
-    step("1/3 Offline bulk join + k2 confirmation", bulk)
+    # Materialize a target cache (including source UEIs) before bulk ingestion.
+    from scripts.sam_enrichment import load_targets, run as run_enrichment
 
-    if args.skip_api:
-        print("\n[SKIP] API residual step (--skip-api)", flush=True)
+    targets = load_targets(root)
+    logger.info(f"[SAM] Targets ready: {len(targets):,}")
+
+    bulk_summary: dict[str, Any] = {"status": "not_available"}
+    dat_path = _find_dat(root, dat)
+    if dat_path is None:
+        logger.info("[SAM] No monthly public extract found — continuing with other offline layers")
     else:
-        step(
-            "2/3 API residual mop-up (quota-guarded)",
-            [PY, "scripts/sam_enrichment.py", "--resume", "--max-api", str(args.max_api)],
-            allow_failure=True,
+        from scripts.ingest_sam_bulk import run as ingest_bulk
+        from scripts.ingest_sam_bulk import write_outputs
+
+        logger.info(f"[SAM] Streaming monthly public extract: {dat_path.name}")
+        raw_summary = ingest_bulk(dat_path, root)
+        outputs = write_outputs(raw_summary, root)
+        bulk_summary = {
+            key: value for key, value in raw_summary.items() if key != "_matches"
+        }
+        bulk_summary.update(
+            {
+                "status": "complete",
+                "authoritative": outputs["n_auth"],
+                "confirmed_k2": outputs["n_confirmed"],
+            }
         )
 
-    step("3/3 Merge into master_enriched.csv", [PY, "scripts/merge_sam_bulk_master.py"])
+    # Always complete the seconds-long offline scan first. This ensures even a
+    # small live request budget cannot prevent later vendors receiving bulk UEIs.
+    offline = run_enrichment(root=root, resume=True, use_api=False, max_api=max_api)
+    residual = None
+    if use_api:
+        residual = run_enrichment(
+            root=root,
+            resume=True,
+            use_api=True,
+            max_api=max_api,
+            circuit_breaker_failures=circuit_breaker_failures,
+        )
 
-    print(
-        f"\n{'=' * 64}\n[DONE] SAM pipeline complete.\n"
-        f"  master:  data/staging/processed/enrichment/master_enriched.csv\n"
-        f"  review:  data/staging/processed/enrichment/sam_bulk_v2_review.csv\n"
-        f"{'=' * 64}",
-        flush=True,
+    from scripts.parent_collapse import build_entities
+
+    entities = build_entities(root)
+    logger.info(
+        f"[SAM] Complete — offline resolved={offline.get('vendors_resolved', 0):,}; "
+        f"API calls={(residual or {}).get('api_calls', 0):,}; "
+        f"entities={entities.get('entity_count', 0):,}"
     )
+    return {
+        "targets": len(targets),
+        "bulk": bulk_summary,
+        "offline": offline,
+        "residual": residual,
+        "entities": entities,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Run the offline-first SAM resolution pipeline")
+    parser.add_argument("--root", default=str(ROOT))
+    parser.add_argument("--dat", help="Path to SAM_PUBLIC_MONTHLY_V2_*.dat")
+    api_group = parser.add_mutually_exclusive_group()
+    api_group.add_argument(
+        "--use-api",
+        action="store_true",
+        help="Enable a bounded live residual pass (off by default)",
+    )
+    api_group.add_argument(
+        "--skip-api",
+        action="store_true",
+        help="Deprecated compatibility alias; the default is already offline-only",
+    )
+    parser.add_argument("--max-api", type=int, default=100)
+    parser.add_argument("--circuit-breaker-failures", type=int, default=3)
+    args = parser.parse_args(argv)
+    run(
+        Path(args.root),
+        dat=args.dat,
+        use_api=args.use_api,
+        max_api=args.max_api,
+        circuit_breaker_failures=args.circuit_breaker_failures,
+    )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

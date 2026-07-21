@@ -41,6 +41,30 @@ FDIC_MAPPINGS = {
 }
 
 
+def _supplied_mask(series: pd.Series) -> pd.Series:
+    """Values that a parser can reasonably be expected to parse.
+
+    FDIC legitimately leaves history-only fields blank for active institutions
+    and report-only metrics blank in older call reports. Completeness is tracked
+    separately; blank values are not parsing failures.
+    """
+    text = series.astype("string").str.strip().str.lower()
+    return series.notna() & ~text.isin({"", "nan", "none", "null", "<na>"})
+
+
+def field_coverage(df: pd.DataFrame, columns: list) -> dict:
+    """Return the percentage of rows carrying a supplied value per field."""
+    results = {}
+    for col in columns:
+        if col not in df.columns:
+            results[col] = 0.0
+            continue
+        results[col] = (
+            float(_supplied_mask(df[col]).mean() * 100) if len(df) else 0.0
+        )
+    return results
+
+
 def validate_dates(df: pd.DataFrame, date_cols: list) -> dict:
     """Validate date parsing for specified columns.
 
@@ -53,10 +77,12 @@ def validate_dates(df: pd.DataFrame, date_cols: list) -> dict:
             continue
 
         try:
-            parsed = pd.to_datetime(df[col], errors="coerce")
-            success_count = parsed.notna().sum()
-            total_count = len(df)
-            results[col] = (success_count / total_count * 100) if total_count > 0 else 0.0
+            supplied = _supplied_mask(df[col])
+            supplied_count = int(supplied.sum())
+            parsed = pd.to_datetime(df.loc[supplied, col], errors="coerce")
+            results[col] = (
+                float(parsed.notna().mean() * 100) if supplied_count else 100.0
+            )
         except Exception as e:
             logger.warning(f"Failed to validate dates in {col}: {e}")
             results[col] = 0.0
@@ -76,10 +102,12 @@ def validate_amounts(df: pd.DataFrame, amount_cols: list) -> dict:
             continue
 
         try:
-            parsed = pd.to_numeric(df[col], errors="coerce")
-            success_count = parsed.notna().sum()
-            total_count = len(df)
-            results[col] = (success_count / total_count * 100) if total_count > 0 else 0.0
+            supplied = _supplied_mask(df[col])
+            supplied_count = int(supplied.sum())
+            parsed = pd.to_numeric(df.loc[supplied, col], errors="coerce")
+            results[col] = (
+                float(parsed.notna().mean() * 100) if supplied_count else 100.0
+            )
         except Exception as e:
             logger.warning(f"Failed to validate amounts in {col}: {e}")
             results[col] = 0.0
@@ -106,6 +134,8 @@ def map_fdic_resource(df: pd.DataFrame, resource_type: str) -> tuple:
     # Validate dates and amounts
     date_validation = validate_dates(df, list(config["date_cols"]))
     amount_validation = validate_amounts(df, list(config["amount_cols"]))
+    date_coverage = field_coverage(df, list(config["date_cols"]))
+    amount_coverage = field_coverage(df, list(config["amount_cols"]))
 
     # Check for threshold violations (>5% unparsed = warning)
     threshold = 95.0
@@ -117,6 +147,8 @@ def map_fdic_resource(df: pd.DataFrame, resource_type: str) -> tuple:
         "rows": len(df),
         "date_validation": date_validation,
         "amount_validation": amount_validation,
+        "date_coverage": date_coverage,
+        "amount_coverage": amount_coverage,
         "failed_dates": failed_dates,
         "failed_amounts": failed_amounts,
         "threshold_met": len(failed_dates) == 0 and len(failed_amounts) == 0,

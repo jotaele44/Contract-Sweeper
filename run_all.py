@@ -153,6 +153,26 @@ def main() -> int:
             logger.error(f"[centinelas] intake/bundle failed: {e}")
             return 1
 
+    if args.profile == "incremental":
+        if args.workers < 1:
+            parser.error("--workers must be at least 1")
+        logger.info(
+            "Incremental profile: running only due registry sources "
+            f"across up to {args.workers} independent lanes."
+        )
+        from moneysweep.update_controller.cli import main as update_sources_main
+
+        return update_sources_main(
+            [
+                "run",
+                "--root",
+                str(root),
+                "--continue-on-error",
+                "--workers",
+                str(args.workers),
+            ]
+        )
+
     # Registry readiness preflight — inspects all sources without executing any
     # producer or making network calls. Missing API keys are non-fatal; structural
     # errors abort only under --strict-preflight.
@@ -719,30 +739,29 @@ def main() -> int:
     if args.skip_enrichment:
         logger.info("[Step 7/29] SKIPPED (--skip-enrichment)\n")
     else:
-        import os as _os
-        from scripts.config import _load_dotenv, PROJECT_ROOT as _root
-
-        has_key = bool(
-            _os.environ.get("SAM_API_KEY", "").strip()
-            or _load_dotenv(_root / ".env").get("SAM_API_KEY", "").strip()
-        )
-        if not has_key:
-            logger.info("[Step 7/29] SKIPPED — SAM_API_KEY not set.")
-            logger.info("  Set via: export SAM_API_KEY=your_key  or create a .env file.\n")
-            enrichment_result = "NO_KEY — skipped"
-        elif dedup_stats is None or dedup_stats.get("master_rows", 0) == 0:
+        if dedup_stats is None or dedup_stats.get("master_rows", 0) == 0:
             logger.info("[Step 7/29] SKIPPED — no master data (download files first)\n")
             enrichment_result = "SKIPPED — no master data"
         else:
-            logger.info("[Step 7/29] Running SAM.gov UEI enrichment...")
+            mode = "offline + bounded API residual" if args.sam_api_residual else "offline-first"
+            logger.info(f"[Step 7/29] Running SAM.gov UEI enrichment ({mode})...")
             try:
-                from scripts.sam_enrichment import run as run_enrichment
+                from scripts.run_sam_pipeline import run as run_enrichment
 
-                summary = run_enrichment(root=root)
+                result = run_enrichment(
+                    root=root,
+                    use_api=args.sam_api_residual,
+                    max_api=args.sam_max_api,
+                    circuit_breaker_failures=args.sam_circuit_breaker,
+                )
+                summary = result.get("residual") or result.get("offline", {})
+                if args.sam_api_residual:
+                    gate = "PASS" if summary.get("coverage_gate_pass") else "BELOW GATE"
+                else:
+                    gate = "OFFLINE COMPLETE; LIVE RESIDUAL DEFERRED"
                 enrichment_result = (
                     f"{summary.get('vendors_resolved', 0)}/{summary.get('vendors_attempted', 0)} vendors resolved "
-                    f"({summary.get('coverage_pct', 0):.1f}%) — "
-                    f"{'PASS' if summary.get('coverage_gate_pass') else 'BELOW GATE'}"
+                    f"({summary.get('coverage_pct', 0):.1f}%) — {gate}"
                 )
                 logger.info("[Step 7/29] Done.\n")
             except Exception as e:
@@ -758,7 +777,7 @@ def main() -> int:
     elif not master_ready:
         logger.info("[Step 8/29] SKIPPED — no master data yet\n")
     else:
-        logger.info("[Step 8/29] Resolving top 100 vendor entities...")
+        logger.info("[Step 8/29] Building offline-first vendor entity hierarchy...")
         try:
             from scripts.entity_resolution import run as run_entity
 

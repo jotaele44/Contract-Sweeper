@@ -26,33 +26,29 @@ from moneysweep.runtime.base_downloader import (
     HttpConfig,
     PageResult,
     build_session,
+    cache_is_complete,
     http_post_json,
     paginate,
+    write_csv_complete,
 )
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import (
-    file_has_data as _file_has_data,
-    derive_fiscal_year as _derive_fiscal_year,
-)
+from scripts._download_utils import derive_fiscal_year as _derive_fiscal_year
 
 USASPENDING_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
 
 AGENCY_NAME = "Export-Import Bank of the United States"
-GRANT_TYPE_CODES = ["07", "08"]  # direct loans + guaranteed loans
+LOAN_TYPE_CODES = ["07", "08"]  # direct loans + guaranteed loans
+SCHEMA_VERSION = "2"
 
 FIELDS = [
     "Award ID",
     "Recipient Name",
-    "recipient_uei",
     "Awarding Agency",
     "Awarding Sub Agency",
-    "Award Amount",
-    "Start Date",
-    "Award Type",
-    "Place of Performance State Code",
-    "Place of Performance County Name",
-    "Description",
+    "Loan Value",
+    "Subsidy Cost",
+    "Issued Date",
 ]
 
 TIME_WINDOWS = [
@@ -69,6 +65,8 @@ MASTER_COLUMNS = [
     "awarding_agency",
     "awarding_sub_agency",
     "obligated_amount",
+    "loan_value",
+    "subsidy_cost",
     "award_date",
     "fiscal_year",
     "pop_state",
@@ -98,7 +96,14 @@ def _session():
 
 
 def _fetch_page(session, payload, logger):
-    return http_post_json(session, USASPENDING_URL, payload, logger=logger, config=_HTTP)
+    return http_post_json(
+        session,
+        USASPENDING_URL,
+        payload,
+        logger=logger,
+        config=_HTTP,
+        raise_on_failure=True,
+    )
 
 
 def _paginate(session, base_payload, logger):
@@ -126,7 +131,7 @@ def _build_payload(filter_type, window):
     )
     return {
         "filters": {
-            "award_type_codes": GRANT_TYPE_CODES,
+            "award_type_codes": LOAN_TYPE_CODES,
             "agencies": [{"type": "awarding", "tier": "toptier", "name": AGENCY_NAME}],
             "time_period": time_period,
             **location,
@@ -134,7 +139,7 @@ def _build_payload(filter_type, window):
         "fields": FIELDS,
         "page": 1,
         "limit": 100,
-        "sort": "Award Amount",
+        "sort": "Loan Value",
         "order": "desc",
         "subawards": False,
     }
@@ -147,17 +152,28 @@ def _results_to_df(results, source_file):
     rename_map = {
         "Award ID": "award_id",
         "Recipient Name": "recipient_name",
-        "recipient_uei": "recipient_uei",
         "Awarding Agency": "awarding_agency",
         "Awarding Sub Agency": "awarding_sub_agency",
-        "Award Amount": "obligated_amount",
-        "Start Date": "award_date",
-        "Award Type": "award_category",
-        "Place of Performance State Code": "pop_state",
-        "Place of Performance County Name": "pop_county",
-        "Description": "description",
+        "Loan Value": "loan_value",
+        "Subsidy Cost": "subsidy_cost",
+        "Issued Date": "award_date",
     }
     df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
+    # Subsidy cost is the federal budget cost; retain face value separately.
+    subsidy = pd.to_numeric(
+        df["subsidy_cost"]
+        if "subsidy_cost" in df.columns
+        else pd.Series(index=df.index, dtype=float),
+        errors="coerce",
+    )
+    face_value = pd.to_numeric(
+        df["loan_value"]
+        if "loan_value" in df.columns
+        else pd.Series(index=df.index, dtype=float),
+        errors="coerce",
+    )
+    df["obligated_amount"] = subsidy.fillna(face_value)
+    df["award_category"] = "loan"
     df["fiscal_year"] = df.get("award_date", pd.Series(dtype=str)).apply(_derive_fiscal_year)
     df["source_file"] = source_file
     df["source_dataset"] = "exim"
@@ -168,7 +184,11 @@ def _results_to_df(results, source_file):
 
 
 def build_master(raw_dir, master_path, logger):
-    files = sorted(raw_dir.glob("exim_*.csv"))
+    files = [
+        path
+        for path in sorted(raw_dir.glob("exim_*.csv"))
+        if path.with_name(f"{path.name}.meta.json").exists()
+    ]
     if not files:
         logger.warning("  No raw Ex-Im files found — master not written")
         return 0
@@ -212,7 +232,10 @@ def _run(root=None, force=False, fy_start=None):
         for filter_type in ("pop", "recipient"):
             fname = f"exim_{filter_type}_{window['label']}.csv"
             fpath = raw_dir / fname
-            if not force and _file_has_data(fpath):
+            payload = _build_payload(filter_type, window)
+            if not force and cache_is_complete(
+                fpath, payload, SCHEMA_VERSION, allow_empty=True
+            ):
                 rows = len(pd.read_csv(fpath, dtype=str, low_memory=False))
                 logger.info(f"  Skipping {fname} ({rows} rows)")
                 if filter_type == "pop":
@@ -220,13 +243,16 @@ def _run(root=None, force=False, fy_start=None):
                 else:
                     total_rec += rows
                 continue
-            results = _paginate(session, _build_payload(filter_type, window), logger)
-            if not results:
-                all_errors.append(f"{fname}: no results")
-                pd.DataFrame(columns=MASTER_COLUMNS).to_csv(fpath, index=False, encoding="utf-8")
-                continue
+            results = _paginate(session, payload, logger)
             df = _results_to_df(results, fname)
-            df.to_csv(fpath, index=False, encoding="utf-8")
+            write_csv_complete(
+                df,
+                fpath,
+                payload,
+                source="exim",
+                schema_version=SCHEMA_VERSION,
+                page_count=max(1, (len(results) + 99) // 100),
+            )
             if filter_type == "pop":
                 total_pop += len(df)
             else:

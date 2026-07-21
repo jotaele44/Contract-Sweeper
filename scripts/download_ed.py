@@ -27,25 +27,24 @@ from moneysweep.runtime.base_downloader import (
     HttpConfig,
     PageResult,
     build_session,
+    cache_is_complete,
     http_post_json,
     paginate,
+    write_csv_complete,
 )
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import (
-    file_has_data as _file_has_data,
-    derive_fiscal_year as _derive_fiscal_year,
-)
+from scripts._download_utils import derive_fiscal_year as _derive_fiscal_year
 
 USASPENDING_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
 
 AGENCY_NAME = "Department of Education"
 GRANT_TYPE_CODES = ["02", "03", "04", "05"]
+SCHEMA_VERSION = "2"
 
 FIELDS = [
     "Award ID",
     "Recipient Name",
-    "recipient_uei",
     "Awarding Agency",
     "Awarding Sub Agency",
     "Award Amount",
@@ -98,7 +97,14 @@ def _session():
 
 
 def _fetch_page(session, payload, logger):
-    return http_post_json(session, USASPENDING_URL, payload, logger=logger, config=_HTTP)
+    return http_post_json(
+        session,
+        USASPENDING_URL,
+        payload,
+        logger=logger,
+        config=_HTTP,
+        raise_on_failure=True,
+    )
 
 
 def _paginate(session, base_payload, logger):
@@ -174,30 +180,36 @@ def download_window(session, window, raw_dir, force, logger):
     for filter_type in ("pop", "recipient"):
         fname = f"ed_{filter_type}_{label}.csv"
         fpath = raw_dir / fname
-        if not force and _file_has_data(fpath):
+        payload = _build_payload(filter_type, window)
+        if not force and cache_is_complete(
+            fpath, payload, SCHEMA_VERSION, allow_empty=True
+        ):
             rows = len(pd.read_csv(fpath, dtype=str, low_memory=False))
-            logger.info(f"  Skipping {fname} (exists, {rows} rows)")
+            logger.info(f"  Skipping {fname} (complete cache, {rows} rows)")
             stats[f"{filter_type}_rows"] = rows
             continue
         logger.info(
             f"  Fetching {fname} ({window['start_date']} → {window['end_date']}, filter={filter_type})"
         )
-        results = _paginate(session, _build_payload(filter_type, window), logger)
-        if not results:
-            logger.warning(f"  No results for {fname}")
-            stats["errors"].append(f"{fname}: no results")
-            pd.DataFrame(columns=MASTER_COLUMNS).to_csv(fpath, index=False, encoding="utf-8")
-            continue
+        results = _paginate(session, payload, logger)
         df = _results_to_df(results, fname)
-        raw_dir.mkdir(parents=True, exist_ok=True)
-        df.to_csv(fpath, index=False, encoding="utf-8")
+        write_csv_complete(
+            df,
+            fpath,
+            payload,
+            source="usaspending:education",
+            schema_version=SCHEMA_VERSION,
+            page_count=max(1, (len(results) + 99) // 100),
+        )
         stats[f"{filter_type}_rows"] = len(df)
-        logger.info(f"  Saved {len(df)} rows → {fname}")
+        logger.info(f"  Saved complete cache: {len(df)} rows → {fname}")
     return stats
 
 
 def build_master(raw_dir, master_path, logger):
-    files = sorted(raw_dir.glob("ed_*.csv"))
+    files = sorted(
+        f for f in raw_dir.glob("ed_*.csv") if f.with_name(f"{f.name}.meta.json").exists()
+    )
     if not files:
         logger.warning("  No raw ED files found — master not written")
         return 0
@@ -260,7 +272,15 @@ def _run(root=None, force=False, fy_start=None):
         logger.info("")
     session.close()
     logger.info("Building ED master...")
-    master_rows = build_master(raw_dir, master_path, logger)
+    if all_errors:
+        logger.error("  One or more requests failed; preserving the previous ED master")
+        master_rows = (
+            len(pd.read_csv(master_path, dtype=str, low_memory=False))
+            if master_path.exists()
+            else 0
+        )
+    else:
+        master_rows = build_master(raw_dir, master_path, logger)
     summary = {
         "raw_pop_rows": total_pop,
         "raw_recipient_rows": total_rec,

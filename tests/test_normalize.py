@@ -93,6 +93,7 @@ class TestBuildColumnMap:
             "Award ID",
             "Start Date",
             "Recipient Name",
+            "recipient_uei",
             "Awarding Agency",
             "Award Amount",
             "Place of Performance State Code",
@@ -101,6 +102,7 @@ class TestBuildColumnMap:
         assert cmap["contract_id"] == "Award ID"
         assert cmap["award_date"] == "Start Date"
         assert cmap["vendor_name"] == "Recipient Name"
+        assert cmap["recipient_uei"] == "recipient_uei"
         assert cmap["agency_name"] == "Awarding Agency"
         assert cmap["obligated_amount"] == "Award Amount"
         assert cmap["pop_state"] == "Place of Performance State Code"

@@ -2,9 +2,9 @@
 Download congressional earmarks for Puerto Rico from USASpending.
 
 Earmarks (congressionally directed spending) resumed in FY2022. PR delegation
-earmarks appear in appropriations bills across all agencies. This script uses
-the USASpending disaster emergency fund code filter plus keyword matching on
-award descriptions to identify earmarked awards.
+earmarks appear in appropriations bills across all agencies. USASpending has no
+earmark flag, so this script retains only awards whose descriptions contain
+explicit congressional-directed-spending language.
 
 Source: USASpending API (spending_by_award) — no auth required
 
@@ -26,27 +26,30 @@ import pandas as pd
 
 from moneysweep.runtime.base_downloader import (
     HttpConfig,
+    HttpRequestFailed,
     PageResult,
     build_session,
+    cache_is_complete,
     http_post_json,
     paginate,
+    write_csv_complete,
 )
 
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts._download_utils import (
-    file_has_data as _file_has_data,
-    derive_fiscal_year as _derive_fiscal_year,
-)
+from scripts._download_utils import derive_fiscal_year as _derive_fiscal_year
 
 USASPENDING_URL = "https://api.usaspending.gov/api/v2/search/spending_by_award/"
 
-# Earmarks appear across all award types FY2022+
-AWARD_TYPE_CODES = ["02", "03", "04", "05", "A", "B", "C", "D"]
+# USAspending requires each request to contain one award-type group.
+AWARD_TYPE_GROUPS = {
+    "assistance": ["02", "03", "04", "05"],
+    "contracts": ["A", "B", "C", "D"],
+}
+SCHEMA_VERSION = "2"
 
 FIELDS = [
     "Award ID",
     "Recipient Name",
-    "recipient_uei",
     "Awarding Agency",
     "Awarding Sub Agency",
     "Award Amount",
@@ -107,7 +110,14 @@ def _session():
 
 
 def _fetch_page(session, payload, logger):
-    return http_post_json(session, USASPENDING_URL, payload, logger=logger, config=_HTTP)
+    return http_post_json(
+        session,
+        USASPENDING_URL,
+        payload,
+        logger=logger,
+        config=_HTTP,
+        raise_on_failure=True,
+    )
 
 
 def _paginate(session, base_payload, logger):
@@ -126,21 +136,12 @@ def _paginate(session, base_payload, logger):
     return list(paginate(_fetch, start_marker=1))
 
 
-def _build_payload(window):
+def _build_payload(window, award_group):
     return {
         "filters": {
-            "award_type_codes": AWARD_TYPE_CODES,
+            "award_type_codes": AWARD_TYPE_GROUPS[award_group],
             "place_of_performance_locations": [{"country": "USA", "state": "PR"}],
             "time_period": [{"start_date": window["start_date"], "end_date": window["end_date"]}],
-            # Filter for congressionally directed spending flag
-            "def_codes": [
-                "L",
-                "M",
-                "N",
-                "O",
-                "P",
-                "Q",
-            ],  # IRA/IIJA DEF codes include directed spending
         },
         "fields": FIELDS,
         "page": 1,
@@ -157,16 +158,19 @@ def _results_to_df(results, source_file):
     df = pd.json_normalize(results)
     rename_map = {
         "Award ID": "award_id",
+        "award_id": "award_id",
         "Recipient Name": "recipient_name",
-        "recipient_uei": "recipient_uei",
+        "recipient_name": "recipient_name",
         "Awarding Agency": "awarding_agency",
         "Awarding Sub Agency": "awarding_sub_agency",
         "Award Amount": "obligated_amount",
+        "total_obligated_amount": "obligated_amount",
         "Start Date": "award_date",
         "Award Type": "award_category",
         "Place of Performance State Code": "pop_state",
         "Place of Performance County Name": "pop_county",
         "Description": "description",
+        "award_description": "description",
     }
     df = df.rename(columns={k: v for k, v in rename_map.items() if k in df.columns})
     df["fiscal_year"] = df.get("award_date", pd.Series(dtype=str)).apply(_derive_fiscal_year)
@@ -184,6 +188,9 @@ def _results_to_df(results, source_file):
         return ""
 
     df["earmark_keyword_matched"] = df.get("description", pd.Series(dtype=str)).apply(_kw_match)
+    # The API has no earmark flag. Only description evidence is retained; broad
+    # Puerto Rico awards are never relabeled as earmarks merely by DEF code.
+    df = df[df["earmark_keyword_matched"] != ""].copy()
 
     for col in EARMARK_COLUMNS:
         if col not in df.columns:
@@ -202,7 +209,16 @@ def _run(root=None, force=False):
     logger = setup_logging("download_earmarks")
     logger.info("Starting congressional earmarks download for Puerto Rico...")
 
-    if not force and _file_has_data(out_path):
+    queries = [
+        _build_payload(window, award_group)
+        for window in TIME_WINDOWS
+        for award_group in AWARD_TYPE_GROUPS
+    ]
+    cache_payload = {"queries": queries}
+
+    if not force and cache_is_complete(
+        out_path, cache_payload, SCHEMA_VERSION, allow_empty=True
+    ):
         rows = len(pd.read_csv(out_path, dtype=str, low_memory=False))
         logger.info(f"  pr_earmarks.csv exists ({rows:,} rows) — skipping.")
         return {"rows": rows, "path": str(out_path), "errors": []}
@@ -213,18 +229,29 @@ def _run(root=None, force=False):
 
     for window in TIME_WINDOWS:
         logger.info(f"  Window: {window['start_date']} → {window['end_date']}")
-        fname = f"earmarks_{window['label']}.csv"
-        results = _paginate(session, _build_payload(window), logger)
-        if not results:
-            logger.warning(f"  No earmark results for {window['label']}")
-            errors.append(f"{fname}: no results")
-            continue
-        df = _results_to_df(results, fname)
-        all_frames.append(df)
-        logger.info(f"  {len(df)} earmark records for {window['label']}")
+        for award_group in AWARD_TYPE_GROUPS:
+            fname = f"earmarks_{window['label']}_{award_group}.csv"
+            try:
+                results = _paginate(
+                    session, _build_payload(window, award_group), logger
+                )
+            except HttpRequestFailed as exc:
+                logger.error(f"  {award_group}: {exc}")
+                errors.append(f"{fname}: {exc}")
+                continue
+            df = _results_to_df(results, fname)
+            if not df.empty:
+                all_frames.append(df)
+            logger.info(
+                f"  {len(df)} keyword-confirmed earmark records "
+                f"for {window['label']} ({award_group})"
+            )
 
     session.close()
 
+    if errors:
+        logger.error("  One or more request groups failed; refusing to publish a partial cache")
+        return {"rows": 0, "path": str(out_path), "errors": errors}
     if all_frames:
         combined = pd.concat(all_frames, ignore_index=True)
         if "award_id" in combined.columns:
@@ -232,8 +259,14 @@ def _run(root=None, force=False):
     else:
         combined = pd.DataFrame(columns=EARMARK_COLUMNS)
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    combined.to_csv(out_path, index=False, encoding="utf-8")
+    write_csv_complete(
+        combined,
+        out_path,
+        cache_payload,
+        source="earmarks",
+        schema_version=SCHEMA_VERSION,
+        page_count=sum(max(1, (len(frame) + 99) // 100) for frame in all_frames),
+    )
 
     total_amt = (
         pd.to_numeric(combined.get("obligated_amount", pd.Series()), errors="coerce")

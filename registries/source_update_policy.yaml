@@ -49,14 +49,23 @@ sources:
     trigger_type: schedule
     enabled: true
     cadence: monthly
-    runner: scripts/sam_enrichment.py
+    runner: scripts/run_sam_pipeline.py
     execution_backend: self_hosted
-    timeout_minutes: 720
-    max_retries: 2
+    timeout_minutes: 90
+    max_retries: 0
     checkpoint_strategy: entity_queue
-    required_secrets:
-      - SAM_API_KEY
     freshness_sla_hours: 1080
+
+  # Keep this canonical upstream schedulable even in lean controller images
+  # where optional HTTP/dataframe dependencies are installed only inside the
+  # execution environment. Live import probing must not disable its dependent
+  # EMMA revenue extraction policy.
+  - source_id: emma_bonds
+    trigger_type: schedule
+    enabled: true
+    cadence: weekly
+    runner: scripts/download_emma.py
+    freshness_sla_hours: 192
 
   # -- Manual / dropzone sources: operator-supplied files, no credentialed
   #    scraping. Ingested only when a new file hash is detected.

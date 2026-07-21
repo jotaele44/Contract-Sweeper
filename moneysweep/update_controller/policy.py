@@ -319,6 +319,9 @@ def build_effective_policies(
             if sid in overrides
             else ("manual_export_registry" if manual_export else "inferred")
         )
+        notes = str(override.get("notes") or src.get("notes") or "").strip()
+        if is_disabled and not notes:
+            notes = f"Disabled by inferred readiness classification ({path_type or 'terminal'})."
 
         pol = SourceUpdatePolicy(
             source_id=sid,
@@ -361,7 +364,7 @@ def build_effective_policies(
             max_pages_per_run=override.get("max_pages_per_run"),
             trigger_dependents_on=override.get("trigger_dependents_on"),
             minimum_output_rows=override.get("minimum_output_rows"),
-            notes=override.get("notes", "") or "",
+            notes=notes,
             path_type=path_type,
             required=bool(src.get("required", False)),
             terminal=path_type in TERMINAL_PATH_TYPES,

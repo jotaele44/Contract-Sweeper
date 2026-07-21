@@ -78,9 +78,9 @@
       "source_id": "sam_entities",
       "family": "entity_resolution",
       "required": true,
-      "authentication": "api_key:SAM_API_KEY",
+      "authentication": "none",
       "endpoint_url": "https://sam.gov/data-services/Entity%20Information",
-      "producer_script": "scripts/sam_enrichment.py",
+      "producer_script": "scripts/run_sam_pipeline.py",
       "expected_outputs": [
         "data/staging/processed/enrichment/vendor_uei_index.csv",
         "data/staging/processed/entities_resolved.csv"
@@ -92,7 +92,7 @@
         "parent_uei_coverage_pct_corporate": 0.002
       },
       "update_cadence": "monthly",
-      "notes": "SAM full extract + per-UEI enrichment for parent resolution.\nSupplemented by scripts/usaspending_parent_uei_extract.py (no rate limit).\nSAM API rate: 1,000 req/day \u2192 full 2,334-UEI run = 2.3+ days.\n"
+      "notes": "Offline-first UEI resolution from source exports, SAM monthly extracts,\nprior indexes, and local aliases. A bounded live SAM residual pass is opt-in\nand uses SAM_API_KEY with quota/transport circuit breakers.\n"
     },
     {
       "source_id": "highergov_supplemental",

@@ -80,9 +80,10 @@ def test_file_drop_policies_have_paths_patterns_and_hash():
 
 
 def test_secret_names_match_authentication():
-    # sam_entities declares SAM_API_KEY; api_key sources carry their env var
+    # The scheduled SAM path is offline-first; the live residual is explicit.
     sam = POLICIES["sam_entities"]
-    assert "SAM_API_KEY" in sam.required_secrets
+    assert sam.runner == "scripts/run_sam_pipeline.py"
+    assert "SAM_API_KEY" not in sam.required_secrets
 
 
 def test_policy_hash_is_deterministic():
@@ -93,6 +94,8 @@ def test_policy_hash_is_deterministic():
 def test_known_overrides_take_effect():
     assert POLICIES["ocpr_contracts"].execution_backend == "self_hosted"
     assert POLICIES["ocpr_contracts"].trigger_type == "schedule"
+    assert POLICIES["emma_bonds"].trigger_type == "schedule"
+    assert POLICIES["emma_bonds"].cadence == "weekly"
     assert POLICIES["centinelas_pre_official_signals"].trigger_type == "on_drop"
     assert POLICIES["prasa_contracts_master"].trigger_type == "dependency"
     assert POLICIES["prasa_contracts_master"].depends_on == ["prasa"]

@@ -8,13 +8,17 @@ import requests
 
 from moneysweep.runtime.base_downloader import (
     BaseDownloader,
+    HttpRequestFailed,
     HttpConfig,
     PageResult,
     build_session,
+    cache_is_complete,
     file_has_data,
     http_get_json,
     http_post_json,
+    query_fingerprint,
     write_csv,
+    write_csv_complete,
 )
 
 
@@ -102,6 +106,21 @@ def test_http_get_json_4xx_is_terminal_none_no_retry():
     assert len(session.calls) == 1  # did NOT retry a 4xx
 
 
+def test_http_get_json_strict_4xx_raises():
+    session = _FakeSession([_Resp(404)])
+    with pytest.raises(HttpRequestFailed) as exc:
+        http_get_json(
+            session,
+            "http://x",
+            {},
+            logger=_Logger(),
+            sleeper=_noop_sleep,
+            raise_on_failure=True,
+        )
+    assert exc.value.status_code == 404
+    assert exc.value.retryable is False
+
+
 def test_http_get_json_retries_5xx_then_succeeds():
     session = _FakeSession([_Resp(503), _Resp(200, {"ok": True})])
     cfg = HttpConfig(max_retries=3)
@@ -116,6 +135,21 @@ def test_http_get_json_retries_transport_error_then_exhausts():
     out = http_get_json(session, "http://x", {}, logger=_Logger(), config=cfg, sleeper=_noop_sleep)
     assert out is None
     assert len(session.calls) == 3
+
+
+def test_http_get_json_strict_retry_exhaustion_raises():
+    session = _FakeSession([requests.RequestException("boom")] * 2)
+    with pytest.raises(HttpRequestFailed) as exc:
+        http_get_json(
+            session,
+            "http://x",
+            {},
+            logger=_Logger(),
+            config=HttpConfig(max_retries=2),
+            sleeper=_noop_sleep,
+            raise_on_failure=True,
+        )
+    assert exc.value.retryable is True
 
 
 def test_http_get_json_429_is_retried():
@@ -195,6 +229,45 @@ def test_write_csv_roundtrip(tmp_path):
     back = pd.read_csv(out)
     assert list(back.columns) == ["x", "y"]
     assert len(back) == 1
+
+
+def test_query_fingerprint_ignores_page_but_tracks_schema_and_filters():
+    base = {"page": 1, "filters": {"state": "PR"}}
+    assert query_fingerprint(base, "1") == query_fingerprint({**base, "page": 8}, "1")
+    assert query_fingerprint(base, "1") != query_fingerprint(base, "2")
+    assert query_fingerprint(base, "1") != query_fingerprint(
+        {"page": 1, "filters": {"state": "VI"}}, "1"
+    )
+
+
+def test_complete_cache_roundtrip_and_query_invalidation(tmp_path):
+    path = tmp_path / "cache.csv"
+    payload = {"page": 1, "filters": {"state": "PR"}}
+    write_csv_complete(
+        pd.DataFrame([{"award_id": "A1"}]),
+        path,
+        payload,
+        source="test",
+        schema_version="3",
+        page_count=1,
+    )
+    assert cache_is_complete(path, payload, "3") is True
+    assert cache_is_complete(path, {"filters": {"state": "VI"}}, "3") is False
+    assert cache_is_complete(path, payload, "4") is False
+
+
+def test_legacy_csv_without_completion_manifest_is_not_cache_hit(tmp_path):
+    path = tmp_path / "legacy.csv"
+    pd.DataFrame([{"award_id": "A1"}]).to_csv(path, index=False)
+    assert cache_is_complete(path, {"filters": {"state": "PR"}}) is False
+
+
+def test_complete_cache_detects_tampered_csv(tmp_path):
+    path = tmp_path / "cache.csv"
+    payload = {"filters": {"state": "PR"}}
+    write_csv_complete(pd.DataFrame([{"x": 1}]), path, payload, source="test")
+    path.write_text("x\n2\n", encoding="utf-8")
+    assert cache_is_complete(path, payload) is False
 
 
 # ---------------------------------------------------------------------------

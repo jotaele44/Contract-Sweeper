@@ -12,6 +12,18 @@ import argparse
 def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Puerto Rico Federal Contracts Data Pipeline")
     parser.add_argument(
+        "--profile",
+        choices=("full", "incremental"),
+        default="full",
+        help="Run the legacy full pipeline or only due registry sources (default: full)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Maximum independent sources to run concurrently in incremental mode (default: 4)",
+    )
+    parser.add_argument(
         "--only-setup",
         action="store_true",
         help="Run only steps 1-2 (create dirs + generate instructions), then exit",
@@ -64,6 +76,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--skip-enrichment",
         action="store_true",
         help="Skip step 7 (SAM.gov UEI enrichment)",
+    )
+    parser.add_argument(
+        "--sam-api-residual",
+        action="store_true",
+        help="Opt into the bounded live SAM residual pass (offline-only by default)",
+    )
+    parser.add_argument(
+        "--sam-max-api",
+        type=int,
+        default=100,
+        help="Maximum live SAM lookups when --sam-api-residual is set (default: 100)",
+    )
+    parser.add_argument(
+        "--sam-circuit-breaker",
+        type=int,
+        default=3,
+        help="Stop SAM residual after this many consecutive transport failures (default: 3)",
     )
     parser.add_argument(
         "--skip-entity-resolution",

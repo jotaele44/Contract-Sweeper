@@ -70,6 +70,21 @@ def deduplicate(df: pd.DataFrame, logger) -> pd.DataFrame:
             lambda x: ",".join(sorted(set(x.dropna().astype(str))))
         )
 
+    # Keep an identifier supplied by any duplicate source instead of losing it
+    # merely because the first row came from a legacy export without UEI.
+    if "recipient_uei" in df.columns and present_cols:
+        def _first_nonempty(values: pd.Series) -> str:
+            cleaned = [
+                value.strip()
+                for value in values.dropna().astype(str)
+                if value.strip() and value.strip().lower() not in {"nan", "<na>"}
+            ]
+            return cleaned[0] if cleaned else ""
+
+        df["recipient_uei"] = df.groupby(present_cols, sort=False)["recipient_uei"].transform(
+            _first_nonempty
+        )
+
     df = df.drop_duplicates(subset=present_cols, keep="first")
     removed = before - len(df)
 
