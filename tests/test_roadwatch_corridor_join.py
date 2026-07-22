@@ -187,6 +187,26 @@ def test_below_overlap_threshold_is_dropped(tmp_path: Path) -> None:
     assert result["rows"] == 0
 
 
+def test_invalid_km_range_is_skipped_not_route_only(tmp_path: Path) -> None:
+    # Reversed km range (15 -> 5) is malformed, not a genuine route-only project;
+    # it must be skipped, never promoted route-wide with blanked measures.
+    projects = [
+        {
+            "project_id": "STIP-R",
+            "project_name": "reversed extent",
+            "route_id": "PR-52",
+            "km_start": "15",
+            "km_end": "5",
+            "funding_program": "STBG",
+            "amount": "1",
+        }
+    ]
+    _stage(tmp_path, SEGMENTS, projects)
+    result = run(root=tmp_path)
+    assert result["status"] == "EMPTY"
+    assert result["rows"] == 0
+
+
 def test_no_matching_routes_is_empty_with_header(tmp_path: Path) -> None:
     projects = [
         {

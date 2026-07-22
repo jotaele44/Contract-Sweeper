@@ -105,6 +105,17 @@ def _get(row: dict[str, str], *keys: str) -> str:
     return ""
 
 
+def _parse_km(value: str) -> float | None:
+    """Parse a km-station string to float, or None if blank/non-numeric."""
+    value = (value or "").strip()
+    if not value:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
+
+
 def _overlap_pct(
     seg_start: float, seg_end: float, prj_start: float, prj_end: float
 ) -> float | None:
@@ -148,9 +159,25 @@ def build_candidates(
         project_name = _get(prj, "project_name", "name", "title")
         p_start_s = _get(prj, "km_start")
         p_end_s = _get(prj, "km_end")
-        p_start = float(p_start_s) if p_start_s.replace(".", "", 1).lstrip("-").isdigit() else None
-        p_end = float(p_end_s) if p_end_s.replace(".", "", 1).lstrip("-").isdigit() else None
-        has_km = p_start is not None and p_end is not None and p_end > p_start
+        p_start = _parse_km(p_start_s)
+        p_end = _parse_km(p_end_s)
+        km_absent = not p_start_s and not p_end_s
+        km_valid = p_start is not None and p_end is not None and p_end > p_start
+
+        # A stated-but-malformed km range (reversed, non-numeric, or half-present)
+        # is a data-quality problem, NOT a genuine route-only project. Skip it
+        # rather than silently attaching the project route-wide and blanking the
+        # bad measures (which would make it indistinguishable from route-only).
+        if not km_absent and not km_valid:
+            logging.getLogger(__name__).warning(
+                "roadwatch_corridor_join: project %s on %s has an invalid km range "
+                "(%r-%r); skipped (not promoted route-only)",
+                project_id or "?",
+                route,
+                p_start_s,
+                p_end_s,
+            )
+            continue
 
         for seg in by_route[route]:
             segment_uid = _get(seg, "segment_uid")
@@ -158,8 +185,8 @@ def build_candidates(
             if not segment_uid or not cell_id:
                 continue  # every row must carry both for a valid, promotable candidate
 
-            if has_km:
-                assert p_start is not None and p_end is not None  # guarded by has_km
+            if km_valid:
+                assert p_start is not None and p_end is not None  # guarded by km_valid
                 s_start_s, s_end_s = _get(seg, "km_start"), _get(seg, "km_end")
                 try:
                     pct = _overlap_pct(float(s_start_s), float(s_end_s), p_start, p_end)
@@ -171,7 +198,7 @@ def build_candidates(
                 geo_reason_code = "roadwatch_route_km_overlap"
                 overlap_pct = f"{pct:.1f}"
                 km_start, km_end = p_start_s, p_end_s
-            else:
+            else:  # km_absent -> genuine route-only project
                 pct = None
                 join_method = "route_only_promoted"
                 geo_reason_code = "roadwatch_route_only_no_km"
