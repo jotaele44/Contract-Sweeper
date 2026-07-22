@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Fetch thehub-pr sibling (owns the canonical templates)
         run: |
-          ref="${{ github.head_ref || github.ref_name }}"
+          ref="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           git clone --depth 1 --branch "$ref" https://github.com/jotaele44/thehub-pr.git ../thehub-pr \
             || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
       - uses: actions/setup-python@v5
