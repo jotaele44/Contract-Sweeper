@@ -156,6 +156,8 @@ python3 run_all.py --only-setup --strict-preflight
 python3 scripts/gap_analysis_builder.py
 python3 scripts/build_source_recovery_matrix.py
 python3 run_all.py --strict-preflight
+# Fast rerun: only sources that are due; independent upstreams use four lanes.
+python3 run_all.py --profile incremental --workers 4
 ```
 
 Useful flags:
@@ -165,18 +167,33 @@ Useful flags:
 --skip-download     Skip producer download step
 --manual-only       Alias for --skip-download
 --force-download    Re-download existing source files
+--profile incremental  Run only due registry sources
+--workers N         Bound independent incremental execution lanes (default: 4)
+--sam-api-residual  Opt into the bounded live SAM residual pass
 ```
 
 ### Source update controller
 
-`run_all.py` remains the full producer orchestrator. A separate, registry-driven
-**source update controller** decides *whether a source is due*, isolates per-source
+`run_all.py` remains the full producer orchestrator. Its `incremental` profile uses a registry-driven
+**source update controller** that decides *whether a source is due*, isolates per-source
 failure, detects operator file-drops by hash, sequences derived sources after their
-upstreams, and reports freshness — without replacing `run_all.py`. See
+upstreams, serializes callers that share an API host, and reports freshness. See
 [docs/SOURCE_UPDATE_CONTROLLER.md](docs/SOURCE_UPDATE_CONTROLLER.md).
 
 ```bash
 python3 scripts/update_sources.py validate-policy   # policy coverage + DAG gates (exit 2 on failure)
 python3 scripts/update_sources.py plan --due        # read-only: which sources are due (no network)
+python3 scripts/update_sources.py run --due --workers 4
 python3 scripts/update_sources.py freshness         # per-source freshness report → reports/source_freshness.csv
 ```
+
+SAM entity resolution is offline-first. Source-provided UEIs, monthly SAM extracts,
+prior indexes, and local aliases are exhausted before any network lookup. To use a
+small live residual budget explicitly:
+
+```bash
+python3 scripts/run_sam_pipeline.py --use-api --max-api 100 --circuit-breaker-failures 3
+```
+
+Parent-entity hierarchy construction is also offline by default; its optional
+USASpending residual is bounded with `scripts/entity_resolution.py --use-api --max-api 100`.

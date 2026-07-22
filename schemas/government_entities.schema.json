@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/government_entities.schema.json",
+  "title": "Government Entities",
+  "description": "Canonical Puerto Rico government entity record. entity_id is an immutable, registry-assigned identifier and MUST NOT be derived from any name (gate NAME_DERIVED_ID_NOT_USED_FOR_NEW_GOV_ENTITIES). Names, identifiers, relationships, provenance and coverage live in their sibling table schemas, keyed by entity_id. This schema describes one entity record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entity_id", "entity_type", "status", "source_assertion_id"],
+  "properties": {
+    "entity_id": {
+      "type": "string",
+      "description": "Immutable registry-assigned identifier. Opaque; never generated from the preferred name.",
+      "pattern": "^GOV_[A-Z0-9]{4,}$"
+    },
+    "entity_type": {"$ref": "#/$defs/entity_type"},
+    "branch": {
+      "enum": ["executive", "legislative", "judicial", "municipal", "constitutional", "other"]
+    },
+    "jurisdiction": {"type": "string", "minLength": 1},
+    "status": {
+      "enum": ["active", "inactive", "abolished", "merged", "split", "superseded", "proposed"]
+    },
+    "valid_from": {"type": ["string", "null"], "format": "date"},
+    "valid_to": {"type": ["string", "null"], "format": "date"},
+    "source_assertion_id": {"type": "string", "minLength": 1},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "entity_type": {
+      "enum": [
+        "constitutional_office",
+        "executive_department",
+        "executive_agency",
+        "authority",
+        "public_corporation",
+        "public_instrumentality",
+        "board",
+        "commission",
+        "bureau",
+        "administration",
+        "office",
+        "council",
+        "institute",
+        "trust",
+        "fund",
+        "public_university",
+        "judicial_entity",
+        "legislative_entity",
+        "municipality",
+        "municipal_instrumentality",
+        "regional_entity",
+        "program_office",
+        "temporary_recovery_office",
+        "other_public_entity"
+      ]
+    }
+  }
+}

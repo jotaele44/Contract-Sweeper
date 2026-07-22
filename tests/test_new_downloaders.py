@@ -201,8 +201,10 @@ def test_haf_master_columns_complete():
 # --- ExIm ---
 from scripts.download_exim import (
     AGENCY_NAME as EXIM_AGENCY,
-    GRANT_TYPE_CODES as EXIM_GRANT_CODES,
+    LOAN_TYPE_CODES as EXIM_LOAN_CODES,
     MASTER_COLUMNS as EXIM_MASTER_COLS,
+    _build_payload as exim_build_payload,
+    _results_to_df as exim_results_to_df,
 )
 
 
@@ -211,8 +213,8 @@ def test_exim_agency_name():
 
 
 def test_exim_grant_type_codes_loans():
-    assert "07" in EXIM_GRANT_CODES
-    assert "08" in EXIM_GRANT_CODES
+    assert "07" in EXIM_LOAN_CODES
+    assert "08" in EXIM_LOAN_CODES
 
 
 def test_exim_master_columns_has_source():
@@ -220,10 +222,37 @@ def test_exim_master_columns_has_source():
     assert "obligated_amount" in EXIM_MASTER_COLS
 
 
+def test_exim_uses_loan_fields_and_sort():
+    payload = exim_build_payload("pop", {"start_date": "2023-01-01", "end_date": "2024-01-01"})
+    assert payload["sort"] == "Loan Value"
+    assert "Loan Value" in payload["fields"]
+    assert "Subsidy Cost" in payload["fields"]
+    assert "Award Amount" not in payload["fields"]
+
+
+def test_exim_preserves_face_value_and_uses_subsidy_as_obligation():
+    df = exim_results_to_df(
+        [
+            {
+                "Award ID": "L1",
+                "Recipient Name": "Exporter",
+                "Loan Value": 1_000_000,
+                "Subsidy Cost": 75_000,
+                "Issued Date": "2024-01-10",
+            }
+        ],
+        "exim.csv",
+    )
+    assert float(df.iloc[0]["loan_value"]) == 1_000_000
+    assert float(df.iloc[0]["obligated_amount"]) == 75_000
+
+
 # --- Earmarks ---
 from scripts.download_earmarks import (
+    AWARD_TYPE_GROUPS as EARMARK_AWARD_GROUPS,
     EARMARK_KEYWORDS,
     EARMARK_COLUMNS,
+    _build_payload as earmarks_build_payload,
     _results_to_df as earmarks_results_to_df,
 )
 
@@ -239,6 +268,15 @@ def test_earmark_keywords_include_cpf():
 
 def test_earmark_columns_has_keyword_field():
     assert "earmark_keyword_matched" in EARMARK_COLUMNS
+
+
+def test_earmark_payloads_do_not_mix_award_groups_or_claim_def_codes():
+    window = {"start_date": "2022-10-01", "end_date": "2026-09-30"}
+    assistance = earmarks_build_payload(window, "assistance")
+    contracts = earmarks_build_payload(window, "contracts")
+    assert assistance["filters"]["award_type_codes"] == EARMARK_AWARD_GROUPS["assistance"]
+    assert contracts["filters"]["award_type_codes"] == EARMARK_AWARD_GROUPS["contracts"]
+    assert "def_codes" not in assistance["filters"]
 
 
 def test_earmarks_results_to_df_empty():
@@ -258,6 +296,28 @@ def test_earmarks_results_to_df_keyword_detection():
     df = earmarks_results_to_df(rows, "earmarks_raw_dummy.csv")
     assert len(df) == 1
     assert df.iloc[0]["earmark_keyword_matched"] != ""
+
+
+def test_earmarks_results_to_df_rejects_unconfirmed_awards():
+    df = earmarks_results_to_df(
+        [{"award_id": "W2", "award_description": "General infrastructure grant"}],
+        "earmarks.csv",
+    )
+    assert df.empty
+
+
+def test_usace_payloads_keep_award_groups_separate():
+    from scripts.download_usace_civil import AWARD_TYPE_GROUPS, _build_payload
+
+    window = {"start_date": "2020-01-01", "end_date": "2024-12-31"}
+    assistance = _build_payload("pop", window, "assistance")
+    contracts = _build_payload("pop", window, "contracts")
+    assert assistance["filters"]["award_type_codes"] == AWARD_TYPE_GROUPS["assistance"]
+    assert contracts["filters"]["award_type_codes"] == AWARD_TYPE_GROUPS["contracts"]
+    assert not (
+        set(assistance["filters"]["award_type_codes"])
+        & set(contracts["filters"]["award_type_codes"])
+    )
 
 
 # --- NFIP ---

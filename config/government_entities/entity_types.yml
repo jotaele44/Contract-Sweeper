@@ -1,0 +1,84 @@
+# Canonical government-entity type vocabulary (PR1 scaffold).
+#
+# Authoritative enum for `entity_type` on schemas/government_entities.schema.json.
+# The schema pins the same values; keep the two in sync (the schema-contract test
+# asserts every value here appears in the schema enum).
+#
+# These are TYPE classifications, not an inventory of entities. No entity records
+# are seeded in PR1.
+version: "1.0"
+schema_version: "government_entity_types_v1"
+
+entity_types:
+  - id: constitutional_office
+    label: Constitutional office
+    notes: Office established directly by the PR Constitution (e.g. Governor, Contralor).
+  - id: executive_department
+    label: Executive department
+    notes: Cabinet-level department ("Departamento").
+  - id: executive_agency
+    label: Executive agency
+    notes: Executive-branch agency subordinate to a department or the Governor.
+  - id: authority
+    label: Authority
+    notes: Autoridad — statutory authority with operational mandate.
+  - id: public_corporation
+    label: Public corporation
+    notes: Corporación pública with separate legal personality.
+  - id: public_instrumentality
+    label: Public instrumentality
+    notes: Instrumentalidad pública not otherwise classified.
+  - id: board
+    label: Board
+    notes: Junta.
+  - id: commission
+    label: Commission
+    notes: Comisión.
+  - id: bureau
+    label: Bureau
+    notes: Negociado.
+  - id: administration
+    label: Administration
+    notes: Administración.
+  - id: office
+    label: Office
+    notes: Oficina.
+  - id: council
+    label: Council
+    notes: Consejo.
+  - id: institute
+    label: Institute
+    notes: Instituto.
+  - id: trust
+    label: Trust
+    notes: Fideicomiso.
+  - id: fund
+    label: Fund
+    notes: Fondo.
+  - id: public_university
+    label: Public university
+    notes: Public university system or campus (e.g. UPR).
+  - id: judicial_entity
+    label: Judicial entity
+    notes: Judicial-branch entity.
+  - id: legislative_entity
+    label: Legislative entity
+    notes: Legislative-branch entity.
+  - id: municipality
+    label: Municipality
+    notes: Municipio (78 island municipalities).
+  - id: municipal_instrumentality
+    label: Municipal instrumentality
+    notes: Entity created by or under a municipality.
+  - id: regional_entity
+    label: Regional entity
+    notes: Multi-municipal or regional consortium/entity.
+  - id: program_office
+    label: Program office
+    notes: Program-specific office within a larger entity.
+  - id: temporary_recovery_office
+    label: Temporary recovery office
+    notes: Disaster/recovery office of limited temporal validity (e.g. COR3-era offices).
+  - id: other_public_entity
+    label: Other public entity
+    notes: Catch-all for public entities not covered above; use sparingly.

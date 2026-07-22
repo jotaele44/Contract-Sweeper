@@ -47,6 +47,16 @@ def test_state_command(capsys):
     assert payload["registry_snapshot"]["source_count"] == 144
 
 
+def test_run_parser_defaults_to_four_workers():
+    args = cli.build_parser().parse_args(["run"])
+    assert args.workers == 4
+
+
+def test_run_parser_accepts_worker_override():
+    args = cli.build_parser().parse_args(["run", "--workers", "2"])
+    assert args.workers == 2
+
+
 # --- executor isolation / gating (no network) ---
 def _fake_root(tmp_path):
     (tmp_path / "scripts").mkdir()
@@ -174,6 +184,7 @@ def test_is_run_failure_classification():
         "SUCCESS_NO_CHANGE",
         "EMPTY_EXPECTED",
         "CHECKPOINTED",
+        "PLANNED",
         "DISABLED",
         "NOT_DUE",
         "MANUAL_INPUT_MISSING",

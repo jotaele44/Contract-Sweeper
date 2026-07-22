@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/government_entity_source_assertions.schema.json",
+  "title": "Government Entity Source Assertions",
+  "description": "Provenance record backing every entity, name, identifier, and relationship (gate PROVENANCE_REQUIRED). A source_assertion_id referenced elsewhere must resolve to one of these. Describes one assertion record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_assertion_id",
+    "source_id",
+    "source_locator",
+    "evidence_tier",
+    "retrieved_at",
+    "content_hash",
+    "verification_status"
+  ],
+  "properties": {
+    "source_assertion_id": {"type": "string", "minLength": 1},
+    "source_id": {"type": "string", "minLength": 1},
+    "source_locator": {
+      "type": "string",
+      "minLength": 1,
+      "description": "URL, document ID, page, or row locator within the source."
+    },
+    "evidence_tier": {"$ref": "#/$defs/evidence_tier"},
+    "retrieved_at": {"type": "string", "format": "date-time"},
+    "effective_date": {"type": ["string", "null"], "format": "date"},
+    "content_hash": {
+      "type": "string",
+      "minLength": 8,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9:._-]*$",
+      "description": "Content hash of the retrieved evidence (optionally algorithm-prefixed, e.g. sha256:...)."
+    },
+    "verification_status": {
+      "enum": ["unverified", "machine_verified", "human_verified", "disputed"]
+    },
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "evidence_tier": {"enum": ["T1", "T2", "T3", "T4"]}
+  }
+}

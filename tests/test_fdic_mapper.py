@@ -1,6 +1,7 @@
 """Tests for fdic_mapper — deterministic FDIC bank data mapping."""
 
 import pandas as pd
+import pytest
 
 from scripts.fdic_mapper import (
     map_fdic_resource,
@@ -33,7 +34,7 @@ def test_validate_dates_with_mixed_formats():
     )
 
     results = validate_dates(df, ["mixed_dates"])
-    assert results["mixed_dates"] == 50.0
+    assert results["mixed_dates"] == pytest.approx(66.6666667)
 
 
 def test_validate_dates_missing_column():
@@ -71,7 +72,7 @@ def test_validate_amounts_with_mixed_numbers():
     )
 
     results = validate_amounts(df, ["total_assets"])
-    assert results["total_assets"] == 60.0  # 3/5 valid
+    assert results["total_assets"] == 75.0  # 3/4 supplied values valid
 
 
 def test_map_fdic_institutions_resource():

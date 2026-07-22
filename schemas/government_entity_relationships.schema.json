@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/government_entity_relationships.schema.json",
+  "title": "Government Entity Relationships",
+  "description": "Directed relationship between two canonical government entities over a valid interval. subject_entity_id and object_entity_id MUST differ (gate NO_SELF_RELATION); succession relations must be recorded symmetrically (gate SUCCESSION_SYMMETRY). Self-relation inequality is a semantic gate, not expressible in JSON Schema. Describes one relationship record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "subject_entity_id",
+    "relationship_type",
+    "object_entity_id",
+    "valid_from",
+    "confidence",
+    "source_assertion_id"
+  ],
+  "properties": {
+    "subject_entity_id": {"type": "string", "pattern": "^GOV_[A-Z0-9]{4,}$"},
+    "relationship_type": {"$ref": "#/$defs/relationship_type"},
+    "object_entity_id": {"type": "string", "pattern": "^GOV_[A-Z0-9]{4,}$"},
+    "valid_from": {"type": ["string", "null"], "format": "date"},
+    "valid_to": {"type": ["string", "null"], "format": "date"},
+    "operational_scope": {"type": "string"},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "source_assertion_id": {"type": "string", "minLength": 1},
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "relationship_type": {
+      "enum": [
+        "parent_of",
+        "component_of",
+        "reports_to",
+        "controlled_by",
+        "owns",
+        "predecessor_of",
+        "successor_of",
+        "renamed_to",
+        "merged_into",
+        "split_into",
+        "absorbed_functions_from",
+        "transferred_functions_to",
+        "created_from",
+        "abolished_by",
+        "fiscal_agent_for",
+        "bond_issuer_for",
+        "operator_of",
+        "concessionaire_for",
+        "procurement_agent_for",
+        "oversight_of",
+        "regulated_by",
+        "administers_program_for",
+        "municipal_component_of",
+        "possible_successor_of",
+        "possible_predecessor_of"
+      ]
+    }
+  }
+}

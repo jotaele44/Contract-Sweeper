@@ -1,0 +1,84 @@
+# Canonical government-entity identifier schemes (PR1 scaffold).
+#
+# Authoritative enum for `identifier_scheme` on
+# schemas/government_entity_identifiers.schema.json. Every identifier value MUST
+# be namespaced by one of these schemes: a bare code is never sufficient (gates
+# IDENTIFIER_NAMESPACED and NO_UNSCOPED_CODE). Identifier uniqueness is scoped by
+# identifier_scheme + identifier_value + source_system + valid_from, so the same
+# numeric value may legitimately exist under two different schemes.
+version: "1.0"
+schema_version: "government_entity_identifier_schemes_v1"
+
+identifier_schemes:
+  - id: ocpr_entity_code
+    label: OCPR entity code
+    namespaced: true
+    notes: Oficina del Contralor de Puerto Rico entity code.
+  - id: hacienda_agency_code
+    label: Hacienda agency code
+    namespaced: true
+    notes: Departamento de Hacienda agency code.
+  - id: ogp_budget_entity_code
+    label: OGP budget entity code
+    namespaced: true
+    notes: Oficina de Gerencia y Presupuesto budget entity code.
+  - id: prifas_agency_code
+    label: PRIFAS agency code
+    namespaced: true
+    notes: PRIFAS accounting-system agency code.
+  - id: procurement_entity_code
+    label: Procurement entity code
+    namespaced: true
+    notes: Procurement/compras portal entity code.
+  - id: transition_report_agency_code
+    label: Transition report agency code
+    namespaced: true
+    notes: Government transition ("informe de transición") agency code.
+  - id: cor3_applicant_id
+    label: COR3 applicant ID
+    namespaced: true
+    notes: Central Office for Recovery, Reconstruction and Resiliency applicant ID.
+  - id: fema_recipient_id
+    label: FEMA recipient ID
+    namespaced: true
+    notes: FEMA Public Assistance recipient (grantee) ID.
+  - id: fema_subrecipient_id
+    label: FEMA subrecipient ID
+    namespaced: true
+    notes: FEMA Public Assistance subrecipient (subgrantee) ID.
+  - id: sam_uei
+    label: SAM UEI
+    namespaced: true
+    notes: SAM.gov Unique Entity Identifier.
+  - id: legacy_duns
+    label: Legacy DUNS
+    namespaced: true
+    notes: Retired DUNS number, retained for historical linkage only.
+  - id: cage_code
+    label: CAGE code
+    namespaced: true
+    notes: Commercial and Government Entity code.
+  - id: ein
+    label: EIN
+    namespaced: true
+    notes: IRS Employer Identification Number.
+  - id: fips_county_equivalent_code
+    label: FIPS county-equivalent code
+    namespaced: true
+    notes: FIPS county-equivalent (municipio) code, PR = 72xxx.
+  - id: gnis_id
+    label: GNIS ID
+    namespaced: true
+    notes: USGS Geographic Names Information System feature ID.
+  - id: municipality_code
+    label: Municipality code
+    namespaced: true
+    notes: PR municipality code.
+  - id: bond_issuer_code
+    label: Bond issuer code
+    namespaced: true
+    notes: Municipal-bond issuer code (e.g. EMMA/MSRB issuer identity).
+  - id: custom_source_code
+    label: Custom source code
+    namespaced: true
+    notes: Source-specific code with no standard scheme; source_system disambiguates.

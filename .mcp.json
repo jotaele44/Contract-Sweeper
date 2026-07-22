@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "desk": {
+      "type": "http",
+      "url": "https://api.desk.botpress.cloud/mcp"
+    }
+  }
+}

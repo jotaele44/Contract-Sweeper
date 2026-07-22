@@ -73,6 +73,21 @@ class TestDeduplicate:
         assert "fpds_direct" in src
         assert "fpds_vendor" in src
 
+    def test_uei_is_preserved_from_any_duplicate_source(self, logger):
+        df = pd.DataFrame(
+            {
+                "contract_id": ["C001", "C001"],
+                "award_date": ["2020-01-01", "2020-01-01"],
+                "vendor_name": ["ACME INC", "ACME INC"],
+                "obligated_amount": ["1000.00", "1000.00"],
+                "recipient_uei": ["", "ABC123UEI"],
+                "source_file": ["legacy", "usaspending"],
+            }
+        )
+        result = deduplicate(df, logger)
+        assert len(result) == 1
+        assert result.iloc[0]["recipient_uei"] == "ABC123UEI"
+
 
 class TestLoadAllNormalized:
     def test_empty_dir_returns_empty(self, tmp_project, logger):

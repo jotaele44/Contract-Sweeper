@@ -92,6 +92,36 @@ def test_municipality_derived_from_title_when_absent(tmp_path):
     assert award["location"]["municipality_code"] == "72097"
 
 
+def test_recipient_distinct_from_funder(tmp_path):
+    intake = tmp_path / "intake"
+    intake.mkdir()
+    _drop(
+        intake,
+        "fin004",
+        title="Del Valle Group awarded Camp Santiago contract",
+        recipients=["Del Valle Group"],
+        agencies=["Puerto Rico National Guard"],
+        estimated_value=299700000.0,
+    )
+    result = ingest_centinelas_drops(intake, root=REPO_ROOT)
+    award = result["awards"][0]
+    # Awardee and awarding agency must be carried as distinct values.
+    assert award["recipient_entity_id"] == "Del Valle Group"
+    assert award["funding_agency_entity_id"] == "Puerto Rico National Guard"
+    assert award["recipient_entity_id"] != award["funding_agency_entity_id"]
+
+
+def test_recipient_falls_back_to_agency_when_absent(tmp_path):
+    intake = tmp_path / "intake"
+    intake.mkdir()
+    _drop(intake, "fin005", agencies=["Autoridad de Carreteras"])
+    result = ingest_centinelas_drops(intake, root=REPO_ROOT)
+    award = result["awards"][0]
+    # No recipient extracted → preserve prior behavior (recipient == agency).
+    assert award["recipient_entity_id"] == "Autoridad de Carreteras"
+    assert award["funding_agency_entity_id"] == "Autoridad de Carreteras"
+
+
 def test_unresolved_location_degrades_gracefully(tmp_path):
     intake = tmp_path / "intake"
     intake.mkdir()

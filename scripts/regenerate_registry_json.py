@@ -28,6 +28,7 @@ REGISTRY_PAIRS = [
     ("manual_export_registry.yaml", "manual_export_registry.json"),
     ("endpoint_candidates.yaml", "endpoint_candidates.json"),
     ("coverage_contracts.yaml", "coverage_contracts.json"),
+    ("government_entity_registry.yaml", "government_entity_registry.json"),
 ]
 
 

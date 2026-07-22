@@ -427,12 +427,21 @@ COLUMN_FAMILIES = {
         "Primary Place of Performance State Code",
         "Sub-Award Place of Performance State",
     ],
+    "uei": [
+        "recipient_uei",
+        "Recipient UEI",
+        "UEI",
+        "Unique Entity ID",
+        "Unique Entity ID (SAM)",
+        "sam_uei",
+    ],
 }
 
 STANDARD_COLUMNS = [
     "contract_id",
     "award_date",
     "vendor_name",
+    "recipient_uei",
     "agency_name",
     "obligated_amount",
     "pop_state",

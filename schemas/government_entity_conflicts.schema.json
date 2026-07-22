@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/government_entity_conflicts.schema.json",
+  "title": "Government Entity Conflicts",
+  "description": "Identity/relationship conflict queue. The pipeline may proceed only when this queue is empty or every open conflict carries an explicit, provenance-backed acceptance (gate CONFLICT_QUEUE_EMPTY_OR_ACCEPTED). Describes one conflict record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "conflict_id",
+    "conflict_type",
+    "entity_ids",
+    "status",
+    "source_assertion_id"
+  ],
+  "properties": {
+    "conflict_id": {"type": "string", "minLength": 1},
+    "conflict_type": {
+      "enum": [
+        "duplicate_entity",
+        "identifier_collision",
+        "temporal_overlap",
+        "asymmetric_succession",
+        "self_relation",
+        "unscoped_identifier",
+        "ambiguous_resolution",
+        "other"
+      ]
+    },
+    "entity_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^GOV_[A-Z0-9]{4,}$"}
+    },
+    "status": {"enum": ["open", "accepted", "rejected"]},
+    "resolution_notes": {"type": "string"},
+    "accepted_by": {"type": ["string", "null"]},
+    "accepted_at": {"type": ["string", "null"], "format": "date-time"},
+    "source_assertion_id": {"type": "string", "minLength": 1}
+  }
+}

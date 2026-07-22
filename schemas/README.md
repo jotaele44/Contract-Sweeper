@@ -58,10 +58,29 @@ things — bump them independently:
 
 ## The internal set (everything else)
 
-The other 21 schemas (`agency_master`, `entity_aliases`, `graph_edges`,
+The other internal schemas (`agency_master`, `entity_aliases`, `graph_edges`,
 `influence_edges`, `municipality_crosswalk`, …) describe tables this repo
 produces for its own use. They're free to evolve in single PRs without
 cross-repo sign-off.
+
+### Canonical government entity registry (internal)
+
+The `government_entity_*` schemas model the canonical Puerto Rico government
+entity registry. They are **internal / derived** — deliberately **not** part of
+the exported `moneysweep_*` contract — so they carry no cross-repo coordination
+burden. See `docs/canonical_government_entity_registry.md` and the policy
+registry in `registries/government_entity_registry.yaml`.
+
+```
+government_entities.schema.json
+government_entity_names.schema.json
+government_entity_identifiers.schema.json
+government_entity_relationships.schema.json
+government_entity_source_assertions.schema.json
+government_entity_resolution_events.schema.json
+government_entity_conflicts.schema.json
+government_entity_coverage_audit.schema.json
+```
 
 ## Versioning by directory
 
@@ -79,3 +98,24 @@ for compatibility while v2 is in development. When you cut v2:
 | `<name>.schema.json` | JSON Schema file (the `.schema` suffix is the marker). |
 | `moneysweep_<name>.schema.json` | Member of the exported canonical contract. Treat as a public API surface. |
 | `schemas/canonical_v1/<name>.schema.json` | Frozen v1 snapshot for downstream-pin compatibility. |
+
+## Federation cross-reference: PR natural-features gazetteer
+
+The federation maintains a canonical Puerto Rico **natural-features gazetteer**
+(rivers, quebradas, lakes, reservoirs, wetlands, mountains, peaks, valleys,
+coastal features), owned/curated by `spiderweb-pr` and derived from USGS GNIS.
+Producers consume domain slices under one shared contract
+(`pr_natural_feature.schema.json`; see spiderweb-pr
+`docs/NATURAL_FEATURES_CONTRACT.md`).
+
+**moneysweep-pr is a non-consumer of the gazetteer** — public-money entities have
+no natural-feature records, so no slice is vendored here. Any spatial correlation
+with natural features happens at the Hub on the shared **PR municipality**
+vocabulary — this repo's `municipality_crosswalk.schema.json` and the municipality
+code / coordinates carried on award and transaction rows (the municipality code is
+the primary spatial match key; see `docs/export_mapping.md`). It is **not** a
+name-based join to feature names: `normalized_name` on `moneysweep_entity`
+canonicalizes a funding party (contractor/agency), not a place, and entity rows
+carry no geography. If a future lane ever needs feature-level geography, add it as
+a vendored slice + a `pr_natural_feature` reference schema then, per the contract's
+lockstep change protocol.

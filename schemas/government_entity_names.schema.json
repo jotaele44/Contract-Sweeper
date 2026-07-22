@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/government_entity_names.schema.json",
+  "title": "Government Entity Names",
+  "description": "Temporal names for a canonical government entity. A rename is a new name row on the SAME entity_id (continuity), never a new entity. Describes one name record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entity_id",
+    "language",
+    "name_type",
+    "name",
+    "normalized_name",
+    "valid_from",
+    "is_preferred",
+    "source_assertion_id"
+  ],
+  "properties": {
+    "entity_id": {"type": "string", "pattern": "^GOV_[A-Z0-9]{4,}$"},
+    "language": {"enum": ["es", "en"]},
+    "name_type": {
+      "enum": ["official", "short", "acronym", "former", "colloquial", "alias"]
+    },
+    "name": {"type": "string", "minLength": 1},
+    "normalized_name": {"type": "string", "minLength": 1},
+    "valid_from": {"type": ["string", "null"], "format": "date"},
+    "valid_to": {"type": ["string", "null"], "format": "date"},
+    "is_preferred": {"type": "boolean"},
+    "source_assertion_id": {"type": "string", "minLength": 1},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+  }
+}

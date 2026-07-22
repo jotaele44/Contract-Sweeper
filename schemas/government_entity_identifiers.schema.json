@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/government_entity_identifiers.schema.json",
+  "title": "Government Entity Identifiers",
+  "description": "Source-system identifier codes for a canonical government entity. Every identifier MUST be namespaced by identifier_scheme (gates IDENTIFIER_NAMESPACED, NO_UNSCOPED_CODE): a bare identifier_value is never sufficient. Identifier uniqueness is scoped by identifier_scheme + identifier_value + source_system + valid_from, so the same numeric value may legitimately exist under different schemes. Describes one identifier record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entity_id",
+    "identifier_scheme",
+    "identifier_value",
+    "source_system",
+    "status",
+    "confidence",
+    "source_assertion_id"
+  ],
+  "properties": {
+    "entity_id": {"type": "string", "pattern": "^GOV_[A-Z0-9]{4,}$"},
+    "identifier_scheme": {"$ref": "#/$defs/identifier_scheme"},
+    "identifier_value": {"type": "string", "minLength": 1},
+    "source_system": {"type": "string", "minLength": 1},
+    "status": {"enum": ["active", "retired", "superseded", "provisional"]},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "source_assertion_id": {"type": "string", "minLength": 1},
+    "valid_from": {"type": ["string", "null"], "format": "date"},
+    "valid_to": {"type": ["string", "null"], "format": "date"},
+    "notes": {"type": "string"}
+  },
+  "$comment": "Uniqueness key (enforced by the registry, not expressible in JSON Schema): [identifier_scheme, identifier_value, source_system, valid_from].",
+  "$defs": {
+    "identifier_scheme": {
+      "enum": [
+        "ocpr_entity_code",
+        "hacienda_agency_code",
+        "ogp_budget_entity_code",
+        "prifas_agency_code",
+        "procurement_entity_code",
+        "transition_report_agency_code",
+        "cor3_applicant_id",
+        "fema_recipient_id",
+        "fema_subrecipient_id",
+        "sam_uei",
+        "legacy_duns",
+        "cage_code",
+        "ein",
+        "fips_county_equivalent_code",
+        "gnis_id",
+        "municipality_code",
+        "bond_issuer_code",
+        "custom_source_code"
+      ]
+    }
+  }
+}
