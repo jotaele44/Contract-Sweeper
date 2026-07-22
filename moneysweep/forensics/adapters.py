@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import csv
 import hashlib
+import http.client
 import json
 import re
 import urllib.error
@@ -10,7 +10,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
 from .core import ForensicsLedger, canonical_hash, query_key, utcnow
 
@@ -41,7 +41,9 @@ class SourceAdapter:
     def fetch(self, subject: Mapping[str, Any]) -> AdapterResult:
         raise NotImplementedError
 
-    def execute(self, ledger: ForensicsLedger, subject_id: str, subject: Mapping[str, Any]) -> AdapterResult:
+    def execute(
+        self, ledger: ForensicsLedger, subject_id: str, subject: Mapping[str, Any]
+    ) -> AdapterResult:
         now = utcnow()
         params = dict(self.parameters(subject))
         decision = ledger.preflight_query(
@@ -64,7 +66,9 @@ class SourceAdapter:
             "project_id": None,
             "query_type": self.query_type,
             "parameters_json": json.dumps(params, sort_keys=True),
-            "parameters_hash": hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest(),
+            "parameters_hash": hashlib.sha256(
+                json.dumps(params, sort_keys=True).encode()
+            ).hexdigest(),
             "started_at": now,
             "finished_at": None,
             "status": "RUNNING",
@@ -80,57 +84,96 @@ class SourceAdapter:
             "updated_at": now,
         }
         ledger.record_query(base_query)
-        ledger.upsert("sources", [{
-            "source_id": self.source_id,
-            "family": self.family,
-            "endpoint": self.endpoint,
-            "source_tier": self.source_tier,
-            "created_at": now,
-            "updated_at": now,
-        }], ["source_id"])
-        ledger.upsert("source_runs", [{
-            "source_run_id": source_run_id,
-            "source_id": self.source_id,
-            "status": "RUNNING",
-            "started_at": now,
-            "finished_at": None,
-            "result_count": 0,
-            "failure_type": None,
-            "failure_packet_json": None,
-            "created_at": now,
-            "updated_at": now,
-        }], ["source_run_id"])
+        ledger.upsert(
+            "sources",
+            [
+                {
+                    "source_id": self.source_id,
+                    "family": self.family,
+                    "endpoint": self.endpoint,
+                    "source_tier": self.source_tier,
+                    "created_at": now,
+                    "updated_at": now,
+                }
+            ],
+            ["source_id"],
+        )
+        ledger.upsert(
+            "source_runs",
+            [
+                {
+                    "source_run_id": source_run_id,
+                    "source_id": self.source_id,
+                    "status": "RUNNING",
+                    "started_at": now,
+                    "finished_at": None,
+                    "result_count": 0,
+                    "failure_type": None,
+                    "failure_packet_json": None,
+                    "created_at": now,
+                    "updated_at": now,
+                }
+            ],
+            ["source_run_id"],
+        )
 
         result = self.fetch(subject)
         finished = utcnow()
-        query_status = result.status if result.status in {
-            "SUCCESS", "SUCCESS_NULL", "FAILED_TRANSIENT", "FAILED_PERMANENT",
-            "BLOCKED_AUTH", "BLOCKED_WAF", "BLOCKED_NETWORK", "RECORD_PURGED",
-            "REQUIRES_BROWSER", "REQUIRES_FOIA",
-        } else "FAILED_PERMANENT"
-        ledger.record_query({**base_query,
-            "finished_at": finished,
-            "status": query_status,
-            "result_count": len(result.records),
-            "null_result": query_status == "SUCCESS_NULL",
-            "failure_type": result.failure_type,
-            "fallback_route": result.next_fallback,
-            "retry_after": finished + timedelta(days=1) if query_status in {"FAILED_TRANSIENT", "BLOCKED_NETWORK"} else None,
-            "fresh_until": finished + timedelta(days=self.freshness_days) if query_status in {"SUCCESS", "SUCCESS_NULL"} else None,
-            "updated_at": finished,
-        })
-        ledger.upsert("source_runs", [{
-            "source_run_id": source_run_id,
-            "source_id": self.source_id,
-            "status": query_status,
-            "started_at": now,
-            "finished_at": finished,
-            "result_count": len(result.records),
-            "failure_type": result.failure_type,
-            "failure_packet_json": json.dumps(result.failure_packet) if result.failure_packet else None,
-            "created_at": now,
-            "updated_at": finished,
-        }], ["source_run_id"])
+        query_status = (
+            result.status
+            if result.status
+            in {
+                "SUCCESS",
+                "SUCCESS_NULL",
+                "FAILED_TRANSIENT",
+                "FAILED_PERMANENT",
+                "BLOCKED_AUTH",
+                "BLOCKED_WAF",
+                "BLOCKED_NETWORK",
+                "RECORD_PURGED",
+                "REQUIRES_BROWSER",
+                "REQUIRES_FOIA",
+            }
+            else "FAILED_PERMANENT"
+        )
+        ledger.record_query(
+            {
+                **base_query,
+                "finished_at": finished,
+                "status": query_status,
+                "result_count": len(result.records),
+                "null_result": query_status == "SUCCESS_NULL",
+                "failure_type": result.failure_type,
+                "fallback_route": result.next_fallback,
+                "retry_after": finished + timedelta(days=1)
+                if query_status in {"FAILED_TRANSIENT", "BLOCKED_NETWORK"}
+                else None,
+                "fresh_until": finished + timedelta(days=self.freshness_days)
+                if query_status in {"SUCCESS", "SUCCESS_NULL"}
+                else None,
+                "updated_at": finished,
+            }
+        )
+        ledger.upsert(
+            "source_runs",
+            [
+                {
+                    "source_run_id": source_run_id,
+                    "source_id": self.source_id,
+                    "status": query_status,
+                    "started_at": now,
+                    "finished_at": finished,
+                    "result_count": len(result.records),
+                    "failure_type": result.failure_type,
+                    "failure_packet_json": json.dumps(result.failure_packet)
+                    if result.failure_packet
+                    else None,
+                    "created_at": now,
+                    "updated_at": finished,
+                }
+            ],
+            ["source_run_id"],
+        )
         for rec in result.records:
             rec.setdefault("source_id", self.source_id)
             rec.setdefault("source_run_id", source_run_id)
@@ -164,23 +207,57 @@ class HttpJsonAdapter(SourceAdapter):
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 payload = json.loads(resp.read().decode("utf-8"))
             records = self.parse(payload, subject)
-            return AdapterResult(self.source_id, "SUCCESS" if records else "SUCCESS_NULL", records=records)
+            return AdapterResult(
+                self.source_id, "SUCCESS" if records else "SUCCESS_NULL", records=records
+            )
         except urllib.error.HTTPError as exc:
             status = "BLOCKED_AUTH" if exc.code in {401, 403} else "FAILED_TRANSIENT"
-            return AdapterResult(self.source_id, status, failure_type=f"HTTP_{exc.code}",
-                failure_packet={"command": self.endpoint, "exit_code": exc.code, "last_40_lines": str(exc), "files_recently_changed": [], "suspected_area": "http_source"},
-                next_fallback="OFFICIAL_BULK_EXPORT")
+            return AdapterResult(
+                self.source_id,
+                status,
+                failure_type=f"HTTP_{exc.code}",
+                failure_packet={
+                    "command": self.endpoint,
+                    "exit_code": exc.code,
+                    "last_40_lines": str(exc),
+                    "files_recently_changed": [],
+                    "suspected_area": "http_source",
+                },
+                next_fallback="OFFICIAL_BULK_EXPORT",
+            )
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            return AdapterResult(self.source_id, "BLOCKED_NETWORK", failure_type=type(exc).__name__,
-                failure_packet={"command": self.endpoint, "exit_code": 1, "last_40_lines": str(exc), "files_recently_changed": [], "suspected_area": "network_or_dns"},
-                next_fallback="OFFICIAL_BULK_EXPORT")
+            return AdapterResult(
+                self.source_id,
+                "BLOCKED_NETWORK",
+                failure_type=type(exc).__name__,
+                failure_packet={
+                    "command": self.endpoint,
+                    "exit_code": 1,
+                    "last_40_lines": str(exc),
+                    "files_recently_changed": [],
+                    "suspected_area": "network_or_dns",
+                },
+                next_fallback="OFFICIAL_BULK_EXPORT",
+            )
         except Exception as exc:
-            return AdapterResult(self.source_id, "FAILED_PERMANENT", failure_type=type(exc).__name__,
-                failure_packet={"command": self.endpoint, "exit_code": 1, "last_40_lines": str(exc), "files_recently_changed": [], "suspected_area": "adapter_parse"})
+            return AdapterResult(
+                self.source_id,
+                "FAILED_PERMANENT",
+                failure_type=type(exc).__name__,
+                failure_packet={
+                    "command": self.endpoint,
+                    "exit_code": 1,
+                    "last_40_lines": str(exc),
+                    "files_recently_changed": [],
+                    "suspected_area": "adapter_parse",
+                },
+            )
 
 
 class LocalTextAdapter(SourceAdapter):
-    def __init__(self, source_id: str, family: str, path: str | Path, endpoint: str | None = None) -> None:
+    def __init__(
+        self, source_id: str, family: str, path: str | Path, endpoint: str | None = None
+    ) -> None:
         self.source_id = source_id
         self.family = family
         self.path = Path(path)
@@ -189,35 +266,72 @@ class LocalTextAdapter(SourceAdapter):
     def read_text(self) -> str:
         if self.path.suffix.lower() == ".pdf":
             import subprocess
+
             cache_dir = Path(__file__).resolve().parents[2] / "data" / "forensics" / "text_cache"
             cache_dir.mkdir(parents=True, exist_ok=True)
             cache = cache_dir / (hashlib.sha256(str(self.path).encode()).hexdigest() + ".txt")
             if not cache.exists() or cache.stat().st_mtime < self.path.stat().st_mtime:
-                proc = subprocess.run(["pdftotext", "-layout", str(self.path), str(cache)], capture_output=True, text=True, check=True)
+                subprocess.run(
+                    ["pdftotext", "-layout", str(self.path), str(cache)],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
             return cache.read_text(encoding="utf-8", errors="replace")
         return self.path.read_text(encoding="utf-8", errors="replace")
 
-    def extract(self, text: str, subject: Mapping[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    def extract(
+        self, text: str, subject: Mapping[str, Any]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         return [], []
 
     def fetch(self, subject: Mapping[str, Any]) -> AdapterResult:
         if not self.path.exists():
-            return AdapterResult(self.source_id, "FAILED_PERMANENT", failure_type="FileNotFoundError",
-                failure_packet={"command": str(self.path), "exit_code": 2, "last_40_lines": "file not found", "files_recently_changed": [], "suspected_area": "local_source_path"})
+            return AdapterResult(
+                self.source_id,
+                "FAILED_PERMANENT",
+                failure_type="FileNotFoundError",
+                failure_packet={
+                    "command": str(self.path),
+                    "exit_code": 2,
+                    "last_40_lines": "file not found",
+                    "files_recently_changed": [],
+                    "suspected_area": "local_source_path",
+                },
+            )
         try:
             text = self.read_text()
             records, evidence = self.extract(text, subject)
-            return AdapterResult(self.source_id, "SUCCESS" if records or evidence else "SUCCESS_NULL", records=records, evidence=evidence)
+            return AdapterResult(
+                self.source_id,
+                "SUCCESS" if records or evidence else "SUCCESS_NULL",
+                records=records,
+                evidence=evidence,
+            )
         except Exception as exc:
-            return AdapterResult(self.source_id, "FAILED_PERMANENT", failure_type=type(exc).__name__,
-                failure_packet={"command": str(self.path), "exit_code": 1, "last_40_lines": str(exc), "files_recently_changed": [], "suspected_area": "local_document_parse"})
+            return AdapterResult(
+                self.source_id,
+                "FAILED_PERMANENT",
+                failure_type=type(exc).__name__,
+                failure_packet={
+                    "command": str(self.path),
+                    "exit_code": 1,
+                    "last_40_lines": str(exc),
+                    "files_recently_changed": [],
+                    "suspected_area": "local_document_parse",
+                },
+            )
 
 
 class ContractorListingAdapter(LocalTextAdapter):
     query_type = "contractor_listing_extract"
-    LINE = re.compile(r"^(?P<cage>[A-Z0-9]{5})\s+\S+\s+(?P<name>.+?)\s{2,}.+?\s+(?P<duns>\d{9}|T\d{8,})\s*$")
+    LINE = re.compile(
+        r"^(?P<cage>[A-Z0-9]{5})\s+\S+\s+(?P<name>.+?)\s{2,}.+?\s+(?P<duns>\d{9}|T\d{8,})\s*$"
+    )
 
-    def extract(self, text: str, subject: Mapping[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    def extract(
+        self, text: str, subject: Mapping[str, Any]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         aliases = [a.upper() for a in subject.get("aliases", [])]
         records: list[dict[str, Any]] = []
         evidence: list[dict[str, Any]] = []
@@ -235,12 +349,22 @@ class ContractorListingAdapter(LocalTextAdapter):
                 cage = duns = None
             claim = f"Historical contractor listing entry: {name}"
             evk = canonical_hash(source_hash, lineno, claim, prefix="ev_")
-            evidence.append({
-                "evidence_key": evk, "subject_id": subject["entity_id"], "predicate": "historical_contractor_listing",
-                "object_json": json.dumps({"name": name, "cage": cage, "duns": duns}), "source_hash": source_hash,
-                "source_locator": f"line:{lineno}", "claim_text": claim, "evidence_tier": "T1", "confidence": 0.9,
-                "observed_at": utcnow(), "review_status": "MACHINE_VALIDATED", "contradiction_group": None,
-            })
+            evidence.append(
+                {
+                    "evidence_key": evk,
+                    "subject_id": subject["entity_id"],
+                    "predicate": "historical_contractor_listing",
+                    "object_json": json.dumps({"name": name, "cage": cage, "duns": duns}),
+                    "source_hash": source_hash,
+                    "source_locator": f"line:{lineno}",
+                    "claim_text": claim,
+                    "evidence_tier": "T1",
+                    "confidence": 0.9,
+                    "observed_at": utcnow(),
+                    "review_status": "MACHINE_VALIDATED",
+                    "contradiction_group": None,
+                }
+            )
             records.append({"name": name, "cage": cage, "duns": duns, "evidence_key": evk})
         return records, evidence
 
@@ -248,7 +372,9 @@ class ContractorListingAdapter(LocalTextAdapter):
 class KeywordEvidenceAdapter(LocalTextAdapter):
     query_type = "keyword_evidence_extract"
 
-    def extract(self, text: str, subject: Mapping[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    def extract(
+        self, text: str, subject: Mapping[str, Any]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         aliases = [a.upper() for a in subject.get("aliases", [])]
         records, evidence = [], []
         source_hash = hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
@@ -257,16 +383,26 @@ class KeywordEvidenceAdapter(LocalTextAdapter):
             upper = line.upper()
             if not any(alias in upper for alias in aliases):
                 continue
-            context = " ".join(lines[max(0, lineno-2):min(len(lines), lineno+1)]).strip()
+            context = " ".join(lines[max(0, lineno - 2) : min(len(lines), lineno + 1)]).strip()
             context = " ".join(context.split())[:1200]
             claim = f"Source mention: {context}"
             evk = canonical_hash(source_hash, lineno, claim, prefix="ev_")
-            evidence.append({
-                "evidence_key": evk, "subject_id": subject["entity_id"], "predicate": "source_mention",
-                "object_json": json.dumps({"context": context}), "source_hash": source_hash,
-                "source_locator": f"line:{lineno}", "claim_text": claim, "evidence_tier": "T1", "confidence": 0.75,
-                "observed_at": utcnow(), "review_status": "UNREVIEWED", "contradiction_group": None,
-            })
+            evidence.append(
+                {
+                    "evidence_key": evk,
+                    "subject_id": subject["entity_id"],
+                    "predicate": "source_mention",
+                    "object_json": json.dumps({"context": context}),
+                    "source_hash": source_hash,
+                    "source_locator": f"line:{lineno}",
+                    "claim_text": claim,
+                    "evidence_tier": "T1",
+                    "confidence": 0.75,
+                    "observed_at": utcnow(),
+                    "review_status": "UNREVIEWED",
+                    "contradiction_group": None,
+                }
+            )
             records.append({"context": context, "evidence_key": evk})
         return records, evidence
 
@@ -298,13 +434,19 @@ class SamAdapter(HttpJsonAdapter):
     def build_request(self, subject: Mapping[str, Any]) -> urllib.request.Request:
         api_key = subject.get("sam_api_key")
         if not api_key:
-            raise urllib.error.HTTPError(self.endpoint, 401, "SAM_API_KEY missing", hdrs=None, fp=None)  # type: ignore[arg-type]
-        qs = urllib.parse.urlencode({"legalBusinessName": subject.get("legal_name", ""), "api_key": api_key})
+            raise urllib.error.HTTPError(
+                self.endpoint, 401, "SAM_API_KEY missing", hdrs=http.client.HTTPMessage(), fp=None
+            )
+        qs = urllib.parse.urlencode(
+            {"legalBusinessName": subject.get("legal_name", ""), "api_key": api_key}
+        )
         return urllib.request.Request(f"{self.endpoint}?{qs}", headers=self.headers)
 
 
 class SimpleEndpointAdapter(HttpJsonAdapter):
-    def __init__(self, source_id: str, family: str, endpoint: str, freshness_days: int = 30) -> None:
+    def __init__(
+        self, source_id: str, family: str, endpoint: str, freshness_days: int = 30
+    ) -> None:
         self.source_id = source_id
         self.family = family
         self.endpoint = endpoint

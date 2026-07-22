@@ -29,15 +29,19 @@ class ForensicsPipeline:
         self.ledger = ledger
         self.adapters = dict(adapters)
 
-    def run(self, subject: Mapping[str, Any], source_ids: Iterable[str] | None = None) -> list[PipelineDelta]:
+    def run(
+        self, subject: Mapping[str, Any], source_ids: Iterable[str] | None = None
+    ) -> list[PipelineDelta]:
         selected = list(source_ids or self.adapters)
         deltas: list[PipelineDelta] = []
         for source_id in selected:
             adapter = self.adapters[source_id]
             parameters = adapter.parameters(subject)
             decision = self.ledger.preflight_query(
-                source_id=source_id, subject_id=subject["entity_id"],
-                query_type=adapter.query_type, parameters=parameters,
+                source_id=source_id,
+                subject_id=subject["entity_id"],
+                query_type=adapter.query_type,
+                parameters=parameters,
                 aliases_changed=bool(subject.get("aliases_changed")),
                 contradiction_open=bool(subject.get("contradiction_open")),
             )
@@ -45,13 +49,28 @@ class ForensicsPipeline:
                 deltas.append(PipelineDelta(source_id, "SKIPPED", 0, 0, 0, True, decision.reason))
                 continue
             result = adapter.execute(self.ledger, subject["entity_id"], subject)
-            deltas.append(PipelineDelta(source_id, result.status, len(result.records), len(result.evidence), len(result.gaps)))
+            deltas.append(
+                PipelineDelta(
+                    source_id,
+                    result.status,
+                    len(result.records),
+                    len(result.evidence),
+                    len(result.gaps),
+                )
+            )
         return deltas
 
     @staticmethod
-    def write_report(path: str | Path, subject: Mapping[str, Any], deltas: list[PipelineDelta]) -> Path:
-        target = Path(path); target.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"generated_at": utcnow().isoformat(), "subject": dict(subject), "deltas": [asdict(d) for d in deltas]}
+    def write_report(
+        path: str | Path, subject: Mapping[str, Any], deltas: list[PipelineDelta]
+    ) -> Path:
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "generated_at": utcnow().isoformat(),
+            "subject": dict(subject),
+            "deltas": [asdict(d) for d in deltas],
+        }
         tmp = target.with_suffix(target.suffix + ".tmp")
         tmp.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
         tmp.replace(target)

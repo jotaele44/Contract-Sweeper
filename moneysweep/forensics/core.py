@@ -13,16 +13,40 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 QUERY_STATUSES = {
-    "PLANNED", "RUNNING", "SUCCESS", "SUCCESS_NULL", "FAILED_TRANSIENT",
-    "FAILED_PERMANENT", "BLOCKED_AUTH", "BLOCKED_WAF", "BLOCKED_NETWORK",
-    "RECORD_PURGED", "REQUIRES_BROWSER", "REQUIRES_FOIA",
+    "PLANNED",
+    "RUNNING",
+    "SUCCESS",
+    "SUCCESS_NULL",
+    "FAILED_TRANSIENT",
+    "FAILED_PERMANENT",
+    "BLOCKED_AUTH",
+    "BLOCKED_WAF",
+    "BLOCKED_NETWORK",
+    "RECORD_PURGED",
+    "REQUIRES_BROWSER",
+    "REQUIRES_FOIA",
 }
-REVIEW_STATUSES = {"UNREVIEWED", "MACHINE_VALIDATED", "HUMAN_REVIEWED", "CONTRADICTED", "SUPERSEDED", "REJECTED"}
+REVIEW_STATUSES = {
+    "UNREVIEWED",
+    "MACHINE_VALIDATED",
+    "HUMAN_REVIEWED",
+    "CONTRADICTED",
+    "SUPERSEDED",
+    "REJECTED",
+}
 TRIGGER_CLASSES = {
-    "FALSE_ENTITY_MERGE", "FALSE_CONTRACT_JOIN", "IDENTIFIER_COLLISION",
-    "SOURCE_FORMAT_CHANGE", "PARSER_MISS", "MISSING_SCHEMA_FIELD",
-    "REPEATED_QUERY", "UNHANDLED_FAILURE", "COVERAGE_OVERSTATEMENT",
-    "COVERAGE_UNDERSTATEMENT", "SUCCESSOR_ATTRIBUTION_ERROR", "AMOUNT_SEMANTICS_ERROR",
+    "FALSE_ENTITY_MERGE",
+    "FALSE_CONTRACT_JOIN",
+    "IDENTIFIER_COLLISION",
+    "SOURCE_FORMAT_CHANGE",
+    "PARSER_MISS",
+    "MISSING_SCHEMA_FIELD",
+    "REPEATED_QUERY",
+    "UNHANDLED_FAILURE",
+    "COVERAGE_OVERSTATEMENT",
+    "COVERAGE_UNDERSTATEMENT",
+    "SUCCESSOR_ATTRIBUTION_ERROR",
+    "AMOUNT_SEMANTICS_ERROR",
 }
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -46,11 +70,24 @@ def entity_id(jurisdiction: str, legal_name: str, authoritative_id: str | None =
     return canonical_hash(authoritative_id or jurisdiction, legal_name, prefix="ent_")
 
 
-def pr_contract_action_key(issuing_entity_id: str, base_contract_number: str, amendment: str | None, contractor_entity_id: str) -> str:
-    return canonical_hash(issuing_entity_id, base_contract_number, amendment or "BASE", contractor_entity_id, prefix="prc_")
+def pr_contract_action_key(
+    issuing_entity_id: str,
+    base_contract_number: str,
+    amendment: str | None,
+    contractor_entity_id: str,
+) -> str:
+    return canonical_hash(
+        issuing_entity_id,
+        base_contract_number,
+        amendment or "BASE",
+        contractor_entity_id,
+        prefix="prc_",
+    )
 
 
-def federal_award_key(award_id_or_piid: str, recipient_entity_id: str, awarding_subagency: str) -> str:
+def federal_award_key(
+    award_id_or_piid: str, recipient_entity_id: str, awarding_subagency: str
+) -> str:
     return canonical_hash(award_id_or_piid, recipient_entity_id, awarding_subagency, prefix="faw_")
 
 
@@ -58,7 +95,9 @@ def evidence_key(source_hash: str, locator: str, claim: str) -> str:
     return canonical_hash(source_hash, locator, claim, prefix="ev_")
 
 
-def query_key(source_id: str, subject_id: str, query_type: str, parameters: Mapping[str, Any]) -> str:
+def query_key(
+    source_id: str, subject_id: str, query_type: str, parameters: Mapping[str, Any]
+) -> str:
     params = json.dumps(parameters, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return canonical_hash(source_id, subject_id, query_type, params, prefix="qry_")
 
@@ -81,7 +120,11 @@ class ForensicsLedger:
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = duckdb.connect(str(self.db_path))
-        self.migrations_dir = Path(migrations_dir) if migrations_dir else Path(__file__).resolve().parents[2] / "migrations" / "forensics"
+        self.migrations_dir = (
+            Path(migrations_dir)
+            if migrations_dir
+            else Path(__file__).resolve().parents[2] / "migrations" / "forensics"
+        )
 
     def __enter__(self) -> "ForensicsLedger":
         return self
@@ -93,15 +136,21 @@ class ForensicsLedger:
         self.conn.close()
 
     def migrate(self) -> None:
-        self.conn.execute("CREATE TABLE IF NOT EXISTS schema_migrations(version VARCHAR PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL)")
-        applied = {row[0] for row in self.conn.execute("SELECT version FROM schema_migrations").fetchall()}
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS schema_migrations(version VARCHAR PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL)"
+        )
+        applied = {
+            row[0] for row in self.conn.execute("SELECT version FROM schema_migrations").fetchall()
+        }
         for path in sorted(self.migrations_dir.glob("*.sql")):
             if path.stem in applied:
                 continue
             self.conn.execute("BEGIN")
             try:
                 self.conn.execute(path.read_text(encoding="utf-8"))
-                self.conn.execute("INSERT INTO schema_migrations VALUES (?, ?)", [path.stem, utcnow()])
+                self.conn.execute(
+                    "INSERT INTO schema_migrations VALUES (?, ?)", [path.stem, utcnow()]
+                )
                 self.conn.execute("COMMIT")
             except Exception:
                 self.conn.execute("ROLLBACK")
@@ -112,7 +161,9 @@ class ForensicsLedger:
         row = self.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()
         return int(row[0]) if row else 0
 
-    def upsert(self, table: str, records: Iterable[Mapping[str, Any]], key_columns: list[str]) -> dict[str, int]:
+    def upsert(
+        self, table: str, records: Iterable[Mapping[str, Any]], key_columns: list[str]
+    ) -> dict[str, int]:
         table = _sql_identifier(table)
         keys = [_sql_identifier(c) for c in key_columns]
         rows = [dict(r) for r in records]
@@ -125,9 +176,7 @@ class ForensicsLedger:
         if missing:
             raise ValueError(f"Missing key columns: {sorted(missing)}")
 
-        existing_rows = self.conn.execute(
-            f"SELECT {','.join(columns)} FROM {table}"
-        ).fetchall()
+        existing_rows = self.conn.execute(f"SELECT {','.join(columns)} FROM {table}").fetchall()
         existing = {tuple(row[columns.index(k)] for k in keys): tuple(row) for row in existing_rows}
         incoming_by_key = {tuple(r[k] for k in keys): tuple(r[c] for c in columns) for r in rows}
         inserted = sum(k not in existing for k in incoming_by_key)
@@ -142,7 +191,9 @@ class ForensicsLedger:
             if updates:
                 changed = " OR ".join(f"t.{c} IS DISTINCT FROM s.{c}" for c in updates)
                 set_clause = ", ".join(f"{c}=s.{c}" for c in updates)
-                self.conn.execute(f"UPDATE {table} t SET {set_clause} FROM _incoming s WHERE {join} AND ({changed})")
+                self.conn.execute(
+                    f"UPDATE {table} t SET {set_clause} FROM _incoming s WHERE {join} AND ({changed})"
+                )
             cols = ",".join(columns)
             self.conn.execute(
                 f"INSERT INTO {table} ({cols}) SELECT {cols} FROM _incoming s "
@@ -152,13 +203,22 @@ class ForensicsLedger:
             self.conn.unregister("_incoming")
         return {"inserted": inserted, "updated": updated, "unchanged": unchanged}
 
-    def preflight_query(self, *, source_id: str, subject_id: str, query_type: str,
-                        parameters: Mapping[str, Any], aliases_changed: bool = False,
-                        contradiction_open: bool = False, now: datetime | None = None) -> QueryDecision:
+    def preflight_query(
+        self,
+        *,
+        source_id: str,
+        subject_id: str,
+        query_type: str,
+        parameters: Mapping[str, Any],
+        aliases_changed: bool = False,
+        contradiction_open: bool = False,
+        now: datetime | None = None,
+    ) -> QueryDecision:
         key = query_key(source_id, subject_id, query_type, parameters)
         row = self.conn.execute(
             "SELECT status, fresh_until, fallback_route, retry_after FROM query_history "
-            "WHERE query_key=? ORDER BY finished_at DESC NULLS LAST LIMIT 1", [key]
+            "WHERE query_key=? ORDER BY finished_at DESC NULLS LAST LIMIT 1",
+            [key],
         ).fetchone()
         if row is None:
             return QueryDecision("RUN", "never_executed")
@@ -181,62 +241,125 @@ class ForensicsLedger:
             raise ValueError(f"Unsupported query status: {record['status']}")
         return self.upsert("query_history", [record], ["query_id"])
 
-    def calculate_coverage(self, entity: str, domain: str, items: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
+    def calculate_coverage(
+        self, entity: str, domain: str, items: Iterable[Mapping[str, Any]]
+    ) -> dict[str, Any]:
         rows = list(items)
         applicable = [r for r in rows if r.get("gap_status") != "NOT_APPLICABLE"]
-        structurally_unavailable = {"SEALED_OR_CONFIDENTIAL", "RECORD_PURGED", "SOURCE_INACCESSIBLE"}
+        structurally_unavailable = {
+            "SEALED_OR_CONFIDENTIAL",
+            "RECORD_PURGED",
+            "SOURCE_INACCESSIBLE",
+        }
         resolvable = [r for r in applicable if r.get("gap_status") not in structurally_unavailable]
         public_score = sum(float(r.get("weight", 0)) for r in applicable)
         resolvable_score = sum(float(r.get("weight", 0)) for r in resolvable)
         result = {
-            "entity_id": entity, "domain": domain, "required_items": len(applicable),
+            "entity_id": entity,
+            "domain": domain,
+            "required_items": len(applicable),
             "resolved_weight": public_score,
             "public_data_coverage": public_score / len(applicable) if applicable else 1.0,
             "resolvable_coverage": resolvable_score / len(resolvable) if resolvable else 1.0,
-            "domain_confidence": sum(float(r.get("confidence", 0)) for r in applicable) / len(applicable) if applicable else 1.0,
-            "blockers_json": json.dumps(sorted({r.get("gap_status") for r in applicable if r.get("weight", 0) < 1 and r.get("gap_status")})),
-            "next_actions_json": json.dumps([r.get("next_action") for r in applicable if r.get("next_action")]),
+            "domain_confidence": sum(float(r.get("confidence", 0)) for r in applicable)
+            / len(applicable)
+            if applicable
+            else 1.0,
+            "blockers_json": json.dumps(
+                sorted(
+                    {
+                        r.get("gap_status")
+                        for r in applicable
+                        if r.get("weight", 0) < 1 and r.get("gap_status")
+                    }
+                )
+            ),
+            "next_actions_json": json.dumps(
+                [r.get("next_action") for r in applicable if r.get("next_action")]
+            ),
             "updated_at": utcnow(),
         }
         self.upsert("coverage_state", [result], ["entity_id", "domain"])
         return result
 
-    def recalculate_priorities(self, rows: Iterable[Mapping[str, Any]], weights: Mapping[str, float]) -> list[dict[str, Any]]:
-        old_ranks = dict(self.conn.execute("SELECT entity_id,current_rank FROM entity_priority_queue").fetchall())
+    def recalculate_priorities(
+        self, rows: Iterable[Mapping[str, Any]], weights: Mapping[str, float]
+    ) -> list[dict[str, Any]]:
+        old_ranks = dict(
+            self.conn.execute("SELECT entity_id,current_rank FROM entity_priority_queue").fetchall()
+        )
         now = utcnow()
         records = []
         for item in rows:
             metrics = item.get("metrics", {})
-            score = sum(max(0.0, min(100.0, float(metrics.get(k, 0)))) * float(w) for k, w in weights.items())
-            records.append({
-                "entity_id": item["entity_id"], "current_rank": None,
-                "previous_rank": old_ranks.get(item["entity_id"]), "rank_delta": None,
-                "priority_score": score, "coverage_deficit": float(metrics.get("coverage_deficit", 0)),
-                "last_researched_at": item.get("last_researched_at"),
-                "staleness_score": float(metrics.get("staleness", 0)),
-                "priority_reasons_json": json.dumps(sorted(metrics, key=lambda k: metrics[k], reverse=True)[:5]),
-                "highest_value_next_action": item.get("highest_value_next_action"),
-                "estimated_recovery_gain": float(metrics.get("estimated_recovery_gain", 0)), "updated_at": now,
-            })
+            score = sum(
+                max(0.0, min(100.0, float(metrics.get(k, 0)))) * float(w)
+                for k, w in weights.items()
+            )
+            records.append(
+                {
+                    "entity_id": item["entity_id"],
+                    "current_rank": None,
+                    "previous_rank": old_ranks.get(item["entity_id"]),
+                    "rank_delta": None,
+                    "priority_score": score,
+                    "coverage_deficit": float(metrics.get("coverage_deficit", 0)),
+                    "last_researched_at": item.get("last_researched_at"),
+                    "staleness_score": float(metrics.get("staleness", 0)),
+                    "priority_reasons_json": json.dumps(
+                        sorted(metrics, key=lambda k: metrics[k], reverse=True)[:5]
+                    ),
+                    "highest_value_next_action": item.get("highest_value_next_action"),
+                    "estimated_recovery_gain": float(metrics.get("estimated_recovery_gain", 0)),
+                    "updated_at": now,
+                }
+            )
         self.upsert("entity_priority_queue", records, ["entity_id"])
-        ranked = self.conn.execute("SELECT entity_id FROM entity_priority_queue ORDER BY priority_score DESC, entity_id").fetchall()
+        ranked = self.conn.execute(
+            "SELECT entity_id FROM entity_priority_queue ORDER BY priority_score DESC, entity_id"
+        ).fetchall()
         output = []
         for rank, (eid,) in enumerate(ranked, 1):
             previous = old_ranks.get(eid)
             delta = None if previous is None else previous - rank
-            self.conn.execute("UPDATE entity_priority_queue SET current_rank=?, previous_rank=?, rank_delta=? WHERE entity_id=?", [rank, previous, delta, eid])
-            output.append({"entity_id": eid, "current_rank": rank, "previous_rank": previous, "rank_delta": delta})
+            self.conn.execute(
+                "UPDATE entity_priority_queue SET current_rank=?, previous_rank=?, rank_delta=? WHERE entity_id=?",
+                [rank, previous, delta, eid],
+            )
+            output.append(
+                {
+                    "entity_id": eid,
+                    "current_rank": rank,
+                    "previous_rank": previous,
+                    "rank_delta": delta,
+                }
+            )
         return output
 
-    def recalculate_priority(self, entity: str, metrics: Mapping[str, float], weights: Mapping[str, float], previous_rank: int | None = None) -> float:
+    def recalculate_priority(
+        self,
+        entity: str,
+        metrics: Mapping[str, float],
+        weights: Mapping[str, float],
+        previous_rank: int | None = None,
+    ) -> float:
         self.recalculate_priorities([{"entity_id": entity, "metrics": metrics}], weights)
-        row = self.conn.execute("SELECT priority_score FROM entity_priority_queue WHERE entity_id=?", [entity]).fetchone()
+        row = self.conn.execute(
+            "SELECT priority_score FROM entity_priority_queue WHERE entity_id=?", [entity]
+        ).fetchone()
         return float(row[0]) if row else 0.0
 
-    def export_parquet(self, output_dir: str | Path, tables: Iterable[str] | None = None) -> list[Path]:
-        output = Path(output_dir); output.mkdir(parents=True, exist_ok=True)
+    def export_parquet(
+        self, output_dir: str | Path, tables: Iterable[str] | None = None
+    ) -> list[Path]:
+        output = Path(output_dir)
+        output.mkdir(parents=True, exist_ok=True)
         if tables is None:
-            tables = [r[0] for r in self.conn.execute("SHOW TABLES").fetchall() if r[0] != "schema_migrations"]
+            tables = [
+                r[0]
+                for r in self.conn.execute("SHOW TABLES").fetchall()
+                if r[0] != "schema_migrations"
+            ]
         written = []
         for table in sorted(tables):
             table = _sql_identifier(table)
