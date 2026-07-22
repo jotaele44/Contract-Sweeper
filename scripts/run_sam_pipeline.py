@@ -24,8 +24,6 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from scripts.config import setup_logging
-
 
 def _find_dat(root: Path, explicit: str | Path | None) -> Path | None:
     if explicit:
@@ -52,6 +50,8 @@ def run(
     circuit_breaker_failures: int = 3,
 ) -> dict[str, Any]:
     """Run all offline resolution layers, then an optional live residual pass."""
+    from scripts.config import setup_logging
+
     root = Path(root or ROOT)
     logger = setup_logging("run_sam_pipeline")
 
@@ -72,9 +72,7 @@ def run(
         logger.info(f"[SAM] Streaming monthly public extract: {dat_path.name}")
         raw_summary = ingest_bulk(dat_path, root)
         outputs = write_outputs(raw_summary, root)
-        bulk_summary = {
-            key: value for key, value in raw_summary.items() if key != "_matches"
-        }
+        bulk_summary = {key: value for key, value in raw_summary.items() if key != "_matches"}
         bulk_summary.update(
             {
                 "status": "complete",

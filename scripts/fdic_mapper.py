@@ -59,9 +59,7 @@ def field_coverage(df: pd.DataFrame, columns: list) -> dict:
         if col not in df.columns:
             results[col] = 0.0
             continue
-        results[col] = (
-            float(_supplied_mask(df[col]).mean() * 100) if len(df) else 0.0
-        )
+        results[col] = float(_supplied_mask(df[col]).mean() * 100) if len(df) else 0.0
     return results
 
 
@@ -80,9 +78,7 @@ def validate_dates(df: pd.DataFrame, date_cols: list) -> dict:
             supplied = _supplied_mask(df[col])
             supplied_count = int(supplied.sum())
             parsed = pd.to_datetime(df.loc[supplied, col], errors="coerce")
-            results[col] = (
-                float(parsed.notna().mean() * 100) if supplied_count else 100.0
-            )
+            results[col] = float(parsed.notna().mean() * 100) if supplied_count else 100.0
         except Exception as e:
             logger.warning(f"Failed to validate dates in {col}: {e}")
             results[col] = 0.0
@@ -105,9 +101,7 @@ def validate_amounts(df: pd.DataFrame, amount_cols: list) -> dict:
             supplied = _supplied_mask(df[col])
             supplied_count = int(supplied.sum())
             parsed = pd.to_numeric(df.loc[supplied, col], errors="coerce")
-            results[col] = (
-                float(parsed.notna().mean() * 100) if supplied_count else 100.0
-            )
+            results[col] = float(parsed.notna().mean() * 100) if supplied_count else 100.0
         except Exception as e:
             logger.warning(f"Failed to validate amounts in {col}: {e}")
             results[col] = 0.0

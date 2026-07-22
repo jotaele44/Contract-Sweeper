@@ -15,9 +15,7 @@ def test_default_entity_resolution_does_not_call_live_api(tmp_path, monkeypatch)
     processed.mkdir(parents=True)
     master = processed / "pr_contracts_master.csv"
     with master.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(
-            fh, fieldnames=["vendor_name", "obligated_amount", "recipient_uei"]
-        )
+        writer = csv.DictWriter(fh, fieldnames=["vendor_name", "obligated_amount", "recipient_uei"])
         writer.writeheader()
         writer.writerow(
             {"vendor_name": "Example Vendor", "obligated_amount": "100", "recipient_uei": ""}
@@ -37,12 +35,8 @@ def test_default_entity_resolution_reuses_existing_cache(tmp_path):
     processed = tmp_path / "data" / "staging" / "processed"
     enrichment = processed / "enrichment"
     enrichment.mkdir(parents=True)
-    with (processed / "pr_contracts_master.csv").open(
-        "w", newline="", encoding="utf-8"
-    ) as fh:
-        writer = csv.DictWriter(
-            fh, fieldnames=["vendor_name", "obligated_amount", "recipient_uei"]
-        )
+    with (processed / "pr_contracts_master.csv").open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["vendor_name", "obligated_amount", "recipient_uei"])
         writer.writeheader()
         writer.writerow(
             {"vendor_name": "Example Vendor", "obligated_amount": "100", "recipient_uei": ""}

@@ -281,9 +281,7 @@ class TestLoadTargetsFallback:
                     fieldnames=["vendor_name", "obligated_amount", "recipient_uei"],
                 )
                 w.writeheader()
-                w.writerow(
-                    {"vendor_name": vendor, "obligated_amount": "1", "recipient_uei": ""}
-                )
+                w.writerow({"vendor_name": vendor, "obligated_amount": "1", "recipient_uei": ""})
 
         write_master("Old Vendor")
         assert load_targets(tmp_path)[0]["vendor_name"] == "Old Vendor"

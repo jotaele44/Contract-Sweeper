@@ -216,9 +216,7 @@ def _run(root=None, force=False):
     ]
     cache_payload = {"queries": queries}
 
-    if not force and cache_is_complete(
-        out_path, cache_payload, SCHEMA_VERSION, allow_empty=True
-    ):
+    if not force and cache_is_complete(out_path, cache_payload, SCHEMA_VERSION, allow_empty=True):
         rows = len(pd.read_csv(out_path, dtype=str, low_memory=False))
         logger.info(f"  pr_earmarks.csv exists ({rows:,} rows) — skipping.")
         return {"rows": rows, "path": str(out_path), "errors": []}
@@ -232,9 +230,7 @@ def _run(root=None, force=False):
         for award_group in AWARD_TYPE_GROUPS:
             fname = f"earmarks_{window['label']}_{award_group}.csv"
             try:
-                results = _paginate(
-                    session, _build_payload(window, award_group), logger
-                )
+                results = _paginate(session, _build_payload(window, award_group), logger)
             except HttpRequestFailed as exc:
                 logger.error(f"  {award_group}: {exc}")
                 errors.append(f"{fname}: {exc}")

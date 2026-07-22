@@ -192,13 +192,10 @@ def download_window(session, window, raw_dir, force, logger):
         fname = f"usace_civil_{filter_type}_{label}.csv"
         fpath = raw_dir / fname
         payloads = [
-            _build_payload(filter_type, window, award_group)
-            for award_group in AWARD_TYPE_GROUPS
+            _build_payload(filter_type, window, award_group) for award_group in AWARD_TYPE_GROUPS
         ]
         cache_payload = {"queries": payloads}
-        if not force and cache_is_complete(
-            fpath, cache_payload, SCHEMA_VERSION, allow_empty=True
-        ):
+        if not force and cache_is_complete(fpath, cache_payload, SCHEMA_VERSION, allow_empty=True):
             rows = len(pd.read_csv(fpath, dtype=str, low_memory=False))
             logger.info(f"  Skipping {fname} (exists, {rows} rows)")
             stats[f"{filter_type}_rows"] += rows

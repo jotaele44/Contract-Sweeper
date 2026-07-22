@@ -181,9 +181,7 @@ def download_window(session, window, raw_dir, force, logger):
         fname = f"doj_{filter_type}_{label}.csv"
         fpath = raw_dir / fname
         payload = _build_payload(filter_type, window)
-        if not force and cache_is_complete(
-            fpath, payload, SCHEMA_VERSION, allow_empty=True
-        ):
+        if not force and cache_is_complete(fpath, payload, SCHEMA_VERSION, allow_empty=True):
             rows = len(pd.read_csv(fpath, dtype=str, low_memory=False))
             logger.info(f"  Skipping {fname} (complete cache, {rows} rows)")
             stats[f"{filter_type}_rows"] = rows

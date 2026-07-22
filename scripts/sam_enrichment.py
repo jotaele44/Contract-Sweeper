@@ -468,9 +468,7 @@ def load_targets(root: Path) -> list[dict]:
     master_path = root / "data" / "staging" / "processed" / "pr_contracts_master.csv"
     unified_path = root / "data" / "staging" / "processed" / "pr_all_awards_master.csv"
     current_master = (
-        master_path
-        if master_path.exists()
-        else (unified_path if unified_path.exists() else None)
+        master_path if master_path.exists() else (unified_path if unified_path.exists() else None)
     )
 
     if targets_path.exists():
@@ -871,9 +869,7 @@ def run(
             continue
 
         if vendor in results and results[vendor].get("uei"):
-            status_counts[
-                results[vendor].get("resolution_status", STATUS_RESOLVED_SAM)
-            ] += 1
+            status_counts[results[vendor].get("resolution_status", STATUS_RESOLVED_SAM)] += 1
             processed += 1
             continue
 
@@ -1197,7 +1193,5 @@ if __name__ == "__main__":
         circuit_breaker_failures=args.circuit_breaker_failures,
     )
     sys.exit(
-        0
-        if summary.get("dry_run") or not args.use_api or summary.get("coverage_gate_pass")
-        else 1
+        0 if summary.get("dry_run") or not args.use_api or summary.get("coverage_gate_pass") else 1
     )

@@ -167,9 +167,7 @@ def _results_to_df(results, source_file):
         errors="coerce",
     )
     face_value = pd.to_numeric(
-        df["loan_value"]
-        if "loan_value" in df.columns
-        else pd.Series(index=df.index, dtype=float),
+        df["loan_value"] if "loan_value" in df.columns else pd.Series(index=df.index, dtype=float),
         errors="coerce",
     )
     df["obligated_amount"] = subsidy.fillna(face_value)
@@ -233,9 +231,7 @@ def _run(root=None, force=False, fy_start=None):
             fname = f"exim_{filter_type}_{window['label']}.csv"
             fpath = raw_dir / fname
             payload = _build_payload(filter_type, window)
-            if not force and cache_is_complete(
-                fpath, payload, SCHEMA_VERSION, allow_empty=True
-            ):
+            if not force and cache_is_complete(fpath, payload, SCHEMA_VERSION, allow_empty=True):
                 rows = len(pd.read_csv(fpath, dtype=str, low_memory=False))
                 logger.info(f"  Skipping {fname} ({rows} rows)")
                 if filter_type == "pop":

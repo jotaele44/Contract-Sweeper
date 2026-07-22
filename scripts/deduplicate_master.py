@@ -73,6 +73,7 @@ def deduplicate(df: pd.DataFrame, logger) -> pd.DataFrame:
     # Keep an identifier supplied by any duplicate source instead of losing it
     # merely because the first row came from a legacy export without UEI.
     if "recipient_uei" in df.columns and present_cols:
+
         def _first_nonempty(values: pd.Series) -> str:
             cleaned = [
                 value.strip()

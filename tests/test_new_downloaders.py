@@ -223,9 +223,7 @@ def test_exim_master_columns_has_source():
 
 
 def test_exim_uses_loan_fields_and_sort():
-    payload = exim_build_payload(
-        "pop", {"start_date": "2023-01-01", "end_date": "2024-01-01"}
-    )
+    payload = exim_build_payload("pop", {"start_date": "2023-01-01", "end_date": "2024-01-01"})
     assert payload["sort"] == "Loan Value"
     assert "Loan Value" in payload["fields"]
     assert "Subsidy Cost" in payload["fields"]
