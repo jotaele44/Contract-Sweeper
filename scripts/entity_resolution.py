@@ -1,13 +1,14 @@
 """
 Entity Resolution — Top N Vendors → Parent Entity Hierarchy
 
-Resolves the top N vendors (by total obligation) to their parent entities
-using USASpending recipient API (no auth required) and SAM enrichment output.
+Resolves the top N vendors (by total obligation) to their parent entities.
+The default path uses existing identifiers, SAM enrichment output, and cache
+only. A bounded USASpending residual is explicit via ``--use-api``.
 
 Usage:
-  python3 scripts/entity_resolution.py               # top 100 vendors
+  python3 scripts/entity_resolution.py               # offline-first
   python3 scripts/entity_resolution.py --top 50      # top 50
-  python3 scripts/entity_resolution.py --resume      # resume from cache
+  python3 scripts/entity_resolution.py --use-api --max-api 100
 """
 
 from __future__ import annotations
@@ -159,6 +160,7 @@ def load_sam_index(root: Path) -> dict[str, dict]:
             vn = (row.get("vendor_name") or "").strip()
             if vn:
                 index[vn] = row
+                index.setdefault(normalize_vendor(vn), row)
     return index
 
 
@@ -167,7 +169,9 @@ def load_sam_index(root: Path) -> dict[str, dict]:
 # ---------------------------------------------------------------------------
 
 
-def resolve_vendor(vendor: dict, sam_index: dict, cache: dict, logger) -> dict:
+def resolve_vendor(
+    vendor: dict, sam_index: dict, cache: dict, logger, *, use_api: bool = False
+) -> dict:
     """Resolve a vendor to its parent entity. Returns enriched dict."""
     vn = vendor["vendor_name"]
     norm = normalize_vendor(vn)
@@ -199,12 +203,22 @@ def resolve_vendor(vendor: dict, sam_index: dict, cache: dict, logger) -> dict:
         result["match_confidence"] = float(sam_row.get("match_score") or 0)
         result["source"] = "sam_index"
         return result
+    if sam_row and sam_row.get("resolution_status") == "RESOLVED_LOCAL_GOV":
+        result["source"] = "local_government"
+        return result
 
     # Cache hit
     if vn in cache:
         cached = cache[vn]
-        result.update(cached)
-        result["source"] = "cache"
+        # A parentless cache entry is useful offline but must not suppress a
+        # later explicitly requested residual lookup.
+        if not use_api or cached.get("parent_uei") or cached.get("parent_name"):
+            result.update(cached)
+            result["source"] = "cache"
+            return result
+
+    if not use_api:
+        result["source"] = "offline_unresolved"
         return result
 
     # Query USASpending
@@ -259,7 +273,14 @@ def resolve_vendor(vendor: dict, sam_index: dict, cache: dict, logger) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def run(root: Path | None = None, top_n: int = TOP_N_DEFAULT, resume: bool = False) -> Path:
+def run(
+    root: Path | None = None,
+    top_n: int = TOP_N_DEFAULT,
+    resume: bool = False,
+    *,
+    use_api: bool = False,
+    max_api: int = 100,
+) -> Path:
     if root is None:
         root = PROJECT_ROOT
 
@@ -269,11 +290,18 @@ def run(root: Path | None = None, top_n: int = TOP_N_DEFAULT, resume: bool = Fal
     out_path = output_dir / "entity_hierarchy.csv"
 
     logger = setup_logging("entity_resolution")
-    logger.info(f"Entity resolution — top {top_n} vendors")
+    if use_api and max_api < 1:
+        raise ValueError("max_api must be at least 1")
+    logger.info(
+        f"Entity resolution — top {top_n} vendors "
+        f"({'offline + bounded API' if use_api else 'offline-only'})"
+    )
 
     vendors = load_vendor_rankings(root, top_n)
     sam_index = load_sam_index(root)
-    cache = json.loads(cache_path.read_text()) if (resume and cache_path.exists()) else {}
+    # Cache reads are always safe and make the default offline path useful on
+    # repeated runs. ``--resume`` remains accepted for CLI compatibility.
+    cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
 
     logger.info(f"  Loaded {len(vendors)} vendors, {len(sam_index)} SAM index entries")
 
@@ -281,7 +309,7 @@ def run(root: Path | None = None, top_n: int = TOP_N_DEFAULT, resume: bool = Fal
     resolved_count = 0
     for rank, vendor in enumerate(vendors, 1):
         vendor["_rank"] = rank
-        result = resolve_vendor(vendor, sam_index, cache, logger)
+        result = resolve_vendor(vendor, sam_index, cache, logger, use_api=False)
         rows.append(result)
         if result.get("parent_uei") or result.get("parent_name"):
             resolved_count += 1
@@ -289,6 +317,22 @@ def run(root: Path | None = None, top_n: int = TOP_N_DEFAULT, resume: bool = Fal
             logger.info(
                 f"  [PROGRESS] {rank}/{len(vendors)} processed, {resolved_count} with parent entity"
             )
+
+    api_calls = 0
+    if use_api:
+        logger.info(f"  Live residual budget: {max_api} vendor lookups")
+        for idx, (vendor, current) in enumerate(zip(vendors, rows, strict=True)):
+            if current.get("parent_uei") or current.get("parent_name"):
+                continue
+            if current.get("source") == "local_government":
+                continue
+            if api_calls >= max_api:
+                break
+            updated = resolve_vendor(vendor, sam_index, cache, logger, use_api=True)
+            rows[idx] = updated
+            api_calls += 1
+
+    resolved_count = sum(1 for row in rows if row.get("parent_uei") or row.get("parent_name"))
 
     # Save cache
     cache_path.write_text(json.dumps(cache, indent=2), encoding="utf-8")
@@ -313,7 +357,8 @@ def run(root: Path | None = None, top_n: int = TOP_N_DEFAULT, resume: bool = Fal
 
     logger.info(
         f"\nEntity hierarchy written: {out_path}\n"
-        f"  {resolved_count}/{len(rows)} vendors resolved to parent entity"
+        f"  {resolved_count}/{len(rows)} vendors resolved to parent entity; "
+        f"live API calls={api_calls}"
     )
     return out_path
 
@@ -322,8 +367,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Entity resolution for top N vendors")
     parser.add_argument("--top", type=int, default=TOP_N_DEFAULT, help="Number of top vendors")
     parser.add_argument("--resume", action="store_true", help="Resume from cache")
+    parser.add_argument(
+        "--use-api", action="store_true", help="Enable a bounded USASpending residual pass"
+    )
+    parser.add_argument("--max-api", type=int, default=100)
     args = parser.parse_args()
-    run(top_n=args.top, resume=args.resume)
+    run(top_n=args.top, resume=args.resume, use_api=args.use_api, max_api=args.max_api)
     return 0
 
 

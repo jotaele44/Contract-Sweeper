@@ -1,6 +1,7 @@
 # Source Update Controller
 
-A registry-driven, per-source update layer that sits **beside** `run_all.py`. It
+A registry-driven, per-source update layer available directly and through
+`run_all.py --profile incremental`. It
 decides *whether a source is due*, isolates per-source failure, detects operator
 file-drops by hash, sequences derived sources after their upstreams, validates
 output atomically before overwriting, and reports freshness and structured
@@ -16,10 +17,9 @@ triggers, a dependency DAG, freshness SLAs, atomic output validation, and
 structured failure reporting, driven entirely by the canonical source registry
 plus a thin policy overlay.
 
-**Non-goals** — this controller does **not** replace `run_all.py`. `run_all.py`
-remains the full ~65-step producer orchestrator with its own strict-preflight
-stage. The controller is additive and is **not** integrated into `run_all.py` in
-this patch. It does not itself perform data normalization, entity resolution, or
+**Non-goals** — this controller does **not** replace the full `run_all.py` profile,
+which remains the full producer orchestrator with its own strict-preflight stage.
+The controller powers the optional incremental profile. It does not itself perform data normalization, entity resolution, or
 canonical export — it only decides *when* and *whether* to run a source's
 producer and whether the result is acceptable.
 
@@ -199,7 +199,8 @@ excluded and run via dispatch.
 ```bash
 python3 scripts/update_sources.py validate-policy      # policy + DAG gates
 python3 scripts/update_sources.py plan --due           # what is due (read-only)
-python3 scripts/update_sources.py run --due            # run all due (with egress)
+python3 scripts/update_sources.py run --due --workers 4 # run due sources in dependency-safe lanes
+python3 run_all.py --profile incremental --workers 4   # same controller via the main entry point
 python3 scripts/update_sources.py run --source ocpr_contracts   # a self-hosted long-running source
 python3 scripts/update_sources.py freshness            # SLA report
 ```

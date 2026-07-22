@@ -73,23 +73,24 @@ def find_dat(explicit: str | None) -> Path:
 
 
 def load_targets(root: Path) -> dict:
-    path = root / "data" / "staging" / "processed" / "vendor_targets.csv"
-    if not path.exists():
-        sys.exit(f"vendor_targets.csv not found at {path}")
+    # Derive/rebuild the cache from the master when needed so bulk ingestion is
+    # independently runnable and inherits direct-source UEI preservation.
+    from scripts.sam_enrichment import load_targets as load_enrichment_targets
+
+    rows = load_enrichment_targets(root)
     by_k1: dict[str, dict] = {}
     by_k2: dict[str, dict] = {}
-    with open(path, encoding="utf-8") as f:
-        for r in csv.DictReader(f):
-            vn = (r.get("vendor_name") or "").strip()
-            if not vn:
-                continue
-            tgt = {
-                "vendor_name": vn,
-                "total_value": float(r.get("total_value", 0) or 0),
-            }
-            a = k1(vn)
-            by_k1.setdefault(a, tgt)
-            by_k2.setdefault(k2(a), tgt)
+    for r in rows:
+        vn = (r.get("vendor_name") or "").strip()
+        if not vn:
+            continue
+        tgt = {
+            "vendor_name": vn,
+            "total_value": float(r.get("total_value", 0) or 0),
+        }
+        a = k1(vn)
+        by_k1.setdefault(a, tgt)
+        by_k2.setdefault(k2(a), tgt)
     return {"by_k1": by_k1, "by_k2": by_k2}
 
 

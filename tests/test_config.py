@@ -209,5 +209,13 @@ class TestManifest:
         assert expected.issubset(set(STANDARD_COLUMNS))
 
     def test_column_families_keys(self):
-        expected = {"date", "vendor", "agency", "amount", "contract_id", "pop_state"}
+        expected = {
+            "date",
+            "vendor",
+            "agency",
+            "amount",
+            "contract_id",
+            "pop_state",
+            "uei",
+        }
         assert expected == set(COLUMN_FAMILIES.keys())

@@ -28,11 +28,12 @@ def build_column_map(df_columns: list) -> dict:
     Build a mapping from standard column names to actual column names in the CSV.
     Returns: {standard_name: actual_col_name_or_None}
     """
-    families = ["contract_id", "date", "vendor", "agency", "amount", "pop_state"]
+    families = ["contract_id", "date", "vendor", "uei", "agency", "amount", "pop_state"]
     standard_names = [
         "contract_id",
         "award_date",
         "vendor_name",
+        "recipient_uei",
         "agency_name",
         "obligated_amount",
         "pop_state",

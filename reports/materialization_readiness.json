@@ -4,7 +4,7 @@
   "automatable_total": 99,
   "automatable_ready": 99,
   "automatable_not_ready": [],
-  "automatable_needs_key_count": 13,
+  "automatable_needs_key_count": 12,
   "automatable_required_keys": [
     "CENSUS_API_KEY",
     "EIA_API_KEY",

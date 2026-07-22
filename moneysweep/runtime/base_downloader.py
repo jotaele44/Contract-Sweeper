@@ -25,10 +25,15 @@ Design notes
 
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterator
+from uuid import uuid4
 
 import pandas as pd
 import requests
@@ -43,13 +48,17 @@ from moneysweep.runtime.retry_runtime import (
 
 __all__ = [
     "HttpConfig",
+    "HttpRequestFailed",
     "PageResult",
     "paginate",
     "build_session",
     "http_get_json",
     "http_post_json",
     "file_has_data",
+    "query_fingerprint",
+    "cache_is_complete",
     "write_csv",
+    "write_csv_complete",
     "BaseDownloader",
 ]
 
@@ -74,6 +83,15 @@ class _RateLimited(Exception):
     """Internal marker so a 429 is retried by :func:`with_retry`."""
 
 
+class HttpRequestFailed(RuntimeError):
+    """An API request failed and must not be mistaken for an empty result set."""
+
+    def __init__(self, message: str, *, status_code: int | None, retryable: bool) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.retryable = retryable
+
+
 def build_session(
     user_agent: str = _DEFAULT_USER_AGENT,
     extra_headers: dict[str, str] | None = None,
@@ -93,6 +111,7 @@ def _http_json(
     logger,
     config: HttpConfig,
     sleeper: Callable[[float], None],
+    raise_on_failure: bool,
 ) -> dict | None:
     """Shared retry core for :func:`http_get_json` / :func:`http_post_json`.
 
@@ -109,6 +128,12 @@ def _http_json(
             raise _RateLimited()
         if 400 <= resp.status_code < 500:
             logger.error("  HTTP %s: %s", resp.status_code, resp.text[:200])
+            if raise_on_failure:
+                raise HttpRequestFailed(
+                    f"HTTP {resp.status_code}: {resp.text[:200]}",
+                    status_code=resp.status_code,
+                    retryable=False,
+                )
             return None
         resp.raise_for_status()
         sleeper(config.page_sleep)
@@ -128,6 +153,12 @@ def _http_json(
         )
     except RetryExhausted:
         logger.error("  All %d attempts failed", config.max_retries)
+        if raise_on_failure:
+            raise HttpRequestFailed(
+                f"request failed after {config.max_retries} attempts",
+                status_code=None,
+                retryable=True,
+            )
         return None
 
 
@@ -139,6 +170,7 @@ def http_get_json(
     logger,
     config: HttpConfig | None = None,
     sleeper: Callable[[float], None] = time.sleep,
+    raise_on_failure: bool = False,
 ) -> dict | None:
     """GET ``url`` with retry; return parsed JSON, or ``None`` on 4xx / exhaustion.
 
@@ -152,6 +184,7 @@ def http_get_json(
         logger=logger,
         config=config,
         sleeper=sleeper,
+        raise_on_failure=raise_on_failure,
     )
 
 
@@ -163,6 +196,7 @@ def http_post_json(
     logger,
     config: HttpConfig | None = None,
     sleeper: Callable[[float], None] = time.sleep,
+    raise_on_failure: bool = False,
 ) -> dict | None:
     """POST ``payload`` as JSON with retry; return parsed JSON, or ``None``.
 
@@ -176,6 +210,7 @@ def http_post_json(
         logger=logger,
         config=config,
         sleeper=sleeper,
+        raise_on_failure=raise_on_failure,
     )
 
 
@@ -199,6 +234,98 @@ def write_csv(df: pd.DataFrame, path: Path | str) -> Path:
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(p, index=False, encoding="utf-8")
+    return p
+
+
+def query_fingerprint(payload: dict, schema_version: str = "1") -> str:
+    """Return a stable cache key for a query, excluding its current page number."""
+    canonical_payload = {key: value for key, value in payload.items() if key != "page"}
+    canonical = json.dumps(
+        {"payload": canonical_payload, "schema_version": str(schema_version)},
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _cache_metadata_path(path: Path) -> Path:
+    return path.with_name(f"{path.name}.meta.json")
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def cache_is_complete(
+    path: Path | str,
+    payload: dict,
+    schema_version: str = "1",
+    *,
+    allow_empty: bool = False,
+) -> bool:
+    """Validate a cached CSV and its completion manifest for the exact query."""
+    p = Path(path)
+    meta_path = _cache_metadata_path(p)
+    if not p.exists() or not meta_path.exists():
+        return False
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        if meta.get("status") != "complete":
+            return False
+        if meta.get("query_fingerprint") != query_fingerprint(payload, schema_version):
+            return False
+        if meta.get("sha256") != _sha256(p):
+            return False
+        row_count = int(meta.get("row_count", -1))
+        if row_count < 0 or (row_count == 0 and not allow_empty):
+            return False
+        actual_rows = len(pd.read_csv(p))
+        return actual_rows == row_count
+    except (OSError, ValueError, TypeError, json.JSONDecodeError, pd.errors.ParserError):
+        return False
+
+
+def write_csv_complete(
+    df: pd.DataFrame,
+    path: Path | str,
+    payload: dict,
+    *,
+    source: str,
+    schema_version: str = "1",
+    page_count: int | None = None,
+) -> Path:
+    """Atomically publish a CSV followed by a query-specific completion manifest."""
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    csv_tmp = p.with_name(f".{p.name}.{uuid4().hex}.tmp")
+    meta_path = _cache_metadata_path(p)
+    meta_tmp = meta_path.with_name(f".{meta_path.name}.{uuid4().hex}.tmp")
+    try:
+        df.to_csv(csv_tmp, index=False, encoding="utf-8")
+        os.replace(csv_tmp, p)
+        metadata = {
+            "status": "complete",
+            "source": source,
+            "schema_version": str(schema_version),
+            "query_fingerprint": query_fingerprint(payload, schema_version),
+            "row_count": int(len(df)),
+            "page_count": page_count,
+            "sha256": _sha256(p),
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        meta_tmp.write_text(
+            json.dumps(metadata, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        os.replace(meta_tmp, meta_path)
+    finally:
+        csv_tmp.unlink(missing_ok=True)
+        meta_tmp.unlink(missing_ok=True)
     return p
 
 
@@ -248,7 +375,7 @@ class BaseDownloader:
             self._session = build_session(self.http.user_agent, self.http.extra_headers)
         return self._session
 
-    def get(self, url: str, params: dict) -> dict | None:
+    def get(self, url: str, params: dict, *, raise_on_failure: bool = False) -> dict | None:
         return http_get_json(
             self.session(),
             url,
@@ -256,9 +383,10 @@ class BaseDownloader:
             logger=self.logger,
             config=self.http,
             sleeper=self._sleeper,
+            raise_on_failure=raise_on_failure,
         )
 
-    def post(self, url: str, payload: dict) -> dict | None:
+    def post(self, url: str, payload: dict, *, raise_on_failure: bool = False) -> dict | None:
         return http_post_json(
             self.session(),
             url,
@@ -266,6 +394,7 @@ class BaseDownloader:
             logger=self.logger,
             config=self.http,
             sleeper=self._sleeper,
+            raise_on_failure=raise_on_failure,
         )
 
     def paginate(

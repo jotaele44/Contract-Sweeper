@@ -31,6 +31,7 @@ from moneysweep.update_controller.policy import (
 _RUN_FAILURE_EXEMPT: frozenset[str] = SUCCESS_STATUSES | frozenset(
     {
         ExecutionStatus.NOT_DUE.value,
+        ExecutionStatus.PLANNED.value,
         ExecutionStatus.DISABLED.value,
         ExecutionStatus.MANUAL_INPUT_MISSING.value,
         ExecutionStatus.DEPENDENCY_NOT_READY.value,
@@ -237,8 +238,11 @@ def cmd_ingest_drops(args: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
+    from concurrent.futures import ThreadPoolExecutor
+
     from moneysweep.update_controller.executor import run_source
     from moneysweep.update_controller.planner import _dotenv, build_plan
+    from moneysweep.update_controller.scheduler import group_wave_by_lane, topological_waves
     from moneysweep.update_controller.state import load_state, write_state
 
     policies = build_effective_policies(args.root, args.policy)
@@ -259,57 +263,62 @@ def cmd_run(args: argparse.Namespace) -> int:
     )
 
     results: list[dict[str, Any]] = []
-    failed = False
     changed_parents: set[str] = set()
-    for it in items:
-        pol = policies[it.source_id]
-        res = run_source(
-            pol,
-            reg.get(it.source_id, {}),
-            state,
-            root=args.root,
-            dotenv=dotenv,
-            consumed_path=args.consumed,
-            dry_run=args.dry_run,
-            strict=True,
-        )
-        results.append(res)
-        if not args.dry_run:
-            write_state(state, args.root, args.state)
-        if res["status"] == ExecutionStatus.SUCCESS_WITH_CHANGE.value:
-            changed_parents.add(it.source_id)
-        if is_run_failure(res["status"]):
-            failed = True
-            if not args.continue_on_error:
+    failed = False
+
+    def execute_selected(selected, *, dry_run: bool) -> bool:
+        """Run dependency waves; serialize same-upstream sources within each wave."""
+        batch_failed = False
+        for wave in topological_waves(selected):
+            lanes = group_wave_by_lane(wave, reg)
+
+            def run_lane(lane):
+                lane_results = []
+                for item in lane:
+                    result = run_source(
+                        policies[item.source_id],
+                        reg.get(item.source_id, {}),
+                        state,
+                        root=args.root,
+                        dotenv=dotenv,
+                        consumed_path=args.consumed,
+                        dry_run=dry_run,
+                        strict=True,
+                    )
+                    lane_results.append((item, result))
+                    if is_run_failure(result["status"]) and not args.continue_on_error:
+                        break
+                return lane_results
+
+            wave_results = []
+            with ThreadPoolExecutor(max_workers=min(args.workers, max(1, len(lanes)))) as pool:
+                futures = [pool.submit(run_lane, lane) for lane in lanes]
+                for future in futures:
+                    wave_results.extend(future.result())
+            wave_results.sort(key=lambda pair: (pair[0].order_index, pair[0].source_id))
+
+            for item, result in wave_results:
+                results.append(result)
+                if result["status"] == ExecutionStatus.SUCCESS_WITH_CHANGE.value:
+                    changed_parents.add(item.source_id)
+                if is_run_failure(result["status"]):
+                    batch_failed = True
+            if not dry_run:
+                write_state(state, args.root, args.state)
+            if batch_failed and not args.continue_on_error:
                 break
+        return batch_failed
+
+    failed = execute_selected(items, dry_run=args.dry_run)
 
     # trigger newly-due dependents (spec §10) unless suppressed
     if not args.no_dependents and not args.dry_run and changed_parents:
         dep_items = build_plan(
             args.root, policies=policies, state=state, trigger="dependency", due_only=True
         )
-        for it in dep_items:
-            if it.source_id in {r["source_id"] for r in results}:
-                continue
-            pol = policies[it.source_id]
-            res = run_source(
-                pol,
-                reg.get(it.source_id, {}),
-                state,
-                root=args.root,
-                dotenv=dotenv,
-                consumed_path=args.consumed,
-                strict=True,
-            )
-            results.append(res)
-            write_state(state, args.root, args.state)
-            # A failed auto-triggered dependent must surface in the exit code so
-            # scheduled workflows don't go green while downstream outputs are
-            # stale/broken (respecting --continue-on-error for the batch).
-            if is_run_failure(res["status"]):
-                failed = True
-                if not args.continue_on_error:
-                    break
+        already_ran = {result["source_id"] for result in results}
+        dep_items = [item for item in dep_items if item.source_id not in already_ran]
+        failed = execute_selected(dep_items, dry_run=False) or failed
 
     _emit(
         {
@@ -364,6 +373,12 @@ def _common_parser() -> argparse.ArgumentParser:
     common.add_argument("--json", action="store_true")
     common.add_argument("--strict", action="store_true")
     common.add_argument("--max-sources", type=int, default=None)
+    common.add_argument(
+        "--workers",
+        type=int,
+        default=4,
+        help="Maximum independent execution lanes (default: 4).",
+    )
     common.add_argument("--continue-on-error", action="store_true")
     common.add_argument("--no-dependents", action="store_true")
     return common
@@ -408,6 +423,8 @@ def main(argv: list[str] | None = None) -> int:
         if not hasattr(args, attr):
             setattr(args, attr, None if attr != "due" else False)
     args.root = Path(args.root)
+    if args.workers < 1:
+        parser.error("--workers must be at least 1")
     return int(args.func(args))
 
 

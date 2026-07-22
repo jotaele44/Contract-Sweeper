@@ -17,7 +17,7 @@ haf,False,federal,quarterly,none,,schedule,False,api_adapter,True,True,,True,Tru
 hhs_grants,False,federal,quarterly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_hhs.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 highergov_supplemental,False,federal,weekly,api_key:HIGHERGOV_API_KEY,HIGHERGOV_API_KEY,schedule,False,api_adapter,True,True,HIGHERGOV_API_KEY,True,True,scripts/fetch_highergov_api.py,2,1,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 hud_hcv_section8,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_hud_hcv.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
-lda,True,lobbying,monthly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/sources/fetch_lda_gov.py,14,2,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
+lda,True,lobbying,monthly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/sources/fetch_lda_gov.py,14,14,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 medicaid_fmap,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_medicaid_fmap.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 medicare_advantage,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_medicare_advantage.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 medicare_parts,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_medicare_parts.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
@@ -27,7 +27,7 @@ nonprofits_irs990,False,federal,yearly,none,,schedule,False,api_adapter,True,Tru
 ofac_sdn,False,entity_resolution,weekly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_ofac.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 oia_grants,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_oia.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 research_grants,False,federal,weekly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_research.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
-sam_entities,True,entity_resolution,monthly,api_key:SAM_API_KEY,SAM_API_KEY,schedule,False,api_adapter,True,True,SAM_API_KEY,True,True,scripts/sam_enrichment.py,2,1,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
+sam_entities,True,entity_resolution,monthly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/run_sam_pipeline.py,2,2,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 sba_loans,False,federal,quarterly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_sba.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 sba_ppp,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_sba.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 sbir,False,federal,monthly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_sbir.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).

@@ -1,7 +1,7 @@
 # Source Materialization Readiness
 
 Total sources: **144**
-Automatable: **99** (ready: **99**, need API key at run time: 13)
+Automatable: **99** (ready: **99**, need API key at run time: 12)
 Queued / excluded: **45**
 
 ## Path types
