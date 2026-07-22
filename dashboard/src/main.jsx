@@ -7,6 +7,7 @@ import '@fontsource/jetbrains-mono'
 import App from '@/App.jsx'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import '@/index.css'
+import '@pr-federation/react/styles.css'
 import '@/styles/federation.css'
 
 // This app commits to its dark cyan console identity. Stamp the shared
