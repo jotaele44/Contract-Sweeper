@@ -1,0 +1,30 @@
+name: Federation template drift
+
+# Fails if this repo's shared launcher / desktop / schema boilerplate has drifted
+# from the canonical templates in thehub-pr/federation-templates. Edit a template
+# once in thehub-pr and re-render (tools/render_federation_templates.py) — do not
+# hand-edit these rendered files here.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch thehub-pr sibling (owns the canonical templates)
+        run: |
+          ref="${{ github.head_ref || github.ref_name }}"
+          git clone --depth 1 --branch "$ref" https://github.com/jotaele44/thehub-pr.git ../thehub-pr \
+            || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pyyaml
+      - name: Assert no drift from canonical federation templates
+        run: python ../thehub-pr/tools/render_federation_templates.py --repo moneysweep-pr --check
