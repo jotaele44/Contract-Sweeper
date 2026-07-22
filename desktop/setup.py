@@ -46,7 +46,29 @@ def is_complete() -> bool:
 MIN_PYTHON = (3, 10)
 
 
+HUB_SIBLING = REPO_ROOT.parent / "thehub-pr"
+HUB_CLONE_URL = "https://github.com/jotaele44/thehub-pr.git"
+
+
+def ensure_hub_sibling() -> None:
+    """Requirement files reference shared packages by a sibling path
+    (``-e ../thehub-pr/packages/*``). For a dev launch from a fresh clone the
+    sibling may be absent, so fetch it once. Frozen builds bundle the package and
+    never hit this path."""
+    if HUB_SIBLING.exists():
+        return
+    git = shutil.which("git")
+    if git is None:
+        raise SystemExit(
+            "git not found: the desktop wrapper needs a sibling thehub-pr checkout "
+            f"at {HUB_SIBLING}. Clone {HUB_CLONE_URL} there and re-run."
+        )
+    print(f"Fetching shared federation packages into {HUB_SIBLING} …")
+    run([git, "clone", "--depth", "1", HUB_CLONE_URL, str(HUB_SIBLING)])
+
+
 def setup_python() -> None:
+    ensure_hub_sibling()
     if sys.version_info < MIN_PYTHON:
         raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
     if not venv_python().exists():
