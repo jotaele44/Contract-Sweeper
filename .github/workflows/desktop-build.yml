@@ -92,7 +92,7 @@ jobs:
             -ov -format UDZO "PRII-MONEYSWEEP-macOS.dmg"
           rm -rf "$staging"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: PRII-MONEYSWEEP-${{ runner.os }}
           path: |
