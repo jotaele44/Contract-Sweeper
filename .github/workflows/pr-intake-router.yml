@@ -47,7 +47,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          # PRII_FETCH_HUB: ensure shared federation libs resolve
+          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
+          pip install -r requirements.txt
 
       - name: Run targeted router and producer tests
         # --no-cov: this job runs a small, targeted subset, so the repo-wide

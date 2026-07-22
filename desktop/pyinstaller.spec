@@ -33,6 +33,12 @@ a = Analysis(
         "uvicorn.lifespan.on",
         "desktop.app_server",
         "server.backend.main",
+        # Shared desktop-wrapper runtime (thehub-pr/packages/prii_desktop),
+        # imported by the desktop/ shims — bundle it into the frozen build.
+        "prii_desktop",
+        "prii_desktop.launcher",
+        "prii_desktop.appserver",
+        "prii_desktop.config",
     ],
     noarchive=False,
 )
