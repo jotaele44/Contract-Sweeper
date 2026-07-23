@@ -3,7 +3,6 @@ import { useContracts } from '@/lib/hooks'
 import {
   Table, TableHeader, TableBody, TableRow, TableCell,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
@@ -11,9 +10,20 @@ import {
 import QueryBoundary from '@/components/QueryBoundary'
 import DetailRow from '@/components/DetailRow'
 import SortHead from '@/components/SortHead'
-import { fmtMoney, statusTone } from '@/lib/cs-format'
+import { federationTone } from '@pr-federation/react'
+import { fmtMoney, statusRole } from '@/lib/cs-format'
 import { useSortable } from '@/lib/use-sortable'
 import { cn } from '@/lib/utils'
+
+// Status chip rendered on the shared federation tokens: federationTone(role)
+// returns { className: 'fd-status', 'data-status': role } and the colors come
+// from @pr-federation/react/styles.css. Layout/typography extras stay app-local.
+function StatusBadge({ status, className }) {
+  const { className: fdClass, ...toneAttrs } = federationTone(statusRole(status))
+  return (
+    <span className={cn(fdClass, className)} {...toneAttrs}>{status}</span>
+  )
+}
 
 export default function ContractsTable() {
   const query = useContracts()
@@ -68,7 +78,7 @@ export default function ContractsTable() {
                   <TableCell className="max-w-[160px] truncate text-xs text-foreground/80">{c.contractorName || '—'}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{c.municipality || '—'}</TableCell>
                   <TableCell className="text-right font-mono text-xs tabular-nums text-foreground">{fmtMoney(c.awardAmount)}</TableCell>
-                  <TableCell><Badge variant="outline" className={cn('text-[10px]', statusTone(c.status))}>{c.status}</Badge></TableCell>
+                  <TableCell><StatusBadge status={c.status} className="text-[10px]" /></TableCell>
                 </TableRow>
               ))}
               {rows.length === 0 && (
@@ -84,7 +94,7 @@ export default function ContractsTable() {
           {open && (
             <>
               <SheetHeader>
-                <Badge variant="outline" className={cn('w-fit text-[10px]', statusTone(open.status))}>{open.status}</Badge>
+                <StatusBadge status={open.status} className="w-fit text-[10px]" />
                 <SheetTitle className="text-left text-foreground">{open.serviceType || open.contractNumber}</SheetTitle>
                 <SheetDescription className="text-left text-muted-foreground">{open.contractNumber} · {open.contractId}</SheetDescription>
               </SheetHeader>
