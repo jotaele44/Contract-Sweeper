@@ -23,13 +23,16 @@ const ENTITY_TONE = {
 }
 export const entityTone = (t) => tone(ENTITY_TONE, t)
 
-const STATUS_TONE = {
-  active: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  flagged: 'bg-red-500/15 text-red-300 border-red-500/30',
-  amended: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  executed: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+// Contract status maps onto the shared federation v0.2.0 status vocabulary.
+// Colors now come from @pr-federation/react/styles.css via federationTone(role)
+// → `.fd-status[data-status="<role>"]`, replacing the local hard-coded palette.
+const STATUS_ROLE = {
+  active: 'success',
+  flagged: 'danger',
+  amended: 'warning',
+  executed: 'info',
 }
-export const statusTone = (s) => tone(STATUS_TONE, s)
+export const statusRole = (s) => STATUS_ROLE[s] ?? 'neutral'
 
 const EDGE_TONE = {
   LOCATED_IN: 'text-teal-300',
