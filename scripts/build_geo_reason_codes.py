@@ -57,6 +57,8 @@ REASON_DESCRIPTIONS = {
     "ambiguous_location": "Multiple conflicting locations could not be disambiguated.",
     "invalid_pr_municipio": "A PR municipio code/name was present but did not validate against the crosswalk.",
     "parser_failed": "The location parser failed to interpret the raw value.",
+    "roadwatch_route_km_overlap": "RoadWatch: project placed on a roadway segment by route id plus overlapping km-station measures.",
+    "roadwatch_route_only_no_km": "RoadWatch: project stated a route but no km extent, so it was promoted to every segment of that route.",
 }
 
 JURISDICTION_DESCRIPTIONS = {

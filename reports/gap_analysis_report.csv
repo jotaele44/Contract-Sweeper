@@ -18,10 +18,9 @@ lda,lobbying,True,none,14,14,0,0,fully_materialized,21112,1,data/staging/process
 Canonical API provider alias: lda_gov.
 Default mode is dry-run fixture mode; live API calls require --live.
 No API key is required. Uploaded/",substantial,unverifiable,provisional
-sam_entities,entity_resolution,True,api_key:SAM_API_KEY,2,2,0,0,fully_materialized,2378,1,data/staging/processed/enrichment/vendor_uei_index.csv,"SAM full extract + per-UEI enrichment for parent resolution.
-Supplemented by scripts/usaspending_parent_uei_extract.py (no rate limit).
-SAM API rate: 1,000 req/day → full 2,334-UEI run = 2.3+ days.
-",substantial,unverifiable,provisional
+sam_entities,entity_resolution,True,none,2,2,0,0,fully_materialized,2378,1,data/staging/processed/enrichment/vendor_uei_index.csv,"Offline-first UEI resolution from source exports, SAM monthly extracts,
+prior indexes, and local aliases. A bounded live SAM residual pass is opt-in
+and uses SAM_API_KEY with quota/transport circuit b",substantial,unverifiable,provisional
 usaspending_subawards,federal,True,none,2,2,0,0,fully_materialized,11978,1,data/staging/processed/pr_subawards_master.csv,,substantial,unverifiable,provisional
 aafaf,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_aafaf_budget.csv,PR Fiscal Agency & Financial Advisory Authority. Budget execution.,empty,uncontracted,uncertified
 act_toll_revenue,infrastructure_revenue,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_act_toll_revenue.csv,Aggregate toll revenue (ACT / AutoExpreso / Metropistas PR-22/PR-5) from ACT audited financials and EMMA toll-revenue-bond disclosures. Dropzone reader; pursue finer (per-plaza) breakdowns via FOIA.,empty,uncontracted,uncertified
@@ -51,6 +50,9 @@ doj_settlements,federal,False,manual_export,1,0,1,0,not_materialized,0,1,data/st
 dol_whd_osha,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_dol_enforcement.csv,,empty,uncontracted,uncertified
 donaciones_pr,political_finance,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_donaciones.csv,PR State Election Commission (CEE/CEEPUR) state-level donation registry. ingest_donaciones.py is a dropzone reader for operator-delivered CEE CSV exports — no network code. Previously mislabeled as us,empty,below_contract,uncertified
 dot_grants,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_dot_master.csv,,empty,uncontracted,uncertified
+dtop_centerline_lrs,infrastructure,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_roadwatch_segments.csv,"DTOP/ACT roadway centerline linear-referencing system (LRS) with km
+stationing. Source of the RoadWatch segment network geometry and the
+route-km measures used to place projects. Operator-dropped expo",empty,uncontracted,uncertified
 dtop_road_contracts,infrastructure,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_dtop_road_contracts.csv,"DTOP/ACT permanent road construction & maintenance contracts (rolling, beyond the 2020 transition snapshot). OCPR registry agency code 032.",empty,uncontracted,uncertified
 dtop_vehicle_fees,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_dtop_fees.csv,"DTOP vehicle-registration (marbete) and license fee collections. Operator-delivered exports.
 ",empty,uncontracted,uncertified
@@ -74,6 +76,12 @@ fema_hmgp,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed
 fema_individual_assistance,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_fema_ia.csv,"FEMA Individual Assistance / Individuals & Households Program housing aid to PR (OpenFEMA HousingAssistanceOwners). Direct-to-household disaster flow, distinct from Public Assistance and HMGP.
 ",empty,uncontracted,uncertified
 fhlb,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_fhlb_advances.csv,,empty,uncontracted,uncertified
+fhwa_hpms_routes,infrastructure,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_hpms_routes.csv,"FHWA Highway Performance Monitoring System (HPMS) route geometry for
+Puerto Rico, served via ArcGIS REST. Cross-check route_id and stationing
+against the DTOP centerline LRS; secondary geometry author",empty,uncontracted,uncertified
+fhwa_nbi_bridges,infrastructure,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_nbi_bridges.csv,"FHWA National Bridge Inventory (NBI) ASCII/CSV for Puerto Rico. Provides
+point structures with route + km; used to anchor bridge-scoped projects to
+the nearest RoadWatch segment (join_method nbi_struc",empty,uncontracted,uncertified
 financialdata_net,optional_commercial_enrichment,False,api_key:FINANCIALDATA_API_KEY,4,0,4,0,not_materialized,0,0,outputs/enrichment/financialdata_identifier_crosswalk.csv,OPTIONAL commercial provider for public-market entity resolution (CUSIP / ISIN / FIGI / LEI / CIK / ticker crosswalks). NOT a required source — never wired into coverage gates. Live use requires BOTH ,empty,uncontracted,uncertified
 follow_the_money,political_finance,False,manual_export,3,0,3,0,not_materialized,0,1,data/staging/processed/pr_sf133_budget_execution.csv,"PR public-money export data (SF-133 budget execution, municipal political/federal bridge, facility contract matches). ingest_follow_the_money.py is a dropzone reader (no network code) producing 3 outp",empty,uncontracted,uncertified
 fpds_report_builder,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_fpds_report_builder.csv,FPDS Report Builder FY2018-2024 ingestion. Supplements USAspending.,empty,uncontracted,uncertified
@@ -154,6 +162,9 @@ promesa_creditors,territorial,False,none,1,0,1,0,not_materialized,0,1,data/stagi
 prpha_housing_subsidy,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_prpha_subsidies.csv,"PR Public Housing Administration (AVP/PRPHA) operating subsidies and RAD conversions. Distinct from HUD Section-8 HCV. Operator-delivered exports.
 ",empty,uncontracted,uncertified
 research_grants,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_research_master.csv,,empty,uncontracted,uncertified
+roadwatch_corridor_join,infrastructure,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/roadwatch_corridor_join_candidates.csv,"Derived corridor-join ledger. Maps STIP/TIP roadway projects onto the
+RoadWatch segment network via route-km measures and spatial overlay, then
+promotes route-only projects to segment-level candidates",empty,uncontracted,uncertified
 rum_cover_over,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_rum_coverover.csv,,empty,uncontracted,uncertified
 sam_exclusions,entity_resolution,False,api_key:SAM_API_KEY,1,0,1,0,not_materialized,0,1,data/staging/processed/sam_exclusions.csv,"SAM.gov exclusions (debarment) list — suspended/excluded parties. Screening complement to sam_entities and ofac_sdn. Requires SAM_API_KEY.
 ",empty,uncontracted,uncertified
@@ -172,6 +183,9 @@ sf133_budget_execution,federal,False,none,1,0,1,0,not_materialized,0,1,data/stag
 slfrf,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_slfrf_master.csv,,empty,uncontracted,uncertified
 snap_nap,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_snap_nap.csv,,empty,uncontracted,uncertified
 ssa,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_ssa_benefits.csv,,empty,uncontracted,uncertified
+stip_tip_projects,infrastructure,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_stip_tip_projects.csv,"STIP/TIP project tables (e.g. Amendment 5, FY2023-26) and bid plans,
+typically distributed as PDF. Parse with Tabula/Camelot into
+infrastructure_projects rows carrying route_id and km extents where st",empty,uncontracted,uncertified
 tourism_room_tax,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_tourism_roomtax.csv,"PR Tourism Company hotel-occupancy tax (impuesto de ocupacion) and co-op marketing contributions. Operator-delivered exports.
 ",empty,uncontracted,uncertified
 transit_contracts,infrastructure,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_transit_contracts.csv,AMA / Tren Urbano (ATI) operating and O&M contracts.,empty,uncontracted,uncertified

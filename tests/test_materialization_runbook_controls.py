@@ -51,10 +51,16 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # sam_opportunities added (automatable via SAM_API_KEY, pre-award federal
     # solicitations / bid notices; scripts/download_sam_opportunities.py):
     # total_sources and automatable_total/automatable_ready each incremented by 1.
-    assert snapshot["total_sources"] == 144
-    assert snapshot["automatable_total"] == 99
-    assert snapshot["automatable_ready"] == 99
-    assert snapshot["queued_excluded_total"] == 45
+    # RoadWatch corridor overlay promoted from
+    # registries/source_registry_overlays/roadwatch_corridor_mapping.yaml into the
+    # live registry: +5 total_sources. fhwa_hpms_routes, fhwa_nbi_bridges and
+    # roadwatch_corridor_join are api_producer (+3 automatable_total/ready);
+    # dtop_centerline_lrs and stip_tip_projects are manual_export
+    # (+2 queued_excluded_total, awaiting operator drops).
+    assert snapshot["total_sources"] == 149
+    assert snapshot["automatable_total"] == 102
+    assert snapshot["automatable_ready"] == 102
+    assert snapshot["queued_excluded_total"] == 47
     assert snapshot["automatable_not_ready"] == []
 
 

@@ -1,16 +1,16 @@
 # Source Materialization Readiness
 
-Total sources: **144**
-Automatable: **99** (ready: **99**, need API key at run time: 12)
-Queued / excluded: **45**
+Total sources: **149**
+Automatable: **102** (ready: **102**, need API key at run time: 12)
+Queued / excluded: **47**
 
 ## Path types
 
 | path_type | automatable | count | recommended_action |
 | --- | --- | --- | --- |
-| `api_producer` | True | 58 | Run producer under strict preflight; public API path, set key if gated. |
+| `api_producer` | True | 61 | Run producer under strict preflight; public API path, set key if gated. |
 | `api_adapter` | True | 41 | Materialize via `python -m moneysweep.query --source <id>` (set key if gated). |
-| `manual_export` | False | 38 | Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook. |
+| `manual_export` | False | 40 | Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook. |
 | `semantic_duplicate` | False | 3 | No action; covered by sibling source. |
 | `deferred_stub` | False | 2 | Intentionally unimplemented; remains not_materialized by design. |
 | `scraper_needed` | False | 2 | Queued: needs a scraping adapter for the PR-gov HTML/PDF surface. |
@@ -61,7 +61,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `wic`
 - `wioa`
 
-## api_producer (58)
+## api_producer (61)
 
 - `aafaf`
 - `census_gov_finances`
@@ -79,6 +79,8 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `fec_committees`
 - `federal_audit_clearinghouse`
 - `fema_individual_assistance`
+- `fhwa_hpms_routes`
+- `fhwa_nbi_bridges`
 - `financialdata_net`
 - `fred_timeseries`
 - `fta_ntd`
@@ -110,6 +112,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `prasa_contracts_master`
 - `prepa_luma_genera`
 - `promesa_creditors`
+- `roadwatch_corridor_join`
 - `rum_cover_over`
 - `sam_exclusions`
 - `sam_opportunities`
@@ -127,7 +130,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `nara_catalog_aws_open_data`
 - `nara_nextgen_catalog_v3`
 
-## manual_export (38)
+## manual_export (40)
 
 - `act_toll_revenue`
 - `act_tolls_concession`
@@ -141,6 +144,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `ddec_incentives`
 - `doj_settlements`
 - `donaciones_pr`
+- `dtop_centerline_lrs`
 - `dtop_road_contracts`
 - `dtop_vehicle_fees`
 - `equitable_sharing`
@@ -164,6 +168,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `prepa_luma_rate_revenue`
 - `prpha_housing_subsidy`
 - `sba_disaster_loans_pr`
+- `stip_tip_projects`
 - `tourism_room_tax`
 - `transit_contracts`
 - `transit_fare_revenue`

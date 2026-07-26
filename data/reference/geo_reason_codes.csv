@@ -10,6 +10,8 @@ missing_location,geo_resolution_reason,true,No usable location evidence present 
 ambiguous_location,geo_resolution_reason,true,Multiple conflicting locations could not be disambiguated.
 invalid_pr_municipio,geo_resolution_reason,true,A PR municipio code/name was present but did not validate against the crosswalk.
 parser_failed,geo_resolution_reason,true,The location parser failed to interpret the raw value.
+roadwatch_route_km_overlap,geo_resolution_reason,false,RoadWatch: project placed on a roadway segment by route id plus overlapping km-station measures.
+roadwatch_route_only_no_km,geo_resolution_reason,false,"RoadWatch: project stated a route but no km extent, so it was promoted to every segment of that route."
 PR_MUNICIPIO,jurisdiction_class,false,Resolved to one of the 78 Puerto Rico municipios.
 UNKNOWN_MISSING,jurisdiction_class,true,No location evidence — jurisdiction unknown.
 UNKNOWN_AMBIGUOUS,jurisdiction_class,true,Conflicting location evidence — jurisdiction unknown.

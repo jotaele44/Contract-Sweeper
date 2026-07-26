@@ -107,7 +107,7 @@
       "source_inputs": [
         "scripts/run_contract_finance_geo_reasoning.py"
       ],
-      "row_count": 19
+      "row_count": 21
     },
     {
       "artifact": "data/reference/hq_bias_correction.csv",
