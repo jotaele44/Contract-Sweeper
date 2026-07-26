@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Durably ingest one idempotent Centinelas handoff envelope."""
+
 import hashlib
 import json
 import os
