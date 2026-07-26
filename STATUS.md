@@ -6,12 +6,13 @@
 **Production status:** `NON_PRODUCTION_DIAGNOSTIC`  
 **Latest test baseline:** 2394 passed · 8 skipped · 0 failed · 51.74% coverage (gate: 44%)
 
-> Measured 2026-07-26 by `python -m pytest tests/ -q`, after the CI install from
-> `.github/workflows/tests.yml` (`requirements.txt` + `httpx jsonschema` +
-> `server/backend/requirements.txt`). The previous line on this row claimed
-> "481 passed · 1 skipped" and was dated 2026-05-18 — roughly ten weeks and
-> ~1900 tests stale. Re-measure this row whenever you edit it; do not carry it
-> forward by hand.
+> Measured 2026-07-26 by `python -m pytest tests/ -q` on **Python 3.11.15**, using the
+> install from `.github/workflows/tests.yml` (`requirements.txt` + `httpx jsonschema` +
+> `server/backend/requirements.txt`). That workflow pins **Python 3.13**, so treat this as
+> a 3.11 measurement rather than a CI-identical figure. The previous line on this row
+> claimed "481 passed · 1 skipped" and was dated 2026-05-18 — roughly ten weeks and ~1900
+> tests stale. Re-measure this row whenever you edit it, ideally emitted from the test job
+> itself; do not carry it forward by hand.
 
 ---
 
