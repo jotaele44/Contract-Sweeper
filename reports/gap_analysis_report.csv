@@ -162,6 +162,9 @@ promesa_creditors,territorial,False,none,1,0,1,0,not_materialized,0,1,data/stagi
 prpha_housing_subsidy,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_prpha_subsidies.csv,"PR Public Housing Administration (AVP/PRPHA) operating subsidies and RAD conversions. Distinct from HUD Section-8 HCV. Operator-delivered exports.
 ",empty,uncontracted,uncertified
 research_grants,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_research_master.csv,,empty,uncontracted,uncertified
+roadwatch_corridor_join,infrastructure,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/roadwatch_corridor_join_candidates.csv,"Derived corridor-join ledger. Maps STIP/TIP roadway projects onto the
+RoadWatch segment network via route-km measures and spatial overlay, then
+promotes route-only projects to segment-level candidates",empty,uncontracted,uncertified
 rum_cover_over,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_rum_coverover.csv,,empty,uncontracted,uncertified
 sam_exclusions,entity_resolution,False,api_key:SAM_API_KEY,1,0,1,0,not_materialized,0,1,data/staging/processed/sam_exclusions.csv,"SAM.gov exclusions (debarment) list — suspended/excluded parties. Screening complement to sam_entities and ofac_sdn. Requires SAM_API_KEY.
 ",empty,uncontracted,uncertified
@@ -198,8 +201,5 @@ va_benefits,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/process
 wic,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_wic.csv,,empty,uncontracted,uncertified
 wioa,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_wioa_grants.csv,,empty,uncontracted,uncertified
 highergov_supplemental,federal,False,api_key:HIGHERGOV_API_KEY,2,1,1,0,partially_materialized,0,1,data/raw/HigherGov/,Supplementary federal contract intel via HigherGov. PDFs require parse_highergov_pdfs.,empty,uncontracted,uncertified
-roadwatch_corridor_join,infrastructure,False,none,1,0,0,1,partially_materialized,0,1,data/staging/processed/roadwatch_corridor_join_candidates.csv,"Derived corridor-join ledger. Maps STIP/TIP roadway projects onto the
-RoadWatch segment network via route-km measures and spatial overlay, then
-promotes route-only projects to segment-level candidates",empty,uncontracted,uncertified
 act_transition_contracts,manual_export,False,manual_export,1,1,0,0,fully_materialized,656,1,data/staging/processed/pr_act_transition_contracts.csv,"PR ACT transition contract files (Autopistas, Ferrovial, LPC&D, etc.). Manual export. Shares the data/raw/act_transition/ dropzone with acuden_2024_transition; the committed extract's source_dataset c",validated_complete,meets_contract,provisional
 acuden_2024_transition,manual_export,False,manual_export,1,1,0,0,fully_materialized,1147,1,data/staging/processed/pr_acuden_transition.csv,ACUDEN 2024 transition contract file. Transfer-of-funds contracts to municipalities/daycare/nonprofits. Shares the data/raw/act_transition/ dropzone with act_transition_contracts; the committed extrac,validated_complete,meets_contract,provisional
