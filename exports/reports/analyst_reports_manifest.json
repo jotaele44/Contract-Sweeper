@@ -108,7 +108,7 @@
       "format": "csv",
       "producer_script": "scripts/build_geo_reason_codes.py",
       "status": "done",
-      "row_count": 19
+      "row_count": 21
     },
     {
       "report_id": "RPT_953907bd4f276872",
