@@ -1,0 +1,34 @@
+name: Centinelas handoff intake
+on:
+  repository_dispatch:
+    types: [centinelas-handoff]
+permissions:
+  contents: write
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: ingest
+        env:
+          CENTINELAS_CLIENT_PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+          EXPECTED_TARGET: moneysweep-pr
+        run: python3 scripts/ingest_centinelas_handoff.py
+      - name: Persist receipt
+        run: |
+          git config user.name centinelas-handoff-bot
+          git config user.email actions@users.noreply.github.com
+          git add data/centinelas_handoffs
+          git diff --cached --quiet || git commit -m "data: ingest Centinelas handoff [skip ci]"
+          git push
+      - name: Acknowledge
+        env:
+          TOKEN: ${{ secrets.FEDERATION_DISPATCH_TOKEN }}
+          KEY: ${{ github.event.client_payload.idempotency_key }}
+          ITEM: ${{ github.event.client_payload.item_id }}
+          DUPLICATE: ${{ steps.ingest.outputs.duplicate }}
+        run: |
+          test -n "$TOKEN"
+          curl -sSf -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/jotaele44/centinelas-pr/dispatches \
+            -d "{\"event_type\":\"centinelas-handoff-ack\",\"client_payload\":{\"item_id\":\"$ITEM\",\"target\":\"moneysweep-pr\",\"idempotency_key\":\"$KEY\",\"status\":\"acknowledged\",\"duplicate\":$DUPLICATE}}"
