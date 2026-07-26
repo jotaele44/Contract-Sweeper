@@ -6,8 +6,8 @@
     "scripts/run_contract_finance_geo_reasoning.py"
   ],
   "output": "data/reference/geo_reason_codes.csv",
-  "row_count": 19,
-  "reason_count": 11,
+  "row_count": 21,
+  "reason_count": 13,
   "jurisdiction_class_count": 8,
-  "generated_at": "2026-06-16T10:13:56.504834+00:00"
+  "generated_at": "2026-07-26T04:01:47.924691+00:00"
 }

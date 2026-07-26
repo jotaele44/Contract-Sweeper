@@ -1,9 +1,9 @@
 # RoadWatch Corridor Mapping
 
-**Status:** schema-only (schemas + registry overlay + templates materialized; no data ingested yet)
+**Status:** producers implemented and sources registered; **no data ingested yet** (the manual sources await operator exports, the live-fetch sources await egress, and every row still needs a resolved `Cell_ID` — see §5)
 **Version:** v1 · 2026-07-07
 **Schemas:** [`schemas/roadwatch_segment.schema.json`](../schemas/roadwatch_segment.schema.json), [`schemas/roadwatch_corridor_join.schema.json`](../schemas/roadwatch_corridor_join.schema.json)
-**Registry overlay:** [`registries/source_registry_overlays/roadwatch_corridor_mapping.yaml`](../registries/source_registry_overlays/roadwatch_corridor_mapping.yaml)
+**Registry:** promoted into [`registries/source_registry.yaml`](../registries/source_registry.yaml) (the historical overlay definition is retained at [`registries/source_registry_overlays/roadwatch_corridor_mapping.yaml`](../registries/source_registry_overlays/roadwatch_corridor_mapping.yaml), which is no longer authoritative)
 **Templates:** [`examples/roadwatch_segment_template.csv`](../examples/roadwatch_segment_template.csv), [`examples/roadwatch_corridor_join_template.csv`](../examples/roadwatch_corridor_join_template.csv)
 
 ---
@@ -47,8 +47,8 @@ leaves those cross-domain steps to §8.
 
 ## 2. Authoritative data sources
 
-Each input is registered in the overlay
-[`registries/source_registry_overlays/roadwatch_corridor_mapping.yaml`](../registries/source_registry_overlays/roadwatch_corridor_mapping.yaml).
+Each input is registered in
+[`registries/source_registry.yaml`](../registries/source_registry.yaml).
 Acquisition summary:
 
 | `source_id` | Role | Access method | Key fields to capture |

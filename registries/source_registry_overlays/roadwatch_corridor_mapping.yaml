@@ -1,15 +1,18 @@
 version: "1.0"
 schema_version: "r5_source_registry_overlay_v1"
 
-# Overlay source definitions pending merge into registries/source_registry.yaml.
-# YAML remains the registry source of truth; after merge, run:
+# PROMOTED — these five sources now live in registries/source_registry.yaml and are
+# counted by the live registry. This file is retained as the historical definition
+# record; it is NOT loaded at runtime, and edits here have no effect. Change the
+# main registry instead, then run:
 #   python scripts/regenerate_registry_json.py
+#   python scripts/build_source_recovery_matrix.py   # readiness truth + source_ids_sha256
 #
 # RoadWatch corridor mapping (see docs/ROADWATCH_CORRIDOR_MAPPING.md).
 # Four upstream roadway reference sources feed one derived corridor-join ledger
 # that maps federally-funded roadway projects onto the RoadWatch segment network.
-# These stay in the overlay until real source artifacts are acquired and the
-# producer scripts are implemented; promote per the manual-review rule below.
+# The producer scripts were implemented across PRs #402 (join), #404 (DTOP) and
+# #405 (STIP/TIP + FHWA HPMS/NBI), which is what unblocked this promotion.
 
 sources:
   - source_id: dtop_centerline_lrs

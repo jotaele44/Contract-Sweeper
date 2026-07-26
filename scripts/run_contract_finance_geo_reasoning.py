@@ -82,6 +82,12 @@ GEO_RESOLUTION_REASONS = (
     "ambiguous_location",
     "invalid_pr_municipio",
     "parser_failed",
+    # RoadWatch corridor-join codes (schemas/roadwatch_corridor_join.schema.json
+    # directs the implementation PR to register them here). Emitted by
+    # scripts/build_roadwatch_corridor_join.py, not by the finance resolver; both
+    # denote a successful route-level resolution, so neither is an UNKNOWN reason.
+    "roadwatch_route_km_overlap",
+    "roadwatch_route_only_no_km",
 )
 JURISDICTION_CLASSES = (
     "PR_MUNICIPIO",
