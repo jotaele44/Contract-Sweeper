@@ -54,6 +54,11 @@ REQUIRED_DAG: dict[str, list[str]] = {
     ],
     "ngo_integration_layer": ["nonprofits_irs990", "usaspending_prime"],
     "centinelas_pre_official_signals": [],
+    # Only the two sources whose staged CSVs build_roadwatch_corridor_join.py
+    # actually reads. fhwa_hpms_routes / fhwa_nbi_bridges are standalone
+    # reference tables the join does not consume yet, so listing them here would
+    # make the join wait on inputs it never opens.
+    "roadwatch_corridor_join": ["dtop_centerline_lrs", "stip_tip_projects"],
 }
 
 # Soft analytical links documented as downstream consumers, NOT blocking DAG

@@ -17,8 +17,8 @@
   },
   "by_materialization_status": {
     "fully_materialized": 10,
-    "not_materialized": 136,
-    "partially_materialized": 3
+    "not_materialized": 137,
+    "partially_materialized": 2
   },
   "by_coverage_status": {
     "below_contract": 1,
