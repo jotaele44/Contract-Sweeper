@@ -13,6 +13,12 @@ env:
 permissions:
   contents: read
 
+# Supersede older runs of this workflow on the same ref: a newer push
+# makes the in-flight result irrelevant, so cancel it and free the runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lock-sync:
     runs-on: ubuntu-latest

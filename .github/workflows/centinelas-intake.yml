@@ -17,6 +17,13 @@ on:
 permissions:
   contents: write
 
+# Serialise runs on the same ref without cancelling. This workflow can
+# publish, write data, or hand off to another repo, and killing it
+# mid-flight risks leaving that work half-done.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   intake:
     runs-on: ubuntu-latest
@@ -25,6 +32,7 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
+          cache: pip
 
       - name: Materialize Centinelas drop into intake/
         env:

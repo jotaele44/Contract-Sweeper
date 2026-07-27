@@ -18,6 +18,12 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+# Supersede older runs of this workflow on the same ref: a newer push
+# makes the in-flight result irrelevant, so cancel it and free the runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   size-guard:
     runs-on: ubuntu-latest
