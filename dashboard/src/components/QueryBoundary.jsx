@@ -1,6 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Inbox } from 'lucide-react'
+import { FederationEmptyState } from '@pr-federation/react'
 
 // One place for the three non-happy states every data tab shares: loading,
 // error (with retry), and empty. Pass a react-query result plus an `isEmpty`
@@ -31,11 +32,16 @@ export default function QueryBoundary({ query, isEmpty, emptyLabel = 'Nothing to
   }
 
   if (typeof isEmpty === 'function' ? isEmpty(data) : !data) {
+    // Shared federation empty state (@pr-federation/react) so every data tab's
+    // "nothing to show" reads identically across the federation. `content-center`
+    // keeps it vertically centered — .fd-empty-state is a grid and would
+    // otherwise pin to the top of the full-height panel.
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center text-muted-foreground">
-        <Inbox className="h-5 w-5" />
-        <p className="text-sm">{emptyLabel}</p>
-      </div>
+      <FederationEmptyState
+        className="h-full content-center"
+        icon={<Inbox className="h-5 w-5" />}
+        title={emptyLabel}
+      />
     )
   }
 
