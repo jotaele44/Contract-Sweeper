@@ -1,0 +1,53 @@
+name: CodeQL
+
+# Rendered from thehub-pr/federation-templates/baseline/codeql.yml.
+# Edit the template there and re-render (tools/render_federation_templates.py);
+# do not hand-edit this file — template-drift.yml fails the build if you do.
+#
+# Static analysis for both languages every repo in the federation ships: the
+# Python pipeline/server code and the dashboard/frontend TypeScript. Findings
+# land in the repo's Security tab rather than failing the build, so this job
+# going green means "analysis ran", not "nothing was found" — read the tab.
+# The weekly run matters as much as the per-PR one: it re-scans dormant code
+# against newly published queries.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 5 * * 1" # Mondays 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # upload SARIF to the Security tab
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@e4fba868fa4b1b91e1fdab776edc8cfbe6e9fb81 # v4
+        with:
+          category: "/language:${{ matrix.language }}"
