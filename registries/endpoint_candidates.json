@@ -104,6 +104,19 @@
       "url": "https://www.comprashpr.com/"
     },
     {
+      "source_id": "asg_emergency_purchases",
+      "url": "https://asg.pr.gov/comprasemergencias",
+      "notes": "Server-rendered HTML table; the only ASG page carrying dollar amounts."
+    },
+    {
+      "source_id": "asg_suppliers",
+      "url": "https://asg.pr.gov/suplidores",
+      "fallback_urls": [
+        "https://subastas.pr.gov/Pages/subastas.aspx"
+      ],
+      "notes": "RUL/RUP bidder registry. The subastas.pr.gov fallback is the Registro Unico de Subastas \u2014 the same vendor universe behind a SharePoint front end."
+    },
+    {
       "source_id": "aafaf",
       "url": "https://www.aafaf.pr.gov/"
     },

@@ -57,9 +57,13 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # roadwatch_corridor_join are api_producer (+3 automatable_total/ready);
     # dtop_centerline_lrs and stip_tip_projects are manual_export
     # (+2 queued_excluded_total, awaiting operator drops).
-    assert snapshot["total_sources"] == 149
-    assert snapshot["automatable_total"] == 102
-    assert snapshot["automatable_ready"] == 102
+    # asg_emergency_purchases and asg_suppliers added, both api_producer with live
+    # HTML scrapers over asg.pr.gov (scripts/scrape_asg_emergency_purchases.py and
+    # scripts/scrape_asg_suppliers.py): +2 total_sources and
+    # +2 automatable_total/automatable_ready.
+    assert snapshot["total_sources"] == 151
+    assert snapshot["automatable_total"] == 104
+    assert snapshot["automatable_ready"] == 104
     assert snapshot["queued_excluded_total"] == 47
     assert snapshot["automatable_not_ready"] == []
 

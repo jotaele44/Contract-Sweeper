@@ -1,0 +1,59 @@
+<!-- Trimmed reproduction of asg.pr.gov/comprasemergencias. Header wording, the
+     data-title attributes and the "Página 1 de 141" marker match the live page;
+     the live table renders 10 rows per page and three representative ones are
+     kept, one from each declared emergency (EPI / TTF / CV19).
+     Note the trailing "↩" sort-reset column, which carries no data. -->
+<html><body>
+<div class="container">
+  <table id="myTable" class="table-sortable w-100" aria-label="Tabla de Compras de Emergencias">
+    <thead>
+      <tr class="header">
+        <th style="text-align:center"><a href="?order_by=-numerocontrol&page=1">Número de Control ASG</a></th>
+        <th style="text-align:center"><a href="?order_by=-numerocompra&page=1">Número Orden de Compra</a></th>
+        <th style="text-align:center"><a href="?order_by=-bienes&page=1">Bienes o servicios a adquirir</a></th>
+        <th style="text-align:center"><a href="?order_by=-proveedor&page=1">Proveedor </a></th>
+        <th style="text-align:center"><a href="?order_by=-costo&page=1">Costo </a></th>
+        <th style="text-align:center"><a href="?order_by=-agencia&page=1">Agencia </a></th>
+        <th style="text-align:center"><a href="comprasemergencias">&#x21a9;</a></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="text-center" data-title="Número de Control ASG"><br>26-ASG-EPI-0010<br></td>
+        <td class="text-center" data-title="Número Orden de Compra"><br>36725<br></td>
+        <td class="text-center" data-title="Bienes o servicios a adquirir"><br>Hand Sanitizer 16.2 oz<br></td>
+        <td class="text-center" data-title="Proveedor"><br>Salud Para Todos<br></td>
+        <td class="text-center" data-title="Costo"><br>$70,487.04<br></td>
+        <td class="text-center" data-title="Agencia"><br>Departamento de Salud<br></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="text-center" data-title="Número de Control ASG"><br>22-ASG-TTF-296<br></td>
+        <td class="text-center" data-title="Número Orden de Compra"><br>DTOP-HF-2022-0006<br></td>
+        <td class="text-center" data-title="Bienes o servicios a adquirir"><br>Adquisición de mil cien (1,100) barreras viales en cemento.<br></td>
+        <td class="text-center" data-title="Proveedor"><br>Obratec<br></td>
+        <td class="text-center" data-title="Costo"><br>$643,500.00<br></td>
+        <td class="text-center" data-title="Agencia"><br>DTOP<br></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td class="text-center" data-title="Número de Control ASG"><br>20-ASG-CV19-765<br></td>
+        <td class="text-center" data-title="Número Orden de Compra"><br>29001<br></td>
+        <td class="text-center" data-title="Bienes o servicios a adquirir"><br>Mascarillas N95<br></td>
+        <td class="text-center" data-title="Proveedor"><br>Caribbean Medical Supply, Inc.<br></td>
+        <td class="text-center" data-title="Costo"><br>$1,250,000.00<br></td>
+        <td class="text-center" data-title="Agencia"><br>Departamento de Salud<br></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <nav aria-label="Page navigation">
+    <ul class="pagination">
+      <li class="page-item"><span class="page-link">Página 1 de 141</span></li>
+      <li class="page-item"><a class="page-link" href="?page=2&order_by=-creado">Próxima</a></li>
+      <li class="page-item"><a class="page-link" href="?page=141&order_by=-creado">Última</a></li>
+    </ul>
+  </nav>
+</div>
+</body></html>

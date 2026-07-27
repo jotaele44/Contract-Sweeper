@@ -3,10 +3,16 @@ Download PR active contractor registry from government supplier databases.
 
 Source hierarchy (fetch-first / manual-fallback / graceful-empty):
   1. Manual files in data/raw/Active Contractor Listing/
-  2. asg.pr.gov/suplidores       (ASG supplier pages)
+  2. asg.pr.gov/suplidores       (ASG RUL/RUP registry, via
+                                  scripts/scrape_asg_suppliers.py)
   3. consultacontratos.ocpr.gov.pr (OCPR contract registry)
   4. hacienda.pr.gov             (Hacienda supplier list)
   5. subastas.pr.gov             (RUS)
+
+Tier 2 used to probe three invented JSON endpoints under asg.pr.gov, all of
+which answer 404. ASG publishes a server-rendered HTML table instead, so that
+tier now delegates to scrape_asg_suppliers, the registered producer for the
+asg_suppliers source.
 
 Output:
   data/staging/processed/pr_active_contractors.csv
@@ -48,10 +54,14 @@ CONTRACTOR_COLUMNS = [
     "source_file",
 ]
 
+# JSON endpoints to probe. The three ASG entries that used to head this list
+# (/api/suplidores, /suplidores/api/vendors and /suplidores/) were guesses and
+# all three answer 404 — note that even the plain page 404s with the trailing
+# slash; the working URL is https://asg.pr.gov/suplidores without one. ASG is now
+# served by scrape_asg_suppliers against the real HTML table (tier 2 below), so
+# it is deliberately absent here. The remaining entries are unverified guesses of
+# the same kind, left in place only because nothing has replaced them yet.
 ENDPOINTS = [
-    "https://asg.pr.gov/api/suplidores",
-    "https://asg.pr.gov/suplidores/api/vendors",
-    "https://asg.pr.gov/suplidores/",
     "https://consultacontratos.ocpr.gov.pr/api/suplidores",
     "https://consultacontratos.ocpr.gov.pr/suplidores",
     "https://hacienda.pr.gov/api/suplidores",
@@ -65,8 +75,13 @@ MAX_RETRIES = 3
 RETRY_BACKOFF = [5, 15, 30]
 REQUEST_SLEEP = 1.0
 
+# Header candidates per canonical column. The ASG entries here are the headings
+# the live /suplidores table actually renders ("Nombre de la Compañía",
+# "Licitador ID", "Estatus") — none of the previous candidates matched them, so
+# even a successful fetch used to map every column to empty.
 COL_MAP = {
     "entity_name": [
+        "Nombre de la Compañía",
         "Nombre",
         "Company Name",
         "Vendor Name",
@@ -75,13 +90,20 @@ COL_MAP = {
         "name",
         "nombre",
     ],
-    "registration_id": ["Registro", "Registration ID", "ID", "registration_id", "num_registro"],
+    "registration_id": [
+        "Licitador ID",
+        "Registro",
+        "Registration ID",
+        "ID",
+        "registration_id",
+        "num_registro",
+    ],
     "registration_date": ["Fecha de Registro", "Registration Date", "registration_date", "fecha"],
     "expiry_date": ["Fecha de Expiración", "Expiry Date", "expiry_date", "fecha_expiracion"],
     "contractor_type": ["Tipo", "Type", "Category", "contractor_type", "clase"],
     "naics_code": ["NAICS", "NAICS Code", "Código NAICS", "naics_code"],
     "municipality": ["Municipio", "Municipality", "City", "municipality"],
-    "status": ["Estado", "Status", "Active", "status", "activo"],
+    "status": ["Estatus", "Estado", "Status", "Active", "status", "activo"],
 }
 
 
@@ -181,6 +203,41 @@ def parse_records(df: "pd.DataFrame", source_file: str = "fixture") -> pd.DataFr
     return _normalize_df(df, source_file)
 
 
+def _try_asg_suppliers(logger):
+    """Fetch the ASG RUL/RUP registry through its registered producer.
+
+    Imported lazily because scrape_asg_suppliers imports CONTRACTOR_COLUMNS from
+    this module — a module-level import either way would be circular. Any
+    failure degrades to the next tier rather than aborting the run, matching how
+    the JSON probes behave.
+    """
+    try:
+        from scripts.scrape_asg_suppliers import (
+            CONTRACTOR_COLUMNS as _cols,
+            build_session,
+            fetch_all_records,
+        )
+        from scripts.scrape_asg_suppliers import HTTP as _http
+        from scripts.scrape_asg_suppliers import _normalize_row
+
+        logger.info("  Trying: https://asg.pr.gov/suplidores (HTML registry)")
+        session = build_session(_http.user_agent, _http.extra_headers)
+        try:
+            records, _ = fetch_all_records(session, logger)
+        finally:
+            session.close()
+
+        if not records:
+            return pd.DataFrame(columns=CONTRACTOR_COLUMNS)
+        rows = [_normalize_row(r["summary"], r["detail"]) for r in records]
+        # Drop scrape_asg_suppliers' extra geo_zip so this module keeps writing
+        # exactly CONTRACTOR_COLUMNS.
+        return pd.DataFrame(rows).reindex(columns=_cols)
+    except Exception as exc:
+        logger.warning(f"    ASG suplidores scrape failed: {exc}")
+        return pd.DataFrame(columns=CONTRACTOR_COLUMNS)
+
+
 def _try_manual_files(logger):
     all_dfs = []
     for raw_dir in RAW_DIRS:
@@ -225,7 +282,14 @@ def run(root=None, force=False):
         logger.info(f"  Active contractors (manual): {len(df):,} rows")
         return {"status": "OK", "rows": len(df)}
 
-    # 2. API endpoints
+    # 2. ASG RUL/RUP registry, the one tier that is known to work.
+    df = _try_asg_suppliers(logger)
+    if not df.empty:
+        df.to_csv(out_path, index=False, encoding="utf-8")
+        logger.info(f"  Active contractors (ASG suplidores): {len(df):,} rows")
+        return {"status": "OK", "rows": len(df)}
+
+    # 3. Other JSON endpoints
     session = _session()
     for url in ENDPOINTS:
         logger.info(f"  Trying: {url}")
@@ -236,7 +300,7 @@ def run(root=None, force=False):
             df.to_csv(out_path, index=False, encoding="utf-8")
             return {"status": "OK", "rows": len(df)}
 
-    # 3. Graceful empty
+    # 4. Graceful empty
     logger.warning(
         "  No active contractor data found. Manual instructions:\n"
         "  Visit: https://asg.pr.gov/suplidores or https://consultacontratos.ocpr.gov.pr\n"

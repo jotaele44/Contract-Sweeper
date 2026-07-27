@@ -102,6 +102,17 @@ canonical_tables:
         contract_number:   [numero_contrato, contract_number]
         recipient_name:    [contratista, contractor_name]
         obligation_amount: [cuantia, amount]
+      asg_emergency_purchases:
+        # award_id is the ASG control number rather than the purchase-order
+        # number: the PO number is only unique within an agency, while the
+        # control number (26-ASG-EPI-0010) is ASG-wide and is the source's own
+        # uniqueness key.
+        award_id:          [control_number, numero_control_asg]
+        contract_number:   [contract_number, numero_orden_compra]
+        recipient_name:    [vendor_name, proveedor]
+        obligation_amount: [obligation_amount, costo]
+        awarding_agency:   [awarding_agency, agencia]
+        municipality:      [geo_municipality_name, municipality]
 
   entities_resolved:
     primary_key: [entity_id]

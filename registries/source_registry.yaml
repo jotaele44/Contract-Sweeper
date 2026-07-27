@@ -482,6 +482,56 @@ sources:
     min_rows: 1
   update_cadence: weekly
   notes: comprashpr.com RFP / award scrape.
+- source_id: asg_emergency_purchases
+  family: territorial
+  required: false
+  authentication: none
+  endpoint_url: https://asg.pr.gov/comprasemergencias
+  producer_script: scripts/scrape_asg_emergency_purchases.py
+  expected_outputs:
+  - data/staging/processed/pr_asg_emergency_purchases.csv
+  schema_version: r5_v1
+  validation_threshold:
+    min_rows: 1
+  update_cadence: weekly
+  notes: 'ASG emergency (no-bid) purchase orders — agency, vendor, purchase-order
+    number and cost, ~1,400 rows over 141 pages. The only page on the ASG site
+    that carries dollar amounts in its markup. Spans three declared emergencies,
+    which the control number encodes as <FY>-ASG-<PROGRAMME>-<SEQ>: CV19
+    (COVID-19, the bulk), TTF (Tormenta Tropical Fiona) and EPI (current
+    epidemiological) — so it cross-links with the FEMA / COR3 / CDBG-DR streams.
+
+    Distinct from ocpr_contracts: that is the Comptroller''s record of executed
+    contracts, and emergency purchase orders largely bypass it.
+
+    KNOWN GAP: the table renders no date column. order_by=-creado proves the
+    server holds one but it is not exposed, so fiscal_year is derived from the
+    control-number prefix and no transaction_date is claimed. These stay at
+    contracts_master grain and must not be promoted to transaction grain (which
+    requires transaction_date) until a real date is available.
+
+    '
+- source_id: asg_suppliers
+  family: entity_resolution
+  required: false
+  authentication: none
+  endpoint_url: https://asg.pr.gov/suplidores
+  producer_script: scripts/scrape_asg_suppliers.py
+  expected_outputs:
+  - data/staging/processed/pr_asg_suppliers.csv
+  schema_version: r5_v1
+  validation_threshold:
+    min_rows: 1
+  update_cadence: monthly
+  notes: 'ASG registered-bidder registry (RUL — Registro Único de Licitadores, and
+    RUP — Registro Único de Proveedores), ~4,700 vendors over 47 pages. Each
+    vendor carries a Licitador ID, a stable government-issued identifier for a PR
+    government bidder that no other registered source provides; it is registered
+    as the asg_licitador_id scheme in the entity-resolution identifier hierarchy.
+    Also yields a fiscal-address municipality for geo attribution. Emits the
+    shared contractor-reference schema (CONTRACTOR_COLUMNS) plus geo_zip.
+
+    '
 - source_id: aafaf
   family: territorial
   required: false

@@ -1,0 +1,117 @@
+<!-- Trimmed reproduction of asg.pr.gov/suplidores. The live page renders 100
+     vendors per page across 47 pages; two are kept here.
+
+     Each vendor is TWO rows sharing a data-group: a summary <tr> and a
+     collapsed <tr class="detail-row">. The second vendor reproduces two real
+     quirks of the live data: ASG interpolates Python's None into the address
+     line when the city is missing ("None, PR, 00901"), and a vendor may be
+     listed in only one of the two registries (RUL here, no RUP block). -->
+<html><body>
+<div class="container">
+  <table id="myTable" aria-label="Tabla de Suplidores">
+    <thead>
+      <tr class="header">
+        <th><a href="?order_by=licitadorid">Licitador ID</a></th>
+        <th><a href="?order_by=companyname">Nombre de la Compañía</a></th>
+        <th><a href="?order_by=estatus">Estatus</a></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr data-group="50727">
+        <td>50727</td>
+        <td style="font-weight: 500;">10-8 InService</td>
+        <td class="text-left"><span class="pill pill--green">Aprobado</span></td>
+        <td><a href="#collapse50727">Ver</a></td>
+      </tr>
+      <tr class="detail-row" data-group="50727">
+        <td colspan="4" class="detail-cell">
+          <div class="card info-card"><div class="info-rows">
+            <div class="info-row">
+              <div class="info-title">Información General</div>
+              <div class="info-label">Domicilio Fiscal</div>
+              <div class="info-value">
+                PO BOX 629<br>
+                Salinas, PR, 00751
+              </div>
+              <div class="info-label">Datos de Contacto</div>
+              <div class="info-value">
+                <div>info@10-8inservice.org</div>
+                <div>(866) 496-8108</div>
+              </div>
+            </div>
+            <div class="info-row info-row-columns">
+              <div class="info-col">
+                <span class="section-header rul">Información de RUL</span>
+                <div class="info-label">RUL Estatus</div>
+                <div class="info-value"><span class="status-pill status-pill--green">Aprobado</span></div>
+                <div class="info-label">Número de Certificado</div>
+                <div class="info-value">202563434</div>
+                <div class="info-label">Fecha de Emisión</div>
+                <div class="info-value"><span class="date" data-date="2025-12-03T00:00:00"></span></div>
+                <div class="info-label">Fecha de Vencimiento</div>
+                <div class="info-value"><span class="date" data-date="2026-12-03T00:00:00"></span></div>
+              </div>
+              <div class="info-col">
+                <span class="section-header rup">Información de RUP</span>
+                <div class="info-label">RUP Estatus</div>
+                <div class="info-value"><span class="status-pill status-pill--green">Aprobado</span></div>
+                <div class="info-label">Número de Certificado</div>
+                <div class="info-value">202562628</div>
+                <div class="info-label">Fecha de Emisión</div>
+                <div class="info-value"><span class="date" data-date="2025-10-31T00:00:00"></span></div>
+                <div class="info-label">Fecha de Vencimiento</div>
+                <div class="info-value"><span class="date" data-date="2026-10-31T00:00:00"></span></div>
+              </div>
+            </div>
+          </div></div>
+        </td>
+      </tr>
+
+      <tr data-group="50567">
+        <td>50567</td>
+        <td style="font-weight: 500;">1549 ALDA LLC</td>
+        <td class="text-left"><span class="pill pill--gray">Otro</span></td>
+        <td><a href="#collapse50567">Ver</a></td>
+      </tr>
+      <tr class="detail-row" data-group="50567">
+        <td colspan="4" class="detail-cell">
+          <div class="card info-card"><div class="info-rows">
+            <div class="info-row">
+              <div class="info-title">Información General</div>
+              <div class="info-label">Domicilio Fiscal</div>
+              <div class="info-value">
+                316 AVE DE LA CONSTITUCION<br>
+                None, PR, 00901
+              </div>
+            </div>
+            <div class="info-row info-row-columns">
+              <div class="info-col">
+                <span class="section-header rul">Información de RUL</span>
+                <div class="info-label">RUL Estatus</div>
+                <div class="info-value"><span class="status-pill status-pill--amber">Pendiente</span></div>
+                <div class="info-label">Número de Certificado</div>
+                <div class="info-value">202511111</div>
+                <div class="info-label">Fecha de Emisión</div>
+                <div class="info-value"><span class="date" data-date="2025-01-15T00:00:00"></span></div>
+                <div class="info-label">Fecha de Vencimiento</div>
+                <div class="info-value"><span class="date" data-date="2026-01-15T00:00:00"></span></div>
+              </div>
+            </div>
+          </div></div>
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+
+  <nav aria-label="Page navigation">
+    <ul class="pagination">
+      <li class="page-item"><span class="page-link">Página 1 de 47</span></li>
+      <li class="page-item"><a class="page-link" href="?page=2&order_by=companyname">Próxima</a></li>
+      <li class="page-item"><a class="page-link" href="?page=47&order_by=companyname">Última</a></li>
+    </ul>
+  </nav>
+</div>
+</body></html>

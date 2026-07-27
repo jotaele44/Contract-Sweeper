@@ -67,6 +67,7 @@ IDENTIFIER_SCHEME_VALUES = {
     "ogp_budget_entity_code",
     "prifas_agency_code",
     "procurement_entity_code",
+    "asg_licitador_id",
     "transition_report_agency_code",
     "cor3_applicant_id",
     "fema_recipient_id",

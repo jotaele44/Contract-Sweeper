@@ -11,9 +11,9 @@
   "pause_lock_required": true,
   "source_truth": {
     "source_of_truth_file": "reports/materialization_readiness.json",
-    "total_sources": 149,
-    "automatable_total": 102,
-    "automatable_ready": 102,
+    "total_sources": 151,
+    "automatable_total": 104,
+    "automatable_ready": 104,
     "queued_excluded_total": 47,
     "queued_excluded": {
       "manual_export": 40,
