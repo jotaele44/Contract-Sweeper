@@ -1,25 +1,58 @@
-# Dependabot keeps dependencies and GitHub Actions current and surfaces security
-# advisories as PRs. The Python lockfile (requirements.lock) is compiled from
-# requirements.in by uv; the lockfile-drift CI check (.github/workflows/lockfile.yml)
-# keeps the lock honest, while these PRs propose the underlying version bumps.
+# Rendered from thehub-pr/federation-templates/baseline/dependabot.yml.
+# Edit the template there and re-render (tools/render_federation_templates.py);
+# do not hand-edit this file — template-drift.yml fails the build if you do.
+#
+# Three ecosystems, because a dependency reaches this repo three ways: Python
+# packages, the dashboard/frontend npm tree, and the actions CI runs. Minor and
+# patch bumps are grouped so the weekly PR volume stays reviewable; majors still
+# arrive as individual PRs since they need a human read.
 version: 2
 updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
     labels:
-      - "repo-governance"
+      - "dependencies"
     commit-message:
       prefix: "deps"
+    groups:
+      python-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/dashboard"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
     open-pull-requests-limit: 5
     labels:
-      - "repo-governance"
+      - "dependencies"
+      - "ci"
     commit-message:
       prefix: "ci"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"

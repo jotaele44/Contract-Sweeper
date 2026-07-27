@@ -18,6 +18,12 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+# Supersede older runs of this workflow on the same ref: a newer push
+# makes the in-flight result irrelevant, so cancel it and free the runner.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   size-guard:
     runs-on: ubuntu-latest
@@ -27,7 +33,7 @@ jobs:
       MAX_BYTES: "5242880"
       ALLOWLIST: ".github/size-guard-allowlist.txt"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
