@@ -12,7 +12,7 @@
         "data/reference/pr_public_money_entities.csv",
         "data/reference/pr_municipalities.csv"
       ],
-      "row_count": 95
+      "row_count": 96
     },
     {
       "artifact": "data/reference/creditor_mapping.csv",
@@ -53,7 +53,7 @@
         "data/reference/entity_master.csv",
         "data/reference/agency_master.csv"
       ],
-      "row_count": 224
+      "row_count": 229
     },
     {
       "artifact": "data/reference/entity_master.csv",
@@ -66,7 +66,7 @@
       "source_inputs": [
         "data/reference/pr_public_money_entities.csv"
       ],
-      "row_count": 26
+      "row_count": 27
     },
     {
       "artifact": "data/reference/entity_parent_map.csv",

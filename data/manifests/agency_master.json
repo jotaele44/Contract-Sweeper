@@ -7,11 +7,11 @@
     "data/reference/pr_municipalities.csv"
   ],
   "output": "data/reference/agency_master.csv",
-  "row_count": 95,
+  "row_count": 96,
   "agency_types": [
     "government_agency",
     "municipality",
     "public_corporation"
   ],
-  "generated_at": "2026-06-16T10:13:53.992087+00:00"
+  "generated_at": "2026-07-27T22:42:26.212139+00:00"
 }

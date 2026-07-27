@@ -77,7 +77,7 @@ def test_core_institutions_present(rows):
         "Puerto Rico Sales Tax Financing Corporation",
     ]:
         assert required in names
-    assert len(rows) == 26
+    assert len(rows) == 27
 
 
 @pytest.mark.unit

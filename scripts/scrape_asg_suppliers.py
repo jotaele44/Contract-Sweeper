@@ -87,9 +87,32 @@ RETRY_POLICY = RetryPolicy(
 # missing city as the literal string "None" ("None, PR, 00901") but still gives a
 # real postal code, and geo_zip is the first thing geo attribution looks at, so
 # carrying it lets those vendors still resolve to a municipality.
-SUPPLIER_COLUMNS = [*CONTRACTOR_COLUMNS, "geo_zip"]
+# Fields ASG publishes that the shared contractor schema has no column for. They
+# stay here rather than widening CONTRACTOR_COLUMNS, because no other contractor
+# producer can fill them — the RUL/RUP certificates and the two registry statuses
+# exist only in ASG's registries. `naics_code` is NOT in this list: that column
+# already exists in the shared schema and was simply being written empty.
+SUPPLIER_EXTRA_COLUMNS = [
+    "naics_descriptions",
+    "rul_status",
+    "rup_status",
+    "rul_certificate",
+    "rup_certificate",
+    "contact_email",
+    "contact_phone",
+]
+
+# Output is the shared contractor-reference schema plus geo_zip and the ASG-only
+# fields above.
+SUPPLIER_COLUMNS = [*CONTRACTOR_COLUMNS, "geo_zip", *SUPPLIER_EXTRA_COLUMNS]
 
 _PAGE_COUNT_RE = re.compile(r"P[áa]gina\s*\d+\s*de\s*(\d+)", re.I)
+# "Código: 61171" inside .naics-list. Codes and their Spanish descriptions
+# alternate as sibling <div>s, so the label is what marks a code line.
+_NAICS_CODE_RE = re.compile(r"C[óo]digo:\s*(\d+)", re.I)
+_EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+# "(866) 496-8108" and the looser variants ASG mixes in.
+_PHONE_RE = re.compile(r"\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}(?:\s*(?:x|ext\.?)\s*\d+)?", re.I)
 # "Salinas, PR, 00751" — the last address line, which is where the municipality
 # and postal code live. The street/PO-BOX line above it varies too much to key on.
 _CITY_LINE_RE = re.compile(r"^(.*?),\s*PR\s*,?\s*(\d{5})?\s*$", re.I)
@@ -156,6 +179,48 @@ def _address_parts(detail) -> tuple[str, str]:
     return "", ""
 
 
+def _naics_parts(detail) -> tuple[str, str]:
+    """(codes, descriptions) from the Clasificación NAICS block, pipe-delimited.
+
+    The block alternates ``<div>Código: 61171</div>`` with a description div, so
+    a code's label is what identifies it and the following sibling carries its
+    text. Vendors carry anywhere from 1 to ~21 classifications, and the pipe
+    delimiter matches how aliases are already packed in
+    data/reference/pr_public_money_entities.csv.
+    """
+    codes: list[str] = []
+    descriptions: list[str] = []
+
+    for block in detail.xpath('.//*[contains(@class, "naics-list")]'):
+        for node in block.xpath("./div"):
+            match = _NAICS_CODE_RE.search(_text(node))
+            if not match:
+                continue
+            codes.append(match.group(1))
+            following = node.getnext()
+            # A trailing code with no description must not swallow the next
+            # code line as its own label.
+            text = _text(following) if following is not None else ""
+            descriptions.append("" if _NAICS_CODE_RE.search(text) else text)
+
+    return "|".join(codes), "|".join(descriptions)
+
+
+def _contact_parts(detail) -> tuple[str, str]:
+    """(email, phone) from the Datos de Contacto block."""
+    for label in detail.xpath('.//div[contains(@class, "info-label")]'):
+        if _text(label) != "Datos de Contacto":
+            continue
+        value = label.getnext()
+        if value is None:
+            break
+        text = _text(value)
+        email = _EMAIL_RE.search(text)
+        phone = _PHONE_RE.search(text)
+        return (email.group(0) if email else ""), (phone.group(0).strip() if phone else "")
+    return "", ""
+
+
 def _contractor_type(rul: dict, rup: dict) -> str:
     """Which of the two central registries the vendor actually appears in."""
     registries = []
@@ -185,11 +250,18 @@ def _normalize_row(summary: dict, detail: dict) -> dict:
             "registration_date": issued,
             "expiry_date": expires,
             "contractor_type": _contractor_type(rul, rup),
-            "naics_code": "",
+            "naics_code": detail.get("naics_code", ""),
             "municipality": detail.get("municipality", ""),
             "status": summary.get("status", ""),
             "source_file": "asg.pr.gov/suplidores",
             "geo_zip": detail.get("postal_code", ""),
+            "naics_descriptions": detail.get("naics_descriptions", ""),
+            "rul_status": rul.get("RUL Estatus", ""),
+            "rup_status": rup.get("RUP Estatus", ""),
+            "rul_certificate": rul.get("Número de Certificado", ""),
+            "rup_certificate": rup.get("Número de Certificado", ""),
+            "contact_email": detail.get("contact_email", ""),
+            "contact_phone": detail.get("contact_phone", ""),
         }
     )
     return row
@@ -215,9 +287,15 @@ def parse_records(html: str) -> list[dict]:
                 rul = _section_fields(col)
             elif "RUP" in heading:
                 rup = _section_fields(col)
+        naics_code, naics_descriptions = _naics_parts(detail)
+        contact_email, contact_phone = _contact_parts(detail)
         details[group] = {
             "municipality": municipality,
             "postal_code": postal_code,
+            "naics_code": naics_code,
+            "naics_descriptions": naics_descriptions,
+            "contact_email": contact_email,
+            "contact_phone": contact_phone,
             "rul": rul,
             "rup": rup,
         }

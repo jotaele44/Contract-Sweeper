@@ -14,6 +14,7 @@ import pytest
 
 from scripts.scrape_asg_emergency_purchases import (
     EMERGENCY_PURCHASE_COLUMNS,
+    _carry_forward_first_seen,
     _normalize_row,
     _run,
     declared_page_count,
@@ -98,6 +99,56 @@ def test_unparseable_control_number_is_blank_not_a_guess():
 def test_declared_page_count_reads_the_pagination_marker():
     assert declared_page_count(PURCHASES_HTML) == 141
     assert declared_page_count("<html><body>no pager</body></html>") is None
+
+
+@pytest.mark.unit
+def test_creado_rank_records_position_in_the_creation_ordering():
+    # ASG renders no date; rank in the -creado ordering is the only ordering
+    # signal the page gives, so rows can still be sequenced.
+    records = parse_records(PURCHASES_HTML)
+    rows = [_normalize_row(r, creado_rank=i) for i, r in enumerate(records, start=1)]
+    assert [r["creado_rank"] for r in rows] == ["1", "2", "3"]
+    # Omitted rather than guessed when the caller has no ordering context.
+    assert _normalize_row(records[0])["creado_rank"] == ""
+
+
+@pytest.mark.unit
+def test_first_seen_at_is_preserved_for_rows_we_have_seen_before(tmp_path):
+    """first_seen_at is only an upper bound on the purchase date if it never moves.
+
+    Re-stamping every row each run would turn it into "the date we last
+    scraped", which is worse than leaving it blank.
+    """
+    out_path = tmp_path / "purchases.csv"
+    rows = [
+        _normalize_row(r, creado_rank=i) for i, r in enumerate(parse_records(PURCHASES_HTML), 1)
+    ]
+
+    first = _carry_forward_first_seen(pd.DataFrame(rows), out_path, "2026-01-15")
+    first.to_csv(out_path, index=False)
+    assert set(first["first_seen_at"]) == {"2026-01-15"}
+
+    # A later run that also picks up a brand-new control number.
+    newcomer = {**rows[0], "control_number": "26-ASG-EPI-9999"}
+    second = _carry_forward_first_seen(pd.DataFrame([*rows, newcomer]), out_path, "2026-07-27")
+    seen = dict(zip(second["control_number"], second["first_seen_at"]))
+
+    assert seen["26-ASG-EPI-0010"] == "2026-01-15"  # kept, not re-stamped
+    assert seen["26-ASG-EPI-9999"] == "2026-07-27"  # only the new row is dated
+
+
+@pytest.mark.unit
+def test_first_seen_at_stamps_everything_on_a_first_ever_run(tmp_path):
+    rows = [_normalize_row(r) for r in parse_records(PURCHASES_HTML)]
+    frame = _carry_forward_first_seen(pd.DataFrame(rows), tmp_path / "absent.csv", "2026-07-27")
+    assert set(frame["first_seen_at"]) == {"2026-07-27"}
+
+
+@pytest.mark.unit
+def test_no_transaction_date_is_claimed():
+    # The registry notes and the coverage contract both rest on this: ASG
+    # publishes no date, so these rows stay at contracts_master grain.
+    assert "transaction_date" not in EMERGENCY_PURCHASE_COLUMNS
 
 
 # ---------------------------------------------------------------------------

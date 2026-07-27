@@ -1,7 +1,7 @@
 {
   "schema_version": "completeness_matrix_v1",
   "total_sources": 151,
-  "contracted_sources": 20,
+  "contracted_sources": 22,
   "by_wired_status": {
     "deferred": 2,
     "manual_dropzone": 40,
@@ -21,9 +21,9 @@
     "partially_materialized": 2
   },
   "by_coverage_status": {
-    "below_contract": 1,
+    "below_contract": 3,
     "meets_contract": 2,
-    "uncontracted": 131,
+    "uncontracted": 129,
     "unverifiable": 17
   },
   "by_reconciliation_status": {

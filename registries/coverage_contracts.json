@@ -331,6 +331,36 @@
         "loan_id"
       ],
       "minimum_coverage_pct": 90.0
+    },
+    {
+      "source_id": "asg_emergency_purchases",
+      "contract_version": 1,
+      "canonical_grain": "contract",
+      "geography_scope": "PR",
+      "authoritative_universe_method": "portal_count",
+      "authoritative_universe_ref": "https://asg.pr.gov/comprasemergencias",
+      "authoritative_universe_total": 1406,
+      "uniqueness_key": [
+        "control_number"
+      ],
+      "minimum_coverage_pct": 95.0,
+      "pagination_required": true,
+      "notes": "Measured 2026-07-27: 141 declared pages at 10 rows, last page 6 -> 1,406 emergency purchase orders. Append-mostly, so the total grows; a shortfall against it means the walk stopped early, not that the corpus shrank. Grain is `contract` rather than `transaction` deliberately \u2014 ASG renders no date, so these rows carry no transaction_date and must not be promoted to transaction grain."
+    },
+    {
+      "source_id": "asg_suppliers",
+      "contract_version": 1,
+      "canonical_grain": "entity",
+      "geography_scope": "PR",
+      "authoritative_universe_method": "portal_count",
+      "authoritative_universe_ref": "https://asg.pr.gov/suplidores",
+      "authoritative_universe_total": 4665,
+      "uniqueness_key": [
+        "registration_id"
+      ],
+      "minimum_coverage_pct": 95.0,
+      "pagination_required": true,
+      "notes": "Measured 2026-07-27: 47 declared pages at 100 vendors, last page 65 -> 4,665 registered bidders. Each vendor occupies two table rows (a summary row and a collapsed detail row), so a naive row count doubles the denominator; registration_id (the ASG Licitador ID) is the uniqueness key."
     }
   ]
 }

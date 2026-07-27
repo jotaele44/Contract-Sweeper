@@ -97,8 +97,8 @@ def test_municipio_and_agency_counts(rows):
     munis = [r for r in rows if r["agency_type"] == "municipality"]
     govt = [r for r in rows if r["agency_type"] in {"government_agency", "public_corporation"}]
     assert len(munis) == 78
-    assert len(govt) == 17
-    assert len(rows) == 95
+    assert len(govt) == 18
+    assert len(rows) == 96
     # all municipio ids are FIPS-coded and distinct
     assert len({r["agency_id"] for r in munis}) == 78
 

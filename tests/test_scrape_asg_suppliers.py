@@ -44,6 +44,16 @@ class _FakeSession:
         pass
 
 
+def _row_for(registration_id: str) -> dict:
+    """The normalized row for one vendor in the fixture, by Licitador ID."""
+    record = next(
+        r
+        for r in parse_records(SUPPLIERS_HTML)
+        if r["summary"]["registration_id"] == registration_id
+    )
+    return _normalize_row(record["summary"], record["detail"])
+
+
 # ---------------------------------------------------------------------------
 # Unit: pure transforms
 # ---------------------------------------------------------------------------
@@ -125,6 +135,69 @@ def test_vendor_in_only_one_registry_reports_only_that_one():
 def test_declared_page_count_reads_the_pagination_marker():
     assert declared_page_count(SUPPLIERS_HTML) == 47
     assert declared_page_count("<html><body>no pager</body></html>") is None
+
+
+@pytest.mark.unit
+def test_naics_codes_populate_the_previously_empty_shared_column():
+    # naics_code is part of the shared contractor schema and used to be written
+    # blank on every row even though ASG publishes classifications for ~99% of
+    # vendors.
+    row = _row_for("50727")
+    assert row["naics_code"] == "238220|61171|92311"
+
+
+@pytest.mark.unit
+def test_naics_descriptions_stay_aligned_when_a_code_has_none():
+    """ASG publishes some codes with no description div at all.
+
+    Pairing by position would shift every later description onto the wrong
+    code, so an undescribed code has to hold an empty slot instead.
+    """
+    row = _row_for("50727")
+    codes = row["naics_code"].split("|")
+    descriptions = row["naics_descriptions"].split("|")
+
+    assert len(codes) == len(descriptions)
+    assert descriptions[0] == ""  # 238220 has no description in the source
+    assert dict(zip(codes, descriptions)) == {
+        "238220": "",
+        "61171": "Servicios de Apoyo a la Educación",
+        "92311": "Administración de Programas Educativos",
+    }
+
+
+@pytest.mark.unit
+def test_vendor_without_a_naics_block_yields_empty_not_an_error():
+    row = _row_for("50567")
+    assert row["naics_code"] == ""
+    assert row["naics_descriptions"] == ""
+
+
+@pytest.mark.unit
+def test_certificates_and_statuses_are_kept_per_registry():
+    # Both registries label these identically, so crossing them would silently
+    # attribute one registry's certificate to the other.
+    row = _row_for("50727")
+    assert row["rul_certificate"] == "202563434"
+    assert row["rup_certificate"] == "202562628"
+    assert row["rul_status"] == "Aprobado"
+    assert row["rup_status"] == "Aprobado"
+
+
+@pytest.mark.unit
+def test_contact_details_are_captured():
+    row = _row_for("50727")
+    assert row["contact_email"] == "info@10-8inservice.org"
+    assert row["contact_phone"] == "(866) 496-8108"
+
+
+@pytest.mark.unit
+def test_vendor_listed_in_one_registry_reports_no_certificate_for_the_other():
+    row = _row_for("50567")
+    assert row["rul_certificate"] == "202511111"
+    assert row["rup_certificate"] == ""
+    assert row["rul_status"] == "Pendiente"
+    assert row["rup_status"] == ""
 
 
 # ---------------------------------------------------------------------------
@@ -278,3 +351,64 @@ def test_asg_tier_failure_degrades_to_the_next_tier(monkeypatch):
     frame = dac._try_asg_suppliers(_NullLogger())
     assert frame.empty  # logged and skipped, not raised
     assert list(frame.columns) == CONTRACTOR_COLUMNS
+
+
+# ---------------------------------------------------------------------------
+# ASG as a canonical entity + its coverage contract
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_asg_resolves_to_one_canonical_entity_from_every_name_form():
+    """ASG appears under a Spanish name, an English translation and two
+    acronyms depending on the surface; the default normalizer cannot bridge
+    across languages, so the alias layer has to."""
+    from moneysweep.runtime.alias_overrides import apply, load_overrides
+
+    overrides = load_overrides()
+    canonical = "PUERTO RICO GENERAL SERVICES ADMINISTRATION"
+    for form in (
+        "ASG",
+        "AGS",
+        "Administración de Servicios Generales",
+        "Administracion de Servicios Generales",
+        "General Services Administration",
+    ):
+        assert apply(form, overrides)[0] == canonical, form
+
+
+@pytest.mark.unit
+def test_asg_is_seeded_as_a_government_agency():
+    import csv
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parent.parent
+    rows = list(csv.DictReader((root / "data/reference/agency_master.csv").open()))
+    asg = next(r for r in rows if r["canonical_name"].endswith("General Services Administration"))
+    assert asg["agency_type"] == "government_agency"
+    assert asg["jurisdiction"] == "PR"
+    assert "ASG" in asg["aliases"]
+
+
+@pytest.mark.unit
+def test_both_asg_sources_have_a_measured_coverage_contract():
+    """Without a contract a source is capped at provisional, and a contract with
+    a null universe evaluates unverifiable — so the denominators must be real."""
+    from pathlib import Path
+
+    import yaml
+
+    root = Path(__file__).resolve().parent.parent
+    contracts = yaml.safe_load((root / "registries/coverage_contracts.yaml").read_text())
+    by_id = {c["source_id"]: c for c in contracts["contracts"]}
+
+    for source_id, grain, key in (
+        ("asg_emergency_purchases", "contract", "control_number"),
+        ("asg_suppliers", "entity", "registration_id"),
+    ):
+        contract = by_id[source_id]
+        assert contract["canonical_grain"] == grain
+        assert contract["uniqueness_key"] == [key]
+        assert contract["authoritative_universe_method"] == "portal_count"
+        assert contract["authoritative_universe_total"] > 0
+        assert contract["pagination_required"] is True

@@ -16,6 +16,7 @@ ENT_AGENCY_cc41784f4b40b6ff,government_agency,University of Puerto Rico,PR,UPR|U
 ENT_AGENCY_2c16f9ae54df7e1e,government_agency,Puerto Rico Convention Center District Authority,PR,CCDA|Autoridad del Distrito del Centro de Convenciones,pr_public_money_entities,T1,0.95,Convention center district authority and debt issuer.
 ENT_AGENCY_efcec09764306ade,government_agency,Puerto Rico Ports Authority,PR,Ports Authority|Autoridad de los Puertos,pr_public_money_entities,T1,0.95,Ports authority and debt issuer.
 ENT_AGENCY_e73c9879d715653a,government_agency,Puerto Rico Municipal Finance Agency,PR,MFA|Agencia de Financiamiento Municipal,pr_public_money_entities,T1,0.95,Municipal finance agency and debt issuer.
+ENT_AGENCY_2e847bba85751a8c,government_agency,Puerto Rico General Services Administration,PR,ASG|AGS|Administracion de Servicios Generales|General Services Administration|GSA Puerto Rico,pr_public_money_entities,T1,0.95,Central procurement authority under Ley 73-2019; runs the RUL and RUP bidder registries and the central subastas index.
 ENT_MUNI_72001,municipality,Adjuntas,PR,ADJUNTAS|MUNICIPIO DE ADJUNTAS,pr_municipalities,T1,0.95,region=central
 ENT_MUNI_72003,municipality,Aguada,PR,AGUADA|MUNICIPIO DE AGUADA,pr_municipalities,T1,0.95,region=west
 ENT_MUNI_72005,municipality,Aguadilla,PR,AGUADILLA|MUNICIPIO DE AGUADILLA,pr_municipalities,T1,0.95,region=west

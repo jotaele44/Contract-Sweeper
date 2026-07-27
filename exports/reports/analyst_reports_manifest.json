@@ -8,7 +8,7 @@
       "format": "csv",
       "producer_script": "scripts/build_entity_master.py",
       "status": "done",
-      "row_count": 26
+      "row_count": 27
     },
     {
       "report_id": "RPT_f3ee1af690f5dd71",
@@ -18,7 +18,7 @@
       "format": "csv",
       "producer_script": "scripts/build_agency_master.py",
       "status": "done",
-      "row_count": 95
+      "row_count": 96
     },
     {
       "report_id": "RPT_fabd0f1b40985896",
@@ -38,7 +38,7 @@
       "format": "csv",
       "producer_script": "scripts/build_entity_aliases.py",
       "status": "done",
-      "row_count": 224
+      "row_count": 229
     },
     {
       "report_id": "RPT_3df7bf2784debeaa",
@@ -138,7 +138,7 @@
       "format": "csv",
       "producer_script": "scripts/build_graph_export.py",
       "status": "done",
-      "row_count": 164
+      "row_count": 165
     },
     {
       "report_id": "RPT_2168b573f213ff72",

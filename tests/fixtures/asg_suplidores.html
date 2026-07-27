@@ -5,7 +5,12 @@
      collapsed <tr class="detail-row">. The second vendor reproduces two real
      quirks of the live data: ASG interpolates Python's None into the address
      line when the city is missing ("None, PR, 00901"), and a vendor may be
-     listed in only one of the two registries (RUL here, no RUP block). -->
+     listed in only one of the two registries (RUL here, no RUP block).
+
+     The first vendor's Clasificación NAICS block reproduces a third: ASG
+     publishes some codes with NO description div (238220 here), so codes and
+     descriptions cannot be paired by position alone. The second vendor has no
+     NAICS block at all, which is also real. -->
 <html><body>
 <div class="container">
   <table id="myTable" aria-label="Tabla de Suplidores">
@@ -63,6 +68,17 @@
                 <div class="info-value"><span class="date" data-date="2025-10-31T00:00:00"></span></div>
                 <div class="info-label">Fecha de Vencimiento</div>
                 <div class="info-value"><span class="date" data-date="2026-10-31T00:00:00"></span></div>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-title">Clasificación NAICS</div>
+              <div class="info-sep"></div>
+              <div class="info-value naics-list">
+                <div>Código: 238220</div>
+                <div>Código: 61171</div>
+                <div>Servicios de Apoyo a la Educación</div>
+                <div>Código: 92311</div>
+                <div>Administración de Programas Educativos</div>
               </div>
             </div>
           </div></div>

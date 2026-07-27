@@ -28,9 +28,25 @@ Two things about the endpoint shape the scraper:
   walk-until-empty loop would never terminate, so the page count is read from
   the "Página 1 de 141" marker, with a repeated-page check as a backstop in case
   that marker ever moves.
-* No date column is rendered. ``order_by=-creado`` proves the server holds one,
-  but it is not exposed, so ``fiscal_year`` is derived from the control number
-  and no ``transaction_date`` is claimed. See the source's registry notes.
+* No date column is rendered — and there is no other way to get one. There is no
+  JSON API (``/api/comprasemergencias``, ``.json`` and ``?format=json`` all fail),
+  the rows carry no links so there are no detail pages, and the six sortable
+  columns are control number, PO number, goods, vendor, cost and agency.
+  ``order_by=creado`` *does* re-sort the table, which proves the server holds a
+  creation timestamp — it simply never renders it.
+
+  So ``fiscal_year`` is derived from the control-number prefix and **no
+  ``transaction_date`` is claimed**. Two honest observations stand in for it:
+
+    creado_rank    the row's position in the ``-creado`` ordering at capture
+                   time. Monotonic in creation time, so rows can be sequenced
+                   and new arrivals spotted between polls. It is a rank within
+                   one pull, not a stable key — inserting a newer purchase
+                   shifts every rank below it.
+    first_seen_at  the UTC date this control number first appeared in our own
+                   output, carried forward from the existing CSV on each run.
+                   A true upper bound on the purchase date that tightens as
+                   history accumulates.
 
 Output:
   data/staging/processed/pr_asg_emergency_purchases.csv
@@ -48,6 +64,7 @@ import io
 import re
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -90,6 +107,10 @@ EMERGENCY_PURCHASE_COLUMNS = [
     "fiscal_year",
     "emergency_programme_code",
     "emergency_programme",
+    # ASG renders no date. These two are OBSERVATIONS, not the purchase date —
+    # see the module docstring. Neither may be promoted to transaction_date.
+    "creado_rank",
+    "first_seen_at",
     "source_system",
     "source_url",
     "source_file",
@@ -155,8 +176,11 @@ def _clean(value: Any) -> str:
     return " ".join(str(value).split())
 
 
-def _normalize_row(record: dict) -> dict:
-    """One raw table row (keyed by its Spanish heading) to a canonical row."""
+def _normalize_row(record: dict, creado_rank: int | None = None) -> dict:
+    """One raw table row (keyed by its Spanish heading) to a canonical row.
+
+    ``creado_rank`` is the row's 1-based position in the ``-creado`` ordering.
+    """
     control_number = _clean(record.get("Número de Control ASG"))
     fiscal_year, code, programme = fiscal_year_and_programme(control_number)
 
@@ -168,12 +192,39 @@ def _normalize_row(record: dict) -> dict:
             "fiscal_year": fiscal_year,
             "emergency_programme_code": code,
             "emergency_programme": programme,
+            "creado_rank": "" if creado_rank is None else str(creado_rank),
             "source_system": SOURCE_ID,
             "source_url": BASE_URL,
             "source_file": "asg.pr.gov/comprasemergencias",
         }
     )
     return row
+
+
+def _carry_forward_first_seen(frame: pd.DataFrame, out_path: Path, today: str) -> pd.DataFrame:
+    """Preserve each control number's existing ``first_seen_at``, stamping new ones.
+
+    The value is only meaningful if it never moves: re-stamping every row each
+    run would turn an upper bound on the purchase date into "the date we last
+    scraped", which is worse than leaving it blank. So prior values win and only
+    genuinely new control numbers get today's date.
+    """
+    previous: dict[str, str] = {}
+    if out_path.exists():
+        try:
+            existing = pd.read_csv(out_path, dtype=str, low_memory=False)
+        except (OSError, pd.errors.ParserError, pd.errors.EmptyDataError):
+            existing = None
+        if existing is not None and {"control_number", "first_seen_at"} <= set(existing.columns):
+            previous = {
+                str(c): str(f)
+                for c, f in zip(existing["control_number"], existing["first_seen_at"])
+                if isinstance(f, str) and f.strip()
+            }
+
+    frame = frame.copy()
+    frame["first_seen_at"] = [previous.get(str(c), today) for c in frame["control_number"]]
+    return frame
 
 
 def parse_records(html: str) -> list[dict]:
@@ -313,10 +364,16 @@ def _run(root=None, force: bool = False, max_pages: int | None = None) -> dict:
             "errors": ["No records fetched from asg.pr.gov/comprasemergencias"],
         }
 
+    # Records arrive in -creado order, so enumeration position IS the rank.
     frame = pd.DataFrame(
-        [_normalize_row(r) for r in raw_records], columns=EMERGENCY_PURCHASE_COLUMNS
+        [_normalize_row(r, creado_rank=i) for i, r in enumerate(raw_records, start=1)],
+        columns=EMERGENCY_PURCHASE_COLUMNS,
     )
     frame = frame.drop_duplicates(subset=["control_number"])
+    # Read before the file is overwritten, so prior first_seen_at values survive.
+    frame = _carry_forward_first_seen(
+        frame, out_path, datetime.now(timezone.utc).date().isoformat()
+    )
     # Adds obligation_amount_canonical, entity_normalized and the geo columns.
     frame = apply_post_ingest(frame, source_id=SOURCE_ID, root=Path(root))
     frame.to_csv(out_path, index=False, encoding="utf-8")
