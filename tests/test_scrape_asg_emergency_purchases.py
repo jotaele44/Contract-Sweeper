@@ -132,9 +132,7 @@ def test_fetch_all_records_walks_to_the_declared_page_count(monkeypatch):
         calls.append(page)
         return pages[page]
 
-    monkeypatch.setattr(
-        "scripts.scrape_asg_emergency_purchases._fetch_page", fake_fetch_page
-    )
+    monkeypatch.setattr("scripts.scrape_asg_emergency_purchases._fetch_page", fake_fetch_page)
     records, truncated = fetch_all_records(session=None, logger=_NullLogger())
 
     assert calls == [1, 2, 3]  # stops at the declared total, does not try page 4
@@ -153,9 +151,7 @@ def test_walk_stops_when_the_server_clamps_to_the_last_page(monkeypatch):
         calls.append(page)
         return repeated
 
-    monkeypatch.setattr(
-        "scripts.scrape_asg_emergency_purchases._fetch_page", fake_fetch_page
-    )
+    monkeypatch.setattr("scripts.scrape_asg_emergency_purchases._fetch_page", fake_fetch_page)
     records, truncated = fetch_all_records(session=None, logger=_NullLogger())
 
     assert calls == [1, 2]  # second page repeats the first, so the walk stops
@@ -168,9 +164,7 @@ def test_a_failed_page_marks_the_result_truncated(monkeypatch):
     def fake_fetch_page(session, page, logger):
         return _page_html(["26-ASG-EPI-1"]) if page == 1 else None
 
-    monkeypatch.setattr(
-        "scripts.scrape_asg_emergency_purchases._fetch_page", fake_fetch_page
-    )
+    monkeypatch.setattr("scripts.scrape_asg_emergency_purchases._fetch_page", fake_fetch_page)
     records, truncated = fetch_all_records(session=None, logger=_NullLogger())
 
     assert len(records) == 1

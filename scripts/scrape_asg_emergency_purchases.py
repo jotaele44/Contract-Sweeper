@@ -349,9 +349,7 @@ def _run(root=None, force: bool = False, max_pages: int | None = None) -> dict:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Scrape ASG emergency (no-bid) purchase orders"
-    )
+    parser = argparse.ArgumentParser(description="Scrape ASG emergency (no-bid) purchase orders")
     parser.add_argument("--force", action="store_true")
     parser.add_argument(
         "--max-pages", type=int, default=None, help="Limit pages fetched (smoke testing)"

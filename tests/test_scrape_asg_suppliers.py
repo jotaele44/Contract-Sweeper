@@ -222,7 +222,13 @@ def test_col_map_matches_the_headings_asg_actually_renders():
     assert "Estatus" in COL_MAP["status"]
 
     raw = pd.DataFrame(
-        [{"Licitador ID": "50727", "Nombre de la Compañía": "10-8 InService", "Estatus": "Aprobado"}]
+        [
+            {
+                "Licitador ID": "50727",
+                "Nombre de la Compañía": "10-8 InService",
+                "Estatus": "Aprobado",
+            }
+        ]
     )
     mapped = parse_contractor_records(raw, "asg.pr.gov/suplidores")
     assert mapped.loc[0, "registration_id"] == "50727"
