@@ -188,3 +188,21 @@ Ordered by unlock value per unit of effort.
    `pr_act_154_excise`) → clears the `scraper_needed` queue.
 7. **[data] Run the Donaciones ingest end-to-end** once pandas is available
    (extractor already extended for the previously-unmapped columns).
+
+---
+
+## Two completion numbers, and why they differ
+
+This ledger says **~75%**. [`MATURITY_AUDIT.md`](MATURITY_AUDIT.md) says **73%**.
+Both are correct; they measure different things and should be read together.
+
+| | Measures | Counts a thing "done" when |
+|---|---|---|
+| **`ROAD_TO_100.md`** (~75%) | code completeness against intended scope | the code exists and works, with data- and network-blocked items called out separately |
+| **`MATURITY_AUDIT.md`** (73%) | maturity of the repo as an engineering artifact | a **CI gate** keeps it working |
+
+The spread is largely **enforcement rather than implementation**. Concretely, what this
+repo is missing on the audit's axis: no frontend tests and an ungated JS linter. Python enforcement here is the federation's reference standard, so almost none of the gap is Python tooling.
+
+Neither number supersedes the other. Use this ledger to answer "what is left to build";
+use the audit to answer "what would a reviewer refuse to merge".

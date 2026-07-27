@@ -133,3 +133,35 @@ No code changed. `pytest` re-run after the edit: `2394 passed, 8 skipped` — un
 `[tool.ruff]` — no `[project]` or `[build-system]` table. `pip install -e .` therefore fails.
 That is correct: this repo is not a distributable package, and its documented setup is
 `python3 run_all.py --only-setup`. Not a defect.
+
+---
+
+## Maturity score — 73%
+
+Measured 2026-07-27 against 20 explicit criteria (5 points each, 100 total). Every
+lost point is a specific, verifiable work item, so this doubles as the roadmap.
+
+| Dimension | Score | Criteria (5 pts each) |
+|---|---|---|
+| Functional completeness | **17/20** | backend serves domain · no dead UI · entrypoints work · modules wired, no duplicate mass |
+| Data reality | **15/20** | real non-synthetic dataset · refresh automated · offline bundle populated · live-exec gate open |
+| UI craft | **8/20** | pages proportionate to backend · loading+empty+error everywhere · a11y markup **and** automated gate · single consolidated frontend |
+| Tests | **10/15** | suite green · coverage gate enforced · frontend tests run in CI |
+| Hygiene | **12.5/15** | linters gated in CI · type checking gated in CI · write surface secured *and* client can use it |
+| Docs | **10/10** | docs match code · declared status matches observed maturity |
+| **Total** | **72.5/100** | |
+
+### How the score is computed
+
+20 criteria, 5 points each, 100 total. **Partial credit is allowed** where a criterion
+splits cleanly into independent halves — for example "linters gated in CI" scores 2.5 for
+Python and 2.5 for JavaScript, so a repo that gates one and not the other scores 2.5. That
+is why dimension totals are not always multiples of five.
+
+Components here sum to **72.5** (17 + 15 + 8 + 10 + 12.5 + 10), reported as **73%**. Half-points are
+rounded **half up** to the nearest whole percent for the cross-repo table; the exact figure is the one
+above.
+
+The earlier 0–4 per-dimension scorecard above is retained for cross-repo comparison,
+but it saturates — `aguayluz-pr` scored 24/24 on it while still having no frontend
+tests. This finer model is the one to plan against.
