@@ -25,10 +25,10 @@ pandas.read_html (read_html flattens the panel across all four columns and the
 detail rows come back as duplicated prose). Dates live in a ``data-date``
 attribute in ISO form, so they need no locale-aware parsing.
 
-Output is ``scripts.download_active_contractors.CONTRACTOR_COLUMNS`` plus geo_zip —
-contractor-reference schema that module already writes, so this becomes the
-live-scrape producer for the same shape rather than a parallel one (mirroring
-how scrape_ocpr_contracts shares ingest_ocpr_contracts' columns).
+Output is ``scripts.contractor_schema.CONTRACTOR_COLUMNS`` plus geo_zip — the same
+contractor-reference schema download_active_contractors writes, so this becomes
+the live-scrape producer for that shape rather than a parallel one (mirroring how
+scrape_ocpr_contracts shares ingest_ocpr_contracts' columns).
 
 Paging note: requesting a page past the end **clamps to the last page** rather
 than returning an empty one, so the walk stops on the declared page count with a
@@ -62,7 +62,7 @@ from moneysweep.runtime.post_ingest import apply_post_ingest
 from moneysweep.runtime.retry_runtime import RetryExhausted, RetryPolicy, with_retry
 from scripts.build_unified_master import _normalize_name
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts.download_active_contractors import CONTRACTOR_COLUMNS
+from scripts.contractor_schema import CONTRACTOR_COLUMNS
 
 SOURCE_ID = "asg_suppliers"
 BASE_URL = "https://asg.pr.gov/suplidores"

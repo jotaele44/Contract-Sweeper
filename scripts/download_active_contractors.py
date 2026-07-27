@@ -32,8 +32,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 import requests
 
+from scripts import scrape_asg_suppliers as asg_suppliers
 from scripts.build_unified_master import _normalize_name
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts.contractor_schema import CONTRACTOR_COLUMNS
 
 RAW_DIRS = [
     PROJECT_ROOT / "data" / "raw" / "Active Contractor Listing",
@@ -41,18 +43,10 @@ RAW_DIRS = [
     PROJECT_ROOT / "data" / "raw" / "Active Contractors",
 ]
 
-CONTRACTOR_COLUMNS = [
-    "entity_name",
-    "entity_normalized",
-    "registration_id",
-    "registration_date",
-    "expiry_date",
-    "contractor_type",
-    "naics_code",
-    "municipality",
-    "status",
-    "source_file",
-]
+# CONTRACTOR_COLUMNS is imported above from scripts/contractor_schema.py and
+# re-exported here, so existing callers and tests can keep importing it from this
+# module. It moved because this module and scrape_asg_suppliers share the schema
+# AND this module calls into that one — defining it here made the pair a cycle.
 
 # JSON endpoints to probe. The three ASG entries that used to head this list
 # (/api/suplidores, /suplidores/api/vendors and /suplidores/) were guesses and
@@ -206,33 +200,25 @@ def parse_records(df: "pd.DataFrame", source_file: str = "fixture") -> pd.DataFr
 def _try_asg_suppliers(logger):
     """Fetch the ASG RUL/RUP registry through its registered producer.
 
-    Imported lazily because scrape_asg_suppliers imports CONTRACTOR_COLUMNS from
-    this module — a module-level import either way would be circular. Any
-    failure degrades to the next tier rather than aborting the run, matching how
-    the JSON probes behave.
+    Any failure degrades to the next tier rather than aborting the run, matching
+    how the JSON probes behave.
     """
     try:
-        from scripts.scrape_asg_suppliers import (
-            CONTRACTOR_COLUMNS as _cols,
-            build_session,
-            fetch_all_records,
-        )
-        from scripts.scrape_asg_suppliers import HTTP as _http
-        from scripts.scrape_asg_suppliers import _normalize_row
-
         logger.info("  Trying: https://asg.pr.gov/suplidores (HTML registry)")
-        session = build_session(_http.user_agent, _http.extra_headers)
+        session = asg_suppliers.build_session(
+            asg_suppliers.HTTP.user_agent, asg_suppliers.HTTP.extra_headers
+        )
         try:
-            records, _ = fetch_all_records(session, logger)
+            records, _ = asg_suppliers.fetch_all_records(session, logger)
         finally:
             session.close()
 
         if not records:
             return pd.DataFrame(columns=CONTRACTOR_COLUMNS)
-        rows = [_normalize_row(r["summary"], r["detail"]) for r in records]
+        rows = [asg_suppliers._normalize_row(r["summary"], r["detail"]) for r in records]
         # Drop scrape_asg_suppliers' extra geo_zip so this module keeps writing
         # exactly CONTRACTOR_COLUMNS.
-        return pd.DataFrame(rows).reindex(columns=_cols)
+        return pd.DataFrame(rows).reindex(columns=CONTRACTOR_COLUMNS)
     except Exception as exc:
         logger.warning(f"    ASG suplidores scrape failed: {exc}")
         return pd.DataFrame(columns=CONTRACTOR_COLUMNS)

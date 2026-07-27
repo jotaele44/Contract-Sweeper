@@ -8,6 +8,7 @@ with the HTTP layer mocked out — no live network calls.
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pandas as pd
 import pytest
@@ -28,13 +29,19 @@ SUPPLIERS_HTML = (FIXTURES / "asg_suplidores.html").read_text(encoding="utf-8")
 
 
 class _NullLogger:
-    def info(self, *a, **k): ...
-    def warning(self, *a, **k): ...
-    def error(self, *a, **k): ...
+    def info(self, *a, **k):
+        pass
+
+    def warning(self, *a, **k):
+        pass
+
+    def error(self, *a, **k):
+        pass
 
 
 class _FakeSession:
-    def close(self): ...
+    def close(self):
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +217,11 @@ def test_run_writes_enriched_rows(monkeypatch, tmp_path):
 def test_no_invented_asg_api_endpoints_remain():
     # /api/suplidores, /suplidores/api/vendors and /suplidores/ were all guesses
     # and all three answer 404. ASG is served by the HTML scraper instead.
-    assert not [url for url in ENDPOINTS if "asg.pr.gov" in url]
+    # Compare the parsed host, not a substring: "asg.pr.gov" also matches
+    # hostnames that merely contain it (asg.pr.gov.example.com) and paths that
+    # mention it, so a substring test both over- and under-reports.
+    hosts = {(urlsplit(url).hostname or "").lower() for url in ENDPOINTS}
+    assert not {h for h in hosts if h == "asg.pr.gov" or h.endswith(".asg.pr.gov")}
 
 
 @pytest.mark.unit

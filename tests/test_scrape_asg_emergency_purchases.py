@@ -27,9 +27,14 @@ PURCHASES_HTML = (FIXTURES / "asg_comprasemergencias.html").read_text(encoding="
 
 
 class _NullLogger:
-    def info(self, *a, **k): ...
-    def warning(self, *a, **k): ...
-    def error(self, *a, **k): ...
+    def info(self, *a, **k):
+        pass
+
+    def warning(self, *a, **k):
+        pass
+
+    def error(self, *a, **k):
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -220,4 +225,5 @@ def test_run_on_an_empty_scrape_writes_headers_and_reports_error(monkeypatch, tm
 
 
 class _FakeSession:
-    def close(self): ...
+    def close(self):
+        pass
