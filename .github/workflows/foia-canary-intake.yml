@@ -1,0 +1,40 @@
+name: FOIA canary intake
+on:
+  repository_dispatch:
+    types: [foia-canary]
+permissions:
+  contents: write
+jobs:
+  intake:
+    if: github.event.client_payload.canary == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce canary-only mode
+        run: |
+          test "${{ github.event.client_payload.target_repo }}" = moneysweep-pr
+          case "${{ github.event.client_payload.canary_branch }}" in canary/*) ;; *) exit 1;; esac
+          test "${{ github.event.client_payload.no_production_promotion }}" = true
+      - uses: actions/checkout@v4
+        with: {ref: "${{ github.event.client_payload.canary_branch }}"}
+      - id: persist
+        env: {PAYLOAD: "${{ toJSON(github.event.client_payload) }}"}
+        run: |
+          python - <<'PY'
+          import hashlib,json,os,pathlib
+          p=json.loads(os.environ['PAYLOAD']); e=p['envelope']; key=p['idempotency_key']
+          assert e['schema_name']=='prii.foia.finding' and e['schema_version']=='0.2.0'
+          root=pathlib.Path('artifacts/foia_canary_receipts'); root.mkdir(parents=True,exist_ok=True)
+          out=root/f"{hashlib.sha256(key.encode()).hexdigest()}.json"; dup=out.exists()
+          rid=(json.loads(out.read_text())['record_id'] if dup else f"{p['destination']}-canary-{hashlib.sha256(key.encode()).hexdigest()[:20]}")
+          if not dup: out.write_text(json.dumps({'record_id':rid,'duplicate':False,'payload':p},indent=2,sort_keys=True)+'\n')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write(f"duplicate={str(dup).lower()}\nrecord_id={rid}\n")
+          PY
+      - run: |
+          git config user.name foia-canary-bot; git config user.email actions@users.noreply.github.com
+          git add artifacts/foia_canary_receipts; git diff --cached --quiet || git commit -m "test: persist FOIA canary receipt [skip ci]"
+          git push origin HEAD:${{ github.event.client_payload.canary_branch }}
+      - name: Callback acknowledgment
+        env: {TOKEN: "${{ secrets.FEDERATION_DISPATCH_TOKEN }}", RECORD_ID: "${{ steps.persist.outputs.record_id }}", DUPLICATE: "${{ steps.persist.outputs.duplicate }}"}
+        run: |
+          test -n "$TOKEN"
+          curl -sSf -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/jotaele44/centinelas-pr/dispatches -d "{\"event_type\":\"foia-canary-ack\",\"client_payload\":{\"idempotency_key\":\"${{ github.event.client_payload.idempotency_key }}\",\"destination\":\"${{ github.event.client_payload.destination }}\",\"record_id\":\"$RECORD_ID\",\"duplicate\":$DUPLICATE,\"status\":\"acknowledged\"}}"
