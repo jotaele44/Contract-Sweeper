@@ -8,7 +8,7 @@
 
 Local-only React dashboard for the moneysweep-pr (MoneySweep / Contracts)
 module. Same federation frontend process as the others — Vite + React (JSX) +
-Tailwind + shadcn/ui + react-query, Base44 auth stripped. Data-table centric
+Tailwind + shadcn/ui + react-query, Auth stripped. Data-table centric
 (not geospatial), so no map.
 
 ## Run
