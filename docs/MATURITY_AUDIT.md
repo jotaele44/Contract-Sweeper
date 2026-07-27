@@ -133,3 +133,24 @@ No code changed. `pytest` re-run after the edit: `2394 passed, 8 skipped` — un
 `[tool.ruff]` — no `[project]` or `[build-system]` table. `pip install -e .` therefore fails.
 That is correct: this repo is not a distributable package, and its documented setup is
 `python3 run_all.py --only-setup`. Not a defect.
+
+---
+
+## Maturity score — 73%
+
+Measured 2026-07-27 against 20 explicit criteria (5 points each, 100 total). Every
+lost point is a specific, verifiable work item, so this doubles as the roadmap.
+
+| Dimension | Score | Criteria (5 pts each) |
+|---|---|---|
+| Functional completeness | **17/20** | backend serves domain · no dead UI · entrypoints work · modules wired, no duplicate mass |
+| Data reality | **15/20** | real non-synthetic dataset · refresh automated · offline bundle populated · live-exec gate open |
+| UI craft | **8/20** | pages proportionate to backend · loading+empty+error everywhere · a11y markup **and** automated gate · single consolidated frontend |
+| Tests | **10/15** | suite green · coverage gate enforced · frontend tests run in CI |
+| Hygiene | **12.5/15** | linters gated in CI · type checking gated in CI · write surface secured *and* client can use it |
+| Docs | **10/10** | docs match code · declared status matches observed maturity |
+| **Total** | **73/100** | |
+
+The earlier 0–4 per-dimension scorecard above is retained for cross-repo comparison,
+but it saturates — `aguayluz-pr` scored 24/24 on it while still having no frontend
+tests. This finer model is the one to plan against.
