@@ -76,7 +76,10 @@ const results = []
 try {
   await waitForServer()
   for (const viewport of viewports) {
-    const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height } })
+    const context = await browser.newContext({
+      viewport: { width: viewport.width, height: viewport.height },
+      reducedMotion: 'reduce',
+    })
     const page = await context.newPage()
     const perTheme = []
 
@@ -111,7 +114,12 @@ try {
         assert.deepEqual(targetViolations, [], `${viewport.name} touch targets below 44px: ${JSON.stringify(targetViolations)}`)
 
         const screenshot = join(outputDir, `${viewport.name}.png`)
-        await page.screenshot({ path: screenshot, fullPage: true })
+        await page.screenshot({
+          path: screenshot,
+          fullPage: true,
+          animations: 'disabled',
+          caret: 'hide',
+        })
         const digest = createHash('sha256').update(await readFile(screenshot)).digest('hex')
         results.push({ ...viewport, screenshot: `${viewport.name}.png`, sha256: digest })
       }
@@ -126,7 +134,7 @@ try {
 }
 
 const report = {
-  schemaVersion: '1.1.0',
+  schemaVersion: '1.2.0',
   viewports: results,
   requirements: {
     axeCriticalSerious: 0,
@@ -137,6 +145,11 @@ const report = {
     initialOfflinePrecedesLoading: true,
     cachedOfflineDataVisible: true,
     filteredEmptyPreservesStatusBanner: true,
+    deterministicCapture: {
+      reducedMotion: 'reduce',
+      animations: 'disabled',
+      caret: 'hide',
+    },
     themes: ['dark', 'light'],
   },
 }
