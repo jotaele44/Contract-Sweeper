@@ -1,45 +1,71 @@
 name: Materialize automatable sources
 
 # Live/API fetch for the automatable financial-source set. Runs on an egress-capable
-# GitHub Actions runner (the buildout sandbox has no egress). Manual-only by default;
-# uncomment the schedule to run weekly. Outputs are uploaded as artifacts, never committed
-# (data-commit policy: data/** is gitignored).
-
+# GitHub Actions runner. Preflight is the safe default and never executes producers.
+# Live outputs are uploaded as artifacts and are never committed.
 on:
   workflow_dispatch:
     inputs:
-      confirm:
-        description: "Type 'YES' to confirm live API fetches"
+      mode:
+        description: "preflight validates controls; fetch executes live producers"
         required: true
+        type: choice
+        options:
+          - preflight
+          - fetch
+        default: preflight
+      confirm:
+        description: "For fetch mode only, type exactly YES"
+        required: false
         default: "no"
       source:
-        description: "Optional single source id (blank = all automatable)"
+        description: "Optional single source id (letters, digits, . _ -)"
         required: false
         default: ""
       family:
-        description: "Optional family filter (blank = all)"
+        description: "Optional family filter (letters, digits, . _ -)"
         required: false
         default: ""
-  # schedule:
-  #   - cron: "0 6 * * 1"   # Mondays 06:00 UTC
 
 permissions:
   contents: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Serialise runs on the same ref without cancelling. This workflow can
-# publish, write data, or hand off to another repo, and killing it
-# mid-flight risks leaving that work half-done.
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  validate_dispatch:
+    name: Validate bounded dispatch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Validate confirmation and bounded arguments
+        env:
+          DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          DISPATCH_CONFIRM: ${{ github.event.inputs.confirm }}
+          DISPATCH_SOURCE: ${{ github.event.inputs.source }}
+          DISPATCH_FAMILY: ${{ github.event.inputs.family }}
+        run: |
+          python3 scripts/validate_live_fetch_dispatch.py \
+            --workflow materialize-sources \
+            --mode "$DISPATCH_MODE" \
+            --confirm "$DISPATCH_CONFIRM" \
+            --source "$DISPATCH_SOURCE" \
+            --family "$DISPATCH_FAMILY"
+
+      - name: Verify producer entry point without network
+        run: python3 scripts/run_automatable_sources.py --help
+
   materialize:
     name: Run automatable sources (live)
+    needs: validate_dispatch
+    if: github.event.inputs.mode == 'fetch'
     runs-on: ubuntu-latest
-    if: ${{ startsWith(toLower(github.event.inputs.confirm), 'yes') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -51,14 +77,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
+          if [ ! -d ../thehub-pr ]; then
+            git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" \
+              https://github.com/jotaele44/thehub-pr.git ../thehub-pr \
+              || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
+          fi
           pip install -r requirements.txt
 
       - name: Egress preflight
         run: python3 scripts/check_network_egress.py
 
-      - name: Run automatable sources (live fetch)
+      - name: Run bounded automatable source selection
         env:
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
           FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
@@ -70,13 +99,20 @@ jobs:
           OPENCORPORATES_API_TOKEN: ${{ secrets.OPENCORPORATES_API_TOKEN }}
           FINANCIALDATA_API_KEY: ${{ secrets.FINANCIALDATA_API_KEY }}
           X_API_KEY: ${{ secrets.X_API_KEY }}
+          DISPATCH_SOURCE: ${{ github.event.inputs.source }}
+          DISPATCH_FAMILY: ${{ github.event.inputs.family }}
         run: |
-          python3 scripts/run_automatable_sources.py \
-            ${{ github.event.inputs.source && format('--source {0}', github.event.inputs.source) || '' }} \
-            ${{ github.event.inputs.family && format('--family {0}', github.event.inputs.family) || '' }}
+          args=()
+          if [ -n "$DISPATCH_SOURCE" ]; then
+            args+=(--source "$DISPATCH_SOURCE")
+          fi
+          if [ -n "$DISPATCH_FAMILY" ]; then
+            args+=(--family "$DISPATCH_FAMILY")
+          fi
+          python3 scripts/run_automatable_sources.py "${args[@]}"
 
-      - name: Upload materialized outputs + run summary
-        if: ${{ always() }}
+      - name: Upload materialized outputs and run summary
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: materialized-sources
