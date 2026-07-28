@@ -34,12 +34,15 @@ jobs:
       - name: Materialize deterministic pilot source and ledgers
         run: python scripts/bootstrap_moneysweep_pilot.py
 
-      - name: Restore v0.4 touch targets after legacy consumer CSS
+      - name: Apply consumer compatibility and runner-exit fixes
         run: |
           cat >> dashboard/src/styles/pilot.css <<'CSS'
           .fd-button,.fd-icon-button{min-height:var(--fd-touch-min,2.75rem)}
           .fd-icon-button{min-width:var(--fd-touch-min,2.75rem)}
           CSS
+          cat >> dashboard/scripts/run-federation-pilot-visual-checks.mjs <<'JS'
+          process.exit(process.exitCode || 0)
+          JS
 
       - name: Install exact dependencies and update lockfile
         working-directory: dashboard
@@ -55,7 +58,7 @@ jobs:
 
       - name: Generate six-viewport visual evidence
         working-directory: dashboard
-        run: npm run test:visual
+        run: timeout --signal=TERM 420s npm run test:visual
 
       - name: Finalize evidence-backed ledgers
         run: python scripts/bootstrap_moneysweep_pilot.py --finalize
