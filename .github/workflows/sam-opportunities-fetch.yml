@@ -68,23 +68,6 @@ jobs:
           fi
           echo "authorized=$authorized" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
-          mkdir -p dispatch-receipt
-          AUTHORIZED="$authorized" MODE="$mode" python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-          days = os.environ.get("DAYS", "")
-          Path("dispatch-receipt/sam-opportunities-fetch.json").write_text(
-              json.dumps({
-                  "schemaVersion": "1.0.0",
-                  "workflow": "sam-opportunities-fetch",
-                  "authorized": os.environ["AUTHORIZED"] == "true",
-                  "mode": os.environ["MODE"],
-                  "days": int(days) if days.isdigit() else None,
-                  "liveFetchAuthorized": os.environ["AUTHORIZED"] == "true",
-              }, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          PY
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         if: ${{ steps.gate.outputs.authorized == 'true' }}
@@ -119,6 +102,31 @@ jobs:
           name: sam-opportunities-${{ github.run_id }}
           path: data/staging/processed/pr_sam_opportunities.csv
           if-no-files-found: ignore
+
+      - name: Write redacted dispatch receipt
+        if: ${{ always() }}
+        env:
+          AUTHORIZED: ${{ steps.gate.outputs.authorized }}
+          MODE: ${{ steps.gate.outputs.mode }}
+          DAYS: ${{ inputs.days }}
+        run: |
+          mkdir -p dispatch-receipt
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          days = os.environ.get("DAYS", "")
+          Path("dispatch-receipt/sam-opportunities-fetch.json").write_text(
+              json.dumps({
+                  "schemaVersion": "1.0.0",
+                  "workflow": "sam-opportunities-fetch",
+                  "authorized": os.environ.get("AUTHORIZED") == "true",
+                  "mode": os.environ.get("MODE", "gate-unavailable"),
+                  "days": int(days) if days.isdigit() else None,
+                  "liveFetchAuthorized": os.environ.get("AUTHORIZED") == "true",
+              }, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
 
       - name: Upload dispatch receipt
         if: ${{ always() }}
