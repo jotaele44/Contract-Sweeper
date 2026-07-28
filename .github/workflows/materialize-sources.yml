@@ -39,7 +39,10 @@ jobs:
   materialize:
     name: Run automatable sources (live)
     runs-on: ubuntu-latest
-    if: ${{ startsWith(toLower(github.event.inputs.confirm), 'yes') }}
+    # `startsWith` is already case-insensitive, so this honours the "type YES"
+    # contract in the input description without a lowercasing helper — GitHub
+    # Actions has no such expression function.
+    if: ${{ startsWith(github.event.inputs.confirm, 'yes') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 

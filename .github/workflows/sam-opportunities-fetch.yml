@@ -38,6 +38,11 @@ concurrency:
 jobs:
   fetch_sam_opportunities:
     runs-on: ubuntu-latest
+    # The `secrets` context is not available in a step-level `if:`, so the gates
+    # below read `env` instead. Hoisting the key here is what makes that possible,
+    # and it also supplies the value to the fetch step's `run`.
+    env:
+      SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -55,15 +60,13 @@ jobs:
           pip install -r requirements.txt
 
       - name: Fetch SAM.gov opportunities
-        if: ${{ secrets.SAM_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') && startsWith(toLower(github.event.inputs.confirm_secondary), 'fetch') }}
-        env:
-          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+        if: ${{ env.SAM_API_KEY != '' && startsWith(github.event.inputs.confirm, 'yes') && startsWith(github.event.inputs.confirm_secondary, 'fetch') }}
         run: |
           echo "Starting SAM.gov opportunities fetch..."
           python3 scripts/download_sam_opportunities.py --force --days "${{ github.event.inputs.days }}"
 
       - name: Upload SAM opportunities artifact
-        if: ${{ secrets.SAM_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') && startsWith(toLower(github.event.inputs.confirm_secondary), 'fetch') }}
+        if: ${{ env.SAM_API_KEY != '' && startsWith(github.event.inputs.confirm, 'yes') && startsWith(github.event.inputs.confirm_secondary, 'fetch') }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sam-opportunities

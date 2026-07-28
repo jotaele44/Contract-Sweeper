@@ -30,6 +30,11 @@ concurrency:
 jobs:
   fetch_highergov:
     runs-on: ubuntu-latest
+    # The `secrets` context is not available in a step-level `if:`, so the gates
+    # below read `env` instead. Hoisting the key here is what makes that possible,
+    # and it also supplies the value to the fetch step's `run`.
+    env:
+      HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -47,15 +52,13 @@ jobs:
           pip install -r requirements.txt
 
       - name: Fetch HigherGov exports
-        if: ${{ secrets.HIGHERGOV_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') }}
-        env:
-          HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
+        if: ${{ env.HIGHERGOV_API_KEY != '' && startsWith(github.event.inputs.confirm, 'yes') }}
         run: |
           echo "Starting HigherGov fetch..."
           python3 scripts/fetch_highergov_api.py
 
       - name: Upload HigherGov exports artifact
-        if: ${{ secrets.HIGHERGOV_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') }}
+        if: ${{ env.HIGHERGOV_API_KEY != '' && startsWith(github.event.inputs.confirm, 'yes') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: highergov-exports
