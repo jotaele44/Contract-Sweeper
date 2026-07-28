@@ -142,3 +142,12 @@ dist-desktop/
 build/
 desktop/.running
 dist-smoke/
+
+# Generated local-analysis run logs (agent scratch, not part of the committed
+# audit trail — same posture as reports/maintenance/ above).
+reports/local_analysis/
+
+# Re-block .DS_Store inside the allow-listed data/ subtrees. The top-level
+# .DS_Store rule (line 13) loses to the `!data/<dir>/**` re-includes, so it has
+# to be restated here, after them — see this file's header note on later-wins.
+data/**/.DS_Store

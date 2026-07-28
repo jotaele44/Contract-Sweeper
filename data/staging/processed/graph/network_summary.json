@@ -1,19 +1,20 @@
 {
-  "total_nodes": 26,
-  "total_edges": 144,
-  "vendor_nodes": 18,
-  "agency_nodes": 8,
-  "parent_entity_nodes": 0,
-  "top_node_by_pagerank": "Caribbean Data Services Inc",
-  "top_node_type": "vendor",
-  "outputs": {
-    "graphml": "/home/user/Contract-Sweeper/data/staging/processed/graph/network.graphml",
-    "top_nodes": "/home/user/Contract-Sweeper/data/staging/processed/graph/top_nodes.csv",
-    "entity_edges": "/home/user/Contract-Sweeper/data/staging/processed/graph/entity_edges.csv",
-    "summary": "/home/user/Contract-Sweeper/data/staging/processed/graph/network_summary.json"
-  },
+  "total_nodes": 5283,
+  "total_edges": 7092,
+  "vendor_nodes": 5226,
+  "agency_nodes": 36,
+  "parent_entity_nodes": 3,
+  "control_edges": 20,
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
-  "production_status_generated_at": "2026-05-08T08:46:03Z",
   "production_status_message": "Diagnostic output only — not production-valid.",
+  "top_node_by_pagerank": "Department of Defense",
+  "top_node_type": "agency",
+  "outputs": {
+    "graphml": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/network.graphml",
+    "top_nodes": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/top_nodes.csv",
+    "entity_edges": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/entity_edges.csv",
+    "summary": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/network_summary.json"
+  },
+  "production_status_generated_at": "2026-07-28T15:31:23Z",
   "production_blocker_count": 3
 }

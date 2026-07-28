@@ -1,0 +1,73 @@
+{
+  "generated": "2026-07-05T21:05:08.514699+00:00",
+  "authority_model": "moneysweep-pr = authoritative target; Contract-Sweeper = beta (dedup source); Contract Data/data & data.zip = older Jun-22 pipeline snapshot (dedup source). Repo files never overwritten; only gaps filled.",
+  "consolidation": {
+    "files_copied": 447,
+    "bytes_copied": 1235895158,
+    "by_action": {
+      "copy-gap": {
+        "files": 395,
+        "MB": 1027.2
+      },
+      "copy-loose": {
+        "files": 13,
+        "MB": 13.5
+      },
+      "copy-legis": {
+        "files": 39,
+        "MB": 195.2
+      }
+    },
+    "exact_duplicates_skipped": 3
+  },
+  "dedup": {
+    "redundant_MB_avoided_ContractData_vs_ContractSweeper": 383.8,
+    "openstates_bills": "triplicate (loose folder == Archive.zip == loose zip) -> kept loose folder only",
+    "data_zip": "111MB == Contract Data/data snapshot -> not re-ingested",
+    "higherGov_municipal_pdf": "identical to repo copy -> skipped",
+    "oce_busqueda_xlsx": "renamed duplicates of OCE folder exports -> skipped"
+  },
+  "fy2026_usaspending": {
+    "scanned_rows": 889804,
+    "pr_rows_kept": 1157,
+    "filter": "recipient_state==PR OR place_of_performance_state==PR"
+  },
+  "sources_normalized_to_staging_processed": {
+    "donaciones_pr (CEE donations)": 4579,
+    "contralor_electoral (OCE campaign finance)": 6480,
+    "oficina_contralor (OCPR audits/contracts)": 85,
+    "dcaa_active_contractors (DoD prime 2013)": 8361,
+    "fpds_report_builder (FY20-24 + procurement)": 238,
+    "follow_the_money (SF-133 etc.)": 1247
+  },
+  "canonical_v1_integrity": {
+    "dup_ids": 0,
+    "unresolved_evidence_fk": 0,
+    "status": "clean"
+  },
+  "batches": [
+    {
+      "batch": "2026-07-07_usas_prime_award_bundles",
+      "uploaded_zips": 3,
+      "dedup": "b3 == b2 (byte-identical, dropped); b1 (17 contracts) \u2282 b2 (524, superseded); Assistance identical across all",
+      "scope": "place_of_performance = PR (already PR-scoped; no filtering needed)",
+      "placed_dir": "data/raw/usaspending/prime_awards_transactions_pr_20260707/",
+      "rows": {
+        "Contracts_PrimeAwardSummaries": 524,
+        "Contracts_PrimeTransactions": 1692,
+        "Assistance_PrimeAwardSummaries": 0,
+        "Assistance_PrimeTransactions": 0
+      },
+      "producer": "none (no repo ingester for advanced-search bundle format); placed as raw + provenance"
+    },
+    {
+      "batch": "2026-07-07_upload_batch_2",
+      "items": {
+        "FY2026_All_Contracts_Full re-upload": "exact duplicate of already-processed zip -> skipped (PR slice already present, 1,157 rows)",
+        "Active Contractor Listing PDFs": "FY2007/2008/2012/2013 placed in data/raw/Active Contractor Listing/ (dcaa_active_contractors)",
+        "All_SubawardsAndPrimeTransactions bundles": "10 bundles unioned (row-level dedup) -> data/raw/subawards/pr_subawards_prime_transactions_20260322/; pop=PR; rows: Contracts_Subawards=102, Assistance_Subawards=632, Contracts_PrimeTransactions=56055, Assistance_PrimeTransactions=122272",
+        "All Contracts Delta 20260208 (2 parts)": "PR-filtered 1,985,358 nationwide rows -> 4,837 PR rows -> data/raw/usaspending/FY_All_Contracts_Delta_20260208_PR.csv"
+      }
+    }
+  ]
+}
