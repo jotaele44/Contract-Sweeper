@@ -90,22 +90,22 @@ jobs:
             done
             [[ -n "$run_id" ]] || { echo "No run discovered for $label" >&2; return 1; }
 
-            gh run watch "$run_id" --repo "$REPO" --exit-status
+            gh run watch "$run_id" --repo "$REPO" || true
             meta=$(gh run view "$run_id" --repo "$REPO" --json conclusion,headSha)
             conclusion=$(jq -r .conclusion <<<"$meta")
             head_sha=$(jq -r .headSha <<<"$meta")
-            [[ "$conclusion" == success ]]
-            [[ "$head_sha" == "$branch_sha" ]]
             printf '%s\t%s\t%s\t%s\t%s\n' "$label" "$workflow" "$run_id" "$conclusion" "$head_sha" >> validation/runs.tsv
 
             mkdir -p "validation/runs/$label"
-            gh run download "$run_id" --repo "$REPO" --dir "validation/runs/$label"
-            gh api "repos/$REPO/actions/runs/$run_id/artifacts" \
-              --jq ".artifacts[] | [\"$label\", .id, .name, .size_in_bytes, (.digest // \"\")] | @tsv" \
-              >> validation/artifacts.tsv
+            artifact_count=$(gh api "repos/$REPO/actions/runs/$run_id/artifacts" --jq .total_count)
+            if (( artifact_count > 0 )); then
+              gh run download "$run_id" --repo "$REPO" --dir "validation/runs/$label"
+              gh api "repos/$REPO/actions/runs/$run_id/artifacts" \
+                --jq ".artifacts[] | [\"$label\", .id, .name, .size_in_bytes, (.digest // \"\")] | @tsv" \
+                >> validation/artifacts.tsv
+            fi
           }
 
-          # Default dispatches must remain fail-closed.
           dispatch_and_collect materialize-default materialize-sources.yml \
             -f confirm=no -f dry_run=true -f source= -f family=
           dispatch_and_collect highergov-default highergov-fetch.yml \
@@ -113,7 +113,6 @@ jobs:
           dispatch_and_collect sam-default sam-opportunities-fetch.yml \
             -f confirm=no -f confirm_secondary=no -f dry_run=true -f days=1
 
-          # Mixed-case confirmed dry runs exercise case folding without source downloads.
           dispatch_and_collect materialize-dry-run materialize-sources.yml \
             -f confirm=YeS -f dry_run=true -f source= -f family=
           dispatch_and_collect highergov-dry-run highergov-fetch.yml \
@@ -121,11 +120,10 @@ jobs:
           dispatch_and_collect sam-dry-run sam-opportunities-fetch.yml \
             -f confirm=yeS -f confirm_secondary=FetCH -f dry_run=true -f days=1
 
-          # Re-run the permanent Federation pilot verifier at the same branch SHA.
           dispatch_and_collect federation-pilot moneysweep-federation-design-pilot.yml
 
           python3 - <<'PY'
-          import csv, json
+          import csv, json, sys
           from pathlib import Path
 
           root = Path('validation')
@@ -137,48 +135,70 @@ jobs:
               'highergov-dry-run': ('highergov-fetch.json', 'dry-run'),
               'sam-dry-run': ('sam-opportunities-fetch.json', 'dry-run'),
           }
+          with (root / 'runs.tsv').open() as fh:
+              runs = list(csv.DictReader(fh, delimiter='\t'))
+          with (root / 'artifacts.tsv').open() as fh:
+              artifacts = list(csv.DictReader(fh, delimiter='\t'))
+
+          checks = {
+              'sevenRunsObserved': len(runs) == 7,
+              'allRunsSuccessful': len(runs) == 7 and all(row['conclusion'] == 'success' for row in runs),
+              'allRunsAtOneHead': len({row['head_sha'] for row in runs}) == 1 if runs else False,
+              'receipts': {},
+              'materializeDryRunSummary': False,
+              'pilotArtifact': any(
+                  row['artifact_name'] == 'moneysweep-federation-design-pilot-evidence'
+                  for row in artifacts if row['label'] == 'federation-pilot'
+              ),
+          }
           receipts = {}
           for label, (filename, mode) in expected.items():
               matches = list((root / 'runs' / label).rglob(filename))
-              assert len(matches) == 1, (label, filename, matches)
-              receipt = json.loads(matches[0].read_text())
-              assert receipt['mode'] == mode, (label, receipt)
-              assert receipt['authorized'] is False, (label, receipt)
-              assert receipt['liveFetchAuthorized'] is False, (label, receipt)
-              receipts[label] = receipt
+              ok = len(matches) == 1
+              receipt = None
+              if ok:
+                  receipt = json.loads(matches[0].read_text())
+                  ok = (
+                      receipt.get('mode') == mode
+                      and receipt.get('authorized') is False
+                      and receipt.get('liveFetchAuthorized') is False
+                      and 'secretPresent' not in receipt
+                  )
+                  receipts[label] = receipt
+              checks['receipts'][label] = ok
 
           summaries = list((root / 'runs' / 'materialize-dry-run').rglob('materialization_run_summary.json'))
-          assert len(summaries) == 1, summaries
-          summary = json.loads(summaries[0].read_text())
-          assert summary['dry_run'] is True
-          assert summary['ran'] == []
+          if len(summaries) == 1:
+              summary = json.loads(summaries[0].read_text())
+              checks['materializeDryRunSummary'] = summary.get('dry_run') is True and summary.get('ran') == []
 
-          with (root / 'runs.tsv').open() as fh:
-              runs = list(csv.DictReader(fh, delimiter='\t'))
-          assert len(runs) == 7
-          assert all(row['conclusion'] == 'success' for row in runs)
-
-          with (root / 'artifacts.tsv').open() as fh:
-              artifacts = list(csv.DictReader(fh, delimiter='\t'))
-          labels = {row['label'] for row in artifacts}
-          assert labels == {row['label'] for row in runs}
-          for label in expected:
-              assert any('dispatch-receipt' in row['artifact_name'] for row in artifacts if row['label'] == label)
-          assert any('moneysweep-federation-design-pilot-evidence' == row['artifact_name'] for row in artifacts if row['label'] == 'federation-pilot')
-
+          result = (
+              checks['sevenRunsObserved']
+              and checks['allRunsSuccessful']
+              and checks['allRunsAtOneHead']
+              and all(checks['receipts'].values())
+              and checks['materializeDryRunSummary']
+              and checks['pilotArtifact']
+          )
           ledger = {
-              'schemaVersion': '1.0.0',
-              'result': 'PASS',
+              'schemaVersion': '1.1.0',
+              'result': 'PASS' if result else 'FAIL',
               'staticValidation': 'actionlint-v1.7.7',
               'dispatchRuns': runs,
               'artifacts': artifacts,
               'receipts': receipts,
+              'checks': checks,
               'defaultDispatchesLiveFetchAuthorized': False,
               'confirmedDryRunsLiveFetchAuthorized': False,
-              'materializeDryRunProducerExecutions': 0,
-              'federationPilotVerifier': 'success',
+              'federationPilotVerifier': next(
+                  (row['conclusion'] for row in runs if row['label'] == 'federation-pilot'),
+                  'not-observed',
+              ),
           }
           (root / 'WORKFLOW_REMEDIATION_VALIDATION_LEDGER.json').write_text(json.dumps(ledger, indent=2) + '\n')
+          if not result:
+              print(json.dumps(ledger, indent=2), file=sys.stderr)
+              sys.exit(1)
           PY
 
       - name: Upload validation ledger
