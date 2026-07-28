@@ -57,8 +57,8 @@ jobs:
             --confirm-secondary "$DISPATCH_CONFIRM_SECONDARY" \
             --days "$DISPATCH_DAYS"
 
-      - name: Verify fetch entry point without network
-        run: python3 scripts/download_sam_opportunities.py --help
+      - name: Compile fetch entry point without importing dependencies
+        run: python3 -m py_compile scripts/download_sam_opportunities.py
 
   fetch_sam_opportunities:
     name: Fetch SAM.gov opportunities
