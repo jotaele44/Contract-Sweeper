@@ -1,4 +1,3 @@
-
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -27,6 +26,20 @@ test('QueryBoundary uses every required shared async state', async () => {
   ]) assert.match(text, new RegExp(component))
 })
 
+test('QueryBoundary reacts to connectivity and stale deadlines', async () => {
+  const text = await source('src/components/QueryBoundary.jsx')
+  assert.match(text, /addEventListener\('online'/)
+  assert.match(text, /addEventListener\('offline'/)
+  assert.match(text, /setTimeout\(\(\) => setDeadlineTick/)
+
+  const offlineBranch = text.indexOf('if (offline && empty)')
+  const loadingBranch = text.indexOf('if (loading)')
+  assert.ok(offlineBranch >= 0 && loadingBranch >= 0 && offlineBranch < loadingBranch)
+
+  const filteredBranch = text.slice(text.indexOf('if (filteredEmpty)'), text.indexOf('return (\n    <>', text.indexOf('if (filteredEmpty)')) + 200)
+  assert.match(filteredBranch, /\{banner\}/)
+})
+
 test('filterable views delegate filtered-empty rendering to QueryBoundary', async () => {
   for (const path of [
     'src/components/ContractsTable.jsx',
@@ -38,6 +51,16 @@ test('filterable views delegate filtered-empty rendering to QueryBoundary', asyn
     assert.match(text, /onResetFilters=/)
     assert.doesNotMatch(text, />No (contracts|entities|relationships) match</)
   }
+})
+
+test('visual atlas exercises QueryBoundary runtime fixtures', async () => {
+  const atlas = await source('src/visual-tests/FederationPilotAtlas.jsx')
+  const runner = await source('scripts/run-federation-pilot-visual-checks.mjs')
+  assert.match(atlas, /import QueryBoundary/)
+  assert.match(atlas, /fetchStatus: 'paused', isLoading: true, isPending: true/)
+  assert.match(runner, /initial offline state lost precedence/)
+  assert.match(runner, /cached offline banner missing/)
+  assert.match(runner, /filtered offline banner missing/)
 })
 
 test('shared stat cards and operational badge replace local semantic colors', async () => {
