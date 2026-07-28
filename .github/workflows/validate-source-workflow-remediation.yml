@@ -1,0 +1,191 @@
+name: validate-source-workflow-remediation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/materialize-sources.yml
+      - .github/workflows/highergov-fetch.yml
+      - .github/workflows/sam-opportunities-fetch.yml
+      - .github/workflows/validate-source-workflow-remediation.yml
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ github.head_ref }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Static workflow validation
+        run: |
+          set -euo pipefail
+          go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 \
+            .github/workflows/materialize-sources.yml \
+            .github/workflows/highergov-fetch.yml \
+            .github/workflows/sam-opportunities-fetch.yml
+          ! grep -R -nE 'toLower\(|if:.*secrets\.' \
+            .github/workflows/materialize-sources.yml \
+            .github/workflows/highergov-fetch.yml \
+            .github/workflows/sam-opportunities-fetch.yml
+
+      - name: Verify final PR path scope
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/files" --jq '.[].filename' | sort -u > /tmp/paths.txt
+          cat > /tmp/allowed.txt <<'EOF'
+          .github/workflows/highergov-fetch.yml
+          .github/workflows/materialize-sources.yml
+          .github/workflows/sam-opportunities-fetch.yml
+          .github/workflows/validate-source-workflow-remediation.yml
+          EOF
+          diff -u /tmp/allowed.txt /tmp/paths.txt
+
+      - name: Run bounded dispatch matrix and audit artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p validation/runs
+          branch_sha=$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq .object.sha)
+          printf 'label\tworkflow\trun_id\tconclusion\thead_sha\n' > validation/runs.tsv
+          printf 'label\tartifact_id\tartifact_name\tsize_bytes\tdigest\n' > validation/artifacts.tsv
+
+          dispatch_and_collect() {
+            local label=$1
+            local workflow=$2
+            shift 2
+            local start
+            start=$(date -u +%s)
+            gh workflow run "$workflow" --repo "$REPO" --ref "$BRANCH" "$@"
+
+            local run_id=''
+            for _ in $(seq 1 60); do
+              runs=$(gh run list --repo "$REPO" --workflow "$workflow" --branch "$BRANCH" \
+                --event workflow_dispatch --limit 20 \
+                --json databaseId,headSha,createdAt,status,conclusion)
+              run_id=$(RUNS="$runs" START="$start" BRANCH_SHA="$branch_sha" python3 - <<'PY'
+          import datetime, json, os
+          runs = json.loads(os.environ['RUNS'])
+          start = int(os.environ['START'])
+          sha = os.environ['BRANCH_SHA']
+          matches = []
+          for run in runs:
+              created = datetime.datetime.fromisoformat(run['createdAt'].replace('Z', '+00:00')).timestamp()
+              if run['headSha'] == sha and created >= start - 2:
+                  matches.append(run)
+          matches.sort(key=lambda r: r['createdAt'], reverse=True)
+          print(matches[0]['databaseId'] if matches else '')
+          PY
+              )
+              [[ -n "$run_id" ]] && break
+              sleep 3
+            done
+            [[ -n "$run_id" ]] || { echo "No run discovered for $label" >&2; return 1; }
+
+            gh run watch "$run_id" --repo "$REPO" --exit-status
+            meta=$(gh run view "$run_id" --repo "$REPO" --json conclusion,headSha)
+            conclusion=$(jq -r .conclusion <<<"$meta")
+            head_sha=$(jq -r .headSha <<<"$meta")
+            [[ "$conclusion" == success ]]
+            [[ "$head_sha" == "$branch_sha" ]]
+            printf '%s\t%s\t%s\t%s\t%s\n' "$label" "$workflow" "$run_id" "$conclusion" "$head_sha" >> validation/runs.tsv
+
+            mkdir -p "validation/runs/$label"
+            gh run download "$run_id" --repo "$REPO" --dir "validation/runs/$label"
+            gh api "repos/$REPO/actions/runs/$run_id/artifacts" \
+              --jq ".artifacts[] | [\"$label\", .id, .name, .size_in_bytes, (.digest // \"\")] | @tsv" \
+              >> validation/artifacts.tsv
+          }
+
+          # Default dispatches must remain fail-closed.
+          dispatch_and_collect materialize-default materialize-sources.yml \
+            -f confirm=no -f dry_run=true -f source= -f family=
+          dispatch_and_collect highergov-default highergov-fetch.yml \
+            -f confirm=no -f confirm_secondary=no -f dry_run=true
+          dispatch_and_collect sam-default sam-opportunities-fetch.yml \
+            -f confirm=no -f confirm_secondary=no -f dry_run=true -f days=1
+
+          # Mixed-case confirmed dry runs exercise case folding without source downloads.
+          dispatch_and_collect materialize-dry-run materialize-sources.yml \
+            -f confirm=YeS -f dry_run=true -f source= -f family=
+          dispatch_and_collect highergov-dry-run highergov-fetch.yml \
+            -f confirm=yEs -f confirm_secondary=fEtCh -f dry_run=true
+          dispatch_and_collect sam-dry-run sam-opportunities-fetch.yml \
+            -f confirm=yeS -f confirm_secondary=FetCH -f dry_run=true -f days=1
+
+          # Re-run the permanent Federation pilot verifier at the same branch SHA.
+          dispatch_and_collect federation-pilot moneysweep-federation-design-pilot.yml
+
+          python3 - <<'PY'
+          import csv, json
+          from pathlib import Path
+
+          root = Path('validation')
+          expected = {
+              'materialize-default': ('materialize-sources.json', 'confirmation-missing'),
+              'highergov-default': ('highergov-fetch.json', 'confirmation-missing'),
+              'sam-default': ('sam-opportunities-fetch.json', 'confirmation-missing'),
+              'materialize-dry-run': ('materialize-sources.json', 'dry-run'),
+              'highergov-dry-run': ('highergov-fetch.json', 'dry-run'),
+              'sam-dry-run': ('sam-opportunities-fetch.json', 'dry-run'),
+          }
+          receipts = {}
+          for label, (filename, mode) in expected.items():
+              matches = list((root / 'runs' / label).rglob(filename))
+              assert len(matches) == 1, (label, filename, matches)
+              receipt = json.loads(matches[0].read_text())
+              assert receipt['mode'] == mode, (label, receipt)
+              assert receipt['authorized'] is False, (label, receipt)
+              assert receipt['liveFetchAuthorized'] is False, (label, receipt)
+              receipts[label] = receipt
+
+          summaries = list((root / 'runs' / 'materialize-dry-run').rglob('materialization_run_summary.json'))
+          assert len(summaries) == 1, summaries
+          summary = json.loads(summaries[0].read_text())
+          assert summary['dry_run'] is True
+          assert summary['ran'] == []
+
+          with (root / 'runs.tsv').open() as fh:
+              runs = list(csv.DictReader(fh, delimiter='\t'))
+          assert len(runs) == 7
+          assert all(row['conclusion'] == 'success' for row in runs)
+
+          with (root / 'artifacts.tsv').open() as fh:
+              artifacts = list(csv.DictReader(fh, delimiter='\t'))
+          labels = {row['label'] for row in artifacts}
+          assert labels == {row['label'] for row in runs}
+          for label in expected:
+              assert any('dispatch-receipt' in row['artifact_name'] for row in artifacts if row['label'] == label)
+          assert any('moneysweep-federation-design-pilot-evidence' == row['artifact_name'] for row in artifacts if row['label'] == 'federation-pilot')
+
+          ledger = {
+              'schemaVersion': '1.0.0',
+              'result': 'PASS',
+              'staticValidation': 'actionlint-v1.7.7',
+              'dispatchRuns': runs,
+              'artifacts': artifacts,
+              'receipts': receipts,
+              'defaultDispatchesLiveFetchAuthorized': False,
+              'confirmedDryRunsLiveFetchAuthorized': False,
+              'materializeDryRunProducerExecutions': 0,
+              'federationPilotVerifier': 'success',
+          }
+          (root / 'WORKFLOW_REMEDIATION_VALIDATION_LEDGER.json').write_text(json.dumps(ledger, indent=2) + '\n')
+          PY
+
+      - name: Upload validation ledger
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: source-workflow-remediation-validation
+          path: validation
+          if-no-files-found: error
+          retention-days: 30
