@@ -269,7 +269,8 @@ def test_sql_rejects_invalid_visibility_and_json():
     with pytest.raises(sqlite3.IntegrityError):
         database.execute(
             "INSERT INTO contradictions VALUES"
-            "('contradiction_x','case_x','not-json','temporal','high','open',NULL,NULL,'internal')"
+            "('contradiction_x','case_x','not-json','temporal','high','open',"
+            "NULL,NULL,'internal')"
         )
 
 
