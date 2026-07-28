@@ -1,0 +1,186 @@
+name: sync-moneysweep-pilot-reviewed-evidence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/sync-moneysweep-pilot-reviewed-evidence.yml"
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: sync-moneysweep-pilot-reviewed-evidence-v0-1
+  cancel-in-progress: true
+
+jobs:
+  sync-reviewed-evidence:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Download and verify reviewed visual artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl --fail --location \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/8695093341/zip" \
+            --output /tmp/reviewed-evidence.zip
+          echo "2f325547ea79d594036924a08cd05a85d4a4034370be25859a5b2ed2cb52bf04  /tmp/reviewed-evidence.zip" | sha256sum --check
+          mkdir -p /tmp/reviewed-evidence
+          unzip -q /tmp/reviewed-evidence.zip -d /tmp/reviewed-evidence
+          printf '%s  %s\n' \
+            fab04c5a32a2b3edfa1dc16c952e02d0f98dfb12c63a9796a5c0d09d7a335f41 /tmp/reviewed-evidence/mobile-compact.png \
+            0a0f7bd62835738d4e31c0d5d43c619cdc054f8b2c0c3e40f459f66e1f7a690d /tmp/reviewed-evidence/mobile-wide.png \
+            51995db7fe2dd4ab07503b74884bcd6d0b169a75888f9697594cdadf6d2e81d1 /tmp/reviewed-evidence/tablet.png \
+            720e9d92ca5812517190ae161ca76bbff6d67efe424befbac98ff58129905a3e /tmp/reviewed-evidence/desktop.png \
+            a2284e1ca2a6c3326b3a6cae3deaee1fb3b7473a84f50b41b671493b0264cb08 /tmp/reviewed-evidence/desktop-wide.png \
+            0ddf92c45af8eda387e57ff616cc9c4b517b745db4cc5ebaa36134408e56eab0 /tmp/reviewed-evidence/wide.png \
+            ecab4a585379a7c4d8e4178cb2e9e42bde3e07faf836805bef0d9f6ef08e82d9 /tmp/reviewed-evidence/visual-check-report.json \
+            | sha256sum --check
+
+      - name: Synchronize screenshots, report and review ledgers
+        run: |
+          set -euo pipefail
+          evidence=docs/evidence/moneysweep-federation-design-pilot-v0-1
+          install -m 0644 /tmp/reviewed-evidence/mobile-compact.png "${evidence}/mobile-compact.png"
+          install -m 0644 /tmp/reviewed-evidence/mobile-wide.png "${evidence}/mobile-wide.png"
+          install -m 0644 /tmp/reviewed-evidence/tablet.png "${evidence}/tablet.png"
+          install -m 0644 /tmp/reviewed-evidence/desktop.png "${evidence}/desktop.png"
+          install -m 0644 /tmp/reviewed-evidence/desktop-wide.png "${evidence}/desktop-wide.png"
+          install -m 0644 /tmp/reviewed-evidence/wide.png "${evidence}/wide.png"
+          install -m 0644 /tmp/reviewed-evidence/visual-check-report.json "${evidence}/visual-check-report.json"
+
+          cat > docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_VISUAL_STATE_ATLAS_v0_1.md <<'EOF'
+          # MoneySweep Federation Design System Pilot — Visual State Atlas v0.1
+
+          ## Reviewed runtime matrix
+
+          Each screenshot is produced by the real MoneySweep `QueryBoundary`, not by direct state-component examples. The matrix exercises loading, error, empty, filtered-empty, stale-with-cached-data, and initial-offline states together with shared buttons, panels, stat cards, long labels, and semantic operational badges.
+
+          | Viewport | Size | Screenshot | SHA-256 |
+          |---|---:|---|---|
+          | mobile-compact | 390×844 | `mobile-compact.png` | `fab04c5a32a2b3edfa1dc16c952e02d0f98dfb12c63a9796a5c0d09d7a335f41` |
+          | mobile-wide | 430×932 | `mobile-wide.png` | `0a0f7bd62835738d4e31c0d5d43c619cdc054f8b2c0c3e40f459f66e1f7a690d` |
+          | tablet | 768×1024 | `tablet.png` | `51995db7fe2dd4ab07503b74884bcd6d0b169a75888f9697594cdadf6d2e81d1` |
+          | desktop | 1280×800 | `desktop.png` | `720e9d92ca5812517190ae161ca76bbff6d67efe424befbac98ff58129905a3e` |
+          | desktop-wide | 1440×900 | `desktop-wide.png` | `a2284e1ca2a6c3326b3a6cae3deaee1fb3b7473a84f50b41b671493b0264cb08` |
+          | wide | 1920×1080 | `wide.png` | `0ddf92c45af8eda387e57ff616cc9c4b517b745db4cc5ebaa36134408e56eab0` |
+
+          ## Automated checks
+
+          - Evidence schema: **1.1.0**
+          - Themes audited: **dark and light**
+          - Runtime state identities: **loading, error, empty, filtered-empty, stale, offline**
+          - Initial offline precedence over loading: **passed**
+          - Cached data remains visible with the offline banner: **passed**
+          - Filtered-empty preserves offline/degraded/stale status banners: **passed**
+          - Critical/serious axe findings: **0**
+          - Horizontal overflow: **0 of 12 viewport/theme runs**
+          - Minimum interactive target: **44 CSS px**
+          - Keyboard traversal: a shared button was reachable at all six viewports
+          - Manual visual review: **passed all six screenshots**
+
+          ## Evidence identity
+
+          - Permanent verifier run: `30376207971`
+          - GitHub artifact: `8695093341`
+          - Artifact ZIP SHA-256: `2f325547ea79d594036924a08cd05a85d4a4034370be25859a5b2ed2cb52bf04`
+          - Report SHA-256: `ecab4a585379a7c4d8e4178cb2e9e42bde3e07faf836805bef0d9f6ef08e82d9`
+
+          Evidence directory: `docs/evidence/moneysweep-federation-design-pilot-v0-1/`.
+          EOF
+
+          cat > docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_IMPLEMENTATION_LEDGER_v0_1.md <<'EOF'
+          # MoneySweep Federation Design System Pilot — Implementation Ledger v0.1
+
+          ## Baseline
+
+          - Repository: `jotaele44/moneysweep-pr`
+          - Audit baseline: `main@9cbf0bffa89424bca0f261ff45cf06df6e5c1401`
+          - PR base: `main@7c8267cb9ee2af2382aec940edcc7b0becab4bd4`
+          - Immutable release: `federation-design-v0.4.0-rc.1`
+          - Expected tarball SHA-256: `4c68f03c8fc7ed0d1e62af7997e02bfca9b6c95ee1740376ebaf7a3a9752ee5b`
+
+          ## Implemented scope
+
+          - Exact immutable tarball pin in `dashboard/package.json` and `dashboard/package-lock.json`.
+          - Shared loading, error, empty, filtered-empty, stale, offline, and degraded cached-data states through `QueryBoundary`.
+          - Shared `FederationButton`, `FederationPanel`, `FederationStatCard`, and semantic status-badge primitives.
+          - Filtered-empty delegation for contracts, entities, and relationships.
+          - Six-viewport visual, keyboard, overflow, touch-target, axe, and runtime-precedence matrix.
+
+          ## Review remediation
+
+          Independent review found and corrected three linked gaps:
+
+          1. Initial React Query `pending + paused + no data` could render loading before offline.
+          2. Browser connectivity changes and the stale deadline did not independently trigger a rerender.
+          3. The original atlas rendered package state primitives directly and could not detect consumer `QueryBoundary` precedence defects.
+
+          Remediation adds reactive browser connectivity, a stale-deadline timer, offline-before-loading precedence, status-banner preservation with filtered-empty results, real-`QueryBoundary` visual fixtures, runtime browser assertions, and an explicit consumer panel reset.
+
+          ## Preservation boundary
+
+          Unchanged by design: one-route information architecture, backend and APIs, query/data contracts, source datasets and exports, offline-export semantics, reverted PR #427 branding files, and every other Federation consumer.
+
+          ## Verification
+
+          - Package URL/version and tarball SHA-256: **verified exact**
+          - Release manifest source hashes: **11/11**
+          - API snapshot: **35 exports, zero removals**
+          - Token version: **2.0.0**; mutable references: **false**
+          - Unit/runtime contracts, ESLint, production build, and offline export: **passed**
+          - Initial offline precedence and reactive connectivity/stale contracts: **passed**
+          - Axe critical/serious: **0**; horizontal overflow: **0 of 12**
+          - Keyboard and 44 px target checks: **passed**
+          - Manual review of all six screenshots: **passed**
+          - Reviewed verifier run: `30376207971` — **success**
+          - Reviewed evidence artifact: `8695093341`
+          - Artifact ZIP SHA-256: `2f325547ea79d594036924a08cd05a85d4a4034370be25859a5b2ed2cb52bf04`
+          EOF
+
+          cat > docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_ROLLBACK_PLAN_v0_1.md <<'EOF'
+          # MoneySweep Federation Design System Pilot — Rollback Plan v0.1
+
+          ## Trigger conditions
+
+          Roll back for a route/API/data/offline-export regression; package-integrity mismatch; serious accessibility, keyboard, target-size, or overflow finding; initial offline resolving to loading; cached data disappearing during offline/degraded/stale states; connectivity or stale deadlines failing to update without another rerender; or filtered-empty content suppressing an active status banner.
+
+          ## Atomic rollback
+
+          1. Revert the pilot and review-remediation commits.
+          2. Restore the prior v0.3.0 package URL in both package files.
+          3. Restore `QueryBoundary`, `StatsBar`, and filtered-empty rows from `main@9cbf0bffa89424bca0f261ff45cf06df6e5c1401`.
+          4. Remove pilot-only harnesses, tests, styles, workflow, evidence, and ledgers.
+          5. Run `npm ci`, lint, production build, offline export, and repository-wide CI.
+
+          No backend, API, data, schema, route, or offline-export data migration is required.
+          EOF
+
+          sed -i 's/^          //' \
+            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_VISUAL_STATE_ATLAS_v0_1.md \
+            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_IMPLEMENTATION_LEDGER_v0_1.md \
+            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_ROLLBACK_PLAN_v0_1.md
+
+      - name: Commit exact reviewed evidence
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_IMPLEMENTATION_LEDGER_v0_1.md \
+            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_VISUAL_STATE_ATLAS_v0_1.md \
+            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_ROLLBACK_PLAN_v0_1.md \
+            docs/evidence/moneysweep-federation-design-pilot-v0-1
+          git commit -m "docs(pilot): synchronize reviewed runtime evidence"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
