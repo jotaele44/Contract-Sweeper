@@ -23,7 +23,7 @@
       "severity": "BLOCKER"
     }
   ],
-  "generated_at": "2026-05-08T08:46:03Z",
+  "generated_at": "2026-07-28T15:31:23Z",
   "metrics": {
     "bond_actor_count": 0,
     "data_layers_populated": 3,
