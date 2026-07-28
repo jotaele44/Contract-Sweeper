@@ -236,6 +236,8 @@ def test_sql_migration_blocks_audit_event_update_and_delete():
 
 
 def test_fixture_is_read_only_and_not_promoted():
-    fixture = json.loads(Path("tests/fixtures/case_manager/carraizo_case.json").read_text())
+    fixture = json.loads(
+        Path("tests/fixtures/case_manager/carraizo_case.json").read_text()
+    )
     assert fixture["fixture_status"] == "read_only_pending_review"
     assert fixture["canonical_promotion"] is False
