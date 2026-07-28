@@ -1,12 +1,12 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "viewports": [
     {
       "name": "mobile-compact",
       "width": 390,
       "height": 844,
       "screenshot": "mobile-compact.png",
-      "sha256": "c3b9a32b27ebffc889eb295b6361c90f97a0edef1fc6eeb863af1f942b1988df",
+      "sha256": "fab04c5a32a2b3edfa1dc16c952e02d0f98dfb12c63a9796a5c0d09d7a335f41",
       "themes": [
         {
           "theme": "dark",
@@ -25,7 +25,7 @@
       "width": 430,
       "height": 932,
       "screenshot": "mobile-wide.png",
-      "sha256": "831f1164be1e81e1b7085b36354e5b9562a257cbcedd0f09a0e3acf7daab95fc",
+      "sha256": "0a0f7bd62835738d4e31c0d5d43c619cdc054f8b2c0c3e40f459f66e1f7a690d",
       "themes": [
         {
           "theme": "dark",
@@ -44,7 +44,7 @@
       "width": 768,
       "height": 1024,
       "screenshot": "tablet.png",
-      "sha256": "859e50d2569d4c1108a0d52e046f17f19c5ba777e6af0d510079f793b2283316",
+      "sha256": "51995db7fe2dd4ab07503b74884bcd6d0b169a75888f9697594cdadf6d2e81d1",
       "themes": [
         {
           "theme": "dark",
@@ -63,7 +63,7 @@
       "width": 1280,
       "height": 800,
       "screenshot": "desktop.png",
-      "sha256": "d5ae841bff7816247408d75dc8aa81dd238324ff54b553bab930a8e093599521",
+      "sha256": "720e9d92ca5812517190ae161ca76bbff6d67efe424befbac98ff58129905a3e",
       "themes": [
         {
           "theme": "dark",
@@ -82,7 +82,7 @@
       "width": 1440,
       "height": 900,
       "screenshot": "desktop-wide.png",
-      "sha256": "5df0fa6b665e189af12b2c380d5b4cce49e572061724a88258b5e6ce92685db4",
+      "sha256": "a2284e1ca2a6c3326b3a6cae3deaee1fb3b7473a84f50b41b671493b0264cb08",
       "themes": [
         {
           "theme": "dark",
@@ -101,7 +101,7 @@
       "width": 1920,
       "height": 1080,
       "screenshot": "wide.png",
-      "sha256": "cd7fb50a0390da67591d965322053cd64fbd50935725fad335b1275b2ff29a90",
+      "sha256": "0ddf92c45af8eda387e57ff616cc9c4b517b745db4cc5ebaa36134408e56eab0",
       "themes": [
         {
           "theme": "dark",
@@ -121,6 +121,17 @@
     "horizontalOverflow": false,
     "minimumTouchTargetCssPx": 44,
     "keyboardButtonReachable": true,
+    "queryBoundaryRuntimeStates": [
+      "loading",
+      "error",
+      "empty",
+      "filtered-empty",
+      "stale",
+      "offline"
+    ],
+    "initialOfflinePrecedesLoading": true,
+    "cachedOfflineDataVisible": true,
+    "filteredEmptyPreservesStatusBanner": true,
     "themes": [
       "dark",
       "light"
