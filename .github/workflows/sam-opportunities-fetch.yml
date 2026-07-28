@@ -1,25 +1,28 @@
 name: SAM Opportunities fetch
 
-# One-click refresh of the pre-award federal solicitations / bid-notice feed
-# (sam_opportunities). Manual-only by design — like highergov-fetch.yml, this runs
-# on workflow_dispatch with a double confirmation and never on a schedule (the repo
-# keeps live/egress fetches operator-triggered). Output is uploaded as an artifact,
-# never committed (data/** is gitignored). Bid response windows are short, so this
-# gives a fast ad-hoc refresh without waiting on the full materialize-sources run.
-
+# Manual-only refresh of the pre-award federal solicitations feed. Preflight is
+# the default and performs no network access. Live output is an artifact only.
 on:
   workflow_dispatch:
     inputs:
-      confirm:
-        description: "Type 'YES' (case-insensitive) to confirm fetch"
+      mode:
+        description: "preflight validates controls; fetch executes the live download"
         required: true
+        type: choice
+        options:
+          - preflight
+          - fetch
+        default: preflight
+      confirm:
+        description: "For fetch mode only, type exactly YES"
+        required: false
         default: "no"
       confirm_secondary:
-        description: "Type 'FETCH' (case-insensitive) to allow actual downloads"
-        required: true
+        description: "For fetch mode only, type exactly FETCH"
+        required: false
         default: "no"
       days:
-        description: "Lookback window in days (default 365; >365 is split into API-legal windows)"
+        description: "Lookback window, bounded to 1-1095 days"
         required: false
         default: "365"
 
@@ -28,43 +31,80 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Serialise runs on the same ref without cancelling. This workflow can
-# publish, write data, or hand off to another repo, and killing it
-# mid-flight risks leaving that work half-done.
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  fetch_sam_opportunities:
+  validate_dispatch:
+    name: Validate bounded dispatch
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Validate confirmation tokens and lookback
+        env:
+          DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          DISPATCH_CONFIRM: ${{ github.event.inputs.confirm }}
+          DISPATCH_CONFIRM_SECONDARY: ${{ github.event.inputs.confirm_secondary }}
+          DISPATCH_DAYS: ${{ github.event.inputs.days }}
+        run: |
+          python3 scripts/validate_live_fetch_dispatch.py \
+            --workflow sam-opportunities-fetch \
+            --mode "$DISPATCH_MODE" \
+            --confirm "$DISPATCH_CONFIRM" \
+            --confirm-secondary "$DISPATCH_CONFIRM_SECONDARY" \
+            --days "$DISPATCH_DAYS"
+
+      - name: Verify fetch entry point without network
+        run: python3 scripts/download_sam_opportunities.py --help
+
+  fetch_sam_opportunities:
+    name: Fetch SAM.gov opportunities
+    needs: validate_dispatch
+    if: github.event.inputs.mode == 'fetch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
           cache: pip
 
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
+          if [ ! -d ../thehub-pr ]; then
+            git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" \
+              https://github.com/jotaele44/thehub-pr.git ../thehub-pr \
+              || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
+          fi
           pip install -r requirements.txt
 
-      - name: Fetch SAM.gov opportunities
-        if: ${{ secrets.SAM_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') && startsWith(toLower(github.event.inputs.confirm_secondary), 'fetch') }}
+      - name: Require SAM credential
         env:
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
         run: |
-          echo "Starting SAM.gov opportunities fetch..."
-          python3 scripts/download_sam_opportunities.py --force --days "${{ github.event.inputs.days }}"
+          if [ -z "$SAM_API_KEY" ]; then
+            echo "::error::SAM_API_KEY is not configured"
+            exit 1
+          fi
+
+      - name: Fetch SAM.gov opportunities
+        env:
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+          DISPATCH_DAYS: ${{ github.event.inputs.days }}
+        run: |
+          python3 scripts/download_sam_opportunities.py \
+            --force \
+            --days "$DISPATCH_DAYS" \
+            --state PR
 
       - name: Upload SAM opportunities artifact
-        if: ${{ secrets.SAM_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') && startsWith(toLower(github.event.inputs.confirm_secondary), 'fetch') }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sam-opportunities
           path: data/staging/processed/pr_sam_opportunities.csv
