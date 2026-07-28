@@ -35,9 +35,7 @@ def test_preflight_never_executes_live_fetch() -> None:
         ("sam-opportunities-fetch", "FETCH"),
     ],
 )
-def test_fetch_requires_both_confirmation_tokens(
-    workflow: str, secondary: str
-) -> None:
+def test_fetch_requires_both_confirmation_tokens(workflow: str, secondary: str) -> None:
     decision = validate_dispatch(
         workflow=workflow,
         mode="fetch",
@@ -56,9 +54,7 @@ def test_fetch_requires_both_confirmation_tokens(
         ("", ""),
     ],
 )
-def test_fetch_rejects_non_exact_confirmation_tokens(
-    confirm: str, secondary: str
-) -> None:
+def test_fetch_rejects_non_exact_confirmation_tokens(confirm: str, secondary: str) -> None:
     with pytest.raises(DispatchValidationError):
         validate_dispatch(
             workflow="sam-opportunities-fetch",
