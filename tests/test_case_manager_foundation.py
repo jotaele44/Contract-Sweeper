@@ -62,6 +62,13 @@ def _event(
     )
 
 
+def _database() -> sqlite3.Connection:
+    database = sqlite3.connect(":memory:")
+    database.execute("PRAGMA foreign_keys = ON")
+    database.executescript(Path("migrations/001_case_manager_v1.sql").read_text())
+    return database
+
+
 def test_deterministic_ids_are_idempotent():
     left = deterministic_id("case", "FEMA", 4339, "PW", 8535)
     right = deterministic_id("case", "FEMA", 4339, "PW", 8535)
@@ -137,6 +144,7 @@ def test_unresolved_contradictions_are_not_auto_collapsed():
     )
     assert contradiction.status == "open"
     assert contradiction.claim_ids == (first_claim, second_claim)
+    assert contradiction.visibility == "internal"
 
 
 def test_accepted_finding_requires_contradiction_review():
@@ -196,8 +204,16 @@ def test_case_manager_schema_is_valid_draft7():
     jsonschema.Draft7Validator.check_schema(schema)
     assert "definitions" in schema
     assert "$defs" not in schema
-    assert "visibility" in schema["definitions"]["case_event"]["required"]
-    assert "visibility" in schema["definitions"]["finding"]["required"]
+    for definition in (
+        "claim_evidence",
+        "case_event",
+        "contradiction",
+        "lead",
+        "finding",
+        "case_snapshot",
+        "audit_event",
+    ):
+        assert "visibility" in schema["definitions"][definition]["required"]
 
 
 def test_sql_migration_is_idempotent_from_clean_state():
@@ -215,18 +231,74 @@ def test_sql_migration_is_idempotent_from_clean_state():
         database.close()
 
 
-def test_sql_migration_blocks_audit_event_mutation():
-    sql = Path("migrations/001_case_manager_v1.sql").read_text()
-    database = sqlite3.connect(":memory:")
-    database.executescript(sql)
+def test_sql_migration_creates_required_indexes():
+    database = _database()
+    names = {
+        row[0]
+        for row in database.execute(
+            "SELECT name FROM sqlite_master WHERE type='index'"
+        )
+    }
+    expected = {
+        "idx_case_evidence_case",
+        "idx_case_evidence_evidence",
+        "idx_claims_case",
+        "idx_claim_evidence_claim",
+        "idx_claim_evidence_evidence",
+        "idx_case_entities_case",
+        "idx_case_events_case_occurred",
+        "idx_contradictions_case_status",
+        "idx_leads_case_status",
+        "idx_findings_case_status",
+        "idx_case_audit_events_case_sequence",
+    }
+    assert expected.issubset(names)
+
+
+def test_sql_rejects_invalid_visibility_and_json():
+    database = _database()
+    database.execute(
+        "INSERT INTO cases(case_id,title,case_type,status,scope,visibility) "
+        "VALUES('case_x','X','audit','open','scope','internal')"
+    )
+    with pytest.raises(sqlite3.IntegrityError):
+        database.execute(
+            "INSERT INTO case_events VALUES"
+            "('case_event_x','case_x','status','2026-01-01','X','[]',NULL,1,'secret')"
+        )
+    with pytest.raises(sqlite3.IntegrityError):
+        database.execute(
+            "INSERT INTO contradictions VALUES"
+            "('contradiction_x','case_x','not-json','temporal','high','open',NULL,NULL,'internal')"
+        )
+
+
+def test_sql_foreign_keys_are_restrictive():
+    database = _database()
     database.execute(
         "INSERT INTO cases(case_id,title,case_type,status,scope,visibility) "
         "VALUES('case_x','X','audit','open','scope','internal')"
     )
     database.execute(
-        "INSERT INTO case_audit_events VALUES"
+        "INSERT INTO claims VALUES"
+        "('claim_x','case_x','X','test','pending',0.5,'inferred','internal')"
+    )
+    with pytest.raises(sqlite3.IntegrityError):
+        database.execute("DELETE FROM cases WHERE case_id='case_x'")
+
+
+def test_sql_migration_blocks_audit_event_mutation():
+    database = _database()
+    database.execute(
+        "INSERT INTO cases(case_id,title,case_type,status,scope,visibility) "
+        "VALUES('case_x','X','audit','open','scope','internal')"
+    )
+    database.execute(
+        "INSERT INTO case_audit_events"
+        "(audit_event_id,case_id,sequence,occurred_at,actor,action,object_type,"
+        "object_id,payload_sha256,previous_event_sha256,visibility) VALUES"
         "('audit_event_x','case_x',1,'2026-01-01','tester','create',"
-        "'case','case_x',?,NULL)",
+        "'case','case_x',?,NULL,'internal')",
         ("a" * 64,),
     )
     with pytest.raises(sqlite3.IntegrityError):
