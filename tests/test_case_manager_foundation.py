@@ -4,7 +4,6 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft7Validator
 
 from moneysweep.case_manager import (
     AuditEvent,
@@ -189,10 +188,11 @@ def test_audit_event_rejects_nonmatching_predecessor_hash():
 
 
 def test_case_manager_schema_is_valid_draft7():
+    jsonschema = pytest.importorskip("jsonschema")
     schema = json.loads(
         Path("schemas/case_manager_v1/case_manager.schema.json").read_text()
     )
-    Draft7Validator.check_schema(schema)
+    jsonschema.Draft7Validator.check_schema(schema)
     assert "definitions" in schema
     assert "$defs" not in schema
     assert "visibility" in schema["definitions"]["case_event"]["required"]
@@ -201,16 +201,15 @@ def test_case_manager_schema_is_valid_draft7():
 
 def test_sql_migration_is_idempotent_from_clean_state():
     sql = Path("migrations/001_case_manager_v1.sql").read_text()
+    query = (
+        "SELECT name FROM sqlite_master "
+        "WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+    )
     for _ in range(2):
         db = sqlite3.connect(":memory:")
         db.executescript(sql)
         db.executescript(sql)
-        tables = {
-            row[0]
-            for row in db.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
-            )
-        }
+        tables = {row[0] for row in db.execute(query)}
         assert len(tables) == 11
         assert "cases" in tables
         assert "case_audit_events" in tables
