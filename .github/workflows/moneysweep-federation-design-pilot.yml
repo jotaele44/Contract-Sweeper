@@ -1,0 +1,49 @@
+name: moneysweep-federation-design-pilot
+
+on:
+  pull_request:
+    paths:
+      - "dashboard/**"
+      - "docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_*"
+      - "docs/evidence/moneysweep-federation-design-pilot-v0-1/**"
+      - ".github/workflows/moneysweep-federation-design-pilot.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-pilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Verify package, unit contracts, lint and production build
+        working-directory: dashboard
+        run: npm run verify:pilot
+      - name: Verify offline export build
+        working-directory: dashboard
+        run: npm run build:export
+      - name: Install Chromium
+        working-directory: dashboard
+        run: npx playwright install --with-deps chromium
+      - name: Run six-viewport accessibility and overflow matrix
+        working-directory: dashboard
+        env:
+          PILOT_SCREENSHOT_DIR: ${{ runner.temp }}/moneysweep-pilot-evidence
+          PILOT_REPORT_PATH: ${{ runner.temp }}/moneysweep-pilot-evidence/visual-check-report.json
+        run: timeout --signal=TERM 420s npm run test:visual
+      - name: Upload visual verification evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: moneysweep-federation-design-pilot-evidence
+          path: ${{ runner.temp }}/moneysweep-pilot-evidence
+          if-no-files-found: error
+          retention-days: 30
