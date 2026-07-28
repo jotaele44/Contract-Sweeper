@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import {
   FederationButton,
   FederationDegradedState,
@@ -15,6 +16,42 @@ const DEFAULT_STALE_AFTER_MS = 5 * 60 * 1000
 
 function evaluate(value, data) {
   return typeof value === 'function' ? Boolean(value(data)) : Boolean(value)
+}
+
+function readBrowserOnline() {
+  return typeof navigator === 'undefined' || navigator.onLine !== false
+}
+
+function useBrowserOnline() {
+  const [online, setOnline] = useState(readBrowserOnline)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const update = () => setOnline(readBrowserOnline())
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+
+  return online
+}
+
+function useStaleDeadline(dataUpdatedAt, staleAfterMs) {
+  const [, setDeadlineTick] = useState(0)
+
+  useEffect(() => {
+    if (!dataUpdatedAt || staleAfterMs <= 0) return undefined
+
+    const delay = dataUpdatedAt + staleAfterMs - Date.now()
+    if (delay <= 0) return undefined
+
+    const timer = setTimeout(() => setDeadlineTick((value) => value + 1), delay + 25)
+    return () => clearTimeout(timer)
+  }, [dataUpdatedAt, staleAfterMs])
 }
 
 function StatePanel({ children }) {
@@ -57,27 +94,48 @@ export default function QueryBoundary({
     refetch,
   } = query
 
+  const browserOnline = useBrowserOnline()
+  useStaleDeadline(dataUpdatedAt, staleAfterMs)
+
   const empty = evaluate(isEmpty ?? ((value) => !value), data)
   const filteredEmpty = !empty && evaluate(isFilteredEmpty, data)
-  const offline = fetchStatus === 'paused' || (typeof navigator !== 'undefined' && navigator.onLine === false)
-  const loading = Boolean(isPending || (isLoading && !data))
+  const offline = fetchStatus === 'paused' || !browserOnline
+  const loading = Boolean((isPending || isLoading) && data == null)
   const stale = Boolean(
     !offline && !isError && !isFetching && isStale && dataUpdatedAt > 0 && Date.now() - dataUpdatedAt >= staleAfterMs,
   )
   const retry = () => refetch()
 
-  if (loading) {
-    return (
-      <StatePanel>
-        <FederationLoadingState
-          className="h-full content-center"
-          title="Loading records"
-          description="Retrieving the latest MoneySweep data."
-        />
-      </StatePanel>
-    )
-  }
+  const banner = offline ? (
+    <FederationOfflineState
+      inline
+      className="ms-state-banner"
+      icon={<WifiOff className="h-4 w-4" />}
+      title="Offline — showing cached data"
+      description="Reconnect to refresh this view."
+      action={<RetryAction onRetry={retry} />}
+    />
+  ) : isError ? (
+    <FederationDegradedState
+      inline
+      className="ms-state-banner"
+      icon={<AlertTriangle className="h-4 w-4" />}
+      title="Refresh failed — showing the last successful result"
+      action={<RetryAction onRetry={retry} />}
+    />
+  ) : stale ? (
+    <FederationStaleDataState
+      inline
+      className="ms-state-banner"
+      icon={<Clock3 className="h-4 w-4" />}
+      title="This view may be stale"
+      description="Refresh to check for newer records."
+      action={<RetryAction onRetry={retry} label="Refresh" />}
+    />
+  ) : null
 
+  // A first load while offline is both pending and paused. Offline must win or
+  // the view remains on a loading indicator that cannot complete.
   if (offline && empty) {
     return (
       <StatePanel>
@@ -87,6 +145,18 @@ export default function QueryBoundary({
           title="MoneySweep is offline"
           description="Reconnect to load records that are not already cached."
           action={<RetryAction onRetry={retry} />}
+        />
+      </StatePanel>
+    )
+  }
+
+  if (loading) {
+    return (
+      <StatePanel>
+        <FederationLoadingState
+          className="h-full content-center"
+          title="Loading records"
+          description="Retrieving the latest MoneySweep data."
         />
       </StatePanel>
     )
@@ -120,45 +190,20 @@ export default function QueryBoundary({
 
   if (filteredEmpty) {
     return (
-      <StatePanel>
-        <FederationFilteredEmptyState
-          className="h-full content-center"
-          icon={<SearchX className="h-5 w-5" />}
-          title={filteredEmptyLabel}
-          description={filteredEmptyDescription}
-          action={onResetFilters ? <RetryAction onRetry={onResetFilters} label="Clear filters" /> : undefined}
-        />
-      </StatePanel>
+      <>
+        {banner}
+        <StatePanel>
+          <FederationFilteredEmptyState
+            className="h-full content-center"
+            icon={<SearchX className="h-5 w-5" />}
+            title={filteredEmptyLabel}
+            description={filteredEmptyDescription}
+            action={onResetFilters ? <RetryAction onRetry={onResetFilters} label="Clear filters" /> : undefined}
+          />
+        </StatePanel>
+      </>
     )
   }
-
-  const banner = offline ? (
-    <FederationOfflineState
-      inline
-      className="ms-state-banner"
-      icon={<WifiOff className="h-4 w-4" />}
-      title="Offline — showing cached data"
-      description="Reconnect to refresh this view."
-      action={<RetryAction onRetry={retry} />}
-    />
-  ) : isError ? (
-    <FederationDegradedState
-      inline
-      className="ms-state-banner"
-      icon={<AlertTriangle className="h-4 w-4" />}
-      title="Refresh failed — showing the last successful result"
-      action={<RetryAction onRetry={retry} />}
-    />
-  ) : stale ? (
-    <FederationStaleDataState
-      inline
-      className="ms-state-banner"
-      icon={<Clock3 className="h-4 w-4" />}
-      title="This view may be stale"
-      description="Refresh to check for newer records."
-      action={<RetryAction onRetry={retry} label="Refresh" />}
-    />
-  ) : null
 
   return (
     <>
