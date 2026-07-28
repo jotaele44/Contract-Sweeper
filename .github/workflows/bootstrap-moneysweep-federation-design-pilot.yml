@@ -63,10 +63,53 @@ jobs:
       - name: Finalize evidence-backed ledgers
         run: python scripts/bootstrap_moneysweep_pilot.py --finalize
 
+      - name: Normalize generated text and package evidence
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          roots = [Path('dashboard'), Path('docs'), Path('.github/workflows')]
+          suffixes = {'.css', '.html', '.js', '.jsx', '.json', '.md', '.mjs', '.yml', '.yaml'}
+          for root in roots:
+              if not root.exists():
+                  continue
+              for path in root.rglob('*'):
+                  if path.is_file() and path.suffix in suffixes:
+                      text = path.read_text(encoding='utf-8')
+                      normalized = '\n'.join(line.rstrip() for line in text.splitlines()) + '\n'
+                      path.write_text(normalized, encoding='utf-8')
+          PY
+          git diff --check
+          tar -czf /tmp/moneysweep-federation-design-pilot-evidence.tar.gz \
+            dashboard/package-lock.json \
+            dashboard/src/components/RelationshipGraph.jsx \
+            dashboard/src/main.jsx \
+            dashboard/src/styles/pilot.css \
+            dashboard/scripts/verify-federation-design-package.mjs \
+            dashboard/scripts/run-federation-pilot-visual-checks.mjs \
+            dashboard/tests/federation-pilot.test.mjs \
+            dashboard/visual/federation-pilot-atlas.html \
+            dashboard/visual/federation-pilot-atlas.jsx \
+            dashboard/visual/federation-pilot-atlas.css \
+            dashboard/artifacts/federation-design-pilot \
+            .github/workflows/moneysweep-federation-design-pilot.yml \
+            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_IMPLEMENTATION_LEDGER_v0_1.md \
+            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_VISUAL_STATE_ATLAS_v0_1.md \
+            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_ROLLBACK_PLAN_v0_1.md
+          sha256sum /tmp/moneysweep-federation-design-pilot-evidence.tar.gz > /tmp/moneysweep-federation-design-pilot-evidence.tar.gz.sha256
+
+      - name: Upload certified evidence bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: moneysweep-federation-design-pilot-evidence
+          path: |
+            /tmp/moneysweep-federation-design-pilot-evidence.tar.gz
+            /tmp/moneysweep-federation-design-pilot-evidence.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Commit verified pilot evidence
         run: |
           set -euo pipefail
-          git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A -- dashboard docs .github/workflows/moneysweep-federation-design-pilot.yml
