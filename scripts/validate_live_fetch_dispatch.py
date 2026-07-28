@@ -79,9 +79,7 @@ def validate_dispatch(
         if confirm != "YES":
             raise DispatchValidationError("live fetch requires confirm=YES")
         if WORKFLOWS[workflow]["secondary"] and confirm_secondary != "FETCH":
-            raise DispatchValidationError(
-                "live fetch requires confirm_secondary=FETCH"
-            )
+            raise DispatchValidationError("live fetch requires confirm_secondary=FETCH")
 
     return DispatchDecision(
         workflow=workflow,
