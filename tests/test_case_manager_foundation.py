@@ -235,9 +235,7 @@ def test_sql_migration_creates_required_indexes():
     database = _database()
     names = {
         row[0]
-        for row in database.execute(
-            "SELECT name FROM sqlite_master WHERE type='index'"
-        )
+        for row in database.execute("SELECT name FROM sqlite_master WHERE type='index'")
     }
     expected = {
         "idx_case_evidence_case",
