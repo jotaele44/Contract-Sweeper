@@ -57,21 +57,6 @@ jobs:
           fi
           echo "authorized=$authorized" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
-          mkdir -p dispatch-receipt
-          AUTHORIZED="$authorized" MODE="$mode" python3 - <<'PY'
-          import json, os
-          from pathlib import Path
-          Path("dispatch-receipt/highergov-fetch.json").write_text(
-              json.dumps({
-                  "schemaVersion": "1.0.0",
-                  "workflow": "highergov-fetch",
-                  "authorized": os.environ["AUTHORIZED"] == "true",
-                  "mode": os.environ["MODE"],
-                  "liveFetchAuthorized": os.environ["AUTHORIZED"] == "true",
-              }, indent=2) + "\n",
-              encoding="utf-8",
-          )
-          PY
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: ${{ steps.gate.outputs.authorized == 'true' }}
@@ -105,6 +90,28 @@ jobs:
           name: highergov-exports-${{ github.run_id }}
           path: data/staging/expansion
           if-no-files-found: ignore
+
+      - name: Write redacted dispatch receipt
+        if: ${{ always() }}
+        env:
+          AUTHORIZED: ${{ steps.gate.outputs.authorized }}
+          MODE: ${{ steps.gate.outputs.mode }}
+        run: |
+          mkdir -p dispatch-receipt
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path("dispatch-receipt/highergov-fetch.json").write_text(
+              json.dumps({
+                  "schemaVersion": "1.0.0",
+                  "workflow": "highergov-fetch",
+                  "authorized": os.environ.get("AUTHORIZED") == "true",
+                  "mode": os.environ.get("MODE", "gate-unavailable"),
+                  "liveFetchAuthorized": os.environ.get("AUTHORIZED") == "true",
+              }, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
 
       - name: Upload dispatch receipt
         if: ${{ always() }}
