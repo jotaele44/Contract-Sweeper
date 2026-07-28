@@ -6,6 +6,11 @@ on:
       - postmerge-cert/moneysweep-fds-pilot-v0-1
     paths:
       - .github/workflows/postmerge-cert-moneysweep-fds-pilot-v0-1.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/postmerge-cert-moneysweep-fds-pilot-v0-1.yml
 
 permissions:
   actions: write
