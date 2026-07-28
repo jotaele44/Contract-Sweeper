@@ -82,9 +82,11 @@
   "issue_reconciliation": {
     "epic_271": "OPEN_RECONCILIATED_2026-07-28",
     "issue_258": "CLOSED_COMPLETED_2026-06-16",
-    "issue_87": "SUPERSEDED_BY_271_PENDING_CLOSURE",
+    "issue_87": "CLOSED_NOT_PLANNED_SUPERSEDED_2026-07-28",
     "child_range_272_307": "OPEN_UNLESS_SEPARATELY_CLOSED",
-    "workflow_repair_pr": 430
+    "workflow_repair_pr": 430,
+    "dependency_replacement_pr": 431,
+    "status_reconciliation_pr": 432
   },
   "open_work": {
     "p0": [
