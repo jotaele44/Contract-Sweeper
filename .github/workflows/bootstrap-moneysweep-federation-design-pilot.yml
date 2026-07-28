@@ -63,14 +63,13 @@ jobs:
       - name: Finalize evidence-backed ledgers
         run: python scripts/bootstrap_moneysweep_pilot.py --finalize
 
-      - name: Commit verified pilot and remove bootstrap machinery
+      - name: Commit verified pilot evidence
         run: |
           set -euo pipefail
-          rm scripts/bootstrap_moneysweep_pilot.py
-          rm .github/workflows/bootstrap-moneysweep-federation-design-pilot.yml
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- dashboard docs .github/workflows scripts/bootstrap_moneysweep_pilot.py
-          git commit -m "feat(dashboard): complete federation design pilot"
+          git add -A -- dashboard docs .github/workflows/moneysweep-federation-design-pilot.yml
+          git status --short
+          git commit -m "feat(dashboard): complete federation design pilot evidence"
           git push origin HEAD:agent/moneysweep-federation-design-pilot-v0-1-main
