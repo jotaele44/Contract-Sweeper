@@ -40,6 +40,13 @@ jobs:
       - name: Materialize deterministic pilot source and ledgers
         run: python scripts/bootstrap_moneysweep_pilot.py
 
+      - name: Restore v0.4 touch targets after legacy consumer CSS
+        run: |
+          cat >> dashboard/src/styles/pilot.css <<'CSS'
+          .fd-button,.fd-icon-button{min-height:var(--fd-touch-min,2.75rem)}
+          .fd-icon-button{min-width:var(--fd-touch-min,2.75rem)}
+          CSS
+
       - name: Install exact dependencies and update lockfile
         working-directory: dashboard
         run: npm install
