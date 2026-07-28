@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "case_manager_v1/case_manager.schema.json",
+  "title": "MoneySweep Case Manager v1",
+  "type": "object",
+  "required": ["case", "case_evidence", "claims", "claim_evidence", "case_entities", "case_events", "contradictions", "leads", "findings", "snapshots", "audit_events"],
+  "properties": {
+    "case": {"$ref": "#/$defs/case"},
+    "case_evidence": {"type": "array", "items": {"$ref": "#/$defs/case_evidence"}},
+    "claims": {"type": "array", "items": {"$ref": "#/$defs/claim"}},
+    "claim_evidence": {"type": "array", "items": {"$ref": "#/$defs/claim_evidence"}},
+    "case_entities": {"type": "array", "items": {"$ref": "#/$defs/case_entity"}},
+    "case_events": {"type": "array", "items": {"$ref": "#/$defs/case_event"}},
+    "contradictions": {"type": "array", "items": {"$ref": "#/$defs/contradiction"}},
+    "leads": {"type": "array", "items": {"$ref": "#/$defs/lead"}},
+    "findings": {"type": "array", "items": {"$ref": "#/$defs/finding"}},
+    "snapshots": {"type": "array", "items": {"$ref": "#/$defs/case_snapshot"}},
+    "audit_events": {"type": "array", "items": {"$ref": "#/$defs/audit_event"}}
+  },
+  "$defs": {
+    "visibility": {"enum": ["public", "internal", "restricted"]},
+    "case": {"type": "object", "required": ["case_id", "title", "case_type", "status", "scope", "visibility"], "properties": {"case_id": {"pattern": "^case_[0-9a-f]{16,64}$"}, "title": {"type": "string", "minLength": 1}, "case_type": {"type": "string"}, "status": {"type": "string"}, "scope": {"type": "string"}, "priority": {"type": "string"}, "owner": {"type": ["string", "null"]}, "visibility": {"$ref": "#/$defs/visibility"}}, "additionalProperties": true},
+    "case_evidence": {"type": "object", "required": ["case_evidence_id", "case_id", "evidence_id", "role", "review_status", "visibility"], "properties": {"case_evidence_id": {"pattern": "^case_evidence_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "evidence_id": {"pattern": "^evidence_[A-Za-z0-9_]+$"}, "role": {"type": "string"}, "review_status": {"enum": ["pending", "accepted", "rejected"]}, "visibility": {"$ref": "#/$defs/visibility"}}, "additionalProperties": true},
+    "claim": {"type": "object", "required": ["claim_id", "case_id", "statement", "claim_type", "status", "confidence", "language_tier"], "properties": {"claim_id": {"pattern": "^claim_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "statement": {"type": "string", "minLength": 1}, "claim_type": {"type": "string"}, "status": {"type": "string"}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "language_tier": {"enum": ["observed", "linked", "inferred", "blocked"]}, "visibility": {"$ref": "#/$defs/visibility"}}, "additionalProperties": true},
+    "claim_evidence": {"type": "object", "required": ["claim_evidence_id", "claim_id", "evidence_id", "relation"], "properties": {"claim_evidence_id": {"pattern": "^claim_evidence_[0-9a-f]{16,64}$"}, "claim_id": {"type": "string"}, "evidence_id": {"type": "string"}, "relation": {"enum": ["support", "contradict", "qualify", "supersede"]}}, "additionalProperties": true},
+    "case_entity": {"type": "object", "required": ["case_entity_id", "case_id", "entity_id", "role", "visibility"], "properties": {"case_entity_id": {"pattern": "^case_entity_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "entity_id": {"type": "string"}, "role": {"type": "string"}, "visibility": {"$ref": "#/$defs/visibility"}}, "additionalProperties": true},
+    "case_event": {"type": "object", "required": ["case_event_id", "case_id", "event_type", "occurred_at", "description", "source_evidence_ids", "certainty"], "properties": {"case_event_id": {"pattern": "^case_event_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "event_type": {"type": "string"}, "occurred_at": {"type": "string"}, "description": {"type": "string"}, "source_evidence_ids": {"type": "array", "items": {"type": "string"}}, "amount_usd": {"type": ["string", "null"]}, "certainty": {"type": "number", "minimum": 0, "maximum": 1}}, "additionalProperties": true},
+    "contradiction": {"type": "object", "required": ["contradiction_id", "case_id", "claim_ids", "contradiction_type", "severity", "status"], "properties": {"contradiction_id": {"pattern": "^contradiction_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "claim_ids": {"type": "array", "minItems": 2, "uniqueItems": true, "items": {"type": "string"}}, "contradiction_type": {"type": "string"}, "severity": {"type": "string"}, "status": {"enum": ["open", "resolved", "held_apart"]}, "resolution_rationale": {"type": ["string", "null"]}}, "additionalProperties": true},
+    "lead": {"type": "object", "required": ["lead_id", "case_id", "question", "status"], "properties": {"lead_id": {"pattern": "^lead_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "question": {"type": "string"}, "status": {"type": "string"}, "closure_evidence_ids": {"type": "array", "items": {"type": "string"}}}, "additionalProperties": true},
+    "finding": {"type": "object", "required": ["finding_id", "case_id", "claim_id", "conclusion", "confidence", "reviewer", "contradiction_reviewed", "status"], "properties": {"finding_id": {"pattern": "^finding_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "claim_id": {"type": "string"}, "conclusion": {"type": "string"}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "reviewer": {"type": "string"}, "contradiction_reviewed": {"type": "boolean"}, "status": {"enum": ["draft", "accepted", "withdrawn"]}}, "additionalProperties": true},
+    "case_snapshot": {"type": "object", "required": ["case_snapshot_id", "case_id", "created_at", "manifest_sha256", "evidence_ids"], "properties": {"case_snapshot_id": {"pattern": "^case_snapshot_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "created_at": {"type": "string"}, "manifest_sha256": {"pattern": "^[0-9a-f]{64}$"}, "evidence_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}}, "additionalProperties": true},
+    "audit_event": {"type": "object", "required": ["audit_event_id", "case_id", "sequence", "occurred_at", "actor", "action", "object_type", "object_id", "payload_sha256"], "properties": {"audit_event_id": {"pattern": "^audit_event_[0-9a-f]{16,64}$"}, "case_id": {"type": "string"}, "sequence": {"type": "integer", "minimum": 1}, "payload_sha256": {"pattern": "^[0-9a-f]{64}$"}, "previous_event_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}}, "additionalProperties": true}
+  },
+  "additionalProperties": false
+}
