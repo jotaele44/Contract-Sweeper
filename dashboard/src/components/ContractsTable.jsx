@@ -10,18 +10,15 @@ import {
 import QueryBoundary from '@/components/QueryBoundary'
 import DetailRow from '@/components/DetailRow'
 import SortHead from '@/components/SortHead'
-import { federationTone } from '@pr-federation/react'
+import { FederationStatusBadge } from '@pr-federation/react'
 import { fmtMoney, statusRole } from '@/lib/cs-format'
 import { useSortable } from '@/lib/use-sortable'
-import { cn } from '@/lib/utils'
 
-// Status chip rendered on the shared federation tokens: federationTone(role)
-// returns { className: 'fd-status', 'data-status': role } and the colors come
-// from @pr-federation/react/styles.css. Layout/typography extras stay app-local.
 function StatusBadge({ status, className }) {
-  const { className: fdClass, ...toneAttrs } = federationTone(statusRole(status))
   return (
-    <span className={cn(fdClass, className)} {...toneAttrs}>{status}</span>
+    <FederationStatusBadge status={statusRole(status)} className={className}>
+      {status}
+    </FederationStatusBadge>
   )
 }
 
@@ -39,19 +36,29 @@ export default function ContractsTable() {
   )
   const { sorted: rows, sort, key, dir } = useSortable(filtered)
   const sorter = { sort, key, dir }
+  const hasAgencyFilter = agency.trim().length > 0
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-2 p-2">
+      <div className="ms-filter-bar flex items-center justify-between gap-2 p-2">
         <span className="text-xs text-muted-foreground">{rows.length} contracts</span>
         <Input
-          value={agency} onChange={(e) => setAgency(e.target.value)}
+          value={agency}
+          onChange={(e) => setAgency(e.target.value)}
           placeholder="Filter by awarding agency…"
-          className="h-7 w-[240px] bg-background text-xs"
+          aria-label="Filter contracts by awarding agency"
+          className="ms-filter-control h-7 w-[240px] bg-background text-xs"
         />
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">
-        <QueryBoundary query={query} isEmpty={(d) => !d?.length} emptyLabel="No contracts">
+      <div className="ms-scroll-region min-h-0 flex-1 overflow-auto">
+        <QueryBoundary
+          query={query}
+          isEmpty={(d) => !d?.length}
+          isFilteredEmpty={() => hasAgencyFilter && contracts.length > 0 && rows.length === 0}
+          emptyLabel="No contracts"
+          filteredEmptyLabel="No contracts match this agency"
+          onResetFilters={() => setAgency('')}
+        >
           <Table>
             <TableHeader className="sticky top-0 bg-card">
               <TableRow className="border-border hover:bg-transparent">
@@ -81,9 +88,6 @@ export default function ContractsTable() {
                   <TableCell><StatusBadge status={c.status} className="text-[10px]" /></TableCell>
                 </TableRow>
               ))}
-              {rows.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="py-8 text-center text-sm text-muted-foreground">No contracts match</TableCell></TableRow>
-              )}
             </TableBody>
           </Table>
         </QueryBoundary>
