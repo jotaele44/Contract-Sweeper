@@ -1,5 +1,4 @@
-
-.ms-panel-reset.fd-panel{padding:0;min-height:0}
+.ms-panel-reset.fd-panel{padding:0;min-height:0;border:0;background:transparent;box-shadow:none}
 .ms-stat-card.fd-stat-card{min-width:8rem;padding:.5rem .75rem;gap:.25rem}
 .ms-stat-card .fd-stat-card__head{gap:.25rem}
 .ms-stat-card .fd-stat-card__label{font-size:.625rem}
