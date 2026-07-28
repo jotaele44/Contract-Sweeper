@@ -1,0 +1,65 @@
+name: bootstrap-moneysweep-federation-design-pilot
+
+on:
+  push:
+    branches:
+      - agent/moneysweep-federation-design-pilot-v0-1-main
+    paths:
+      - scripts/bootstrap_moneysweep_pilot.py
+      - .github/workflows/bootstrap-moneysweep-federation-design-pilot.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bootstrap-moneysweep-federation-design-pilot-v0-1
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/moneysweep-federation-design-pilot-v0-1-main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Materialize deterministic pilot source and ledgers
+        run: python scripts/bootstrap_moneysweep_pilot.py
+
+      - name: Install exact dependencies and update lockfile
+        working-directory: dashboard
+        run: npm install
+
+      - name: Verify immutable package and component contracts
+        working-directory: dashboard
+        run: npm run verify:pilot
+
+      - name: Install Chromium
+        working-directory: dashboard
+        run: npx playwright install --with-deps chromium
+
+      - name: Generate six-viewport visual evidence
+        working-directory: dashboard
+        run: npm run test:visual
+
+      - name: Finalize evidence-backed ledgers
+        run: python scripts/bootstrap_moneysweep_pilot.py --finalize
+
+      - name: Commit verified pilot and remove bootstrap machinery
+        run: |
+          set -euo pipefail
+          rm scripts/bootstrap_moneysweep_pilot.py
+          rm .github/workflows/bootstrap-moneysweep-federation-design-pilot.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- dashboard docs .github/workflows scripts/bootstrap_moneysweep_pilot.py
+          git commit -m "feat(dashboard): complete federation design pilot"
+          git push origin HEAD:agent/moneysweep-federation-design-pilot-v0-1-main
