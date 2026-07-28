@@ -1,8 +1,4 @@
-"""SQLite persistence adapter for Case Manager Phase 1.
-
-All writes are performed inside explicit transactions. Canonical evidence is referenced by
-identifier only and is never mutated by this adapter.
-"""
+"""SQLite persistence adapter for Case Manager Phase 1."""
 
 from __future__ import annotations
 
@@ -15,15 +11,15 @@ from typing import Any, Iterator, Sequence
 
 
 class CaseManagerConflict(RuntimeError):
-    """Raised when a transactional invariant or optimistic sequence check fails."""
+    """A transactional invariant or optimistic sequence check failed."""
 
 
 class CaseManagerNotFound(LookupError):
-    """Raised when a requested Case Manager object does not exist."""
+    """A requested Case Manager object does not exist."""
 
 
 class SQLiteCaseManagerRepository:
-    """Small, explicit SQLite repository with no canonical-data write capability."""
+    """Explicit SQLite repository with no canonical-evidence write capability."""
 
     def __init__(self, database: str | Path | sqlite3.Connection):
         if isinstance(database, sqlite3.Connection):
@@ -44,9 +40,8 @@ class SQLiteCaseManagerRepository:
 
     @contextmanager
     def transaction(self, *, immediate: bool = True) -> Iterator[sqlite3.Connection]:
-        begin = "BEGIN IMMEDIATE" if immediate else "BEGIN"
         try:
-            self.connection.execute(begin)
+            self.connection.execute("BEGIN IMMEDIATE" if immediate else "BEGIN")
             yield self.connection
             self.connection.commit()
         except Exception:
@@ -63,50 +58,32 @@ class SQLiteCaseManagerRepository:
     def _json(value: Sequence[str]) -> str:
         return json.dumps(list(value), separators=(",", ":"), sort_keys=True)
 
-    def insert_case(self, case: Any, connection: sqlite3.Connection) -> None:
-        p = self._payload(case)
-        connection.execute(
-            "INSERT INTO cases VALUES(?,?,?,?,?,?,?,?,?,?)",
-            (
-                p["case_id"], p["title"], p["case_type"], p["status"], p["scope"],
-                p["priority"], p["owner"], p["visibility"], p["opened_at"], p["closed_at"],
-            ),
-        )
+    @staticmethod
+    def _insert(connection: sqlite3.Connection, table: str, values: Sequence[Any]) -> None:
+        placeholders = ",".join("?" for _ in values)
+        connection.execute(f"INSERT INTO {table} VALUES({placeholders})", tuple(values))
+
+    def insert_case(self, record: Any, connection: sqlite3.Connection) -> None:
+        p = self._payload(record)
+        self._insert(connection, "cases", tuple(p.values()))
 
     def insert_case_evidence(self, record: Any, connection: sqlite3.Connection) -> None:
         p = self._payload(record)
-        connection.execute(
-            "INSERT INTO case_evidence VALUES(?,?,?,?,?,?,?,?)",
-            tuple(p[k] for k in (
-                "case_evidence_id", "case_id", "evidence_id", "role", "relevance",
-                "review_status", "visibility", "analyst_note",
-            )),
-        )
+        self._insert(connection, "case_evidence", tuple(p.values()))
 
     def insert_claim(self, record: Any, connection: sqlite3.Connection) -> None:
         p = self._payload(record)
-        connection.execute(
-            "INSERT INTO claims VALUES(?,?,?,?,?,?,?,?)",
-            tuple(p[k] for k in (
-                "claim_id", "case_id", "statement", "claim_type", "status", "confidence",
-                "language_tier", "visibility",
-            )),
-        )
+        self._insert(connection, "claims", tuple(p.values()))
 
     def insert_claim_evidence(self, record: Any, connection: sqlite3.Connection) -> None:
         p = self._payload(record)
-        connection.execute(
-            "INSERT INTO claim_evidence VALUES(?,?,?,?,?,?)",
-            tuple(p[k] for k in (
-                "claim_evidence_id", "claim_id", "evidence_id", "relation", "rationale",
-                "visibility",
-            )),
-        )
+        self._insert(connection, "claim_evidence", tuple(p.values()))
 
     def insert_contradiction(self, record: Any, connection: sqlite3.Connection) -> None:
         p = self._payload(record)
-        connection.execute(
-            "INSERT INTO contradictions VALUES(?,?,?,?,?,?,?,?,?)",
+        self._insert(
+            connection,
+            "contradictions",
             (
                 p["contradiction_id"], p["case_id"], self._json(p["claim_ids"]),
                 p["contradiction_type"], p["severity"], p["status"],
@@ -132,8 +109,9 @@ class SQLiteCaseManagerRepository:
 
     def insert_lead(self, record: Any, connection: sqlite3.Connection) -> None:
         p = self._payload(record)
-        connection.execute(
-            "INSERT INTO leads VALUES(?,?,?,?,?,?,?,?,?)",
+        self._insert(
+            connection,
+            "leads",
             (
                 p["lead_id"], p["case_id"], p["question"], p["status"],
                 p["acquisition_target"], p["owner"], p["due_at"],
@@ -157,8 +135,9 @@ class SQLiteCaseManagerRepository:
 
     def insert_finding(self, record: Any, connection: sqlite3.Connection) -> None:
         p = self._payload(record)
-        connection.execute(
-            "INSERT INTO findings VALUES(?,?,?,?,?,?,?,?,?)",
+        self._insert(
+            connection,
+            "findings",
             (
                 p["finding_id"], p["case_id"], p["claim_id"], p["conclusion"],
                 p["confidence"], p["reviewer"], int(p["contradiction_reviewed"]),
@@ -177,13 +156,10 @@ class SQLiteCaseManagerRepository:
 
     def insert_snapshot(self, record: Any, connection: sqlite3.Connection) -> None:
         p = self._payload(record)
-        connection.execute(
-            "INSERT INTO case_snapshots VALUES(?,?,?,?,?,?,?)",
+        self._insert(
+            connection,
+            "case_snapshots",
             (
-                p["case_snapshot_id"], p["case_id"], p["created_at"],
-                p["manifest_sha256"], self._json(p["evidence_ids"]),
-                p["supersedes_snapshot_id"], p["redaction_profile"], p["visibility"],
-            ) if False else (
                 p["case_snapshot_id"], p["case_id"], p["created_at"],
                 p["manifest_sha256"], self._json(p["evidence_ids"]),
                 p["supersedes_snapshot_id"], p["redaction_profile"], p["visibility"],
@@ -210,14 +186,7 @@ class SQLiteCaseManagerRepository:
             raise CaseManagerConflict("audit sequence is not contiguous")
         if p["previous_event_sha256"] != previous_hash:
             raise CaseManagerConflict("audit predecessor hash mismatch")
-        connection.execute(
-            "INSERT INTO case_audit_events VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-            tuple(p[k] for k in (
-                "audit_event_id", "case_id", "sequence", "occurred_at", "actor", "action",
-                "object_type", "object_id", "payload_sha256", "previous_event_sha256",
-                "visibility",
-            )),
-        )
+        self._insert(connection, "case_audit_events", tuple(p.values()))
 
     def latest_audit(self, case_id: str) -> tuple[int, str | None]:
         row = self.connection.execute(
@@ -242,11 +211,11 @@ class SQLiteCaseManagerRepository:
         return dict(row)
 
     def fetch_case_rows(self, table: str, case_id: str) -> list[dict[str, Any]]:
-        direct = {
+        allowed = {
             "case_evidence", "claims", "contradictions", "case_events", "leads", "findings",
             "case_snapshots", "case_audit_events",
         }
-        if table not in direct:
+        if table not in allowed:
             raise ValueError("unsupported case table")
         order = "sequence" if table == "case_audit_events" else "rowid"
         rows = self.connection.execute(
