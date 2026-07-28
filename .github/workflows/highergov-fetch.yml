@@ -20,13 +20,9 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
-# Least privilege: this workflow reads the repo and uploads artifacts only.
 permissions:
   contents: read
 
-# Serialise runs on the same ref without cancelling. This workflow can publish,
-# write data, or hand off to another repo, and killing it mid-flight risks leaving
-# that work half-done.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -48,9 +44,7 @@ jobs:
           authorized=false
           secret_present=false
           mode=confirmation-missing
-          if [[ -n "$HIGHERGOV_API_KEY" ]]; then
-            secret_present=true
-          fi
+          if [[ -n "$HIGHERGOV_API_KEY" ]]; then secret_present=true; fi
           if [[ "${CONFIRM^^}" == "YES" && "${CONFIRM_SECONDARY^^}" == "FETCH" ]]; then
             if [[ "$DRY_RUN" == "true" ]]; then
               mode=dry-run
@@ -64,21 +58,17 @@ jobs:
           echo "authorized=$authorized" >> "$GITHUB_OUTPUT"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           mkdir -p dispatch-receipt
-          AUTHORIZED="$authorized" MODE="$mode" SECRET_PRESENT="$secret_present" python3 - <<'PY'
+          AUTHORIZED="$authorized" MODE="$mode" python3 - <<'PY'
           import json, os
           from pathlib import Path
           Path("dispatch-receipt/highergov-fetch.json").write_text(
-              json.dumps(
-                  {
-                      "schemaVersion": "1.0.0",
-                      "workflow": "highergov-fetch",
-                      "authorized": os.environ["AUTHORIZED"] == "true",
-                      "mode": os.environ["MODE"],
-                      "secretPresent": os.environ["SECRET_PRESENT"] == "true",
-                      "liveFetchAuthorized": os.environ["AUTHORIZED"] == "true",
-                  },
-                  indent=2,
-              ) + "\n",
+              json.dumps({
+                  "schemaVersion": "1.0.0",
+                  "workflow": "highergov-fetch",
+                  "authorized": os.environ["AUTHORIZED"] == "true",
+                  "mode": os.environ["MODE"],
+                  "liveFetchAuthorized": os.environ["AUTHORIZED"] == "true",
+              }, indent=2) + "\n",
               encoding="utf-8",
           )
           PY
@@ -96,7 +86,6 @@ jobs:
       - name: Install dependencies
         if: ${{ steps.gate.outputs.authorized == 'true' }}
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve.
           if [ ! -d ../thehub-pr ]; then
             git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || \
               git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
@@ -107,9 +96,7 @@ jobs:
         if: ${{ steps.gate.outputs.authorized == 'true' }}
         env:
           HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
-        run: |
-          echo "Starting HigherGov fetch..."
-          python3 scripts/fetch_highergov_api.py
+        run: python3 scripts/fetch_highergov_api.py
 
       - name: Upload HigherGov exports artifact
         if: ${{ always() && steps.gate.outputs.authorized == 'true' }}
