@@ -5,6 +5,11 @@
   "repository_legacy_name": "Contract-Sweeper",
   "federation_role": "public_money_intelligence_node",
   "hub_parent": "thehub-pr",
+  "branding": {
+    "icon": "assets/branding/icon.png",
+    "icon_dir": "assets/branding",
+    "accent_color": "#8ec50c"
+  },
   "jurisdiction": "Puerto Rico",
   "active_vector": "PREP_TRANCHE_B_MANUAL_SOURCE_INGESTION",
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",

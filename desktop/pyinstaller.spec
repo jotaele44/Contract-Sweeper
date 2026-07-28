@@ -7,10 +7,19 @@
 # and releases/ with its normal relative paths.
 
 import os
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(SPECPATH).resolve().parent
 APP_NAME = "PRII-MONEYSWEEP"
+
+# Branding is generated from assets/branding/icon.png by
+# thehub-pr/tools/build_program_icons.py, so the frozen build, the committed
+# PRII-*.app bundle and the web favicons all trace back to one master.
+BRANDING = REPO_ROOT / "assets" / "branding"
+# PyInstaller wants .ico on Windows and .icns on macOS; it warns and ignores the
+# argument on other platforms, so leave it unset there.
+EXE_ICON = str(BRANDING / "icon.ico") if sys.platform == "win32" else None
 
 # Windowed by default (no console window for double-click users). CI sets
 # PRII_CONSOLE=1 to build a console binary it can smoke-test with visible stdio.
@@ -50,6 +59,7 @@ exe = EXE(
     exclude_binaries=True,
     name=APP_NAME,
     console=CONSOLE,
+    icon=EXE_ICON,
 )
 
 coll = COLLECT(
@@ -59,11 +69,10 @@ coll = COLLECT(
     name=APP_NAME,
 )
 
-import sys
-
 if sys.platform == "darwin":
     app = BUNDLE(
         coll,
         name=f"{APP_NAME}.app",
+        icon=str(BRANDING / "AppIcon.icns"),
         bundle_identifier="pr.prii.moneysweep",
     )
