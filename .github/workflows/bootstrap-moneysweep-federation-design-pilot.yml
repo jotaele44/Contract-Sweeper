@@ -7,6 +7,12 @@ on:
     paths:
       - scripts/bootstrap_moneysweep_pilot.py
       - .github/workflows/bootstrap-moneysweep-federation-design-pilot.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - scripts/bootstrap_moneysweep_pilot.py
+      - .github/workflows/bootstrap-moneysweep-federation-design-pilot.yml
 
 permissions:
   contents: write
@@ -17,6 +23,7 @@ concurrency:
 
 jobs:
   bootstrap:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
