@@ -21,6 +21,7 @@ ENT_AGENCY_2c16f9ae54df7e1e,government_agency,Puerto Rico Convention Center Dist
 ENT_AGENCY_efcec09764306ade,government_agency,Puerto Rico Ports Authority,PR,pr_public_money_entities,T1,0.95,aliases=Ports Authority|Autoridad de los Puertos
 ENT_ORG_b14376987d82d5ee,organization,Puerto Rico Public Finance Corporation,PR,pr_public_money_entities,T1,0.95,aliases=PRPFC|Corporacion de Financiamiento Publico
 ENT_AGENCY_e73c9879d715653a,government_agency,Puerto Rico Municipal Finance Agency,PR,pr_public_money_entities,T1,0.95,aliases=MFA|Agencia de Financiamiento Municipal
+ENT_AGENCY_2e847bba85751a8c,government_agency,Puerto Rico General Services Administration,PR,pr_public_money_entities,T1,0.95,aliases=ASG|AGS|Administracion de Servicios Generales|General Services Administration|GSA Puerto Rico
 ENT_ORG_36443c30dc526c13,organization,LGA Strategies,PR,pr_public_money_entities,T1,0.95,aliases=LGA
 ENT_ORG_a034a2e43d67206d,organization,The RCL Group,PR,pr_public_money_entities,T1,0.95,aliases=RCL Group|RCL
 ENT_ORG_30007ca84af23b8d,organization,Puerto Rico Energy LLC,PR,pr_public_money_entities,T1,0.95,aliases=PR Energy LLC

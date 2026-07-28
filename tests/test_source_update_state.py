@@ -34,8 +34,8 @@ def _pol(sid: str) -> SourceUpdatePolicy:
 
 def test_new_state_initializes_all_canonical_sources():
     st = init_state()
-    assert st["registry_snapshot"]["source_count"] == 149
-    assert len(st["sources"]) == 149
+    assert st["registry_snapshot"]["source_count"] == 151
+    assert len(st["sources"]) == 151
     for row in st["sources"].values():
         assert row["last_status"] == "NEVER_RUN"
 

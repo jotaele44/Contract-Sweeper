@@ -30,6 +30,11 @@ identifier_schemes:
     label: Procurement entity code
     namespaced: true
     notes: Procurement/compras portal entity code.
+  - id: asg_licitador_id
+    label: ASG Licitador ID
+    namespaced: true
+    notes: Administracion de Servicios Generales bidder ID, issued to every vendor
+      in the RUL/RUP central registries (source asg_suppliers).
   - id: transition_report_agency_code
     label: Transition report agency code
     namespaced: true

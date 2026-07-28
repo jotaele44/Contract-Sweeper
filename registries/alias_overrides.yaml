@@ -655,3 +655,24 @@ entries:
       ACUDEN 2024 operator; the missing-"de" form is the same center
       (7 + 1 rows).
     evidence: "data/raw/act_transition/transition_contracts_extracted.csv;reports/act_transition_alias_audit.md"
+
+  # -- ASG (central procurement authority) ------------------------------------
+  - canonical_name: "Puerto Rico General Services Administration"
+    aliases:
+      - "Puerto Rico General Services Administration"
+      - "General Services Administration"
+      - "Administracion de Servicios Generales"
+      - "Administración de Servicios Generales"
+      - "Administracion de Servicios Generales de Puerto Rico"
+      - "Administración de Servicios Generales de Puerto Rico"
+      - "ASG"
+      - "AGS"
+    notes: |
+      Puerto Rico's central procurement authority under Ley 73-2019, which
+      runs the RUL/RUP bidder registries and the central subastas index.
+      Its own emergency-purchase table names buying agencies inconsistently
+      (bare acronyms like "DTOP"/"DRNA" alongside full Spanish names), and
+      ASG itself appears under both the Spanish name and the English
+      translation depending on the surface, which the default normalizer
+      cannot bridge across languages.
+    evidence: "data/reference/pr_public_money_entities.csv;registries/source_registry.yaml:asg_emergency_purchases"

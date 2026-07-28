@@ -29,7 +29,7 @@ def test_plan_json_is_valid_and_read_only(capsys):
     code, out = _run_cli(["plan", "--json"], capsys)
     assert code == 0
     payload = json.loads(out)
-    assert payload["selected"] == 149
+    assert payload["selected"] == 151
     assert "plan" in payload
 
 
@@ -44,7 +44,7 @@ def test_state_command(capsys):
     code, out = _run_cli(["state", "--json"], capsys)
     assert code == 0
     payload = json.loads(out)
-    assert payload["registry_snapshot"]["source_count"] == 149
+    assert payload["registry_snapshot"]["source_count"] == 151
 
 
 def test_run_parser_defaults_to_four_workers():

@@ -13,13 +13,16 @@ identifier_hierarchy:
   - {priority: 1,  key: uei,               authoritative: true}
   - {priority: 2,  key: cage,              authoritative: true}
   - {priority: 3,  key: pr_corp_reg,       authoritative: true}
-  - {priority: 4,  key: ein,               authoritative: true}
-  - {priority: 5,  key: duns,              authoritative: true}
-  - {priority: 6,  key: agency_code,       authoritative: true}
-  - {priority: 7,  key: municipality_code, authoritative: true}
-  - {priority: 8,  key: lobby_reg_number,  authoritative: false}
-  - {priority: 9,  key: vendor_id,         authoritative: false}
-  - {priority: 10, key: internal_canonical_id, authoritative: false}
+  # ASG Licitador ID (RUL/RUP bidder registries, source asg_suppliers). Below
+  # pr_corp_reg: it identifies registered bidders, not every PR corporation.
+  - {priority: 4,  key: asg_licitador_id,  authoritative: true}
+  - {priority: 5,  key: ein,               authoritative: true}
+  - {priority: 6,  key: duns,              authoritative: true}
+  - {priority: 7,  key: agency_code,       authoritative: true}
+  - {priority: 8,  key: municipality_code, authoritative: true}
+  - {priority: 9,  key: lobby_reg_number,  authoritative: false}
+  - {priority: 10, key: vendor_id,         authoritative: false}
+  - {priority: 11, key: internal_canonical_id, authoritative: false}
 
 # moneysweep/entity_resolution/resolver.py
 resolution_thresholds:

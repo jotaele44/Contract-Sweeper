@@ -390,6 +390,32 @@
             "cuantia",
             "amount"
           ]
+        },
+        "asg_emergency_purchases": {
+          "award_id": [
+            "control_number",
+            "numero_control_asg"
+          ],
+          "contract_number": [
+            "contract_number",
+            "numero_orden_compra"
+          ],
+          "recipient_name": [
+            "vendor_name",
+            "proveedor"
+          ],
+          "obligation_amount": [
+            "obligation_amount",
+            "costo"
+          ],
+          "awarding_agency": [
+            "awarding_agency",
+            "agencia"
+          ],
+          "municipality": [
+            "geo_municipality_name",
+            "municipality"
+          ]
         }
       }
     },

@@ -69,7 +69,7 @@ def test_analyst_reports_check_and_live_counts():
     assert "Graph Nodes" in titles and "FOIA Priority Queue" in titles
     # spot-check a live row count
     em = next(r for r in rows if r["path"] == "data/reference/entity_master.csv")
-    assert em["row_count"] == 26
+    assert em["row_count"] == 27
 
 
 @pytest.mark.integration

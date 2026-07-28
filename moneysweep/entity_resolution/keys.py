@@ -44,13 +44,18 @@ IDENTIFIER_HIERARCHY: tuple[IdentifierKey, ...] = (
     IdentifierKey(1, "uei", True),
     IdentifierKey(2, "cage", True),
     IdentifierKey(3, "pr_corp_reg", True),
-    IdentifierKey(4, "ein", True),
-    IdentifierKey(5, "duns", True),
-    IdentifierKey(6, "agency_code", True),
-    IdentifierKey(7, "municipality_code", True),
-    IdentifierKey(8, "lobby_reg_number", False),
-    IdentifierKey(9, "vendor_id", False),
-    IdentifierKey(10, "internal_canonical_id", False),
+    # ASG's Licitador ID, issued by the central procurement authority to every
+    # vendor in the RUL/RUP registries (source: asg_suppliers). Authoritative —
+    # one ID is one registered bidder — but ranked below pr_corp_reg because it
+    # covers only vendors that registered to bid, not every PR corporation.
+    IdentifierKey(4, "asg_licitador_id", True),
+    IdentifierKey(5, "ein", True),
+    IdentifierKey(6, "duns", True),
+    IdentifierKey(7, "agency_code", True),
+    IdentifierKey(8, "municipality_code", True),
+    IdentifierKey(9, "lobby_reg_number", False),
+    IdentifierKey(10, "vendor_id", False),
+    IdentifierKey(11, "internal_canonical_id", False),
 )
 
 _BY_KEY = {ik.key: ik for ik in IDENTIFIER_HIERARCHY}
