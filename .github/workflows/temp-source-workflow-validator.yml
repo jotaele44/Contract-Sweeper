@@ -199,6 +199,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ ! -d ../thehub-pr ]; then
+            git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || \
+              git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
+          fi
           python -m pip install -r requirements.txt
 
       - name: Run actual materialization dry run
