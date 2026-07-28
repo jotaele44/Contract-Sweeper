@@ -233,10 +233,8 @@ def test_sql_migration_is_idempotent_from_clean_state():
 
 def test_sql_migration_creates_required_indexes():
     database = _database()
-    names = {
-        row[0]
-        for row in database.execute("SELECT name FROM sqlite_master WHERE type='index'")
-    }
+    index_rows = database.execute("SELECT name FROM sqlite_master WHERE type='index'")
+    names = {row[0] for row in index_rows}
     expected = {
         "idx_case_evidence_case",
         "idx_case_evidence_evidence",
