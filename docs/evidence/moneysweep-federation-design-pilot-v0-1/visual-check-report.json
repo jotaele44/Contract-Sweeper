@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "1.0.0",
+  "viewports": [
+    {
+      "name": "mobile-compact",
+      "width": 390,
+      "height": 844,
+      "screenshot": "mobile-compact.png",
+      "sha256": "c3b9a32b27ebffc889eb295b6361c90f97a0edef1fc6eeb863af1f942b1988df",
+      "themes": [
+        {
+          "theme": "dark",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "theme": "light",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "name": "mobile-wide",
+      "width": 430,
+      "height": 932,
+      "screenshot": "mobile-wide.png",
+      "sha256": "831f1164be1e81e1b7085b36354e5b9562a257cbcedd0f09a0e3acf7daab95fc",
+      "themes": [
+        {
+          "theme": "dark",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "theme": "light",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "name": "tablet",
+      "width": 768,
+      "height": 1024,
+      "screenshot": "tablet.png",
+      "sha256": "859e50d2569d4c1108a0d52e046f17f19c5ba777e6af0d510079f793b2283316",
+      "themes": [
+        {
+          "theme": "dark",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "theme": "light",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "name": "desktop",
+      "width": 1280,
+      "height": 800,
+      "screenshot": "desktop.png",
+      "sha256": "d5ae841bff7816247408d75dc8aa81dd238324ff54b553bab930a8e093599521",
+      "themes": [
+        {
+          "theme": "dark",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "theme": "light",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "name": "desktop-wide",
+      "width": 1440,
+      "height": 900,
+      "screenshot": "desktop-wide.png",
+      "sha256": "5df0fa6b665e189af12b2c380d5b4cce49e572061724a88258b5e6ce92685db4",
+      "themes": [
+        {
+          "theme": "dark",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "theme": "light",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "name": "wide",
+      "width": 1920,
+      "height": 1080,
+      "screenshot": "wide.png",
+      "sha256": "cd7fb50a0390da67591d965322053cd64fbd50935725fad335b1275b2ff29a90",
+      "themes": [
+        {
+          "theme": "dark",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        },
+        {
+          "theme": "light",
+          "criticalSeriousViolations": 0,
+          "horizontalOverflow": false
+        }
+      ]
+    }
+  ],
+  "requirements": {
+    "axeCriticalSerious": 0,
+    "horizontalOverflow": false,
+    "minimumTouchTargetCssPx": 44,
+    "keyboardButtonReachable": true,
+    "themes": [
+      "dark",
+      "light"
+    ]
+  }
+}
