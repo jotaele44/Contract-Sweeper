@@ -8,8 +8,17 @@ import re
 from typing import Any
 
 _ID_KINDS = {
-    "case", "case_evidence", "claim", "claim_evidence", "case_entity",
-    "case_event", "contradiction", "lead", "finding", "case_snapshot", "audit_event",
+    "case",
+    "case_evidence",
+    "claim",
+    "claim_evidence",
+    "case_entity",
+    "case_event",
+    "contradiction",
+    "lead",
+    "finding",
+    "case_snapshot",
+    "audit_event",
 }
 
 
@@ -22,7 +31,13 @@ def deterministic_id(kind: str, *parts: Any, length: int = 24) -> str:
         raise ValueError(f"unsupported id kind: {kind}")
     if not 16 <= length <= 64:
         raise ValueError("length must be between 16 and 64")
-    payload = json.dumps(parts, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str)
+    payload = json.dumps(
+        parts,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:length]
     return f"{kind}_{digest}"
 
