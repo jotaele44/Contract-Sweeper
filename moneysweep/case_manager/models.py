@@ -59,6 +59,7 @@ class ClaimEvidence:
     evidence_id: str
     relation: EvidenceRelation
     rationale: str | None = None
+    visibility: Visibility = "internal"
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +96,7 @@ class Contradiction:
     status: Literal["open", "resolved", "held_apart"] = "open"
     resolution_rationale: str | None = None
     assigned_reviewer: str | None = None
+    visibility: Visibility = "internal"
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,6 +109,7 @@ class Lead:
     owner: str | None = None
     due_at: str | None = None
     closure_evidence_ids: tuple[str, ...] = field(default_factory=tuple)
+    visibility: Visibility = "internal"
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +134,7 @@ class CaseSnapshot:
     evidence_ids: tuple[str, ...]
     supersedes_snapshot_id: str | None = None
     redaction_profile: str = "internal"
+    visibility: Visibility = "internal"
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,3 +149,4 @@ class AuditEvent:
     object_id: str
     payload_sha256: str
     previous_event_sha256: str | None = None
+    visibility: Visibility = "internal"
