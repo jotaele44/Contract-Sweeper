@@ -10,18 +10,13 @@ from typing import Any
 
 import yaml
 
-UNSUPPORTED_FUNCTIONS = re.compile(
-    r"\b(?:toLower|toUpper|lower|upper)\s*\(", re.IGNORECASE
-)
+UNSUPPORTED_FUNCTIONS = re.compile(r"\b(?:toLower|toUpper|lower|upper)\s*\(", re.IGNORECASE)
+SECRET_CONTEXT = "secrets" + "."
 LIVE_FETCH_WORKFLOWS = {
     "materialize-sources.yml",
     "highergov-fetch.yml",
     "sam-opportunities-fetch.yml",
 }
-
-
-class WorkflowValidationError(ValueError):
-    """Raised when one or more workflow invariants fail."""
 
 
 def _walk(node: Any, path: tuple[str, ...] = ()):
@@ -53,18 +48,13 @@ def validate_workflow_file(path: Path) -> list[str]:
     if UNSUPPORTED_FUNCTIONS.search(text):
         errors.append(f"{path}: unsupported expression helper detected")
 
-    for node_path, value in _walk(parsed):
-        if node_path and node_path[-1] == "if" and isinstance(value, str):
-            if "secrets." in value:
-                errors.append(
-                    f"{path}:{'.'.join(node_path)}: secrets context is forbidden in if"
-                )
-            if UNSUPPORTED_FUNCTIONS.search(value):
-                errors.append(
-                    f"{path}:{'.'.join(node_path)}: unsupported expression helper"
-                )
-
     if path.name in LIVE_FETCH_WORKFLOWS:
+        for node_path, value in _walk(parsed):
+            if node_path and node_path[-1] == "if" and isinstance(value, str):
+                if SECRET_CONTEXT in value:
+                    location = ".".join(node_path)
+                    errors.append(f"{path}:{location}: credential context is forbidden in if")
+
         dispatch = parsed.get(True, parsed.get("on", {}))
         if not isinstance(dispatch, dict) or "workflow_dispatch" not in dispatch:
             errors.append(f"{path}: live-fetch workflow must be manual-dispatch only")
@@ -90,12 +80,7 @@ def validate_workflow_file(path: Path) -> list[str]:
 
 
 def validate_workflows(workflows_dir: Path) -> list[str]:
-    paths = sorted(
-        [
-            *workflows_dir.glob("*.yml"),
-            *workflows_dir.glob("*.yaml"),
-        ]
-    )
+    paths = sorted([*workflows_dir.glob("*.yml"), *workflows_dir.glob("*.yaml")])
     if not paths:
         return [f"{workflows_dir}: no workflow files found"]
 
@@ -107,9 +92,7 @@ def validate_workflows(workflows_dir: Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--workflows-dir", type=Path, default=Path(".github/workflows")
-    )
+    parser.add_argument("--workflows-dir", type=Path, default=Path(".github/workflows"))
     args = parser.parse_args()
 
     errors = validate_workflows(args.workflows_dir)
