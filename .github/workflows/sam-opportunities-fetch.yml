@@ -55,15 +55,27 @@ jobs:
           pip install -r requirements.txt
 
       - name: Fetch SAM.gov opportunities
-        if: ${{ secrets.SAM_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') && startsWith(toLower(github.event.inputs.confirm_secondary), 'fetch') }}
+        id: fetch
+        # Both confirm gates stay declarative — `github.event.inputs` is valid in
+        # an `if:`. Only the key presence check moves into the shell: `secrets`
+        # is not available to `if:` at all, and hoisting the key to a job-level
+        # `env:` to work around that would expose a live API credential to every
+        # other step, including `pip install`, which runs arbitrary package code.
+        if: ${{ startsWith(github.event.inputs.confirm, 'yes') && startsWith(github.event.inputs.confirm_secondary, 'fetch') }}
         env:
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
         run: |
+          if [ -z "$SAM_API_KEY" ]; then
+            echo "SAM_API_KEY not set — skipping fetch."
+            exit 0
+          fi
+          echo "fetched=true" >> "$GITHUB_OUTPUT"
           echo "Starting SAM.gov opportunities fetch..."
           python3 scripts/download_sam_opportunities.py --force --days "${{ github.event.inputs.days }}"
 
       - name: Upload SAM opportunities artifact
-        if: ${{ secrets.SAM_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') && startsWith(toLower(github.event.inputs.confirm_secondary), 'fetch') }}
+        # Gated on the fetch having actually run, so no secret is needed here.
+        if: ${{ steps.fetch.outputs.fetched == 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sam-opportunities

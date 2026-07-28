@@ -47,15 +47,27 @@ jobs:
           pip install -r requirements.txt
 
       - name: Fetch HigherGov exports
-        if: ${{ secrets.HIGHERGOV_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') }}
+        id: fetch
+        # The confirm gate stays declarative — `github.event.inputs` is valid in
+        # an `if:`. Only the key presence check moves into the shell: `secrets`
+        # is not available to `if:` at all, and hoisting the key to a job-level
+        # `env:` to work around that would expose a live API credential to every
+        # other step, including `pip install`, which runs arbitrary package code.
+        if: ${{ startsWith(github.event.inputs.confirm, 'yes') }}
         env:
           HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
         run: |
+          if [ -z "$HIGHERGOV_API_KEY" ]; then
+            echo "HIGHERGOV_API_KEY not set — skipping fetch."
+            exit 0
+          fi
+          echo "fetched=true" >> "$GITHUB_OUTPUT"
           echo "Starting HigherGov fetch..."
           python3 scripts/fetch_highergov_api.py
 
       - name: Upload HigherGov exports artifact
-        if: ${{ secrets.HIGHERGOV_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') }}
+        # Gated on the fetch having actually run, so no secret is needed here.
+        if: ${{ steps.fetch.outputs.fetched == 'true' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: highergov-exports
