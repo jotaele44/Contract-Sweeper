@@ -33,20 +33,24 @@ jobs:
     assert any("unsupported expression helper" in error for error in errors)
 
 
-def test_rejects_secrets_context_in_if(tmp_path: Path) -> None:
-    workflow = tmp_path / "broken.yml"
+def test_rejects_credential_context_in_live_fetch_if(tmp_path: Path) -> None:
+    workflow = tmp_path / "highergov-fetch.yml"
     workflow.write_text(
         """
 name: broken
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        default: preflight
 jobs:
-  test:
+  validate_dispatch:
     runs-on: ubuntu-latest
     steps:
       - if: secrets.API_KEY != ''
-        run: echo broken
+        run: python scripts/validate_live_fetch_dispatch.py
 """,
         encoding="utf-8",
     )
     errors = validate_workflow_file(workflow)
-    assert any("secrets context is forbidden" in error for error in errors)
+    assert any("credential context is forbidden" in error for error in errors)
