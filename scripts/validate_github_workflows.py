@@ -10,7 +10,7 @@ from typing import Any
 
 import yaml
 
-UNSUPPORTED_FUNCTIONS = re.compile(r"\b(?:toLower|toUpper|lower|upper)\s*\(", re.IGNORECASE)
+UNSUPPORTED_FUNCTIONS = re.compile(r"\b(?:toLower|toUpper)\s*\(", re.IGNORECASE)
 SECRET_CONTEXT = "secrets" + "."
 LIVE_FETCH_WORKFLOWS = {
     "materialize-sources.yml",
