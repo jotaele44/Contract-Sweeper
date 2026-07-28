@@ -5,7 +5,7 @@ import ContractsTable from '@/components/ContractsTable'
 import EntitiesTable from '@/components/EntitiesTable'
 import RelationshipGraph from '@/components/RelationshipGraph'
 import MunicipalityAggregates from '@/components/MunicipalityAggregates'
-import { Banknote } from 'lucide-react'
+import brandMark from "@/assets/icon-64.png?inline";
 
 const TABS = ['contracts', 'entities', 'graph', 'municipios']
 
@@ -20,7 +20,7 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="panel-glass flex items-center gap-2 border-b border-border px-4 py-2.5">
-        <Banknote className="h-5 w-5 text-primary" />
+        <img src={brandMark} alt="" aria-hidden="true" className="h-6 w-6 rounded-md" />
         <div>
           <h1 className="text-sm font-semibold leading-none text-foreground">moneysweep-pr</h1>
           <p className="mt-0.5 text-[11px] text-muted-foreground">Puerto Rico public-money contracts &amp; entity network</p>
