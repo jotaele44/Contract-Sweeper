@@ -12,13 +12,13 @@
 | #378 — mypy | Stale dependency branch and major tooling change. | **Replaced by draft PR #431**; remains gated on full mypy/pre-commit evidence. |
 | #382 — PyArrow | Stale dependency branch and major data-format/runtime change. | **Replaced by draft PR #431**; requires lock regeneration and Parquet compatibility tests. |
 | #383 — pywebview | Stale dependency branch and major desktop runtime change. | **Replaced by draft PR #431**; requires macOS and Windows smoke evidence. |
-| #413 — normalized ROAD_TO_100 metrics | Documentation was based on stale/mixed denominators. | **Superseded by the Wave 0 status-reconciliation draft**, which separates 151-source readiness from the dated 144-source coverage snapshot. |
+| #413 — normalized ROAD_TO_100 metrics | Documentation was based on stale/mixed denominators. | **Superseded by draft PR #432**, which separates 151-source readiness from the dated 144-source coverage snapshot. |
 
 ## New draft PRs
 
 - **#430 — workflow repair:** restores compilation, bounded preflight/fetch separation, input validation, and workflow static checks.
 - **#431 — dependency refresh:** reconstructs five stale dependency intentions from current `main` with six reviewable files.
-- **Wave 0 status-reconciliation draft:** archives the old status ledger, regenerates current status, adds normalized ROAD_TO_100 metrics, and records issue/PR/risk ledgers.
+- **#432 — status reconciliation:** archives the old status ledger, regenerates current status, adds normalized ROAD_TO_100 metrics, and records issue/PR/risk ledgers.
 
 ## Preservation record
 
