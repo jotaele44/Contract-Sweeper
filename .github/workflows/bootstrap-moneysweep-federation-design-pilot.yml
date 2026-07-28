@@ -1,12 +1,6 @@
 name: bootstrap-moneysweep-federation-design-pilot
 
 on:
-  push:
-    branches:
-      - agent/moneysweep-federation-design-pilot-v0-1-main
-    paths:
-      - scripts/bootstrap_moneysweep_pilot.py
-      - .github/workflows/bootstrap-moneysweep-federation-design-pilot.yml
   pull_request:
     branches:
       - main
@@ -19,11 +13,11 @@ permissions:
 
 concurrency:
   group: bootstrap-moneysweep-federation-design-pilot-v0-1
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   bootstrap:
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
