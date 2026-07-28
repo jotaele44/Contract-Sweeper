@@ -36,15 +36,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -sSfL https://github.com/rhysd/actionlint/releases/download/v1.7.7/actionlint_1.7.7_linux_x86_64.tar.gz \
-            | tar -xz actionlint
-          ./actionlint -version
+          mkdir -p .bin
+          GOBIN="$PWD/.bin" go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          .bin/actionlint -version
 
       - name: Validate workflow syntax
         shell: bash
         run: |
           set -euo pipefail
-          ./actionlint \
+          .bin/actionlint \
             .github/workflows/materialize-sources.yml \
             .github/workflows/highergov-fetch.yml \
             .github/workflows/sam-opportunities-fetch.yml \
@@ -174,7 +174,7 @@ jobs:
 
           ledger = {
               "schemaVersion": "1.0.0",
-              "headSha": "${{ github.sha }}",
+              "headSha": "${{ github.event.pull_request.head.sha }}",
               "actionlintVersion": "1.7.7",
               "cases": {
                   key: {"authorized": value[0], "mode": value[1]}
