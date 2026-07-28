@@ -65,6 +65,14 @@ test('visual atlas exercises QueryBoundary runtime fixtures', async () => {
   assert.match(runner, /filtered offline banner missing/)
 })
 
+test('visual evidence capture is animation-independent', async () => {
+  const runner = await source('scripts/run-federation-pilot-visual-checks.mjs')
+  assert.match(runner, /reducedMotion: 'reduce'/)
+  assert.match(runner, /animations: 'disabled'/)
+  assert.match(runner, /caret: 'hide'/)
+  assert.match(runner, /schemaVersion: '1\.2\.0'/)
+})
+
 test('shared stat cards and operational badge replace local semantic colors', async () => {
   const text = await source('src/components/StatsBar.jsx')
   assert.match(text, /FederationStatCard/)
