@@ -49,8 +49,8 @@ jobs:
             --confirm "$DISPATCH_CONFIRM" \
             --confirm-secondary "$DISPATCH_CONFIRM_SECONDARY"
 
-      - name: Verify fetch entry point without network
-        run: python3 scripts/fetch_highergov_api.py --help
+      - name: Compile fetch entry point without importing dependencies
+        run: python3 -m py_compile scripts/fetch_highergov_api.py
 
   fetch_highergov:
     name: Fetch HigherGov exports
