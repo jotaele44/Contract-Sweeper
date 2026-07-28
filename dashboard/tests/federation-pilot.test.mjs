@@ -36,8 +36,10 @@ test('QueryBoundary reacts to connectivity and stale deadlines', async () => {
   const loadingBranch = text.indexOf('if (loading)')
   assert.ok(offlineBranch >= 0 && loadingBranch >= 0 && offlineBranch < loadingBranch)
 
-  const filteredBranch = text.slice(text.indexOf('if (filteredEmpty)'), text.indexOf('return (\n    <>', text.indexOf('if (filteredEmpty)')) + 200)
-  assert.match(filteredBranch, /\{banner\}/)
+  const filteredStart = text.indexOf('if (filteredEmpty)')
+  const finalReturnStart = text.lastIndexOf('\n  return (')
+  assert.ok(filteredStart >= 0 && finalReturnStart > filteredStart)
+  assert.match(text.slice(filteredStart, finalReturnStart), /\{banner\}/)
 })
 
 test('filterable views delegate filtered-empty rendering to QueryBoundary', async () => {
