@@ -1,4 +1,3 @@
-
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -21,6 +20,14 @@ const viewports = [
   { name: 'desktop-wide', width: 1440, height: 900 },
   { name: 'wide', width: 1920, height: 1080 },
 ]
+const stateExpectations = {
+  loading: 'Loading records',
+  error: 'Couldn’t reach the backend',
+  empty: 'No contracts',
+  'filtered-empty': 'No contracts match these filters',
+  stale: 'This view may be stale',
+  offline: 'MoneySweep is offline',
+}
 
 await mkdir(outputDir, { recursive: true })
 const server = spawn('npm', ['run', 'dev', '--', '--host', '127.0.0.1', '--port', '4173'], {
@@ -42,6 +49,28 @@ async function waitForServer() {
   throw new Error(`Vite did not start.\n${serverLog}`)
 }
 
+async function verifyRuntimeStates(page, viewport, theme) {
+  for (const [state, expectedText] of Object.entries(stateExpectations)) {
+    const card = page.locator(`[data-state-card="${state}"]`)
+    assert.equal(await card.count(), 1, `${viewport.name}/${theme} missing ${state} state card`)
+    assert.ok(
+      (await card.textContent()).includes(expectedText),
+      `${viewport.name}/${theme} ${state} card did not render ${expectedText}`,
+    )
+  }
+
+  const initialOffline = await page.locator('[data-state-card="offline"]').textContent()
+  assert.equal(initialOffline.includes('Loading records'), false, `${viewport.name}/${theme} initial offline state lost precedence`)
+
+  const cachedOffline = await page.locator('[data-runtime-probe="offline-cached"]').textContent()
+  assert.ok(cachedOffline.includes('Offline — showing cached data'), `${viewport.name}/${theme} cached offline banner missing`)
+  assert.ok(cachedOffline.includes('Cached contract rows remain visible.'), `${viewport.name}/${theme} cached offline data hidden`)
+
+  const filteredOffline = await page.locator('[data-runtime-probe="offline-filtered"]').textContent()
+  assert.ok(filteredOffline.includes('Offline — showing cached data'), `${viewport.name}/${theme} filtered offline banner missing`)
+  assert.ok(filteredOffline.includes('No contracts match these filters'), `${viewport.name}/${theme} filtered-empty state missing offline`)
+}
+
 const browser = await chromium.launch()
 const results = []
 try {
@@ -53,6 +82,8 @@ try {
 
     for (const theme of ['dark', 'light']) {
       await page.goto(`${baseUrl}?theme=${theme}`, { waitUntil: 'networkidle' })
+      await verifyRuntimeStates(page, viewport, theme)
+
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)
       assert.equal(overflow, false, `${viewport.name}/${theme} has horizontal overflow`)
 
@@ -71,7 +102,7 @@ try {
         }
         assert.equal(focusedButton, true, `${viewport.name} keyboard traversal did not reach a button`)
 
-        const targetViolations = await page.locator('button').evaluateAll((buttons) => buttons
+        const targetViolations = await page.locator('button:visible').evaluateAll((buttons) => buttons
           .map((button) => {
             const rect = button.getBoundingClientRect()
             return { text: button.textContent?.trim(), width: rect.width, height: rect.height }
@@ -95,13 +126,17 @@ try {
 }
 
 const report = {
-  schemaVersion: '1.0.0',
+  schemaVersion: '1.1.0',
   viewports: results,
   requirements: {
     axeCriticalSerious: 0,
     horizontalOverflow: false,
     minimumTouchTargetCssPx: 44,
     keyboardButtonReachable: true,
+    queryBoundaryRuntimeStates: Object.keys(stateExpectations),
+    initialOfflinePrecedesLoading: true,
+    cachedOfflineDataVisible: true,
+    filteredEmptyPreservesStatusBanner: true,
     themes: ['dark', 'light'],
   },
 }
