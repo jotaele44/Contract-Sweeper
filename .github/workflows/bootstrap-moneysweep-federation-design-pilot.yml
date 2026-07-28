@@ -78,23 +78,10 @@ jobs:
                       normalized = '\n'.join(line.rstrip() for line in text.splitlines()) + '\n'
                       path.write_text(normalized, encoding='utf-8')
           PY
-          git diff --check
-          tar -czf /tmp/moneysweep-federation-design-pilot-evidence.tar.gz \
-            dashboard/package-lock.json \
-            dashboard/src/components/RelationshipGraph.jsx \
-            dashboard/src/main.jsx \
-            dashboard/src/styles/pilot.css \
-            dashboard/scripts/verify-federation-design-package.mjs \
-            dashboard/scripts/run-federation-pilot-visual-checks.mjs \
-            dashboard/tests/federation-pilot.test.mjs \
-            dashboard/visual/federation-pilot-atlas.html \
-            dashboard/visual/federation-pilot-atlas.jsx \
-            dashboard/visual/federation-pilot-atlas.css \
-            dashboard/artifacts/federation-design-pilot \
-            .github/workflows/moneysweep-federation-design-pilot.yml \
-            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_IMPLEMENTATION_LEDGER_v0_1.md \
-            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_VISUAL_STATE_ATLAS_v0_1.md \
-            docs/MONEYSWEEP_FEDERATION_DESIGN_PILOT_ROLLBACK_PLAN_v0_1.md
+          git status --short
+          git ls-files --modified --others --exclude-standard -z -- dashboard docs .github/workflows/moneysweep-federation-design-pilot.yml > /tmp/pilot-evidence-paths.zlist
+          test -s /tmp/pilot-evidence-paths.zlist
+          tar --null -czf /tmp/moneysweep-federation-design-pilot-evidence.tar.gz -T /tmp/pilot-evidence-paths.zlist
           sha256sum /tmp/moneysweep-federation-design-pilot-evidence.tar.gz > /tmp/moneysweep-federation-design-pilot-evidence.tar.gz.sha256
 
       - name: Upload certified evidence bundle
