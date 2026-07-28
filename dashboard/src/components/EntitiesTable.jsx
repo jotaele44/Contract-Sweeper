@@ -31,16 +31,35 @@ export default function EntitiesTable() {
   )
   const { sorted: rows, sort, key, dir } = useSortable(filtered)
   const sorter = { sort, key, dir }
+  const hasFilters = type !== 'all' || q.trim().length > 0
+
+  const resetFilters = () => {
+    setType('all')
+    setQ('')
+  }
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 p-2">
+      <div className="ms-filter-bar flex items-center gap-2 p-2">
         <span className="shrink-0 text-xs text-muted-foreground">{rows.length}</span>
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search entities…" className="h-7 flex-1 bg-background text-xs" />
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search entities…"
+          aria-label="Search entities"
+          className="ms-filter-control h-7 flex-1 bg-background text-xs"
+        />
         <TypeFilterSelect items={entities} field="entityType" value={type} onChange={setType} width="w-[120px]" capitalize />
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">
-        <QueryBoundary query={query} isEmpty={(d) => !d?.length} emptyLabel="No entities">
+      <div className="ms-scroll-region min-h-0 flex-1 overflow-auto">
+        <QueryBoundary
+          query={query}
+          isEmpty={(d) => !d?.length}
+          isFilteredEmpty={() => hasFilters && entities.length > 0 && rows.length === 0}
+          emptyLabel="No entities"
+          filteredEmptyLabel="No entities match these filters"
+          onResetFilters={resetFilters}
+        >
           <Table>
             <TableHeader className="sticky top-0 bg-card">
               <TableRow className="border-border hover:bg-transparent">
@@ -66,9 +85,6 @@ export default function EntitiesTable() {
                   <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">{e.confidence ?? '—'}</TableCell>
                 </TableRow>
               ))}
-              {rows.length === 0 && (
-                <TableRow><TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">No entities match</TableCell></TableRow>
-              )}
             </TableBody>
           </Table>
         </QueryBoundary>

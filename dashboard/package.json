@@ -10,10 +10,14 @@
     "build:export": "npm run snapshot && VITE_OFFLINE=1 vite build",
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:pilot": "node --test tests/federation-pilot.test.mjs",
+    "verify:federation-design": "node scripts/verify-federation-design-package.mjs",
+    "verify:pilot": "npm run verify:federation-design && npm run test:pilot && npm run lint && npm run build",
+    "test:visual": "node scripts/run-federation-pilot-visual-checks.mjs"
   },
   "dependencies": {
-    "@pr-federation/react": "https://github.com/jotaele44/thehub-pr/releases/download/federation-design-v0.3.0/pr-federation-react-0.3.0.tgz",
+    "@pr-federation/react": "https://github.com/jotaele44/thehub-pr/releases/download/federation-design-v0.4.0-rc.1/pr-federation-react-0.4.0-rc.1.tgz",
     "@fontsource-variable/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@radix-ui/react-dialog": "^1.1.6",
@@ -32,7 +36,9 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.10.2",
     "@eslint/js": "^9.19.0",
+    "@playwright/test": "1.54.1",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^4.3.4",
