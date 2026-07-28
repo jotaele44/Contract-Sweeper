@@ -1,4 +1,3 @@
-
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import '@fontsource-variable/inter'
@@ -8,34 +7,45 @@ import '@pr-federation/react/styles.css'
 import '@/styles/federation.css'
 import '@/styles/pilot.css'
 import '@/styles/federation-pilot-atlas.css'
+import QueryBoundary from '@/components/QueryBoundary'
 import {
-  FederationButton,
-  FederationEmptyState,
-  FederationErrorState,
-  FederationFilteredEmptyState,
-  FederationLoadingState,
-  FederationOfflineState,
-  FederationPanel,
-  FederationStaleDataState,
   FederationStatCard,
   FederationStatusBadge,
 } from '@pr-federation/react'
-import { AlertTriangle, Clock3, Database, FileText, Inbox, SearchX, WifiOff } from 'lucide-react'
+import { Database, FileText } from 'lucide-react'
 
 const params = new URLSearchParams(window.location.search)
 document.documentElement.dataset.repo = 'moneysweep-pr'
 document.documentElement.dataset.theme = params.get('theme') === 'light' ? 'light' : 'dark'
 
-const retry = <FederationButton variant="secondary">Retry</FederationButton>
-const clear = <FederationButton variant="secondary">Clear filters</FederationButton>
+const FIXTURE_UPDATED_AT = Date.now()
+const records = [{ id: 'contract-1' }]
+const baseQuery = {
+  data: records,
+  dataUpdatedAt: FIXTURE_UPDATED_AT,
+  error: null,
+  fetchStatus: 'idle',
+  isError: false,
+  isFetching: false,
+  isLoading: false,
+  isPending: false,
+  isStale: false,
+  refetch: () => Promise.resolve(),
+}
+const query = (overrides) => ({ ...baseQuery, ...overrides })
+const isEmpty = (data) => !data?.length
 
-function StateCard({ title, children }) {
+function StateCard({ state, title, children }) {
   return (
-    <FederationPanel className="atlas-card">
+    <section className="atlas-card fd-panel" data-state-card={state}>
       <h2>{title}</h2>
       {children}
-    </FederationPanel>
+    </section>
   )
+}
+
+function CachedRows() {
+  return <p className="atlas-cached-data">Cached contract rows remain visible.</p>
 }
 
 function Atlas() {
@@ -45,7 +55,7 @@ function Atlas() {
         <div>
           <p className="atlas-kicker">MoneySweep pilot · immutable RC</p>
           <h1>Federation async-state and primitive atlas</h1>
-          <p>Shared loading, error, empty, filtered-empty, stale, offline, button, panel, stat-card and semantic-badge contracts.</p>
+          <p>Runtime QueryBoundary states with shared buttons, panels, stat cards, and semantic-badge contracts.</p>
         </div>
         <div className="atlas-badges" aria-label="Operational semantic badge examples">
           <FederationStatusBadge kind="operational" status="operational" />
@@ -63,25 +73,72 @@ function Atlas() {
       </section>
 
       <section className="atlas-grid" aria-label="Async state matrix">
-        <StateCard title="Loading">
-          <FederationLoadingState title="Loading contracts" description="Retrieving the latest records." />
+        <StateCard state="loading" title="Loading">
+          <QueryBoundary
+            query={query({ data: undefined, dataUpdatedAt: 0, isLoading: true, isPending: true })}
+            isEmpty={isEmpty}
+          >
+            <CachedRows />
+          </QueryBoundary>
         </StateCard>
-        <StateCard title="Error">
-          <FederationErrorState icon={<AlertTriangle />} title="Couldn’t reach the backend" description="Retry when the service is available." action={retry} />
+        <StateCard state="error" title="Error">
+          <QueryBoundary
+            query={query({ data: undefined, dataUpdatedAt: 0, error: new Error('fixture'), isError: true })}
+            isEmpty={isEmpty}
+          >
+            <CachedRows />
+          </QueryBoundary>
         </StateCard>
-        <StateCard title="Empty">
-          <FederationEmptyState icon={<Inbox />} title="No contracts" description="No canonical records are available yet." />
+        <StateCard state="empty" title="Empty">
+          <QueryBoundary query={query({ data: [] })} isEmpty={isEmpty} emptyLabel="No contracts">
+            <CachedRows />
+          </QueryBoundary>
         </StateCard>
-        <StateCard title="Filtered empty">
-          <FederationFilteredEmptyState icon={<SearchX />} title="No contracts match these filters" description="Adjust or clear the active filters." action={clear} />
+        <StateCard state="filtered-empty" title="Filtered empty">
+          <QueryBoundary
+            query={query()}
+            isEmpty={isEmpty}
+            isFilteredEmpty
+            filteredEmptyLabel="No contracts match these filters"
+            onResetFilters={() => undefined}
+          >
+            <CachedRows />
+          </QueryBoundary>
         </StateCard>
-        <StateCard title="Stale">
-          <FederationStaleDataState icon={<Clock3 />} title="This view may be stale" description="Refresh to check for newer records." action={retry} />
+        <StateCard state="stale" title="Stale">
+          <QueryBoundary
+            query={query({ dataUpdatedAt: FIXTURE_UPDATED_AT - 10 * 60 * 1000, isStale: true })}
+            isEmpty={isEmpty}
+          >
+            <CachedRows />
+          </QueryBoundary>
         </StateCard>
-        <StateCard title="Offline">
-          <FederationOfflineState icon={<WifiOff />} title="MoneySweep is offline" description="Cached records remain available." action={retry} />
+        <StateCard state="offline" title="Offline">
+          <QueryBoundary
+            query={query({ data: undefined, dataUpdatedAt: 0, fetchStatus: 'paused', isLoading: true, isPending: true })}
+            isEmpty={isEmpty}
+          >
+            <CachedRows />
+          </QueryBoundary>
         </StateCard>
       </section>
+
+      <div hidden data-runtime-probe="offline-cached">
+        <QueryBoundary query={query({ fetchStatus: 'paused' })} isEmpty={isEmpty}>
+          <CachedRows />
+        </QueryBoundary>
+      </div>
+      <div hidden data-runtime-probe="offline-filtered">
+        <QueryBoundary
+          query={query({ fetchStatus: 'paused' })}
+          isEmpty={isEmpty}
+          isFilteredEmpty
+          filteredEmptyLabel="No contracts match these filters"
+          onResetFilters={() => undefined}
+        >
+          <CachedRows />
+        </QueryBoundary>
+      </div>
     </main>
   )
 }
