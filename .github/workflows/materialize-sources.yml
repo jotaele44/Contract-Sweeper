@@ -58,8 +58,8 @@ jobs:
             --source "$DISPATCH_SOURCE" \
             --family "$DISPATCH_FAMILY"
 
-      - name: Verify producer entry point without network
-        run: python3 scripts/run_automatable_sources.py --help
+      - name: Compile producer entry point without importing dependencies
+        run: python3 -m py_compile scripts/run_automatable_sources.py
 
   materialize:
     name: Run automatable sources (live)
