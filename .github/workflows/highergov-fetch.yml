@@ -3,60 +3,96 @@ name: HigherGov fetch
 on:
   workflow_dispatch:
     inputs:
-      confirm:
-        description: "Type 'YES' (case-insensitive) to confirm fetch"
+      mode:
+        description: "preflight validates controls; fetch executes the live download"
         required: true
+        type: choice
+        options:
+          - preflight
+          - fetch
+        default: preflight
+      confirm:
+        description: "For fetch mode only, type exactly YES"
+        required: false
         default: "no"
       confirm_secondary:
-        description: "Type 'FETCH' (case-insensitive) to allow actual downloads"
-        required: true
+        description: "For fetch mode only, type exactly FETCH"
+        required: false
         default: "no"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Least privilege: this workflow only reads the repo (and uploads artifacts,
-# which uses the runtime token, not GITHUB_TOKEN). Widen deliberately if a
-# step ever needs to write back.
+
 permissions:
   contents: read
 
-# Serialise runs on the same ref without cancelling. This workflow can
-# publish, write data, or hand off to another repo, and killing it
-# mid-flight risks leaving that work half-done.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  fetch_highergov:
+  validate_dispatch:
+    name: Validate bounded dispatch
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      - name: Validate confirmation tokens
+        env:
+          DISPATCH_MODE: ${{ github.event.inputs.mode }}
+          DISPATCH_CONFIRM: ${{ github.event.inputs.confirm }}
+          DISPATCH_CONFIRM_SECONDARY: ${{ github.event.inputs.confirm_secondary }}
+        run: |
+          python3 scripts/validate_live_fetch_dispatch.py \
+            --workflow highergov-fetch \
+            --mode "$DISPATCH_MODE" \
+            --confirm "$DISPATCH_CONFIRM" \
+            --confirm-secondary "$DISPATCH_CONFIRM_SECONDARY"
+
+      - name: Verify fetch entry point without network
+        run: python3 scripts/fetch_highergov_api.py --help
+
+  fetch_highergov:
+    name: Fetch HigherGov exports
+    needs: validate_dispatch
+    if: github.event.inputs.mode == 'fetch'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
           cache: pip
 
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
+          if [ ! -d ../thehub-pr ]; then
+            git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" \
+              https://github.com/jotaele44/thehub-pr.git ../thehub-pr \
+              || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
+          fi
           pip install -r requirements.txt
 
-      - name: Fetch HigherGov exports
-        if: ${{ secrets.HIGHERGOV_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') }}
+      - name: Require HigherGov credential
         env:
           HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
         run: |
-          echo "Starting HigherGov fetch..."
-          python3 scripts/fetch_highergov_api.py
+          if [ -z "$HIGHERGOV_API_KEY" ]; then
+            echo "::error::HIGHERGOV_API_KEY is not configured"
+            exit 1
+          fi
+
+      - name: Fetch HigherGov exports
+        env:
+          HIGHERGOV_API_KEY: ${{ secrets.HIGHERGOV_API_KEY }}
+        run: python3 scripts/fetch_highergov_api.py
 
       - name: Upload HigherGov exports artifact
-        if: ${{ secrets.HIGHERGOV_API_KEY != '' && startsWith(toLower(github.event.inputs.confirm), 'yes') }}
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: highergov-exports
           path: data/staging/expansion
+          if-no-files-found: ignore
