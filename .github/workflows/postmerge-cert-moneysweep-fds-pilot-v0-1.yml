@@ -1,0 +1,185 @@
+name: postmerge-cert-moneysweep-fds-pilot-v0-1
+
+on:
+  push:
+    branches:
+      - postmerge-cert/moneysweep-fds-pilot-v0-1
+    paths:
+      - .github/workflows/postmerge-cert-moneysweep-fds-pilot-v0-1.yml
+
+permissions:
+  actions: write
+  contents: write
+
+env:
+  MERGE_SHA: 046f1fa76494f3ba2c026bf5206e4439857d8f78
+  EXPECTED_HEAD_SHA: 277372e2953d856b7a4489b5e09c86e22a6e369f
+  HELPER_BRANCH: postmerge-cert/moneysweep-fds-pilot-v0-1
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Dispatch and certify main workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, sys, time, urllib.parse, urllib.request
+          from pathlib import Path
+
+          repo = os.environ['GITHUB_REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          merge_sha = os.environ['MERGE_SHA']
+          expected_head = os.environ['EXPECTED_HEAD_SHA']
+          api = 'https://api.github.com'
+          out = Path('post-merge-health')
+          out.mkdir(exist_ok=True)
+
+          def request(path, method='GET', body=None):
+              data = None if body is None else json.dumps(body).encode()
+              req = urllib.request.Request(
+                  api + path,
+                  data=data,
+                  method=method,
+                  headers={
+                      'Authorization': f'Bearer {token}',
+                      'Accept': 'application/vnd.github+json',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                      'Content-Type': 'application/json',
+                  },
+              )
+              with urllib.request.urlopen(req) as response:
+                  raw = response.read()
+                  return response.status, (json.loads(raw) if raw else None)
+
+          ledger = {
+              'schemaVersion': '1.0.0',
+              'repository': repo,
+              'mergeSha': merge_sha,
+              'reviewedHeadSha': expected_head,
+              'mainRefExact': False,
+              'pilotDispatched': False,
+              'runs': [],
+              'allObservedRunsSuccessful': False,
+              'result': 'FAIL',
+          }
+
+          error = None
+          try:
+              _, ref = request(f'/repos/{repo}/git/ref/heads/main')
+              actual_main = ref['object']['sha']
+              ledger['actualMainSha'] = actual_main
+              if actual_main != merge_sha:
+                  raise RuntimeError(f'main moved: expected {merge_sha}, got {actual_main}')
+              ledger['mainRefExact'] = True
+
+              def list_runs():
+                  query = urllib.parse.urlencode({'head_sha': merge_sha, 'per_page': 100})
+                  _, payload = request(f'/repos/{repo}/actions/runs?{query}')
+                  return payload.get('workflow_runs', [])
+
+              existing = list_runs()
+              pilot = [r for r in existing if r['name'] == 'moneysweep-federation-design-pilot' and r['event'] == 'workflow_dispatch']
+              if not pilot:
+                  request(
+                      f'/repos/{repo}/actions/workflows/moneysweep-federation-design-pilot.yml/dispatches',
+                      method='POST',
+                      body={'ref': 'main'},
+                  )
+                  ledger['pilotDispatched'] = True
+
+              stable = 0
+              previous_ids = None
+              final_runs = []
+              for _ in range(150):
+                  runs = [r for r in list_runs() if r['event'] in ('push', 'workflow_dispatch')]
+                  ids = tuple(sorted(r['id'] for r in runs))
+                  active = [r for r in runs if r['status'] != 'completed']
+                  pilot_seen = any(r['name'] == 'moneysweep-federation-design-pilot' and r['event'] == 'workflow_dispatch' for r in runs)
+                  push_seen = any(r['event'] == 'push' for r in runs)
+                  if pilot_seen and push_seen and not active and ids == previous_ids:
+                      stable += 1
+                  else:
+                      stable = 0
+                  previous_ids = ids
+                  final_runs = runs
+                  if stable >= 3:
+                      break
+                  time.sleep(8)
+              else:
+                  raise RuntimeError('workflow run set did not stabilize')
+
+              normalized = []
+              for r in sorted(final_runs, key=lambda x: (x['name'], x['id'])):
+                  normalized.append({
+                      'id': r['id'],
+                      'name': r['name'],
+                      'event': r['event'],
+                      'status': r['status'],
+                      'conclusion': r['conclusion'],
+                      'headSha': r['head_sha'],
+                      'htmlUrl': r['html_url'],
+                  })
+              ledger['runs'] = normalized
+
+              failures = [r for r in normalized if r['status'] != 'completed' or r['conclusion'] != 'success']
+              if failures:
+                  raise RuntimeError(f'non-success workflow runs: {failures}')
+              if not any(r['name'] == 'moneysweep-federation-design-pilot' and r['event'] == 'workflow_dispatch' for r in normalized):
+                  raise RuntimeError('permanent pilot verifier run not found')
+              if not any(r['event'] == 'push' for r in normalized):
+                  raise RuntimeError('no main push workflow runs found')
+
+              ledger['allObservedRunsSuccessful'] = True
+              ledger['result'] = 'PASS'
+          except Exception as exc:
+              error = str(exc)
+              ledger['error'] = error
+          finally:
+              (out / 'MONEYSWEEP_FDS_PILOT_POST_MERGE_HEALTH.json').write_text(json.dumps(ledger, indent=2) + '\n')
+              lines = [
+                  '# MoneySweep Federation Design System Pilot — Post-Merge Health',
+                  '',
+                  f"- Result: **{ledger['result']}**",
+                  f"- Merge SHA: `{merge_sha}`",
+                  f"- Reviewed head SHA: `{expected_head}`",
+                  f"- Main ref exact: **{ledger['mainRefExact']}**",
+                  f"- Permanent pilot dispatched: **{ledger['pilotDispatched']}**",
+                  f"- All observed runs successful: **{ledger['allObservedRunsSuccessful']}**",
+                  '',
+                  '## Workflow runs',
+                  '',
+                  '| Workflow | Event | Run | Conclusion |',
+                  '|---|---|---:|---|',
+              ]
+              for r in ledger['runs']:
+                  lines.append(f"| {r['name']} | {r['event']} | {r['id']} | {r['conclusion']} |")
+              if error:
+                  lines += ['', '## Error', '', error]
+              (out / 'MONEYSWEEP_FDS_PILOT_POST_MERGE_HEALTH.md').write_text('\n'.join(lines) + '\n')
+
+          if error:
+              print(error, file=sys.stderr)
+              sys.exit(1)
+          PY
+
+      - name: Upload post-merge health ledger
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: moneysweep-fds-pilot-post-merge-health
+          path: post-merge-health
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Delete temporary certification branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/heads/${HELPER_BRANCH}"
