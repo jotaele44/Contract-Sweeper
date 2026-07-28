@@ -10,7 +10,7 @@ anything deeper cannot be single-sourced. The gap this closes is real — three
 repos had no test importing `server/backend/main.py`, so an import-time break
 would ship with a green suite.
 
-Three details are load-bearing rather than stylistic:
+Four details are load-bearing rather than stylistic:
 
 * **`with TestClient(app)`** runs the FastAPI lifespan; bare `TestClient(app)`
   does not. A probe that forgot the context manager is exactly what once
@@ -23,7 +23,14 @@ Three details are load-bearing rather than stylistic:
   without fastapi installed (moneysweep's `ci.yml`, ovnis' `validate.yml`); this
   test must skip there rather than turn a green job red. The job that does
   install fastapi is the one that gives this test its teeth.
+* **Every non-stdlib import is function-local.** The federation's ruff configs
+  disagree about whether `server` is first-party, so a module-level
+  `import server.backend.main` is sorted one way in aguayluz and the opposite
+  way in skywatcher — no single byte-identical ordering satisfies both. Keeping
+  them inside the tests sidesteps that, and drops the `E402` noqa the sys.path
+  insert would otherwise need.
 """
+
 from __future__ import annotations
 
 import sys
@@ -32,8 +39,8 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-# Do this here rather than rely on pytest config: `pythonpath`, `tests/__init__.py`
-# and the presence of `server/__init__.py` all differ across the federation, so
+# Done here rather than via pytest config: `pythonpath`, `tests/__init__.py` and
+# the presence of `server/__init__.py` all differ across the federation, so
 # `import server.backend.main` resolves in some repos and not others.
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
@@ -41,20 +48,36 @@ if str(REPO_ROOT) not in sys.path:
 pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
 
-from starlette.testclient import TestClient  # noqa: E402
+#: Routes FastAPI mounts on every app regardless of what the repo registers.
+#: Counting them would make the route assertion vacuous: an app that had lost
+#: every real endpoint but /health would still look populated.
+FRAMEWORK_PATHS = frozenset(
+    {
+        "/openapi.json",
+        "/docs",
+        "/docs/oauth2-redirect",
+        "/redoc",
+    }
+)
 
-import server.backend.main as backend  # noqa: E402
+
+def _backend():
+    import server.backend.main as backend
+
+    return backend
 
 
 def test_backend_module_exposes_a_fastapi_app():
     """Importing the module at all is most of the value of this file."""
     from fastapi import FastAPI
 
-    assert isinstance(backend.app, FastAPI)
+    assert isinstance(_backend().app, FastAPI)
 
 
 def test_health_endpoint_answers():
-    with TestClient(backend.app) as client:  # context manager -> lifespan runs
+    from starlette.testclient import TestClient
+
+    with TestClient(_backend().app) as client:  # context manager -> lifespan runs
         response = client.get("/health")
 
     assert response.status_code == 200
@@ -63,18 +86,21 @@ def test_health_endpoint_answers():
     # Presence, not value: "degraded" is a legitimate answer from a server that
     # started correctly but has no data mounted.
     status = body.get("status")
-    assert isinstance(status, str) and status
+    assert isinstance(status, str)
+    assert status
 
 
-def test_health_is_registered_alongside_other_routes():
-    paths = {getattr(route, "path", None) for route in backend.app.routes}
+def test_health_is_registered_alongside_real_routes():
+    paths = {getattr(route, "path", None) for route in _backend().app.routes}
     assert "/health" in paths
-    assert len({path for path in paths if path}) > 1
+
+    real = {p for p in paths if p and p not in FRAMEWORK_PATHS} - {"/health"}
+    assert real, "the backend serves /health and nothing else"
 
 
 def test_openapi_schema_builds():
     """Catches a malformed response model, which /health alone would not."""
-    schema = backend.app.openapi()
+    schema = _backend().app.openapi()
 
     assert schema.get("openapi")
     assert "/health" in schema.get("paths", {})
