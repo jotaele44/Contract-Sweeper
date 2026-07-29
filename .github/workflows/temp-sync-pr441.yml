@@ -1,0 +1,75 @@
+name: Temporary PR 441 branch synchronizer
+
+on:
+  push:
+    branches:
+      - agent/moneysweep-certified-fail-closed-v0-4
+    paths:
+      - .github/workflows/temp-sync-pr441.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temp-sync-pr441
+  cancel-in-progress: false
+
+jobs:
+  synchronize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact feature branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: agent/moneysweep-certified-fail-closed-v0-4
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify identities and merge current main
+        shell: bash
+        env:
+          EXPECTED_PRE_SYNC_HEAD: e9c1461d048bcc9cfcfbeeb63f892117ada8d331
+          EXPECTED_MAIN_SHA: 34ef3b9352493d0b6ba4eb821d7ea544bec0933b
+          TARGET_BRANCH: agent/moneysweep-certified-fail-closed-v0-4
+        run: |
+          set -euo pipefail
+          current_head="$(git rev-parse HEAD)"
+          first_parent="$(git rev-parse HEAD^)"
+          if [[ "$first_parent" != "$EXPECTED_PRE_SYNC_HEAD" ]]; then
+            echo "Unexpected pre-sync parent: $first_parent" >&2
+            exit 1
+          fi
+
+          git fetch --no-tags origin main
+          fetched_main="$(git rev-parse origin/main)"
+          if [[ "$fetched_main" != "$EXPECTED_MAIN_SHA" ]]; then
+            echo "main moved: expected $EXPECTED_MAIN_SHA, found $fetched_main" >&2
+            exit 1
+          fi
+
+          if git merge-base --is-ancestor "$EXPECTED_MAIN_SHA" HEAD; then
+            echo "Current main is already an ancestor of $current_head"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-ff "$EXPECTED_MAIN_SHA" \
+            -m "Merge main@34ef3b9 into PR #441 validation branch"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+
+          merge_head="$(git rev-parse HEAD)"
+          parent_count="$(git cat-file -p HEAD | grep -c '^parent ')"
+          if [[ "$parent_count" -ne 2 ]]; then
+            echo "Expected a two-parent merge commit, found $parent_count parents" >&2
+            exit 1
+          fi
+          printf 'merge_head=%s\nmain_parent=%s\n' "$merge_head" "$EXPECTED_MAIN_SHA" | tee /tmp/sync-evidence.txt
+
+      - name: Upload synchronization evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr441-sync-evidence-${{ github.run_id }}
+          path: /tmp/sync-evidence.txt
+          if-no-files-found: error
+          retention-days: 30
