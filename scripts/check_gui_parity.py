@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# fmt: off
 """Enforce end-to-end GUI capability parity with a no-new-debt ratchet.
 
 The manifest is the human-reviewed capability contract. Discovery is deliberately
