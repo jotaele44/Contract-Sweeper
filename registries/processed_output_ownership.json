@@ -1,0 +1,91 @@
+{
+  "schema_version": "moneysweep_processed_output_ownership_v1",
+  "generated_at": "2026-07-29T09:44:00-04:00",
+  "source_audit_bundle_sha256": "2a37bf4c49f5e4d267ca4cbdc8366c718efc1738de607cdbe3cbbbd3ec8b9f85",
+  "classification_values": [
+    "REGISTRY_SOURCE_OUTPUT",
+    "DERIVED_OUTPUT",
+    "INTENTIONAL_EXCLUSION",
+    "DUPLICATE"
+  ],
+  "accounting_policy": {
+    "registry_source_output": "Counted only when a source_registry expected_outputs declaration claims the file.",
+    "derived_output": "Terminal analytical or reporting product; excluded from source materialization numerator and registry-accounted rows.",
+    "intentional_exclusion": "Present on disk but excluded from source materialization because source ownership or terminal role is unresolved or non-source.",
+    "duplicate": "Byte- or record-equivalent duplicate of another classified file; never counted twice."
+  },
+  "files": [
+    {
+      "file": "entity_master.csv",
+      "rows_at_certification": 104280,
+      "classification": "INTENTIONAL_EXCLUSION",
+      "owner": "LEGACY_ENTITY_PIPELINE",
+      "producer": null,
+      "provenance_status": "PRODUCER_PATH_UNRESOLVED",
+      "rationale": "The filename is consumed as an entity-level analytical artifact, but the operator-corpus copy is not claimed by source_registry and its exact producer path is not established by the certification evidence. Exclude without inferring duplicate or source ownership.",
+      "duplicate_of": null
+    },
+    {
+      "file": "pr_entity_profiles.csv",
+      "rows_at_certification": 104280,
+      "classification": "DERIVED_OUTPUT",
+      "owner": "ENTITY_PROFILE_ANALYSIS",
+      "producer": "scripts/analyze_entity_profiles.py",
+      "provenance_status": "REPOSITORY_PRODUCER_DECLARED",
+      "rationale": "Enriched entity profile table derived from the unified awards master and supplementary datasets.",
+      "duplicate_of": null
+    },
+    {
+      "file": "high_value_unresolved.csv",
+      "rows_at_certification": 4085,
+      "classification": "DERIVED_OUTPUT",
+      "owner": "PARENT_COLLAPSE_ANALYSIS",
+      "producer": "scripts/parent_collapse.py",
+      "provenance_status": "REPOSITORY_PRODUCER_DECLARED",
+      "rationale": "Manual-review queue derived from entity-parent collapse and unresolved-value analysis.",
+      "duplicate_of": null
+    },
+    {
+      "file": "pr_report_builder_master.csv",
+      "rows_at_certification": 238,
+      "classification": "DERIVED_OUTPUT",
+      "owner": "REPORT_BUILDER_INGEST",
+      "producer": "scripts/ingest_report_builder.py",
+      "provenance_status": "REPOSITORY_PRODUCER_DECLARED",
+      "rationale": "Report-builder analytical master assembled from existing repository datasets.",
+      "duplicate_of": null
+    },
+    {
+      "file": "pr_entity_gaps.csv",
+      "rows_at_certification": 37,
+      "classification": "DERIVED_OUTPUT",
+      "owner": "ENTITY_PROFILE_ANALYSIS",
+      "producer": "scripts/analyze_entity_profiles.py",
+      "provenance_status": "REPOSITORY_PRODUCER_DECLARED",
+      "rationale": "Manual-review candidates derived from supplementary entities not matched to the awards master.",
+      "duplicate_of": null
+    },
+    {
+      "file": "sam_entities.csv",
+      "rows_at_certification": 10,
+      "classification": "DERIVED_OUTPUT",
+      "owner": "SAM_UEI_PARENT_ENRICHMENT",
+      "producer": "scripts/sam_uei_parent_lookup.py",
+      "provenance_status": "REPOSITORY_PRODUCER_DECLARED",
+      "rationale": "Entity enrichment output derived from SAM UEI parent lookup workflow.",
+      "duplicate_of": null
+    }
+  ],
+  "certified_accounting": {
+    "registry_source_output_rows": 849898,
+    "intermediate_rows": 120737,
+    "derived_output_rows": 108650,
+    "intentional_exclusion_rows": 104280,
+    "duplicate_rows": 0,
+    "unclassified_orphan_rows": 0,
+    "total_rows_on_disk": 1183565,
+    "row_total_parity": true,
+    "no_double_counting": true
+  },
+  "freshness_boundary": "Classification certifies accounting role and repository provenance only. It does not certify that any file is current relative to its external source universe."
+}
