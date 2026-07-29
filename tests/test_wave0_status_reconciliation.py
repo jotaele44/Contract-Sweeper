@@ -60,6 +60,48 @@ def test_coverage_uses_current_certified_operator_denominator() -> None:
     assert snapshot["required_sources"] == 14
 
 
+def test_gap_and_output_ownership_adjudication_is_complete() -> None:
+    adjudication = _read("reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json")
+
+    required = {row["source_id"]: row for row in adjudication["required_source_adjudication"]}
+    assert set(required) == {"cor3", "hud_drgr_authorized", "pr_cabilderos", "prasa"}
+    assert all(row["materialization_credit"] is False for row in required.values())
+    assert all(row["freshness_certified"] is False for row in required.values())
+
+    derived = {row["file"]: row for row in adjudication["derived_output_adjudication"]}
+    assert set(derived) == {
+        "entity_master.csv",
+        "pr_entity_profiles.csv",
+        "high_value_unresolved.csv",
+        "pr_report_builder_master.csv",
+        "pr_entity_gaps.csv",
+        "sam_entities.csv",
+    }
+    assert all(row["classification"] == "DERIVED_OUTPUT" for row in derived.values())
+    assert all(row["source_materialization_credit"] is False for row in derived.values())
+    assert sum(row["rows"] for row in derived.values()) == 212930
+
+
+def test_adjudicated_row_buckets_have_exact_parity_and_no_double_counting() -> None:
+    adjudication = _read("reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json")
+    rows = adjudication["row_accounting"]
+
+    assert rows["registry_declared_rows"] == 849898
+    assert rows["derived_output_rows"] == 212930
+    assert rows["intermediate_rows"] == 120737
+    assert rows["unadjudicated_orphan_rows"] == 0
+    assert (
+        rows["registry_declared_rows"]
+        + rows["derived_output_rows"]
+        + rows["intermediate_rows"]
+        + rows["unadjudicated_orphan_rows"]
+        == rows["total_rows_on_disk"]
+        == 1183565
+    )
+    assert rows["parity"] is True
+    assert rows["double_counting_detected"] is False
+
+
 def test_status_preserves_historical_blob_reference() -> None:
     status = _read("reports/current_status.json")
     evidence = status["historical_status_evidence"]
