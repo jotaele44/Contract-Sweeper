@@ -55,7 +55,7 @@ jobs:
           import sys
 
           raw = sys.argv[1]
-          if not raw.isascii() or not raw.isdigit():
+          if not raw.isascii() or not raw.isdigit() or len(raw) > 4:
               raise SystemExit(1)
           value = int(raw, 10)
           if not 1 <= value <= 3650:
@@ -127,7 +127,7 @@ jobs:
 
           raw_days = os.environ.get("DAYS", "")
           days = None
-          if raw_days.isascii() and raw_days.isdigit():
+          if raw_days.isascii() and raw_days.isdigit() and len(raw_days) <= 4:
               value = int(raw_days, 10)
               if 1 <= value <= 3650:
                   days = value
