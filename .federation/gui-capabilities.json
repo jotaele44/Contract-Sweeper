@@ -1,0 +1,122 @@
+{
+  "schema_version": "prii.gui-capability/v1",
+  "repository": "jotaele44/moneysweep-pr",
+  "policy": {
+    "mode": "ratchet",
+    "baseline": ".federation/gui-parity-baseline.json",
+    "require_discoverable_gui": true,
+    "require_e2e": true,
+    "terminal_free_user_path": true
+  },
+  "discovery": {
+    "backend_roots": [
+      "server/backend"
+    ],
+    "production_roots": [
+      "moneysweep",
+      "desktop",
+      "maintenance"
+    ],
+    "analysis_roots": [
+      "scripts"
+    ],
+    "frontend_roots": [
+      "dashboard/src"
+    ],
+    "frontend_capability_roots": [
+      "dashboard/src/pages"
+    ],
+    "frontend_api_roots": [
+      "dashboard/src/lib/api.js"
+    ],
+    "route_files": [
+      "dashboard/src/App.jsx"
+    ],
+    "navigation_files": [
+      "dashboard/src/pages/Dashboard.jsx"
+    ],
+    "implicit_routes": [],
+    "exclude": [
+      "**/tests/**",
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/components/ui/**",
+      "scripts/check_gui_parity.py"
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "public-money-intelligence-dashboard",
+      "classification": "analysis",
+      "status": "active",
+      "requires_terminal": false,
+      "backend": {
+        "files": [
+          "server/backend/main.py"
+        ],
+        "endpoints": [
+          "GET /contracts",
+          "GET /entities",
+          "GET /edges",
+          "GET /municipalities",
+          "GET /stats"
+        ]
+      },
+      "frontend": {
+        "routes": [
+          "/"
+        ],
+        "e2e_routes": [
+          "/"
+        ],
+        "components": [
+          "dashboard/src/lib/api.js",
+          "dashboard/src/pages/Dashboard.jsx",
+          "dashboard/src/components/ContractsTable.jsx",
+          "dashboard/src/components/EntitiesTable.jsx",
+          "dashboard/src/components/RelationshipGraph.jsx",
+          "dashboard/src/components/MunicipalityAggregates.jsx",
+          "dashboard/src/components/StatsBar.jsx",
+          "dashboard/src/components/StatsDistributions.jsx"
+        ],
+        "discoverability": [
+          "dashboard/src/pages/Dashboard.jsx"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_dashboard.py",
+          "tests/test_query_adapters.py"
+        ],
+        "contract": [
+          "dashboard/tests/federation-pilot.test.mjs",
+          "tests/test_gui_parity.py"
+        ],
+        "e2e": [
+          "dashboard/tests/gui-parity.spec.mjs"
+        ]
+      }
+    },
+    {
+      "id": "service-health",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": false,
+      "rationale": "Health probing supports launch and CI readiness rather than a separate user workflow.",
+      "backend": {
+        "files": [
+          "server/backend/main.py"
+        ],
+        "endpoints": [
+          "GET /health"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_server_smoke.py"
+        ]
+      }
+    }
+  ],
+  "exceptions": []
+}
