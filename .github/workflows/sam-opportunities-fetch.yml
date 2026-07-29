@@ -51,7 +51,17 @@ jobs:
           authorized=false
           secret_present=false
           mode=confirmation-missing
-          if [[ ! "$DAYS" =~ ^[0-9]+$ ]] || (( 10#$DAYS < 1 || 10#$DAYS > 3650 )); then
+          if ! python3 - "$DAYS" <<'PY'
+          import sys
+
+          raw = sys.argv[1]
+          if not raw.isascii() or not raw.isdigit():
+              raise SystemExit(1)
+          value = int(raw, 10)
+          if not 1 <= value <= 3650:
+              raise SystemExit(1)
+          PY
+          then
             mode=invalid-days
           elif [[ -n "$SAM_API_KEY" ]]; then
             secret_present=true
@@ -114,14 +124,21 @@ jobs:
           python3 - <<'PY'
           import json, os
           from pathlib import Path
-          days = os.environ.get("DAYS", "")
+
+          raw_days = os.environ.get("DAYS", "")
+          days = None
+          if raw_days.isascii() and raw_days.isdigit():
+              value = int(raw_days, 10)
+              if 1 <= value <= 3650:
+                  days = value
+
           Path("dispatch-receipt/sam-opportunities-fetch.json").write_text(
               json.dumps({
                   "schemaVersion": "1.0.0",
                   "workflow": "sam-opportunities-fetch",
                   "authorized": os.environ.get("AUTHORIZED") == "true",
                   "mode": os.environ.get("MODE", "gate-unavailable"),
-                  "days": int(days) if days.isdigit() else None,
+                  "days": days,
                   "liveFetchAuthorized": os.environ.get("AUTHORIZED") == "true",
               }, indent=2) + "\n",
               encoding="utf-8",
