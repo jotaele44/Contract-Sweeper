@@ -33,6 +33,28 @@ jobs:
     assert any("unsupported expression helper" in error for error in errors)
 
 
+def test_allows_language_lower_method_outside_actions_expression(tmp_path: Path) -> None:
+    workflow = tmp_path / "valid.yml"
+    workflow.write_text(
+        """
+name: valid
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          python - <<'PY'
+          value = "TRUE".lower()
+          print(value)
+          PY
+""",
+        encoding="utf-8",
+    )
+    errors = validate_workflow_file(workflow)
+    assert not any("unsupported expression helper" in error for error in errors)
+
+
 def test_rejects_credential_context_in_live_fetch_if(tmp_path: Path) -> None:
     workflow = tmp_path / "highergov-fetch.yml"
     workflow.write_text(
