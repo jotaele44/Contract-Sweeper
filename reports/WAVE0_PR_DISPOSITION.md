@@ -13,16 +13,16 @@
 | #378 — mypy | Obsolete dependency branch. | Reconstructed on current main in draft PR #446. |
 | #382 — PyArrow | Obsolete dependency branch. | Reconstructed on current main in draft PR #446. |
 | #383 — pywebview | Repository-only change would drift from TheHub's rendered federation template. | Closed; migration deferred to a federation-wide TheHub template vector. |
-| #413 — Road-to-100 normalization | Used stale/mixed denominators. | Closed; replaced by this current-main status-reconciliation branch. |
-| #430 — workflow repair v0.1 | Functionally validated, then diverged by 51 mainline commits. | Superseded by fresh-current-main draft PR #444. |
-| #431 — dependency refresh v0.1 | Fully green, then diverged from current main. | Superseded by fresh-current-main draft PR #446. |
-| #432 — status reconciliation v0.1 | Fully green, then diverged from current main and contained outdated PR references. | Superseded by this regenerated current-main status draft. |
+| #413 — Road-to-100 normalization | Used stale/mixed denominators. | Closed; replaced by draft PR #447. |
+| #430 — workflow repair v0.1 | Functionally validated, then diverged by 51 mainline commits. | Closed; superseded by fresh-current-main draft PR #444. |
+| #431 — dependency refresh v0.1 | Fully green, then diverged from current main. | Closed; superseded by fresh-current-main draft PR #446. |
+| #432 — status reconciliation v0.1 | Fully green, then diverged from current main and contained outdated PR references. | Closed; superseded by fresh-current-main draft PR #447. |
 
 ## Current draft set
 
 - **#444** — bounded live-fetch workflow controls and static validation.
 - **#446** — Python tooling and PyArrow/openpyxl dependency reconstruction.
-- **Current status branch** — `agent/moneysweep-wave0-status-reconciliation-v0-2`.
+- **#447** — current status, normalized Road-to-100, issue reconciliation, PR disposition, and risk report.
 
 ## Preservation record
 
