@@ -92,3 +92,31 @@ jobs:
 
       - name: Validate Canonical Entity Relationship Model v1 (bootstrap mode)
         run: python -m moneysweep.validation.canonical_v1_schema --root . --allow-failed
+
+  # Frontend gate. The dashboard package has shipped with a `lint` script, an eslint
+  # config and a committed package-lock.json, but no CI job ran any of them —
+  # the only workflow that built it was desktop-build.yml, which is tag- and
+  # path-triggered and does not fire on a frontend-only PR. So a lint regression
+  # or a broken build could merge unnoticed.
+  #
+  # Gates `lint` and `build`, matching skywatcher-pr and thehub-pr. `typecheck`
+  # is deliberately not added here: this package has never had a JS gate, and
+  # turning on two at once risks a red build over pre-existing findings.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
