@@ -1,4 +1,3 @@
-# fmt: off
 from __future__ import annotations
 
 import importlib.util
@@ -7,6 +6,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 
+# fmt: off
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "check_gui_parity.py"
 SPEC = importlib.util.spec_from_file_location("check_gui_parity", SCRIPT)

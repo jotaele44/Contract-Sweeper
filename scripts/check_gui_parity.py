@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# fmt: off
 """Enforce end-to-end GUI capability parity with a no-new-debt ratchet.
 
 The manifest is the human-reviewed capability contract. Discovery is deliberately
@@ -25,9 +24,12 @@ import os
 import re
 import sys
 from collections import Counter
+from collections.abc import Iterable
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+
+# fmt: off
 
 MANIFEST_SCHEMA = "prii.gui-capability/v1"
 BASELINE_SCHEMA = "prii.gui-parity-baseline/v1"
@@ -373,13 +375,13 @@ def _discover_frontend(
     for implicit in discovery.get("implicit_routes", []):
         if not isinstance(implicit, dict):
             continue
-        route = implicit.get("path")
-        rel = implicit.get("file")
-        if not isinstance(route, str) or not isinstance(rel, str):
+        implicit_route = implicit.get("path")
+        implicit_rel = implicit.get("file")
+        if not isinstance(implicit_route, str) or not isinstance(implicit_rel, str):
             continue
-        if not (repo_root / rel).is_file():
+        if not (repo_root / implicit_rel).is_file():
             continue
-        record = _candidate("gui_route", rel, detail=route)
+        record = _candidate("gui_route", implicit_rel, detail=implicit_route)
         records.append(record)
         route_records.append(record)
 
@@ -501,9 +503,8 @@ def mapped_candidate_ids(
                     "dead_control",
                     "mock_marker",
                     "frontend_api_client",
-                }:
-                    if item["path"] in components:
-                        mapped.add(item["id"])
+                } and item["path"] in components:
+                    mapped.add(item["id"])
     return mapped
 
 
@@ -796,11 +797,13 @@ def evaluate(
     strict: bool = False,
 ) -> tuple[dict[str, Any], bool]:
     baseline_candidates = baseline.get("candidates", [])
-    baseline_ids = {
-        item.get("id")
-        for item in baseline_candidates
-        if isinstance(item, dict) and item.get("id")
-    }
+    baseline_ids: set[str] = set()
+    for item in baseline_candidates:
+        if not isinstance(item, dict):
+            continue
+        candidate_id = item.get("id")
+        if isinstance(candidate_id, str):
+            baseline_ids.add(candidate_id)
     current_by_id = {item["id"]: item for item in candidates}
     current_ids = set(current_by_id)
     mapped = mapped_candidate_ids(manifest, candidates)
