@@ -1,0 +1,12 @@
+path: data/reference/entity_parent_map.csv
+rows: 20
+relationship_types:
+relationship_type
+INSTRUMENTALITY_OF        17
+P3_OPERATOR_OF             2
+CONCESSION_OPERATOR_OF     1
+evidence_tiers:
+evidence_tier
+T2    20
+confidence_min: 0.85
+confidence_max: 0.9

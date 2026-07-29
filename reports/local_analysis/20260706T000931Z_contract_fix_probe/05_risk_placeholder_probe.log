@@ -1,0 +1,69 @@
+rows: 18725
+columns: ['entity_id', 'entity_name', 'risk_score', 'signal_count', 'signal_families', 'dominant_signal_family', 'confidence', 'generated_at']
+
+Top 50:
+                               entity_id                           entity_name  risk_score  signal_count                                        signal_families dominant_signal_family  confidence                      generated_at
+0                                   NONE                                  NONE      1.0000            90                        political_overlap;repeat_awards          repeat_awards      0.6028  2026-07-05T23:07:15.575961+00:00
+1              UNIVERSITY OF PUERTO RICO             UNIVERSITY OF PUERTO RICO      1.0000           501  bond_contract_overlap;political_overlap;repeat_awards          repeat_awards      0.6010  2026-07-05T23:07:15.594094+00:00
+2                                RETIRED                               RETIRED      1.0000          2876                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631740+00:00
+3                          SELF EMPLOYED                         Self Employed      1.0000           489                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631896+00:00
+4                    ICPR JUNIOR COLLEGE                   ICPR JUNIOR COLLEGE      1.0000            90                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631931+00:00
+5             OMEGA OVERSEAS INVESTMENTS            Omega Overseas Investments      1.0000            84                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632183+00:00
+6                         CC ELECTRONICS                        CC ELECTRONICS      0.5805            43                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632303+00:00
+7               MUNICIPALITY OF SAN JUAN              MUNICIPALITY OF SAN JUAN      0.5441            38                        political_overlap;repeat_awards          repeat_awards      0.6066  2026-07-05T23:07:15.574330+00:00
+8         UNIVERSIDAD CENTRAL DEL CARIBE        UNIVERSIDAD CENTRAL DEL CARIBE      0.4766            33                        political_overlap;repeat_awards          repeat_awards      0.6076  2026-07-05T23:07:15.593871+00:00
+9                               ASSERTUS                              ASSERTUS      0.3240            24                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632238+00:00
+10                            TETRA TECH                            TETRA TECH      0.2336            15                        political_overlap;repeat_awards          repeat_awards      0.6167  2026-07-05T23:07:15.591514+00:00
+11                                   YES                                   YES      0.2201            14                        political_overlap;repeat_awards          repeat_awards      0.6179  2026-07-05T23:07:15.597657+00:00
+12                        BAZUKA SERVICE                        BAZUKA SERVICE      0.2160            16                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632250+00:00
+13                    SOUTHWEST AIRLINES                    SOUTHWEST AIRLINES      0.2066            13                        political_overlap;repeat_awards          repeat_awards      0.6192  2026-07-05T23:07:15.589570+00:00
+14                     BOSTON SCIENTIFIC                     BOSTON SCIENTIFIC      0.1931            12                        political_overlap;repeat_awards          repeat_awards      0.6208  2026-07-05T23:07:15.535519+00:00
+15                             NEW HILLS                             NEW HILLS      0.1796            11                        political_overlap;repeat_awards          repeat_awards      0.6227  2026-07-05T23:07:15.575473+00:00
+16                   PEDRO ORTIZ ALVAREZ                   PEDRO ORTIZ ALVAREZ      0.1796            11                        political_overlap;repeat_awards          repeat_awards      0.6227  2026-07-05T23:07:15.579141+00:00
+17                    ULTIMATE SOLUTIONS                    ULTIMATE SOLUTIONS      0.1796            11                        political_overlap;repeat_awards          repeat_awards      0.6227  2026-07-05T23:07:15.593574+00:00
+18                                   CTS                                   CTS      0.1661            10                        political_overlap;repeat_awards          repeat_awards      0.6250  2026-07-05T23:07:15.543738+00:00
+19                    MAKKO CONSTRUCTION                    MAKKO CONSTRUCTION      0.1661            10                        political_overlap;repeat_awards          repeat_awards      0.6250  2026-07-05T23:07:15.569898+00:00
+20                INDEPENDENT CONTRACTOR                INDEPENDENT CONTRACTOR      0.1526             9                        political_overlap;repeat_awards          repeat_awards      0.6278  2026-07-05T23:07:15.559006+00:00
+21           COMMONWEALTH OF PUERTO RICO           COMMONWEALTH OF PUERTO RICO      0.1402             4                    bond_contract_overlap;repeat_awards          repeat_awards      0.8500  2026-07-05T23:07:15.541331+00:00
+22            MARXUACH PRECAST SOLUTIONS            MARXUACH PRECAST SOLUTIONS      0.1391             8                        political_overlap;repeat_awards          repeat_awards      0.6312  2026-07-05T23:07:15.570987+00:00
+23            UNIVERSIDAD DE PUERTO RICO            Universidad de Puerto Rico      0.1350            10                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632080+00:00
+24             PUERTO RICO YOUTH AT RISK             PUERTO RICO YOUTH AT RISK      0.1256             7                        political_overlap;repeat_awards          repeat_awards      0.6357  2026-07-05T23:07:15.582502+00:00
+25            PR DEPARTMENT OF EDUCATION            PR Department of Education      0.1215             9                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632010+00:00
+26                   MULTIPLE RECIPIENTS                   MULTIPLE RECIPIENTS      0.1121             2                            concentration;repeat_awards          concentration      0.8750  2026-07-05T23:07:15.526659+00:00
+27  PUERTO RICO ELECTRIC POWER AUTHORITY  PUERTO RICO ELECTRIC POWER AUTHORITY      0.1084             3                    bond_contract_overlap;repeat_awards          repeat_awards      0.8500  2026-07-05T23:07:15.582206+00:00
+28                         GONZALEZ AGRO                     GONZALEZ AGRO INC      0.1080             8                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632135+00:00
+29                              PROPILOT                          PROPILOT LLC      0.1080             8                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632316+00:00
+30                      GERARDO GONZALEZ                      GERARDO GONZALEZ      0.0986             5                        political_overlap;repeat_awards          repeat_awards      0.6500  2026-07-05T23:07:15.554176+00:00
+31            JUAN D BERRIOS LAW OFFICES            JUAN D BERRIOS LAW OFFICES      0.0986             5                        political_overlap;repeat_awards          repeat_awards      0.6500  2026-07-05T23:07:15.564584+00:00
+32                      19e7cb5d15e1655f        WALSH CONSTRUCTION PUERTO RICO      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598042+00:00
+33                      ffac7355b133236e        WALSH CONSTRUCTION PUERTO RICO      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598047+00:00
+34                      aa5e56b68ffed37a        WALSH CONSTRUCTION PUERTO RICO      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598053+00:00
+35                      458e113a8ff77a91                WALSH PUERTO RICO, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598058+00:00
+36                      72df124c1c6a25e9                WALSH PUERTO RICO, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598063+00:00
+37                      3b3b0c3d0de9ea72                WALSH PUERTO RICO, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598069+00:00
+38                      82eb4e8cb7199e95                WALSH PUERTO RICO, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598074+00:00
+39                      b43b16da06e6933a                            AGVIQ, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598079+00:00
+40                      e8013ba09f2d525b                WALSH PUERTO RICO, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598083+00:00
+41                      2e6ac65264a73d5b        WALSH CONSTRUCTION PUERTO RICO      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598094+00:00
+42                      6a45111ee8e8bb09                WALSH PUERTO RICO, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598100+00:00
+43                      3d42691243ad2aa1                WALSH PUERTO RICO, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598105+00:00
+44                      32821f3f28acc17e        WALSH CONSTRUCTION PUERTO RICO      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598110+00:00
+45                      a7bad9927a3f4424        WALSH CONSTRUCTION PUERTO RICO      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598115+00:00
+46                      f71b551ec2878dbf        WALSH CONSTRUCTION PUERTO RICO      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598126+00:00
+47                      84b258240de8262a                POLU KAI SERVICES, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598131+00:00
+48                      6022efee8fe0cfed                POLU KAI SERVICES, LLC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598136+00:00
+49                      81211271a42401a3             PROPPER INTERNATIONAL INC      0.0900             1                                       subaward_opacity       subaward_opacity      0.9000  2026-07-05T23:07:15.598141+00:00
+
+placeholder_rows_by_entity_id: 4
+        entity_id    entity_name  risk_score  signal_count                  signal_families dominant_signal_family  confidence                      generated_at
+0            NONE           NONE      1.0000            90  political_overlap;repeat_awards          repeat_awards      0.6028  2026-07-05T23:07:15.575961+00:00
+2         RETIRED        RETIRED      1.0000          2876                political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631740+00:00
+3   SELF EMPLOYED  Self Employed      1.0000           489                political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631896+00:00
+11            YES            YES      0.2201            14  political_overlap;repeat_awards          repeat_awards      0.6179  2026-07-05T23:07:15.597657+00:00
+
+placeholder_rows_by_entity_name: 4
+        entity_id    entity_name  risk_score  signal_count                  signal_families dominant_signal_family  confidence                      generated_at
+0            NONE           NONE      1.0000            90  political_overlap;repeat_awards          repeat_awards      0.6028  2026-07-05T23:07:15.575961+00:00
+2         RETIRED        RETIRED      1.0000          2876                political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631740+00:00
+3   SELF EMPLOYED  Self Employed      1.0000           489                political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631896+00:00
+11            YES            YES      0.2201            14  political_overlap;repeat_awards          repeat_awards      0.6179  2026-07-05T23:07:15.597657+00:00

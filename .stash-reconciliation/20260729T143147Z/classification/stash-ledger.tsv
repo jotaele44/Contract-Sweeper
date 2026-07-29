@@ -1,0 +1,2 @@
+stash_ref	stash_oid	base_parent	index_parent	untracked_parent	subject	files	patch_id	classification
+stash@{0}	ecf5b1391fa25d99d4592ef45794ba5a10711f3f	9cbf0bffa89424bca0f261ff45cf06df6e5c1401	a431863e3b86d910b8ccd771d5674cd87dc35c1b		On main: !!GitHub_Desktop<main>	192	5f9ceb872df5cc6edc2ff960653f46bbe6493a57	PARTIAL_OR_CONFLICTING_OVERLAP

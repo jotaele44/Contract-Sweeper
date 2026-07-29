@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # Dropzone: entity_resolution_aids
 
 Crosswalk and alias aids used to resolve vendor/recipient names across sources.
@@ -19,3 +20,15 @@ Current contents:
 - **Tracking:** the `.xlsx`/`.rtf` files stay OUT of git by policy (binary
   blobs — see the `.gitignore` note on committing derived CSVs instead). Only
   this README is tracked.
+=======
+# Entity-resolution aids (consolidated 2026-07-05)
+
+Reference/crosswalk data used for entity resolution — NOT asserted as PR spending.
+
+- `employer_data_cumulative2001-2024_redacted.xlsx` — employer registry (name/UEI
+  crosswalk aid).
+- `Contractor Index.rtf` — contractor name index.
+
+No dedicated producer; consumed opportunistically by alias/entity-resolution
+tooling (`scripts/build_entity_aliases.py`, `scripts/alias_registry_builder.py`).
+>>>>>>> Stashed changes

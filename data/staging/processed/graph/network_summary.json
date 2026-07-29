@@ -6,7 +6,11 @@
   "parent_entity_nodes": 3,
   "control_edges": 20,
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
+<<<<<<< Updated upstream
   "production_status_message": "Diagnostic output only — not production-valid.",
+=======
+  "production_status_message": "Diagnostic output only \u2014 not production-valid.",
+>>>>>>> Stashed changes
   "top_node_by_pagerank": "Department of Defense",
   "top_node_type": "agency",
   "outputs": {
@@ -14,7 +18,11 @@
     "top_nodes": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/top_nodes.csv",
     "entity_edges": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/entity_edges.csv",
     "summary": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/network_summary.json"
+<<<<<<< Updated upstream
   },
   "production_status_generated_at": "2026-07-28T15:31:23Z",
   "production_blocker_count": 3
+=======
+  }
+>>>>>>> Stashed changes
 }

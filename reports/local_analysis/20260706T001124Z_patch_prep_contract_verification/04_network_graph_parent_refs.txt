@@ -1,0 +1,13 @@
+5:with parent-child hierarchy edges. Exports to GraphML (Gephi) and JSON.
+7:Nodes:  vendors (or parent entities), agencies
+9:        parent→child (hierarchy, from entity_hierarchy.csv)
+25:sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+114:            parent = (row.get("parent_name") or "").strip()
+115:            if not child or not parent or child == parent:
+117:            if not G.has_node(parent):
+118:                G.add_node(parent, node_type="parent_entity", label=parent[:60])
+119:            G.add_edge(parent, child, edge_type="hierarchy", weight=1.0)
+171:    graph_dir.mkdir(parents=True, exist_ok=True)
+234:    parent_nodes = [n for n, d in G.nodes(data=True) if d.get("node_type") == "parent_entity"]
+242:        "parent_entity_nodes": len(parent_nodes),
+260:    logger.info(f"  Parent nodes:  {len(parent_nodes)}")

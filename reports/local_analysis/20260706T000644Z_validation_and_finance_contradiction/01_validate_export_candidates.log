@@ -1,0 +1,15 @@
+=== PACKAGE: data/exports/canonical_v1_federation ===
+[FAIL federation_invalid] manifest.json: missing or non-object federation descriptor
+[FAIL manifest_files_missing] manifest.json: expected 5 file entries, got none
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=entities
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=sources
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=funding_awards
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=transactions
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=relationships
+[FAIL] 7 validation error(s) in mode=test
+=== PACKAGE: exports ===
+[FAIL manifest_missing] exports: manifest.json not found
+[FAIL] 1 validation error(s) in mode=test
+=== PACKAGE: data/exports ===
+[FAIL manifest_missing] data/exports: manifest.json not found
+[FAIL] 1 validation error(s) in mode=test

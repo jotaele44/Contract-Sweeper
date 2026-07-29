@@ -1,0 +1,31 @@
+2026-07-05 18:26:03 [INFO] Loading awards master...
+2026-07-05 18:26:08 [INFO]   453,352 award rows
+2026-07-05 18:27:30 [INFO]   104,280 unique award recipients
+2026-07-05 18:27:30 [INFO]   Loaded pr_nonprofits.csv: 3 rows
+2026-07-05 18:27:30 [WARNING]   Not found: pr_cms_medicare_providers.csv — skipping
+2026-07-05 18:27:30 [INFO]   Loaded pr_fdic_institutions.csv: 44 rows
+2026-07-05 18:27:37 [INFO]   Written: pr_entity_profiles.csv (104,280 entities)
+2026-07-05 18:27:37 [INFO]   Written: pr_entity_gaps.csv (37 unmatched entities)
+2026-07-05 18:27:37 [INFO] ============================================================
+2026-07-05 18:27:37 [INFO] ENTITY PROFILE SUMMARY
+2026-07-05 18:27:37 [INFO] ============================================================
+2026-07-05 18:27:37 [INFO]   Total award entities profiled:   104,280
+2026-07-05 18:27:37 [INFO]   Matched as nonprofit (990):      1  ($343,969,966 in awards)
+2026-07-05 18:27:37 [INFO]   Matched as Medicare provider:    0  ($0 in awards)
+2026-07-05 18:27:37 [INFO]   Matched as FDIC bank:            5
+2026-07-05 18:27:37 [INFO]   Match in 2+ sources:             0
+2026-07-05 18:27:37 [INFO]   Entities in supp. sources only:  37
+2026-07-05 18:27:37 [INFO] 
+  Top 10 by awards — with supplementary source flags:
+2026-07-05 18:27:37 [INFO]     MULTIPLE RECIPIENTS                                 $79,734,686,110  [CMS]
+2026-07-05 18:27:37 [INFO]     PUERTO RICO DEPARTMENT OF HEALTH                    $42,956,459,942  [CMS]
+2026-07-05 18:27:37 [INFO]     GOVERNOR'S AUTHORIZED REPRESENTATIVE                $41,437,230,989  [CMS]
+2026-07-05 18:27:37 [INFO]     ADMINISTRACION DE DESARROLLO SOCIOECONOMICO DE LA   $40,852,740,098  [CMS]
+2026-07-05 18:27:37 [INFO]     PUERTO RICO DEPARTMENT OF HOUSING                   $23,414,329,744  [CMS]
+2026-07-05 18:27:37 [INFO]     DEPARTMENT OF EDUCATION OF PUERTO RICO              $19,525,165,612  [CMS]
+2026-07-05 18:27:37 [INFO]     PUERTO RICO ELECTRIC POWER AUTHORITY                $14,156,448,961  [CMS]
+2026-07-05 18:27:37 [INFO]     ADMINISTRATION DE VIVIENDA PUBLICA                  $ 8,375,640,891  [CMS]
+2026-07-05 18:27:37 [INFO]     PUERTO RICO DEPARTMENT OF TREASURY                  $ 5,476,943,954  [CMS]
+2026-07-05 18:27:37 [INFO]     UNIVERSITY OF PUERTO RICO                           $ 3,673,158,109  [CMS]
+
+Entity profiles complete: 104,280 entities profiled, 37 gap entities → /Users/jotaele/Developer/moneysweep-pr/data/staging/processed/pr_entity_profiles.csv

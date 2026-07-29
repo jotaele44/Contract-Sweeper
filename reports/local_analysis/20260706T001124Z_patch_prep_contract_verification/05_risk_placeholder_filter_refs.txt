@@ -1,0 +1,37 @@
+scripts/build_risk_signals.py:5:  data/staging/processed/risk/entity_risk_scores.csv
+scripts/build_risk_signals.py:6:  data/staging/processed/risk/project_risk_scores.csv
+scripts/build_risk_signals.py:7:  data/staging/processed/risk/municipality_risk_scores.csv
+scripts/build_risk_signals.py:63:    n_ent = _write_csv(out_base / "entity_risk_scores.csv", entity_scores, ENTITY_SCORE_COLUMNS)
+scripts/build_risk_signals.py:64:    n_proj = _write_csv(out_base / "project_risk_scores.csv", project_scores, PROJECT_SCORE_COLUMNS)
+scripts/build_risk_signals.py:66:        out_base / "municipality_risk_scores.csv", municipality_scores, MUNICIPALITY_SCORE_COLUMNS
+scripts/build_risk_signals.py:81:            "entity_risk_scores": n_ent,
+scripts/build_risk_signals.py:82:            "project_risk_scores": n_proj,
+scripts/build_risk_signals.py:83:            "municipality_risk_scores": n_muni,
+moneysweep/runtime/risk_signals.py:19:  data/staging/processed/risk/entity_risk_scores.csv
+moneysweep/runtime/risk_signals.py:20:  data/staging/processed/risk/project_risk_scores.csv
+moneysweep/runtime/risk_signals.py:21:  data/staging/processed/risk/municipality_risk_scores.csv
+moneysweep/runtime/risk_signals.py:140:                "entity_name": name,
+moneysweep/runtime/risk_signals.py:178:                "entity_name": name,
+moneysweep/runtime/risk_signals.py:222:                "entity_name": prime,
+moneysweep/runtime/risk_signals.py:261:                    "entity_name": prime,
+moneysweep/runtime/risk_signals.py:314:                        "entity_name": str(row.get("client_name", "")),
+moneysweep/runtime/risk_signals.py:342:                        "entity_name": str(row.get("client_name", "")),
+moneysweep/runtime/risk_signals.py:369:                        "entity_name": str(row.get("contributor_employer", "")),
+moneysweep/runtime/risk_signals.py:415:                "entity_name": str(row.get("issuer_name", "")),
+moneysweep/runtime/risk_signals.py:470:                "entity_name": str(place),
+moneysweep/runtime/risk_signals.py:504:                "entity_name": str(
+moneysweep/runtime/risk_signals.py:541:            key = s.get("subject_id") or s.get("entity_name", "unknown")
+moneysweep/runtime/risk_signals.py:554:        risk_score = min(1.0, round(total_weight / max_possible, 4))
+moneysweep/runtime/risk_signals.py:556:        entity_name = sigs[0].get("entity_name", entity_id)
+moneysweep/runtime/risk_signals.py:560:                "entity_name": entity_name,
+moneysweep/runtime/risk_signals.py:561:                "risk_score": risk_score,
+moneysweep/runtime/risk_signals.py:569:    return sorted(scores, key=lambda x: x["risk_score"], reverse=True)
+moneysweep/runtime/risk_signals.py:598:                "risk_score": min(1.0, round(total_weight / max_possible, 4)),
+moneysweep/runtime/risk_signals.py:605:    return sorted(scores, key=lambda x: x["risk_score"], reverse=True)
+moneysweep/runtime/risk_signals.py:654:                "risk_score": min(1.0, round(total_weight / 2.0, 4)),
+moneysweep/runtime/risk_signals.py:659:    return sorted(scores, key=lambda x: x["risk_score"], reverse=True)
+moneysweep/runtime/risk_signals.py:671:    "entity_name",
+moneysweep/runtime/risk_signals.py:683:    "entity_name",
+moneysweep/runtime/risk_signals.py:684:    "risk_score",
+moneysweep/runtime/risk_signals.py:700:    "risk_score",
+moneysweep/runtime/risk_signals.py:712:    "risk_score",

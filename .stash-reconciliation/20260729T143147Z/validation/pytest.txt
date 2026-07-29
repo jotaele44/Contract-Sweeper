@@ -1,0 +1,512 @@
+..................s..................................................... [  2%]
+........................................................................ [  5%]
+........................................................................ [  8%]
+........................................................................ [ 11%]
+.........F.............................................................. [ 14%]
+........................................................................ [ 17%]
+..........................................ss............................ [ 20%]
+........................................................................ [ 23%]
+........................................................................ [ 26%]
+........................................................................ [ 29%]
+........................................................................ [ 32%]
+........................................................................ [ 35%]
+........................................................................ [ 38%]
+........................................................................ [ 41%]
+........................................................................ [ 44%]
+........................................................................ [ 47%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 55%]
+........................................................................ [ 58%]
+........................................................................ [ 61%]
+........................................................................ [ 64%]
+........................................................................ [ 67%]
+........................................................................ [ 70%]
+........................................................................ [ 73%]
+........................................................................ [ 76%]
+........................................................................ [ 79%]
+........................................................................ [ 82%]
+........................................................................ [ 85%]
+........................................................................ [ 88%]
+........................................................................ [ 91%]
+........................................................................ [ 94%]
+........................................................................ [ 97%]
+......................................................................   [100%]
+=================================== FAILURES ===================================
+___________________ test_matrix_regenerates_byte_identically ___________________
+
+    def test_matrix_regenerates_byte_identically():
+        """The committed matrix must equal a live regeneration (clean-checkout
+        deterministic, like materialization_readiness.json)."""
+        committed_csv = (ROOT / OUT_CSV).read_text(encoding="utf-8")
+        committed_json = (ROOT / OUT_JSON).read_text(encoding="utf-8")
+>       assert render_csv(ROWS) == committed_csv, (
+            f"{OUT_CSV} is stale — regenerate with scripts/build_completeness_matrix.py"
+        )
+E       AssertionError: reports/completeness_matrix.csv is stale — regenerate with scripts/build_completeness_matrix.py
+E       assert 'source_id,fa...ct declared\n' == 'source_id,fa...ct declared\n'
+E         
+E         Skipping 316 identical leading characters in diff, use -v to show
+E         - automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
+E         ?           ^^^                                                  ^ ^ -----  ------       ^
+E         + automated,fully_materialized,uncontracted,not_applicable,unknown,provisional,seed,False,4,1,False,,no coverage contract declared
+E         ?           ^^^^^                                                  ^^^^^^^^ ^^^^          ^
+E           act_toll_revenue,infrastructure_revenue,False,manual_export,manual_dr...
+E         
+E         ...Full output truncated (365 lines hidden), use '-vv' to show
+
+tests/test_completeness_matrix.py:44: AssertionError
+=============================== warnings summary ===============================
+tests/test_uploaded_master_preparation.py::test_prepare_uploaded_masters_emits_canonical_processed_files
+  /Users/jotaele/Developer/moneysweep-pr/scripts/prepare_uploaded_masters.py:356: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "generated_at": datetime.utcnow().isoformat() + "Z",
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform darwin, python 3.13.2-final-0 _______________
+
+Name                                                          Stmts   Miss  Cover   Missing
+-------------------------------------------------------------------------------------------
+moneysweep/__init__.py                                            1      0   100%
+moneysweep/domains/__init__.py                                    7      7     0%   13-28
+moneysweep/domains/_descriptor.py                                14     14     0%   3-25
+moneysweep/domains/fin_audit.py                                   3      3     0%   7-11
+moneysweep/domains/inf_ctrl.py                                    4      4     0%   10-22
+moneysweep/domains/np_layer.py                                   15     15     0%   10-49
+moneysweep/entity_resolution/__init__.py                          5      0   100%
+moneysweep/entity_resolution/keys.py                             50      0   100%
+moneysweep/entity_resolution/normalize.py                        19     19     0%   9-57
+moneysweep/entity_resolution/resolver.py                         37      1    97%   103
+moneysweep/entity_resolution/scoring.py                          32      0   100%
+moneysweep/federation/__init__.py                                 0      0   100%
+moneysweep/federation/canonical_v1_bridge.py                     74      8    89%   112, 115-116, 135, 188, 202, 219, 278
+moneysweep/federation/centinelas_awards_bridge.py               118      9    92%   42, 47, 54-55, 69, 89, 92-93, 201
+moneysweep/fusion/__init__.py                                     7      0   100%
+moneysweep/fusion/contradictions.py                              48      1    98%   92
+moneysweep/fusion/edge_builder.py                                18      2    89%   95-96
+moneysweep/fusion/join_engine.py                                 50      0   100%
+moneysweep/fusion/models.py                                      74      6    92%   98-99, 128, 130, 132, 154
+moneysweep/fusion/publication_gate.py                            30      3    90%   55, 71, 75
+moneysweep/orchestrator/__init__.py                               0      0   100%
+moneysweep/orchestrator/cli.py                                  113    113     0%   7-536
+moneysweep/orchestrator/support.py                              135    135     0%   8-226
+moneysweep/pipeline/__init__.py                                   0      0   100%
+moneysweep/pipeline/acquisition_package.py                       95     53    44%   32-33, 41-42, 50-51, 89-94, 108-159, 169-243, 254
+moneysweep/pipeline/completion_gate.py                           40     16    60%   34-52, 72-76
+moneysweep/pipeline/credentialed_endpoint_execution.py          267    206    23%   42, 54-73, 104-129, 138-167, 248-389, 401-560
+moneysweep/pipeline/delivered_source_validation.py              125     27    78%   44, 51-52, 62, 72, 78-82, 87, 93-98, 137, 145, 151, 167, 170, 173, 177, 181, 187, 196
+moneysweep/pipeline/endpoint_resolution.py                       85     85     0%   3-163
+moneysweep/pipeline/external_acquisition_blocker_package.py      52     52     0%   3-183
+moneysweep/pipeline/external_blocker_freeze.py                  109      1    99%   88
+moneysweep/pipeline/external_source_delivery_gate.py            186     21    89%   41, 44, 216-265, 305-307, 311-314, 323-325, 327-329
+moneysweep/pipeline/import_slots.py                              28     28     0%   3-57
+moneysweep/pipeline/manual_fallback_package.py                   74     74     0%   3-199
+moneysweep/pipeline/manual_fulfillment_execution.py              13     13     0%   3-56
+moneysweep/pipeline/manual_import_dropzone.py                   208     52    75%   66-69, 73-77, 94-98, 102-110, 118-119, 167, 171, 178-179, 189, 201, 208-209, 251, 314-334, 339-358, 388-408, 413-432
+moneysweep/pipeline/manual_import_validation.py                 114    114     0%   3-237
+moneysweep/pipeline/producer_failure_resolution.py               54     54     0%   3-131
+moneysweep/pipeline/raw_source_candidate_validation.py           88     11    88%   70, 72, 74, 76, 147, 152, 185, 187, 212-214
+moneysweep/pipeline/raw_usaspending_discovery.py                243     71    71%   38-39, 61-62, 66-67, 71-82, 86, 90-107, 117-118, 124-149, 154, 158, 193, 220-221, 225-247, 253, 258, 260, 304, 308, 311, 337, 341
+moneysweep/pipeline/raw_usaspending_mapping_feasibility.py       98      4    96%   71, 85, 98, 117
+moneysweep/pipeline/repo_quality_audit.py                       117     22    81%   91-132, 214, 226, 363
+moneysweep/pipeline/schema_alignment.py                         138    138     0%   3-224
+moneysweep/pipeline/schema_remediation.py                        64     64     0%   3-150
+moneysweep/pipeline/scoped_unfreeze_materialization.py          126     20    84%   61, 82-103, 197-220, 227-229, 241, 271, 290
+moneysweep/pipeline/source_delivery_handoff.py                   83      1    99%   171
+moneysweep/pipeline/source_delivery_watch.py                     98      3    97%   173, 176, 220
+moneysweep/pipeline/source_manifest_writer.py                    47     47     0%   3-105
+moneysweep/pipeline/source_materialization.py                   203     32    84%   68-69, 82, 92, 98-102, 130, 156, 166, 263, 266-267, 270-271, 276-277, 279-280, 284-285, 292-293, 295-296, 298-299, 308-311
+moneysweep/pipeline/source_recovery_pause_lock.py                68      3    96%   38, 109, 127
+moneysweep/pipeline/unfreeze_guard.py                            15      0   100%
+moneysweep/query/__init__.py                                      6      0   100%
+moneysweep/query/__main__.py                                      5      5     0%   8-15
+moneysweep/query/adapters/__init__.py                            32      0   100%
+moneysweep/query/adapters/_stub.py                               12      0   100%
+moneysweep/query/adapters/base.py                                11      0   100%
+moneysweep/query/adapters/ckan_metastore.py                     120     19    84%   56-65, 79, 90-94, 109, 113, 134-136, 139, 147, 162-163
+moneysweep/query/adapters/cms_socrata.py                         64      0   100%
+moneysweep/query/adapters/entity_base.py                         12      0   100%
+moneysweep/query/adapters/fdic.py                                42      4    90%   39-43
+moneysweep/query/adapters/fec.py                                 59      7    88%   46-56, 74, 78, 96
+moneysweep/query/adapters/fhlb.py                                50      6    88%   38-42, 52, 73
+moneysweep/query/adapters/highergov.py                           64      4    94%   64-68
+moneysweep/query/adapters/lda.py                                 64      1    98%   106
+moneysweep/query/adapters/nih.py                                 51      7    86%   50, 66, 80-90, 115
+moneysweep/query/adapters/nonprofits.py                          41      0   100%
+moneysweep/query/adapters/nsf.py                                 51      6    88%   50, 64-68, 93
+moneysweep/query/adapters/ofac.py                                79      1    99%   112
+moneysweep/query/adapters/openfema.py                            99     12    88%   39, 42-45, 74-79, 96-100
+moneysweep/query/adapters/sam.py                                 58      4    93%   55-64
+moneysweep/query/adapters/sba.py                                 84     12    86%   56-60, 72, 90-93, 102-103, 122
+moneysweep/query/adapters/sbir.py                                69     13    81%   43, 52, 55-57, 70-74, 89, 114-115, 118
+moneysweep/query/adapters/usaspending.py                        210      7    97%   79, 100, 137, 179-183
+moneysweep/query/cache.py                                        63      5    92%   86, 89-90, 95-96
+moneysweep/query/cli.py                                         109      5    95%   84, 192-194, 216
+moneysweep/query/dispatcher.py                                   83      1    99%   92
+moneysweep/query/entity_types.py                                 30      0   100%
+moneysweep/query/types.py                                        59      1    98%   78
+moneysweep/runtime/__init__.py                                    6      0   100%
+moneysweep/runtime/alias_overrides.py                            57     11    81%   40-41, 45, 50, 56, 59, 64, 82-85
+moneysweep/runtime/base_downloader.py                           173     14    92%   226, 228-229, 279, 286, 289-290, 375, 390, 411-413, 418, 421
+moneysweep/runtime/canonical_ids.py                              51      0   100%
+moneysweep/runtime/centinelas_intake.py                         106     10    91%   55, 67-69, 87, 97-98, 107, 120, 155
+moneysweep/runtime/dropzone_ingest.py                            67     11    84%   37, 58, 105-107, 117, 127-128, 131-133
+moneysweep/runtime/evidence_tiers.py                             32      0   100%
+moneysweep/runtime/file_hash_runtime.py                          10      0   100%
+moneysweep/runtime/geo_attribution.py                           174      9    95%   95, 97, 116, 118, 121, 125, 127, 156, 339
+moneysweep/runtime/linkage_confidence.py                         33      0   100%
+moneysweep/runtime/logging_config.py                             66      2    97%   57, 99
+moneysweep/runtime/manifest_runtime.py                          182     21    88%   79, 81, 84-85, 170-171, 202-205, 285, 397-416, 420
+moneysweep/runtime/maturity_gate.py                              63      4    94%   78, 103, 115, 128
+moneysweep/runtime/name_normalization.py                         33      0   100%
+moneysweep/runtime/pagination_runtime.py                         20      0   100%
+moneysweep/runtime/post_ingest.py                                51      2    96%   83-84
+moneysweep/runtime/retry_runtime.py                              67      0   100%
+moneysweep/runtime/risk_signal_gates.py                          90     25    72%   38, 47-48, 167-216, 220
+moneysweep/runtime/risk_signals.py                              308     26    92%   91, 97-98, 117, 207, 331-354, 442, 447, 452, 551-555, 560, 572-579, 687
+moneysweep/runtime/schema_registry.py                            71     20    72%   38, 53-54, 75-76, 78, 82, 84, 95-105, 109
+moneysweep/runtime/source_registry.py                            91     25    73%   77-79, 103-104, 106, 112, 114, 119, 121, 124, 135-150, 154
+moneysweep/runtime/validation_gates.py                          183      6    97%   108, 370-371, 461, 503, 614
+moneysweep/update_controller/__init__.py                          3      0   100%
+moneysweep/update_controller/cli.py                             240    146    39%   68, 79, 90-100, 126-131, 136-179, 183-197, 201-231, 241-331, 335-340, 351-358, 427, 432
+moneysweep/update_controller/drop_scanner.py                    105     19    82%   36, 62-65, 77-78, 89, 107-108, 110, 130-137
+moneysweep/update_controller/executor.py                        152     40    74%   62, 64, 66, 68, 74-80, 139-141, 144-157, 161, 190-199, 256-271, 295-299, 303-305
+moneysweep/update_controller/models.py                          177      2    99%   258, 286
+moneysweep/update_controller/planner.py                         111     27    76%   32-33, 39, 50-53, 77, 90, 99-101, 104-108, 119, 133-134, 154, 167, 172, 175, 194, 199-200, 210
+moneysweep/update_controller/policy.py                          269     24    91%   106, 123, 137, 141, 143, 145, 156, 159, 173, 176-177, 189, 205, 217, 247, 259, 299, 316, 329, 416, 422, 424, 433, 435
+moneysweep/update_controller/scheduler.py                        34      1    97%   26
+moneysweep/update_controller/state.py                            99      6    94%   48, 101-104, 107, 111
+moneysweep/update_controller/validation.py                      185     40    78%   43-46, 72-73, 79, 87-98, 128, 149-152, 165, 183, 185, 235, 247-248, 269, 271, 273, 278, 280, 284, 321-324, 338
+moneysweep/validation/__init__.py                                 0      0   100%
+moneysweep/validation/artifact_lineage.py                        96     96     0%   7-272
+moneysweep/validation/backfill_execution_plan.py                120     14    88%   22, 25-26, 37, 53, 66, 71, 77, 82-86, 91, 117, 125
+moneysweep/validation/canonical_v1_schema.py                    152     28    82%   142, 170-171, 173, 175, 181, 189, 225, 243, 271, 274, 325-351, 355
+moneysweep/validation/completeness.py                           269     49    82%   210-213, 217, 227, 229, 238, 240, 244, 250, 254, 258, 267, 273, 277, 282, 285, 288, 291, 298, 300, 306, 341-342, 381, 429, 523, 526-527, 536-537, 541-542, 565, 572, 596-613, 617
+moneysweep/validation/entity_universe_audit.py                  181     15    92%   32, 35-36, 43-44, 50-51, 107, 113, 137, 184, 199, 260, 262, 264
+moneysweep/validation/master_input_recovery.py                  236     56    76%   72-73, 99, 105-109, 113-120, 124-128, 134-135, 168, 174-175, 180-181, 216-230, 245, 248, 253-258, 288-289, 297-299, 381-383
+moneysweep/validation/production_status.py                      185     36    81%   39-40, 54-55, 59-62, 70-81, 224-226, 231-240, 265, 276, 282-287
+moneysweep/validation/promotion_guard.py                         50      2    96%   39-40
+moneysweep/validation/source_coverage.py                        279     25    91%   262-263, 276, 278, 293, 298, 301, 313, 364, 372, 391, 430, 437, 443-444, 449-450, 503-504, 508-509, 576, 633, 635, 637
+moneysweep/validation/source_input_recovery.py                  230     29    87%   109, 112-113, 133-134, 147, 149, 153, 156, 184, 270, 309, 323, 330-331, 342, 347-348, 350, 405-431
+scripts/__init__.py                                               0      0   100%
+scripts/_contract_dropzone.py                                   124     36    71%   132, 148, 156-166, 175-181, 186, 197, 205-206, 218, 226-228, 232-235, 246, 249-251
+scripts/_download_utils.py                                       20      5    75%   20-21, 27, 33-34
+scripts/_revenue_common.py                                      123     29    76%   131, 140-150, 159-165, 170, 196, 231, 239-241, 259, 262-264
+scripts/alerts/__init__.py                                        3      0   100%
+scripts/alerts/alert_deduper.py                                  17      1    94%   29
+scripts/alerts/alert_event_schema.py                             47      0   100%
+scripts/alerts/alert_router.py                                   34      0   100%
+scripts/alerts/alert_score_engine.py                            116     34    71%   51, 55, 64, 70-80, 106-108, 113-114, 119-120, 132-133, 135-136, 143-144, 146-147, 149-150, 185, 190-192, 197, 200-201
+scripts/alerts/github_issue_exporter.py                          14      0   100%
+scripts/alerts/intel_brief_renderer.py                           11     11     0%   3-57
+scripts/alerts/project_signal_detector.py                        79     10    87%   54, 158-163, 172, 175-176
+scripts/alerts/project_watchlist.py                              26      3    88%   20, 22, 30
+scripts/alerts/run_project_alerts.py                             44     12    73%   38-39, 50, 68, 75-82
+scripts/alerts/spiderweb_exporter.py                             16      0   100%
+scripts/alias_registry_builder.py                                65     13    80%   56-58, 63, 67-68, 135-140, 144
+scripts/analyze_bond_flow.py                                    149    119    20%   85-90, 119-325, 341-347, 351
+scripts/analyze_entity_profiles.py                              155    155     0%   30-455
+scripts/analyze_political_crossref.py                           420     76    82%   69, 84, 99, 133-203, 297-298, 311, 507-509, 608, 628-633, 750-751, 783, 874-878, 882-911, 915
+scripts/analyze_power_network.py                                191    191     0%   30-491
+scripts/analyze_project_delivery.py                             133     61    54%   75-80, 117, 121, 146, 169, 179, 193-280, 289-293, 297
+scripts/analyze_rfp_lobby.py                                    105     79    25%   67-72, 100-223, 232-241, 245
+scripts/audit_act_alias_coverage.py                             191    191     0%   20-350
+scripts/audit_materialization_coverage.py                       255    137    46%   83-84, 257-262, 267-279, 306-346, 356-360, 369-371, 383-395, 402-562, 566, 580, 600, 637-671, 675-709, 713
+scripts/auto_download.py                                        509    509     0%   17-918
+scripts/backfill_geo_attribution.py                              78     78     0%   19-154
+scripts/bridge_canonical_v1_federation.py                        73     19    74%   69, 96, 145-171, 175
+scripts/build_act_transition_extract.py                          92     92     0%   30-241
+scripts/build_agency_master.py                                   89     28    69%   111, 135, 138, 142, 156-175, 179-194, 198
+scripts/build_analyst_reports_manifest.py                        86     34    60%   237, 244, 249, 279, 282, 286, 288, 294-317, 321-334, 338
+scripts/build_completeness_matrix.py                             98     29    70%   86-89, 102, 106-107, 161-168, 193, 197-203, 207-212, 216
+scripts/build_contract_finance_bundle.py                         87     15    83%   44, 74-75, 204-216, 220-229, 233
+scripts/build_creditor_mapping.py                                83     27    67%   111, 114, 118, 132-151, 155-168, 172
+scripts/build_dashboard_explorer.py                              88     31    65%   108, 111, 117-118, 124-146, 285-296, 300
+scripts/build_debt_instruments.py                                91     29    68%   116, 119, 123, 127, 141-163, 167-180, 184
+scripts/build_edges.py                                          253     49    81%   107, 151, 175, 203, 206, 236, 239, 267, 270, 302-305, 307-313, 326, 355, 358, 386, 389, 417, 420, 498-502, 506-527, 531-547, 551
+scripts/build_entity_aliases.py                                 109     30    72%   93, 113, 134, 137, 141, 145, 159-178, 182-195, 199
+scripts/build_entity_master.py                                   82     28    66%   89, 112, 115, 119, 133-152, 156-171, 175
+scripts/build_entity_parent_map.py                               95     30    68%   108, 111, 114, 118, 122, 126, 140-159, 163-176, 180
+scripts/build_entity_resolution_review_queue.py                  87     30    66%   70-71, 99, 102, 109, 113, 127-146, 150-163, 167
+scripts/build_evidence.py                                       104     34    67%   107-122, 158-181, 186-187, 233-252, 256
+scripts/build_export_package.py                                  87     22    75%   92-96, 118, 165, 187-218, 222
+scripts/build_export_streams.py                                 358     48    87%   45, 125, 141-142, 144, 151, 154-155, 162, 168-170, 216, 219-220, 222, 237, 355, 385, 388, 438-439, 442-443, 454-455, 510-511, 514-515, 518-519, 524-525, 683-685, 727-743, 747
+scripts/build_financial_flows_master.py                         182    124    32%   83-91, 95-103, 113-153, 157-221, 225-247, 251-291, 308, 311-312, 324, 352-376, 405-460, 464-472, 476
+scripts/build_financial_political_audit_20260707.py              42     42     0%   27-167
+scripts/build_financial_source_audit.py                         169    169     0%   28-419
+scripts/build_fiscal_control_events.py                           88     28    68%   115, 118, 123, 127, 141-161, 165-180, 184
+scripts/build_foia_letters.py                                    92     34    63%   111, 168-169, 175, 177, 181, 184, 189-191, 196-214, 218-233, 237
+scripts/build_foia_tracker.py                                    93     30    68%   116, 119, 122, 128, 132, 136, 150-170, 174-187, 191
+scripts/build_foia_yield_tracking.py                             90     28    69%   119, 123, 126, 130, 144-165, 169-182, 186
+scripts/build_gap_closure_baseline.py                           238    170    29%   335-339, 343-353, 359-360, 364-371, 376-383, 426-452, 457-521, 525-535, 539-545, 656-718, 728-739, 748, 751, 756, 761, 767, 773, 775, 779, 782, 785, 787, 792-831, 835
+scripts/build_geo_reason_codes.py                                76     28    63%   109, 115, 117, 122, 136-156, 160-173, 177
+scripts/build_gis_layer_manifest.py                              62     29    53%   126, 129, 135, 141-165, 169-185, 189
+scripts/build_graph_export.py                                   172     57    67%   165, 208, 236, 254, 279, 281, 285, 288, 293, 299, 302, 304, 307, 309, 324-339, 355-370, 386-421, 425-447, 451
+scripts/build_hq_bias_reference.py                               76     30    61%   95, 100, 103, 105, 110, 115, 129-147, 151-164, 168
+scripts/build_influence_edges.py                                121     33    73%   156, 180, 204, 233, 239, 245, 247, 249, 251, 265-285, 289-302, 306
+scripts/build_legislative_document_crosswalk.py                  77     30    61%   39-47, 62, 68, 79, 99-119, 123-128, 132
+scripts/build_legislative_links.py                               94     41    56%   56-64, 68-77, 98, 114, 117, 144-170, 174-187, 191
+scripts/build_moneysweep_finance_lane.py                         21     21     0%   9-45
+scripts/build_municipality_crosswalk.py                          62     27    56%   57, 60, 64, 66, 74-95, 99-112, 116
+scripts/build_osl_sutra_crosswalk.py                            110     15    86%   68, 74, 77, 81, 88, 109, 127, 192-207, 211
+scripts/build_person_master.py                                   87     32    63%   69, 72-73, 85, 87, 110, 113, 117, 131-149, 153-168, 172
+scripts/build_prasa_contracts_master.py                          44     14    68%   47-49, 53-55, 60, 88-93, 97
+scripts/build_risk_signals.py                                    52     52     0%   15-121
+scripts/build_roadwatch_corridor_join.py                        133     17    87%   91, 115-116, 125, 135, 186, 193-194, 210, 276-287, 291
+scripts/build_source_drilldown.py                                89     32    64%   68-69, 109, 112, 116, 122-145, 149-164, 168
+scripts/build_source_recovery_matrix.py                         129      2    98%   152, 319
+scripts/build_staging_manifest.py                                49     15    69%   48-49, 64-65, 94-110, 114
+scripts/build_unified_master.py                                 312    110    65%   207-208, 233, 272, 327-364, 368-369, 380-382, 387-398, 404-443, 463-464, 486, 502, 521-523, 533, 540, 550-560, 566-582, 595, 672, 727-752, 756
+scripts/build_watchlist_flags.py                                 31      7    77%   31, 77-84, 88
+scripts/check_network_egress.py                                  55     27    51%   54-72, 92-110, 114
+scripts/cms_mapper.py                                            57     14    75%   55-57, 70-71, 78-80, 140-163
+scripts/config.py                                               175     56    68%   503, 566-572, 577-586, 619-625, 636-647, 656-662, 667-675, 685-693
+scripts/contractor_schema.py                                      2      0   100%
+scripts/deduplicate_master.py                                    67      7    90%   42-43, 46, 103, 132-136
+scripts/download_aafaf.py                                       200    144    28%   106-113, 119-141, 146-159, 164-190, 195-214, 219-254, 315-317, 321-365, 369-374, 378
+scripts/download_act60.py                                       171    118    31%   129, 137-144, 148-161, 166-186, 225, 239-245, 249, 253-325, 333-340, 344-349, 353
+scripts/download_active_contractors.py                          163    103    37%   105-113, 117-130, 134-162, 171, 185, 217, 228-250, 254-296, 300-305, 309
+scripts/download_cdbg_dr.py                                     284    247    13%   155-157, 172-192, 205-222, 241-268, 275-294, 299-326, 339-366, 371-425, 438-474, 483-566, 576, 581-692, 696-712, 716
+scripts/download_cdbg_mit.py                                     62     43    31%   74-103, 107-129, 133-138, 142
+scripts/download_census_gov_finances.py                         107     24    78%   56-58, 66-68, 70-71, 74-79, 85, 101, 104-105, 112, 120, 167-170, 174
+scripts/download_chip.py                                        170    146    14%   98-105, 109-128, 132-205, 209-271, 275-324, 328-333, 337
+scripts/download_cms.py                                         239    183    23%   213-238, 248-266, 271-297, 302, 331-334, 345-369, 379-401, 406, 440-478, 492-574, 578-592, 596
+scripts/download_cofina.py                                      154    128    17%   112-119, 123-142, 146-208, 212-241, 245-286, 290-295, 299
+scripts/download_compras.py                                     159    107    33%   102-111, 115-125, 136-166, 171-188, 208-209, 242, 250-251, 272-339, 348-358, 362
+scripts/download_cor3.py                                        149    101    32%   87-96, 100-113, 123-152, 157-165, 189-190, 193-194, 237-300, 315-319, 323
+scripts/download_coverage_gap_intake.py                          24     12    50%   48-55, 70-80, 84
+scripts/download_doe.py                                         167    135    19%   116, 120, 124-137, 141-146, 163-186, 195-219, 223-245, 254, 258-318, 322-335, 339
+scripts/download_doj_grants.py                                  154     30    81%   100, 120, 152, 173, 185-188, 212-213, 218-219, 221, 241, 249, 258-260, 274-275, 297-298, 303-309, 313
+scripts/download_dol.py                                         244    213    13%   125-132, 138-157, 161-171, 175-179, 183-234, 238-277, 281-316, 320-383, 387-438, 442-447, 451
+scripts/download_dot.py                                         167    135    19%   115, 119, 123-136, 140-145, 162-185, 194-218, 222-244, 253, 257-317, 321-334, 338
+scripts/download_earmarks.py                                    119     68    43%   109, 113, 124-136, 183, 202, 206-278, 282-287, 291
+scripts/download_ed.py                                          154    108    30%   96, 100, 111-124, 178-204, 208-232, 236, 240-299, 303-311, 315
+scripts/download_eia.py                                         235    108    54%   75, 79, 84, 106, 117-142, 156-187, 214-220, 263, 279-280, 290-302, 318-320, 349-373, 383-412, 416
+scripts/download_emma.py                                        211     71    66%   466-486, 494-545, 623-624, 657, 673, 711, 724, 743-744, 807-816, 820
+scripts/download_epa.py                                         153    122    20%   98, 102, 113-126, 130-136, 153-176, 180-204, 208-232, 236, 240-299, 303-309, 313
+scripts/download_epa_echo_icis.py                               116     24    79%   81-87, 95-97, 99-100, 121, 135, 141, 144-145, 152, 160, 201-204, 208
+scripts/download_eqb.py                                         116     74    36%   67-69, 76-122, 175-211, 220-224, 228
+scripts/download_estadisticas_pr.py                             157     34    78%   110-112, 121-123, 125-126, 157-160, 175, 178, 183, 188-194, 211-212, 219, 249-250, 281-286, 290
+scripts/download_exim.py                                        133     85    36%   95, 99, 110-122, 150, 185-207, 211, 215-265, 274-280, 284
+scripts/download_fac.py                                          66     47    29%   73-96, 100-126, 130-136, 140
+scripts/download_fac_municipal.py                                81     13    84%   82, 125-128, 154-160, 164
+scripts/download_fcc.py                                         192    166    14%   123-130, 134-154, 158-168, 174-223, 227-257, 261-319, 323-370, 374-379, 383
+scripts/download_fdic.py                                        139     99    29%   305, 311-330, 391-436, 445-533, 543-551, 555
+scripts/download_fec.py                                         122     21    83%   99-100, 133, 169, 192, 204, 208, 218-220, 252, 289-319, 323
+scripts/download_fec_committees.py                              176    143    19%   123, 127-128, 138-180, 195-244, 259-302, 317-414, 429-452, 456
+scripts/download_fema.py                                        233    189    19%   92-120, 133-183, 196-205, 215-230, 237-275, 283-311, 325-355, 363-433, 441-466, 487-499, 503-538, 542
+scripts/download_fema_ia.py                                      64     45    30%   71-94, 98-120, 124-129, 133
+scripts/download_fhlb.py                                        124     94    24%   103, 111-113, 118-137, 142-173, 177, 181-252, 256-261, 265
+scripts/download_fred.py                                        181     84    54%   74, 78, 83-108, 121-137, 182, 198-199, 209-221, 237-239, 268-292, 302-330, 334
+scripts/download_fsrs.py                                        113     45    60%   62-98, 102-126, 136, 155-157, 170-171, 206-221, 225
+scripts/download_fta_ntd.py                                     126     30    76%   68-78, 86-88, 90-91, 94-99, 120, 125, 134, 140, 143-144, 151, 159, 195-198, 202
+scripts/download_gao_ig.py                                      174    146    16%   137-144, 148-167, 171-180, 184-229, 233-286, 290-324, 328-379, 383-388, 392
+scripts/download_gleif.py                                       123     66    46%   118, 142-148, 153-178, 182-184, 188-226, 236-247, 251
+scripts/download_grants.py                                      328    283    14%   74, 141-143, 153-159, 169-179, 197-215, 225-262, 272-286, 291-311, 316-354, 373-435, 449-490, 500-530, 540, 549-619, 623-656, 660
+scripts/download_hacienda.py                                    178    151    15%   158-165, 169-188, 192-198, 202-274, 278-332, 336-379, 383-388, 392
+scripts/download_haf.py                                         133     99    26%   93, 97, 108-119, 146-169, 173-193, 197, 201-265, 274-279, 283
+scripts/download_hhs.py                                         160    122    24%   101, 105, 116-129, 159-182, 186-213, 217-241, 245, 249-308, 312-318, 322
+scripts/download_hud_hcv.py                                     176    149    15%   89-96, 100-119, 123-183, 187-229, 233-292, 296-348, 352-357, 361
+scripts/download_instructions.py                                115     15    87%   187, 287, 302-317, 321
+scripts/download_lda.py                                         142     28    80%   154, 171-180, 231, 253, 274-276, 299-301, 312, 356-367, 371
+scripts/download_lihtc.py                                       137     86    37%   67, 75-82, 86-104, 108-123, 133-134, 176, 181, 185-233, 237-242, 246
+scripts/download_medicaid_fmap.py                               173    148    14%   117-124, 128-148, 153-196, 201-226, 230-269, 273-322, 326-331, 335
+scripts/download_medicare_advantage.py                          168    142    15%   140-147, 151-170, 174-195, 199-253, 257-316, 320-373, 377-382, 386
+scripts/download_medicare_parts.py                              164    140    15%   113-120, 124-144, 149-172, 179-203, 207-308, 312-317, 321
+scripts/download_msrb_trades.py                                 188    158    16%   85-93, 97-117, 121-136, 146-180, 185-214, 223-251, 274-332, 346-358, 362
+scripts/download_municipal.py                                   118     85    28%   183-191, 195-211, 215-231, 258-285, 296-343, 352-358, 362
+scripts/download_nara_nextgen.py                                 24     12    50%   43-50, 65-75, 79
+scripts/download_ncua.py                                        158    131    17%   119-126, 130-149, 153-161, 165-207, 211-299, 303-355, 359-364, 368
+scripts/download_nfip.py                                        117     85    27%   73-75, 79-102, 118, 122-196, 200-205, 209
+scripts/download_nih.py                                         161    135    16%   107-115, 119-139, 143-153, 157-197, 201-247, 251-271, 275-303, 307-360, 364-369, 373
+scripts/download_nmtc.py                                        143     76    47%   65-72, 76-91, 95-109, 174, 179, 183-236, 240-245, 249
+scripts/download_nonprofits.py                                  189    152    20%   189-190, 200-207, 211-232, 241-260, 269-310, 328-333, 344-465, 473-484, 488
+scripts/download_ofac.py                                        183    114    38%   77-85, 89-96, 100-115, 140-149, 209-265, 272-332, 342-352, 356
+scripts/download_oia.py                                         155    120    23%   97, 101, 112-125, 155-178, 182-208, 212-236, 240, 244-303, 307-313, 317
+scripts/download_openfema_pa_projects.py                        178    141    21%   87-115, 125-169, 174-183, 193-194, 226-259, 264-276, 285-346, 355-366, 370
+scripts/download_opm_fedscope.py                                 76     55    28%   61-72, 76-80, 84-97, 101-121, 125-130, 134
+scripts/download_opportunity_zones.py                            69     50    28%   53-67, 72-97, 101-121, 125-130, 134
+scripts/download_p3.py                                          129     82    36%   156-163, 167-186, 202-251, 255-299, 303-308, 312
+scripts/download_pr_pensions.py                                 195    166    15%   134-141, 145-164, 171-183, 188-265, 272-290, 295-317, 321-367, 371-376, 380
+scripts/download_prepa_contracts.py                             111     75    32%   155, 179-186, 191-205, 210-225, 229, 233-278, 282-287, 291
+scripts/download_promesa_creditors.py                           108     70    35%   226, 254-261, 266-281, 285, 289-342, 346-351, 355
+scripts/download_research.py                                    238    209    12%   122-124, 129-131, 146-152, 160-170, 175-178, 192-324, 338-460, 474-504, 525, 534-567, 571-599, 603
+scripts/download_rum_coverover.py                               103     74    28%   170-172, 177-192, 196, 200-265, 269-274, 278
+scripts/download_sam_exclusions.py                               81     52    36%   61-82, 86-109, 119-122, 132-143, 147-153, 157
+scripts/download_sam_opportunities.py                           131    103    21%   93-115, 124-131, 137-165, 175-233, 237-254, 258
+scripts/download_sba.py                                         289    254    12%   87-89, 99-119, 124-135, 146-170, 179-220, 231-275, 286-311, 316-401, 406, 416, 421-519, 523-561, 565
+scripts/download_sbir.py                                        182    156    14%   70-72, 82-102, 107-112, 120-171, 176-212, 221, 225-275, 279-310, 314
+scripts/download_sec.py                                         211    181    14%   136-143, 147-169, 179-209, 218-220, 229-231, 241-269, 278-298, 307-524, 534-544, 548
+scripts/download_sec_holdings.py                                135    108    20%   131-138, 142-162, 166-203, 207-244, 248-282, 286-335, 339-344, 348
+scripts/download_sec_officers.py                                123     45    63%   91-105, 153-166, 186-192, 203-204, 219-224, 228
+scripts/download_sf133.py                                       122     98    20%   91-109, 113-130, 142-190, 201-263, 278-286, 290
+scripts/download_slfrf.py                                       152    121    20%   116, 125, 129-143, 152, 172-198, 208-231, 241, 246-315, 319-339, 343
+scripts/download_snap_nap.py                                    260    230    12%   113-120, 124-143, 147-163, 167-179, 183-233, 237-263, 267-311, 315-366, 370-446, 450-457, 461
+scripts/download_ssa.py                                         179    153    15%   136-143, 147-167, 172-213, 218-265, 269-305, 309-350, 354-359, 363
+scripts/download_subawards.py                                   195    162    17%   116, 125, 129-143, 148, 165-199, 215-253, 263-294, 304, 309-374, 378-431, 435
+scripts/download_usace_civil.py                                 183    148    19%   105, 109, 120-133, 163-185, 189-229, 233-259, 263, 267-327, 331-364, 368
+scripts/download_usace_permits.py                               123     98    20%   68-70, 75-97, 102-115, 125-134, 140-171, 180-218, 227-231, 235
+scripts/download_usaspending_loans.py                            61     43    30%   83-111, 115-137, 141-146, 150
+scripts/download_usda.py                                        166    132    20%   129, 133, 137-150, 154-162, 179-202, 211-235, 239-261, 270, 274-322, 326-337, 341
+scripts/download_usda_farm.py                                    62     43    31%   75-107, 111-133, 137-142, 146
+scripts/download_va.py                                          193    164    15%   121-129, 133-153, 157-173, 178-226, 231-260, 264-316, 320-375, 379-384, 388
+scripts/download_wic.py                                         195    169    13%   108-115, 119-138, 142-225, 229-285, 289-347, 351-404, 408-413, 417
+scripts/download_wioa.py                                        155    124    20%   154, 158, 162-176, 180-186, 203-226, 230-252, 256-278, 282, 286-338, 342-350, 354
+scripts/emma_mapper.py                                           58     13    78%   48-50, 63-64, 71-73, 120, 127-142
+scripts/enrichment/__init__.py                                    0      0   100%
+scripts/enrichment/enrich_financialdata_entities.py             139     22    84%   232-235, 336-340, 396-399, 401, 413-418, 453-472, 476
+scripts/entity_resolution.py                                    211    112    47%   48-61, 65-72, 77-97, 102-103, 120, 128, 131-132, 157-164, 194-195, 200-205, 207-208, 225-268, 285, 294, 317, 323-333, 367-376, 380
+scripts/execution_chain_builder.py                              157     21    87%   93-94, 122-123, 157-159, 223, 226, 279-292, 360-365, 369
+scripts/extract_act_acuden_pdfs.py                              149    149     0%   39-359
+scripts/extract_emma_revenue.py                                  16      8    50%   33, 45-50, 54
+scripts/fdic_mapper.py                                           70     15    79%   60-61, 82-84, 97-98, 105-107, 158, 165-178
+scripts/federation_export.py                                     97     18    81%   83-103, 224-225, 243-249, 272
+scripts/fetch_highergov_api.py                                   71     55    23%   60-104, 108-127, 131
+scripts/fetch_legislative_canonical_sources.py                  185     87    53%   74, 88, 94, 97, 101-105, 109-137, 141-150, 154-165, 169-176, 182-205, 214, 230-231, 272, 293-314, 318
+scripts/gap_analysis_builder.py                                 143     13    91%   38-39, 85-86, 106, 218, 272, 321-325, 329
+scripts/gen_dashboard_snapshot.py                                17     17     0%   16-50
+scripts/generate_report.py                                      327    327     0%   30-909
+scripts/highergov_manifest.py                                     1      1     0%   2
+scripts/highergov_mapper.py                                      51      6    88%   66-68, 89-91
+scripts/import_sba_disaster_loans.py                            132     16    88%   73, 103, 170, 182, 221, 253-262, 266
+scripts/influence_graph_builder.py                              228     39    83%   67-68, 74-75, 96-97, 144-148, 155, 251, 282-286, 302-306, 342, 368-369, 407-408, 443-444, 494, 530-531, 557-561, 565
+scripts/ingest_act_tolls_concession.py                           23      7    70%   72-77, 81
+scripts/ingest_act_transition.py                                101     23    77%   117-121, 134-137, 183-187, 219, 221, 228-239, 243
+scripts/ingest_active_contractors.py                            138     68    51%   154, 159-187, 205, 217-223, 237, 242, 249-251, 262-293, 297-302, 306
+scripts/ingest_ases_plan_vital.py                                23      7    70%   68-73, 77
+scripts/ingest_bde_loans.py                                      23      7    70%   69-74, 78
+scripts/ingest_cabilderos.py                                    136     37    73%   174, 182-192, 201-209, 214, 228, 255, 262-264, 282, 285-287, 305-310, 314
+scripts/ingest_centinelas_handoff.py                             16     16     0%   4-20
+scripts/ingest_centinelas_signals.py                             31      9    71%   64-77, 81-84, 88
+scripts/ingest_contracts.py                                      99     40    60%   80, 83, 85-86, 95, 135, 138, 140, 145-149, 153-177, 181-203, 207
+scripts/ingest_contralor.py                                     135     36    73%   200, 208-218, 227-233, 238, 251, 278, 285-287, 305, 308-310, 329-334, 338
+scripts/ingest_cor3.py                                          122    122     0%   18-302
+scripts/ingest_crim_property_tax.py                              23      7    70%   76-81, 85
+scripts/ingest_ddec_incentives.py                                23      7    70%   83-88, 92
+scripts/ingest_debt.py                                          114     41    64%   109-110, 115, 155, 158, 160, 165-169, 173-199, 203-227, 231
+scripts/ingest_doj_settlements.py                                23      7    70%   72-77, 81
+scripts/ingest_donaciones.py                                     81     18    78%   195, 204, 229-231, 241, 245-246, 249-251, 260-267, 271
+scripts/ingest_dtop_centerline_lrs.py                           119     15    87%   107-108, 119, 128, 201-208, 233, 301-306, 310
+scripts/ingest_dtop_road_contracts.py                            17      7    59%   37-42, 46
+scripts/ingest_dtop_vehicle_fees.py                              23      7    70%   72-77, 81
+scripts/ingest_entities.py                                       80     34    58%   76, 110, 113, 115, 120-124, 128-148, 152-167, 171
+scripts/ingest_equitable_sharing.py                              23      7    70%   65-70, 74
+scripts/ingest_fec.py                                           121    121     0%   29-254
+scripts/ingest_federal_publications.py                           50     50     0%   15-98
+scripts/ingest_fema_pa_portal_exports.py                        138    138     0%   13-395
+scripts/ingest_fhwa_hpms_routes.py                              148     21    86%   101, 106-108, 117-119, 121-122, 217-218, 266-273, 275, 323-327, 331
+scripts/ingest_fhwa_nbi_bridges.py                              112     13    88%   101-103, 222-229, 231, 280-284, 288
+scripts/ingest_follow_the_money.py                              171     35    80%   191, 199, 214, 217, 220-223, 225-236, 248, 271, 284, 301-302, 321-323, 332-333, 345-346, 363-364, 377-378, 406-413, 417
+scripts/ingest_funding_sources.py                                90     41    54%   75-76, 79, 113, 116, 118, 123-127, 131-155, 159-181, 185
+scripts/ingest_gaming_commission.py                              23      7    70%   69-74, 78
+scripts/ingest_grants.py                                         94     94     0%   15-184
+scripts/ingest_hud_drgr_exports.py                              154     92    40%   167-173, 177-200, 204-211, 215-225, 243-244, 259, 274-276, 301-340, 349-357, 361
+scripts/ingest_irs_ctc_eitc_pr.py                                23      7    70%   65-70, 74
+scripts/ingest_legislapr_sessions.py                             90     28    69%   56-64, 73, 104, 141-152, 156-167, 171
+scripts/ingest_lobbying.py                                      102     41    60%   83, 85, 87-88, 97, 135, 138, 140, 142, 147-151, 155-179, 183-205, 209
+scripts/ingest_loteria_pr.py                                     23      7    70%   67-72, 76
+scripts/ingest_municipalities.py                                 91     34    63%   78, 109-113, 123, 126, 131-155, 159-175, 179
+scripts/ingest_oatrh_payroll.py                                  23      7    70%   88-93, 97
+scripts/ingest_oce.py                                            82     18    78%   184, 192, 217-219, 229, 233-234, 237-239, 248-255, 259
+scripts/ingest_ocpr_contracts.py                                 23      7    70%   118-123, 127
+scripts/ingest_ogpe_permits.py                                   23      7    70%   76-81, 85
+scripts/ingest_people.py                                        134     31    77%   100, 106-107, 201, 267-271, 275-295, 299-315, 319
+scripts/ingest_port_airport_contracts.py                         17      8    53%   32, 36-41, 45
+scripts/ingest_port_airport_revenue.py                           17      8    53%   33, 37-42, 46
+scripts/ingest_ports_authority.py                                23      7    70%   81-86, 90
+scripts/ingest_prasa.py                                         135     36    73%   174, 182-192, 201-207, 212, 225, 252, 259-261, 279, 282-284, 305-310, 314
+scripts/ingest_prasa_cer.py                                      80     10    88%   110-111, 130, 180-185, 189
+scripts/ingest_projects.py                                      101     43    57%   87, 90, 92-93, 98, 137, 140, 142, 147-151, 155-181, 185-209, 213
+scripts/ingest_properties.py                                    100     43    57%   79, 82, 84-85, 92, 128, 131, 133, 138-142, 146-173, 177-199, 203
+scripts/ingest_prpha_housing_subsidy.py                          23      7    70%   67-72, 76
+scripts/ingest_report_builder.py                                188     90    52%   223-242, 249, 254-265, 268, 283-284, 296-313, 316, 340, 345, 349, 354, 359, 366-368, 380-427, 431-439, 443
+scripts/ingest_roles.py                                          85     27    68%   106, 130-134, 138-155, 159-173, 177
+scripts/ingest_sam_bulk.py                                      143    143     0%   23-262
+scripts/ingest_stip_tip_projects.py                             107     10    91%   146, 155, 234, 296-301, 305
+scripts/ingest_toll_revenue.py                                   16      7    56%   37-49, 53
+scripts/ingest_tourism_room_tax.py                               23      7    70%   86-91, 95
+scripts/ingest_transit_contracts.py                              17      8    53%   32, 36-41, 45
+scripts/ingest_transit_fare_revenue.py                           17      8    53%   33, 37-42, 46
+scripts/ingest_utility_revenue.py                                18      9    50%   45-46, 54-59, 63
+scripts/install_api_keys_from_zip.py                            126     47    63%   60, 77, 83-84, 116-146, 151-170, 201-203, 209, 215
+scripts/lda_enrich.py                                           242    190    21%   147-155, 164-184, 194-222, 231-251, 279-493, 510-531, 535
+scripts/link_fema_pa_to_contracts.py                            160     74    54%   153-162, 166-175, 180, 209-215, 247, 295-351, 360-367, 371
+scripts/link_hud_drgr_to_assets.py                              109    109     0%   17-317
+scripts/link_hud_drgr_to_contracts.py                           123    123     0%   18-219
+scripts/merge_legislapr_registry.py                              53     22    58%   29, 33, 45, 57-71, 79-83, 87
+scripts/merge_sam_bulk_master.py                                 77     77     0%   15-117
+scripts/network_graph.py                                        173    173     0%   18-364
+scripts/ngo_integration.py                                      526    101    81%   217, 224, 227, 230-231, 247-250, 268-269, 274, 283, 285-291, 293, 333, 335, 339, 341, 353-354, 363, 365, 382, 385, 390-393, 462, 514-521, 563, 571-583, 617, 623, 646-647, 652-653, 665, 685-706, 725, 746, 753-754, 760-761, 763, 858, 866-867, 872, 875, 894-895, 906, 988-990, 1014, 1069, 1105-1106, 1139, 1204, 1206, 1262-1263, 1285-1304, 1308
+scripts/normalize_expansion_inputs.py                           197     82    58%   73, 94-95, 120-121, 125, 127, 129, 132, 136-141, 170-174, 212-216, 269-294, 299-336, 341-357, 361-363
+scripts/normalize_hud_drgr.py                                   116    116     0%   19-255
+scripts/parent_collapse.py                                      156     24    85%   105, 161-163, 172-173, 197-206, 219, 227, 260-262, 266, 325-329, 333
+scripts/parquet_utils.py                                         33     16    52%   21-22, 36-40, 52-63
+scripts/parse_aaa_ports_pdf.py                                   70     70     0%   16-129
+scripts/pipeline_preflight.py                                   132     32    76%   35, 44-45, 98-100, 103-105, 110-113, 117-119, 134-153, 177-181, 262
+scripts/prepa_cluster_report.py                                  74     74     0%   12-159
+scripts/prepa_graph_exports.py                                   74     74     0%   20-249
+scripts/prepa_overlap_report.py                                  31     31     0%   12-72
+scripts/prepa_pdf_to_text.py                                     33     33     0%   4-47
+scripts/prepa_postmatch_qa.py                                   132    132     0%   12-302
+scripts/prepa_run_full_pipeline.py                               68     68     0%   14-170
+scripts/prepa_service_matrix_parser.py                           72     72     0%   13-137
+scripts/prepa_temporal_graph.py                                  88     88     0%   17-200
+scripts/prepare_uploaded_masters.py                             139     25    82%   29, 86, 88, 94, 120, 130-131, 137-139, 145, 148-149, 151, 171, 377-389, 393
+scripts/probe_legislapr_detail.py                               192     40    79%   234-235, 283-287, 291-301, 307-326, 336-355, 359
+scripts/probe_legislapr_detail_page.py                           47      4    91%   65, 106-107, 111
+scripts/produce_pr_news_raw_intake.py                           125     25    80%   60, 63, 67-79, 106-130, 139-141, 254, 258
+scripts/providers/__init__.py                                    17      0   100%
+scripts/providers/financialdata_net.py                           95     18    81%   140, 156, 162-176, 184, 187, 190
+scripts/regenerate_registry_json.py                              32     32     0%   8-63
+scripts/report_canonical_v1_graph.py                             79     12    85%   179-193, 197
+scripts/route_pr_intake.py                                      116     28    76%   21, 70, 73, 77-91, 139-143, 159, 203-204, 206-207, 214, 218
+scripts/run_automatable_sources.py                              114     37    68%   73, 84-85, 88-91, 94-95, 100-105, 115, 144-146, 159-166, 176-196, 200
+scripts/run_contract_finance_geo_reasoning.py                   431     35    92%   50, 153, 156-157, 159, 172, 178, 185, 232, 285, 425-429, 476, 481, 569, 698, 701-703, 722, 825, 1159-1183, 1187
+scripts/run_export.py                                            42     16    62%   29, 44-45, 61-64, 70-77, 87
+scripts/run_maintenance.py                                       30     30     0%   7-57
+scripts/run_pr_intake_router_hook.py                             17      1    94%   52
+scripts/run_pr_news_router_pipeline.py                           41      4    90%   87, 95, 107, 111
+scripts/run_production_status_gate.py                            20     20     0%   3-32
+scripts/run_promotion_guard.py                                   24     24     0%   8-44
+scripts/run_repo_quality_audit_r49z_b.py                         32     32     0%   3-43
+scripts/run_sam_pipeline.py                                      63     51    19%   25, 29-41, 53-105, 115-139, 143
+scripts/run_source_delivery_watch_r49f.py                        35     35     0%   3-51
+scripts/run_source_recovery_pause_lock_r49z.py                   34     34     0%   3-46
+scripts/sam_enrichment.py                                       518    159    69%   158-159, 178-179, 195-215, 248-251, 264-275, 298-340, 434-437, 487, 522-523, 569-590, 637-638, 662-663, 703, 711, 713, 720-729, 734-735, 774, 776, 798, 856-869, 872-874, 878-891, 898-912, 936, 941-952, 958-965, 974-975, 978-993, 1034-1040, 1048-1059, 1162-1195
+scripts/sam_uei_parent_lookup.py                                172    172     0%   20-318
+scripts/scan_for_secrets.py                                      73      7    90%   134, 139-141, 166-167, 202
+scripts/scrape_asg_emergency_purchases.py                       172     41    76%   151, 175, 216-217, 247, 251, 259-278, 313, 326, 333, 338, 344-346, 383-389, 409-417, 421
+scripts/scrape_asg_suppliers.py                                 230     46    80%   129, 153, 166, 169, 178-179, 216, 307, 312, 329-348, 379, 389, 396, 401, 407-409, 420-421, 436-442, 460-468, 472
+scripts/scrape_iapconsulta.py                                   131     14    89%   134-136, 203, 212, 217, 265-275, 279
+scripts/scrape_ocpr_contracts.py                                165     14    92%   136-143, 197-198, 284, 302, 307, 387
+scripts/setup_directories.py                                     24      2    92%   17, 47
+scripts/smoke_export.py                                          23     23     0%   12-47
+scripts/source_intake_helpers.py                                124     22    82%   71, 85, 91-95, 112-130, 200, 230, 243
+scripts/source_intake_paths.py                                   12      0   100%
+scripts/source_intake_tranche_b.py                               99     15    85%   302, 343-344, 363-365, 402, 425-442, 446
+scripts/sources/__init__.py                                       0      0   100%
+scripts/sources/fetch_lda_gov.py                                230     38    83%   203-205, 211-213, 218, 221, 227-244, 269, 284-293, 332, 509-512, 534-537, 642
+scripts/update_sources.py                                         6      6     0%   7-15
+scripts/usaspending_parent_uei_extract.py                       157    157     0%   20-263
+scripts/validate_downloads.py                                   116     63    46%   57-59, 106, 117-137, 143-187, 195-213, 217
+scripts/validate_expansion_coverage.py                          116     83    28%   46-48, 64-72, 86, 94-177, 194-216, 220
+scripts/validate_export.py                                      241     26    89%   81, 100, 121, 147, 163, 166-167, 184, 201, 334, 362, 370, 378, 504-518, 522
+scripts/validate_federal_publications.py                         91     91     0%   27-164
+scripts/validate_fema_pa_coverage.py                            139    139     0%   19-298
+scripts/validate_foia_submission_ready.py                        64     28    56%   56, 74, 79, 82, 88-99, 110-126, 130
+scripts/validate_hud_drgr_amounts.py                            103    103     0%   17-240
+scripts/validate_hud_drgr_coverage.py                           104    104     0%   18-213
+scripts/validate_pr_grid.py                                      86     86     0%   4-113
+scripts/validate_skills.py                                      283     71    75%   76-77, 95, 104, 107, 111-112, 124-125, 127, 130, 134, 138, 140, 142, 145, 171, 173, 175, 184, 188, 190, 192, 200, 204, 213, 222, 226, 231, 244, 256, 268, 270, 272, 282, 287, 291-292, 304, 308, 315, 319-323, 325, 337, 342, 345, 362, 368, 372, 376, 389, 393, 395, 419-435, 439
+scripts/validate_source_registry_top_form.py                    150     35    77%   21, 74, 95, 97, 99, 101, 103, 126, 128, 130, 132, 134, 136, 138, 140, 144, 234-263, 267
+scripts/validate_top_form_controls.py                           110     31    72%   85, 94, 100, 104, 108, 127, 135-136, 141, 149, 153, 157, 165, 176, 180-181, 186, 191, 196, 214-232, 236
+scripts/watchlist.py                                             32      3    91%   29, 59, 64
+scripts/write_artifact_manifest.py                               72     11    85%   96, 122-144, 148
+scripts/write_source_manifests.py                                54     19    65%   44, 55-56, 76-79, 86-87, 110-125, 129
+-------------------------------------------------------------------------------------------
+TOTAL                                                         46834  22498    52%
+Coverage XML written to file coverage.xml
+Required test coverage of 44% reached. Total coverage: 51.96%
+=========================== short test summary info ============================
+FAILED tests/test_completeness_matrix.py::test_matrix_regenerates_byte_identically
+1 failed, 2442 passed, 4 skipped, 1 warning in 177.66s (0:02:57)

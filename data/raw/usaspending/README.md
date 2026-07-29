@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 # Dropzone: usaspending_fy2026_pr_slice
 
 Manual USASpending bulk-archive exports, filtered to Puerto Rico. Registered by
@@ -23,3 +24,16 @@ Current contents:
   archives outside the repo.
 - **Tracking:** these CSVs stay OUT of git (`data/**` deny-all; no allow-list
   entry for this directory). Only the READMEs are tracked.
+=======
+# USASpending FY2026 — Puerto Rico slice (consolidated 2026-07-05)
+
+`FY2026_All_Contracts_PR.csv` — Puerto Rico subset of the USASpending
+`FY2026_All_Contracts_Full_20260207` bulk archive (1.86 GB, 889,804 contract
+rows nationwide). Stream-filtered to **1,157 PR rows** where
+`recipient_state_code == 'PR'` OR `primary_place_of_performance_state_code == 'PR'`
+(union = money awarded to PR vendors + money performed in PR).
+
+Original 270 MB zip left in place under `Contract Data/`; only the PR slice was
+brought into the repo. Supplements the API-driven `usaspending_prime`
+(`pr_contracts_master.csv`).
+>>>>>>> Stashed changes

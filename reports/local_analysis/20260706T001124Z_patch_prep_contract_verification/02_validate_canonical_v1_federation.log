@@ -1,0 +1,8 @@
+[FAIL federation_invalid] manifest.json: missing or non-object federation descriptor
+[FAIL manifest_files_missing] manifest.json: expected 5 file entries, got none
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=entities
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=sources
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=funding_awards
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=transactions
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=relationships
+[FAIL] 7 validation error(s) in mode=test

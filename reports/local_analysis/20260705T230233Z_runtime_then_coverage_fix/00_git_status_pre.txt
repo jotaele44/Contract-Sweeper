@@ -1,0 +1,26 @@
+ M data/manifests/canonical_v1/contracts.json
+ M data/manifests/entity_master.json
+ M data/manifests/graph_export.json
+ M data/manifests/person_master.json
+ M data/manifests/staging_masters.json
+ M reports/canonical_v1_graph_summary.json
+ M reports/canonical_v1_graph_summary.md
+ M reports/financial_source_audit.csv
+ M reports/financial_source_audit.md
+?? .DS_Store
+?? .github/.DS_Store
+?? data/manifests/.DS_Store
+?? data/manifests/consolidation/
+?? "data/raw/HigherGov/HigherGov PR Data (IDV Awards).pdf"
+?? "data/raw/HigherGov/HigherGov PR Data (Municipal Awards).pdf"
+?? "data/raw/HigherGov/HigherGov PR Data (Prime Awards).pdf"
+?? "data/raw/HigherGov/HigherGov PR Data (Sub Awards).pdf"
+?? docs/.DS_Store
+?? exports/.DS_Store
+?? moneysweep/.DS_Store
+?? outputs/.DS_Store
+?? registries/.DS_Store
+?? registries/source_registry_overlays/consolidated_2026_07_05.yaml
+?? reports/local_analysis/
+?? scripts/.DS_Store
+?? tests/.DS_Store

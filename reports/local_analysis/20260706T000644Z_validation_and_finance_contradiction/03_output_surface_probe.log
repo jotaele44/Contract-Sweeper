@@ -1,0 +1,207 @@
+
+=== data/staging/processed/graph/network_summary.json ===
+{
+  "total_nodes": 5262,
+  "total_edges": 7072,
+  "vendor_nodes": 5226,
+  "agency_nodes": 36,
+  "parent_entity_nodes": 0,
+  "production_status": "NON_PRODUCTION_DIAGNOSTIC",
+  "production_status_message": "Diagnostic output only \u2014 not production-valid.",
+  "top_node_by_pagerank": "Department of Defense",
+  "top_node_type": "agency",
+  "outputs": {
+    "graphml": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/network.graphml",
+    "top_nodes": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/top_nodes.csv",
+    "entity_edges": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/entity_edges.csv",
+    "summary": "/Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/network_summary.json"
+  }
+}
+
+=== data/staging/processed/graph/top_nodes.csv ===
+rows: 30
+columns: ['node', 'node_type', 'degree', 'in_degree', 'out_degree', 'pagerank', 'betweenness']
+                                           node node_type  degree  in_degree  out_degree  pagerank   betweenness
+0                         Department of Defense    agency    1900       1900           0  0.130245  1.566665e+33
+1                Department of Veterans Affairs    agency    1037       1037           0  0.074453  4.566224e+00
+2               Department of Homeland Security    agency    1206       1206           0  0.072833  3.968356e+12
+3                     Department of Agriculture    agency     684        684           0  0.042014  2.550082e+07
+4                         Department of Justice    agency     687        687           0  0.038148  1.985222e+02
+5                    Department of the Interior    agency     387        387           0  0.021645  1.663800e+03
+6                  Department of Transportation    agency     288        288           0  0.020204  5.349400e-02
+7               General Services Administration    agency     292        292           0  0.016559  4.083200e-02
+8       Department of Health and Human Services    agency     173        173           0  0.009627  1.047711e+00
+9                Social Security Administration    agency      65         65           0  0.004850  1.097900e-02
+10                       Department of Commerce    agency      94         94           0  0.004584  1.385900e-02
+11                   Department of the Treasury    agency      71         71           0  0.002487  5.564400e-02
+12              Environmental Protection Agency    agency      32         32           0  0.002141  4.180000e-03
+13                          Department of State    agency      33         33           0  0.001777  3.686000e-03
+14                          Department of Labor    agency      33         33           0  0.001350  4.240000e-03
+15  Department of Housing and Urban Development    agency      22         22           0  0.001203  6.610000e-03
+16                      Smithsonian Institution    agency      10         10           0  0.000689  1.327000e-03
+17      Equal Employment Opportunity Commission    agency       6          6           0  0.000481  7.620000e-04
+18                 U.S. Agency for Global Media    agency       4          4           0  0.000462  0.000000e+00
+19                  National Science Foundation    agency       5          5           0  0.000381  5.690000e-04
+
+=== data/staging/processed/graph/entity_edges.csv ===
+rows: 7072
+columns: ['source_entity', 'target', 'total_obligation', 'contract_count', 'fy_min', 'fy_max', 'edge_type']
+                          source_entity                                   target  total_obligation  contract_count  fy_min  fy_max edge_type
+0     100 CALLE BRUMBAUGH OWNER PR, LLC                    Department of Defense          26359.96               2    2022    2024     award
+1                  1032 ENTERPRISES LLC                    Department of Defense           9990.00               1    2023    2023     award
+2                      17 MACHINERY LLC                    Department of Defense          11901.74               1    2019    2019     award
+3            17TH ST PHOTO SUPPLY, INC.                    Department of Defense          65637.15               1    2018    2018     award
+4           22ND CENTURY NETWORKS, INC.                    Department of Defense        6360588.39               2    2019    2025     award
+5                  259 HOLDINGS LTD LLC  Department of Health and Human Services          15891.27               1    2022    2022     award
+6    2ISTED MIND CREATIVE SERVICES CORP                    Department of Defense           5470.60               1    2014    2014     award
+7                     3 RIOS LTD. CORP.           Department of Veterans Affairs        1693292.58               2    2004    2010     award
+8                            3001, INC.                    Department of Defense         114000.00               1    2007    2007     award
+9                      3500 SQUARE, LLC                    Department of Defense            500.00               1    2025    2025     award
+10             360 ENERGY SOLUTIONS LLC          Department of Homeland Security           6485.00               1    2024    2024     award
+11              3D METAL CONCEPTS GROUP                    Department of Defense              0.00               1    2012    2012     award
+12                           3M COMPANY           Department of Veterans Affairs          20876.25               1    2018    2018     award
+13                  3M PUERTO RICO, INC                    Department of Defense          40002.00               2    2008    2010     award
+14                  3M PUERTO RICO, INC  Department of Health and Human Services           5747.20               1    2010    2010     award
+15                  3M PUERTO RICO, INC           Department of Veterans Affairs          61772.24              13    2008    2010     award
+16   3MC MOBILE & MECHANICAL REPAIR LLC          Department of Homeland Security          69622.93               1    2019    2019     award
+17  3RD MILLENNIUM GENETICS CORPORATION                Department of Agriculture         234882.12              14    2013    2019     award
+18             3T FEDERAL SOLUTIONS LLC          Department of Homeland Security        9450109.63               3    2019    2022     award
+19             3T FEDERAL SOLUTIONS LLC           Department of Veterans Affairs          14699.55               2    2017    2018     award
+
+=== data/staging/processed/risk/risk_signals_master.csv ===
+rows: 23262
+columns: ['signal_id', 'signal_family', 'signal_type', 'severity', 'subject_type', 'subject_id', 'entity_name', 'signal_value', 'threshold', 'confidence', 'evidence_source', 'evidence_row_ids', 'explanation', 'generated_at']
+                     signal_id  signal_family                 signal_type severity subject_type                  subject_id                 entity_name  signal_value  threshold  confidence       evidence_source                                                                                                                                                                                                                            evidence_row_ids                                                                                       explanation                      generated_at
+0   SIG-CONC-MULTIPLE_REC-0000  concentration  entity_award_concentration   medium       entity         MULTIPLE RECIPIENTS         MULTIPLE RECIPIENTS      0.215307       0.15        0.90  pr_all_awards_master                                                                                              1247DRPRP0000000;13872978;13872979;13872981;13873000;14921387;14921389;14921623;14921674;15890214;15904007;15904008;15972797;15972806;16017774  MULTIPLE RECIPIENTS received 21.5% of total PR award spend ($79,734,686,110 of $370,329,905,523)  2026-07-05T23:03:53.556968+00:00
+1               SIG-REPE--0000  repeat_awards      repeat_award_recipient   medium       entity                         NaN                         NaN   4194.000000       3.00        0.85  pr_all_awards_master  1705347007;1A03AH000878-01;1A03AH000901-01;1A03AH000924-01;1A03AH000949-01;1A03AH000973-01;1A03AH000997-01;1A03AH001045-01;1A03AH001051-01;1A03AH001103-01;1A03AH001146-01;1A03AH001180-01;1A22NU000122-01;1A22NU021053-01;1A22NU060027-01                                                                     received 4194 separate awards  2026-07-05T23:03:53.556968+00:00
+2      SIG-REPE-100_VINOS-0001  repeat_awards      repeat_award_recipient   medium       entity                   100 VINOS                   100 VINOS      4.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                          1588028905;5210038000;7048867202;EIDLGT:3303884415                                                              100 VINOS received 4 separate awards  2026-07-05T23:03:53.556968+00:00
+3   SIG-REPE-100_X_35_BEE-0002  repeat_awards      repeat_award_recipient   medium       entity      100 X 35 BEER BOUTIQUE      100 X 35 BEER BOUTIQUE      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                     4578199100;9014477803;EIDLGT:3300723045                                                 100 X 35 BEER BOUTIQUE received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+4   SIG-REPE-143_AUTO_SAL-0003  repeat_awards      repeat_award_recipient   medium       entity              143 AUTO SALES              143 AUTO SALES      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                     2446657800;8486455003;EIDLGT:3301239992                                                         143 AUTO SALES received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+5   SIG-REPE-16_POINTS_HO-0004  repeat_awards      repeat_award_recipient   medium       entity          16 POINTS HOLDINGS          16 POINTS HOLDINGS      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                     6020458404;8262047209;EIDLGT:3301561390                                                     16 POINTS HOLDINGS received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+6   SIG-REPE-17TH_ST_PHOT-0005  repeat_awards      repeat_award_recipient   medium       entity        17TH ST PHOTO SUPPLY        17TH ST PHOTO SUPPLY      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                   AGF352D150001;W912LR14F0057;W912LR18P0085                                                   17TH ST PHOTO SUPPLY received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+7   SIG-REPE-2_SIGNATURE_-0006  repeat_awards      repeat_award_recipient   medium       entity          2 SIGNATURE TRAVEL          2 SIGNATURE TRAVEL      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                     4584827201;6318888102;EIDLGT:3304902959                                                     2 SIGNATURE TRAVEL received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+8   SIG-REPE-20_20_OPTICA-0007  repeat_awards      repeat_award_recipient   medium       entity         20 20 OPTICAL JEIRA         20 20 OPTICAL JEIRA      4.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                 1803927008;3349167907;6097999102;9074087207                                                    20 20 OPTICAL JEIRA received 4 separate awards  2026-07-05T23:03:53.556968+00:00
+9   SIG-REPE-2011_JV_CONT-0008  repeat_awards      repeat_award_recipient   medium       entity          2011 JV CONTRACTOR          2011 JV CONTRACTOR      4.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                          1020627909;2463508701;4934937200;EIDLGT:3301423943                                                     2011 JV CONTRACTOR received 4 separate awards  2026-07-05T23:03:53.556968+00:00
+10  SIG-REPE-24_MARKET_PL-0009  repeat_awards      repeat_award_recipient   medium       entity             24 MARKET PLACE             24 MARKET PLACE      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                     6258737202;8016759000;EIDLGT:3303683257                                                        24 MARKET PLACE received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+11  SIG-REPE-26_METAL_REC-0010  repeat_awards      repeat_award_recipient   medium       entity          26 METAL RECYCLING          26 METAL RECYCLING      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                     4425967200;6821988410;EIDLGT:3302781974                                                     26 METAL RECYCLING received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+12  SIG-REPE-2A_CONSTRUCT-0011  repeat_awards      repeat_award_recipient   medium       entity             2A CONSTRUCTION             2A CONSTRUCTION      4.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                          1739027406;3439878505;7377368507;EIDLGT:3304271559                                                        2A CONSTRUCTION received 4 separate awards  2026-07-05T23:03:53.556968+00:00
+13         SIG-REPE-2L_ME-0012  repeat_awards      repeat_award_recipient   medium       entity                       2L ME                       2L ME      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                            4821427204;9324278205;9520078506                                                                  2L ME received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+14  SIG-REPE-2M_ASSOCIATE-0013  repeat_awards      repeat_award_recipient   medium       entity         2M ASSOCIATES L L C         2M ASSOCIATES L L C      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                     1379897905;3438057802;EIDLGT:3300580077                                                    2M ASSOCIATES L L C received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+15     SIG-REPE-3_A_PRESS-0014  repeat_awards      repeat_award_recipient   medium       entity                   3 A PRESS                   3 A PRESS      7.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                    142500;1754967208;3782507010;5195979106;7642635007;7643285000;9448805005                                                              3 A PRESS received 7 separate awards  2026-07-05T23:03:53.556968+00:00
+16        SIG-REPE-3_RIOS-0015  repeat_awards      repeat_award_recipient   medium       entity                      3 RIOS                      3 RIOS      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                             3038917300;V672C00316;V672R0038                                                                 3 RIOS received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+17        SIG-REPE-3_VETS-0016  repeat_awards      repeat_award_recipient   medium       entity                      3 VETS                      3 VETS      7.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                            DJD14CBG0013;DJD14HQG0100;V6728P3926;V672P82580;V672P83846;V672P84461;V672P84598                                                                 3 VETS received 7 separate awards  2026-07-05T23:03:53.556968+00:00
+18   SIG-REPE-303_DIGITAL-0017  repeat_awards      repeat_award_recipient   medium       entity                 303 DIGITAL                 303 DIGITAL      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                            2379387006;2866788404;4222377200                                                            303 DIGITAL received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+19  SIG-REPE-360_MARKETIN-0018  repeat_awards      repeat_award_recipient   medium       entity  360 MARKETING EVENTS GROUP  360 MARKETING EVENTS GROUP      3.000000       3.00        0.85  pr_all_awards_master                                                                                                                                                                                                     3275877904;9085187208;EIDLGT:3302624619                                             360 MARKETING EVENTS GROUP received 3 separate awards  2026-07-05T23:03:53.556968+00:00
+
+=== data/staging/processed/risk/entity_risk_scores.csv ===
+rows: 18725
+columns: ['entity_id', 'entity_name', 'risk_score', 'signal_count', 'signal_families', 'dominant_signal_family', 'confidence', 'generated_at']
+                         entity_id                     entity_name  risk_score  signal_count                                        signal_families dominant_signal_family  confidence                      generated_at
+0                             NONE                            NONE      1.0000            90                        political_overlap;repeat_awards          repeat_awards      0.6028  2026-07-05T23:07:15.575961+00:00
+1        UNIVERSITY OF PUERTO RICO       UNIVERSITY OF PUERTO RICO      1.0000           501  bond_contract_overlap;political_overlap;repeat_awards          repeat_awards      0.6010  2026-07-05T23:07:15.594094+00:00
+2                          RETIRED                         RETIRED      1.0000          2876                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631740+00:00
+3                    SELF EMPLOYED                   Self Employed      1.0000           489                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631896+00:00
+4              ICPR JUNIOR COLLEGE             ICPR JUNIOR COLLEGE      1.0000            90                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.631931+00:00
+5       OMEGA OVERSEAS INVESTMENTS      Omega Overseas Investments      1.0000            84                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632183+00:00
+6                   CC ELECTRONICS                  CC ELECTRONICS      0.5805            43                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632303+00:00
+7         MUNICIPALITY OF SAN JUAN        MUNICIPALITY OF SAN JUAN      0.5441            38                        political_overlap;repeat_awards          repeat_awards      0.6066  2026-07-05T23:07:15.574330+00:00
+8   UNIVERSIDAD CENTRAL DEL CARIBE  UNIVERSIDAD CENTRAL DEL CARIBE      0.4766            33                        political_overlap;repeat_awards          repeat_awards      0.6076  2026-07-05T23:07:15.593871+00:00
+9                         ASSERTUS                        ASSERTUS      0.3240            24                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632238+00:00
+10                      TETRA TECH                      TETRA TECH      0.2336            15                        political_overlap;repeat_awards          repeat_awards      0.6167  2026-07-05T23:07:15.591514+00:00
+11                             YES                             YES      0.2201            14                        political_overlap;repeat_awards          repeat_awards      0.6179  2026-07-05T23:07:15.597657+00:00
+12                  BAZUKA SERVICE                  BAZUKA SERVICE      0.2160            16                                      political_overlap      political_overlap      0.6000  2026-07-05T23:07:15.632250+00:00
+13              SOUTHWEST AIRLINES              SOUTHWEST AIRLINES      0.2066            13                        political_overlap;repeat_awards          repeat_awards      0.6192  2026-07-05T23:07:15.589570+00:00
+14               BOSTON SCIENTIFIC               BOSTON SCIENTIFIC      0.1931            12                        political_overlap;repeat_awards          repeat_awards      0.6208  2026-07-05T23:07:15.535519+00:00
+15                       NEW HILLS                       NEW HILLS      0.1796            11                        political_overlap;repeat_awards          repeat_awards      0.6227  2026-07-05T23:07:15.575473+00:00
+16             PEDRO ORTIZ ALVAREZ             PEDRO ORTIZ ALVAREZ      0.1796            11                        political_overlap;repeat_awards          repeat_awards      0.6227  2026-07-05T23:07:15.579141+00:00
+17              ULTIMATE SOLUTIONS              ULTIMATE SOLUTIONS      0.1796            11                        political_overlap;repeat_awards          repeat_awards      0.6227  2026-07-05T23:07:15.593574+00:00
+18                             CTS                             CTS      0.1661            10                        political_overlap;repeat_awards          repeat_awards      0.6250  2026-07-05T23:07:15.543738+00:00
+19              MAKKO CONSTRUCTION              MAKKO CONSTRUCTION      0.1661            10                        political_overlap;repeat_awards          repeat_awards      0.6250  2026-07-05T23:07:15.569898+00:00
+
+=== data/staging/processed/risk/project_risk_scores.csv ===
+rows: 5989
+columns: ['project_id', 'chain_id', 'award_id', 'prime_name', 'sub_name', 'municipality', 'obligation_amount', 'risk_score', 'signal_count', 'chain_confidence', 'opacity_flag', 'generated_at']
+    project_id          chain_id                                    award_id                      prime_name                                            sub_name  municipality  obligation_amount  risk_score  signal_count  chain_confidence  opacity_flag                      generated_at
+0          NaN  19e7cb5d15e1655f   CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  WALSH CONSTRUCTION PUERTO RICO                       BERMUDEZ LONGO DIAZ-MASSO LLC           NaN       5.245765e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807039+00:00
+1          NaN  ffac7355b133236e   CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  WALSH CONSTRUCTION PUERTO RICO                BERMUDEZ  &  LONGO  DIAZ-MASSO  S  E           NaN       5.245765e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807064+00:00
+2          NaN  aa5e56b68ffed37a   CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  WALSH CONSTRUCTION PUERTO RICO                BERMUDEZ  &  LONGO  DIAZ-MASSO  S  E           NaN       5.245765e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807072+00:00
+3          NaN  458e113a8ff77a91  CONT_AWD_GS02P16AZC7000_4740_-NONE-_-NONE-          WALSH PUERTO RICO, LLC                       BERMUDEZ LONGO DIAZ-MASSO LLC           NaN       8.166158e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807077+00:00
+4          NaN  72df124c1c6a25e9   CONT_AWD_VA101F16C0025_3600_-NONE-_-NONE-          WALSH PUERTO RICO, LLC  TECHNICAL DEMOLITION & RECYCLING SERVICES PR, INC.           NaN       1.203771e+08      0.2667             1              0.90          True  2026-07-05T23:07:15.807082+00:00
+5          NaN  3b3b0c3d0de9ea72   CONT_AWD_VA101F16C0025_3600_-NONE-_-NONE-          WALSH PUERTO RICO, LLC                          GRACIA & LLENIN GROUP, INC           NaN       1.203771e+08      0.2667             1              0.90          True  2026-07-05T23:07:15.807086+00:00
+6          NaN  82eb4e8cb7199e95  CONT_AWD_GS02P16AZC7000_4740_-NONE-_-NONE-          WALSH PUERTO RICO, LLC                               GLASSTRA ALUMINUM INC           NaN       8.166158e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807091+00:00
+7          NaN  b43b16da06e6933a       CONT_AWD_JM01_9700_N6247012D7004_9700                      AGVIQ, LLC            RIGHT WAY ENVIRONMENTAL CONTRACTORS, INC           NaN       2.002613e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807095+00:00
+8          NaN  e8013ba09f2d525b  CONT_AWD_GS02P16AZC7000_4740_-NONE-_-NONE-          WALSH PUERTO RICO, LLC                                     WIGHT & COMPANY           NaN       8.166158e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807100+00:00
+9          NaN  d7e323e19c9cf440       CONT_AWD_0001_9700_W81XWH15D0042_9700                             NaN              PHARMACEUTICAL RESEARCH ASSOCIATES INC           NaN       0.000000e+00      0.2667             1              0.55          True  2026-07-05T23:07:15.807105+00:00
+10         NaN  2e6ac65264a73d5b   CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  WALSH CONSTRUCTION PUERTO RICO                          STRUCTURAL STEEL WORKS INC           NaN       5.245765e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807110+00:00
+11         NaN  6a45111ee8e8bb09  CONT_AWD_GS02P16AZC7000_4740_-NONE-_-NONE-          WALSH PUERTO RICO, LLC                      TERRASOL ENGINEERING GROUP LLC           NaN       8.166158e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807114+00:00
+12         NaN  3d42691243ad2aa1   CONT_AWD_VA101F16C0025_3600_-NONE-_-NONE-          WALSH PUERTO RICO, LLC                       ALONSO & CARUS IRON WORKS INC           NaN       1.203771e+08      0.2667             1              0.90          True  2026-07-05T23:07:15.807119+00:00
+13         NaN  32821f3f28acc17e   CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  WALSH CONSTRUCTION PUERTO RICO                                  INSITE CORPORATION           NaN       5.245765e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807123+00:00
+14         NaN  a7bad9927a3f4424   CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  WALSH CONSTRUCTION PUERTO RICO                      SENECAL CONSTRUCTION CO., INC.           NaN       5.245765e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807127+00:00
+15         NaN  3bcd69edd62b09f5       CONT_AWD_0002_9700_W911QY10D0014_9700       PROPPER INTERNATIONAL INC     PUERTO RICO APPAREL MANUFACTURING (PRAMA) CORP.           NaN       0.000000e+00      0.2667             1              0.75          True  2026-07-05T23:07:15.807132+00:00
+16         NaN  f71b551ec2878dbf   CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  WALSH CONSTRUCTION PUERTO RICO                            SPEC 8 INTERNATIONAL LLC           NaN       5.245765e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807137+00:00
+17         NaN  84b258240de8262a       CONT_AWD_0001_9700_W9127812D0056_9700          POLU KAI SERVICES, LLC                                CGN ENGINEERING CORP           NaN       3.079809e+06      0.2667             1              0.90          True  2026-07-05T23:07:15.807141+00:00
+18         NaN  6022efee8fe0cfed  CONT_AWD_VA24812J4589_3600_VA248C1889_3600          POLU KAI SERVICES, LLC                                CGN ENGINEERING CORP           NaN       2.906018e+06      0.2667             1              0.90          True  2026-07-05T23:07:15.807145+00:00
+19         NaN  81211271a42401a3       CONT_AWD_0001_9700_M6785411D3070_9700       PROPPER INTERNATIONAL INC     PUERTO RICO APPAREL MANUFACTURING (PRAMA) CORP.           NaN       4.790426e+07      0.2667             1              0.90          True  2026-07-05T23:07:15.807150+00:00
+
+=== data/staging/processed/risk/municipality_risk_scores.csv ===
+rows: 127
+columns: ['municipality', 'award_count', 'total_amount', 'top_recipient', 'risk_score', 'signal_count', 'generated_at']
+    municipality  award_count  total_amount                                       top_recipient  risk_score  signal_count                      generated_at
+0          CAMUY         2495  1.614660e+08                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625058+00:00
+1   AGUAS BUENAS         2388  1.092948e+08                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625085+00:00
+2        YABUCOA         2771  5.114245e+07                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625096+00:00
+3     LAS MARÍAS          295  5.235141e+06                             MUNICIPIO DE LAS MARIAS         0.0             0  2026-07-05T23:07:16.625106+00:00
+4        BAYAMÓN        16718  2.134557e+09                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625115+00:00
+5   BARRANQUITAS         3286  1.586758e+08                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625123+00:00
+6        NAGUABO         2181  2.993018e+07                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625132+00:00
+7     JUANA DÍAZ         3822  2.051418e+08                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625140+00:00
+8         Gurabo            1  1.260000e+05                                 DIAZ MERCED WANDA L         0.0             0  2026-07-05T23:07:16.625149+00:00
+9          LARES         2647  1.259197e+08                                 REDACTED DUE TO PII         0.0             0  2026-07-05T23:07:16.625157+00:00
+10         COAMO         2980  1.106003e+08                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625165+00:00
+11    WILLIAMSON            1  5.394400e+03  A NEW VISION IN EDUCATIONAL SERVICES AND MATERIALS         0.0             0  2026-07-05T23:07:16.625172+00:00
+12        Anasco            1  1.342400e+03                                                 NaN         0.0             0  2026-07-05T23:07:16.625180+00:00
+13        JUNCOS         3410  3.112835e+07                                 REDACTED DUE TO PII         0.0             0  2026-07-05T23:07:16.625188+00:00
+14      DAVIDSON            1  0.000000e+00                                  THE HOUSE PAINTERS         0.0             0  2026-07-05T23:07:16.625196+00:00
+15  PHILADELPHIA            1  2.489990e+05   UNIVERSITY OF PUERTO RICO MEDICAL SCIENCES CAMPUS         0.0             0  2026-07-05T23:07:16.625204+00:00
+16         CEIBA         1605  5.968844e+07                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625213+00:00
+17      Mayaguez            7  2.802045e+06                      CARIBBEAN THERMAL TECHNOLOGIES         0.0             0  2026-07-05T23:07:16.625221+00:00
+18    RÍO GRANDE         2531  4.741731e+07                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625229+00:00
+19          MOCA         2267  3.559950e+07                                 MULTIPLE RECIPIENTS         0.0             0  2026-07-05T23:07:16.625237+00:00
+
+=== data/manifests/risk_signal_report.json ===
+{
+  "schema_version": "r7_v1",
+  "generated_at": "2026-07-05T23:03:53.556968+00:00",
+  "signal_count": 23262,
+  "entity_count": 18725,
+  "project_count": 5989,
+  "municipality_count": 127,
+  "input_rows": {
+    "awards": 453352,
+    "chains": 5989,
+    "entities": 109646,
+    "emma": 20,
+    "lda": 25,
+    "fec": 16637,
+    "cabilderos": 0
+  },
+  "thresholds": {
+    "concentration": 0.15,
+    "repeat_award": 3,
+    "opacity_confidence": 0.8,
+    "geo_cluster": 0.3
+  },
+  "families_fired": [
+    "bond_contract_overlap",
+    "concentration",
+    "political_overlap",
+    "repeat_awards",
+    "subaward_opacity"
+  ],
+  "output_rows": {
+    "risk_signals_master": 23262,
+    "entity_risk_scores": 18725,
+    "project_risk_scores": 5989,
+    "municipality_risk_scores": 127
+  }
+}

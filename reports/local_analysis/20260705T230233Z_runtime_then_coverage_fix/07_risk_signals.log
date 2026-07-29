@@ -1,0 +1,3 @@
+2026-07-05 19:03:48 [INFO] Computing risk signals from R5 data (root=/Users/jotaele/Developer/moneysweep-pr)
+2026-07-05 19:07:16 [INFO]   Signals: 23262 | Entities: 18725 | Projects: 5989 | Municipalities: 127
+2026-07-05 19:07:16 [INFO]   Manifest: /Users/jotaele/Developer/moneysweep-pr/data/manifests/risk_signal_report.json

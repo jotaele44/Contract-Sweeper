@@ -1,0 +1,6 @@
+readiness/moneysweep_finance_lane.py: error: Source file found twice under different module names: "moneysweep_finance_lane" and "readiness.moneysweep_finance_lane"
+readiness/moneysweep_finance_lane.py: note: See https://mypy.readthedocs.io/en/stable/running_mypy.html#mapping-file-paths-to-modules for more info
+readiness/moneysweep_finance_lane.py: note: Common resolutions include:
+readiness/moneysweep_finance_lane.py: note:     a) adding `__init__.py` somewhere,
+readiness/moneysweep_finance_lane.py: note:     b) using `--explicit-package-bases` or adjusting `MYPYPATH`
+Found 1 error in 1 file (errors prevented further checking)

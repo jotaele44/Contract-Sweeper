@@ -1,0 +1,7 @@
+[FAIL federation_invalid] manifest.json: federation.consumer_repo=None (expected 'spiderweb-pr')
+[FAIL federation_invalid] manifest.json: federation.consumer_component=None (expected 'query-hub')
+[FAIL federation_invalid] manifest.json: federation.contract=None (expected 'moneysweep-pr-export')
+[FAIL manifest_files_missing] manifest.json: expected 5 file entries, got 3
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=funding_awards
+[FAIL manifest_files_missing] manifest.json: missing files[] entry for stream=transactions
+[FAIL] 6 validation error(s) in mode=test

@@ -1,0 +1,13 @@
+path: data/normalized/financial_flows_master.parquet
+rows: 90598
+amount_non_null: 90598
+amount_total: 63797332465.08
+max_amount: 2886250258.16
+flow_types:
+flow_type
+federal_contract          68730
+federal_disaster_grant    21868
+source_systems:
+source_system
+usaspending    68730
+openfema_v2    21868

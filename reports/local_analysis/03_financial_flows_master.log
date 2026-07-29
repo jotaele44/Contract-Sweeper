@@ -1,0 +1,23 @@
+2026-07-05 18:27:40 [INFO] Loading upstream inputs...
+2026-07-05 18:27:41 [INFO]   Loaded 21,868 rows from fema_pa_projects_v2.parquet
+2026-07-05 18:27:41 [INFO]   Loaded 0 rows from fema_pa_portal_178_pws.parquet
+2026-07-05 18:27:41 [INFO]   Loaded 0 rows from hud_drgr_projects.parquet
+2026-07-05 18:27:41 [INFO]   Loaded 0 rows from pr_cor3_projects.csv
+2026-07-05 18:27:41 [INFO]   Loaded 0 rows from pr_prasa_contracts.csv
+2026-07-05 18:27:41 [INFO]   Loaded 0 rows from pr_compras_awards.csv
+2026-07-05 18:27:42 [INFO]   Loaded 68,730 rows from pr_contracts_master.csv
+2026-07-05 18:27:48 [INFO]   FEMA PA: 21,868 flow rows
+2026-07-05 18:27:48 [INFO]   HUD DRGR: 0 flow rows
+2026-07-05 18:27:48 [INFO]   PR Procurement: 0 flow rows
+2026-07-05 18:28:19 [INFO]   Contracts: 68,730 flow rows
+2026-07-05 18:28:19 [INFO]   Infrastructure revenue: 0 flow rows
+2026-07-05 18:28:20 [INFO] ============================================================
+2026-07-05 18:28:20 [INFO] FINANCIAL FLOWS MASTER SUMMARY
+2026-07-05 18:28:20 [INFO] ============================================================
+2026-07-05 18:28:20 [INFO]   Total flow rows:  90,598
+2026-07-05 18:28:20 [INFO]   Total amount:     $63,797,332,465
+2026-07-05 18:28:20 [INFO]     federal_contract: 68,730
+2026-07-05 18:28:20 [INFO]     federal_disaster_grant: 21,868
+2026-07-05 18:28:20 [INFO]   → financial_flows_master.parquet
+
+Financial flows master: 90,598 rows, $63,797,332,465 total
