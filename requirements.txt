@@ -5,7 +5,7 @@ pytest>=9.1.1
 pytest-cov>=7.1.0
 rapidfuzz>=3.14.5
 python-dotenv>=1.2.2
-pyarrow>=24.0.0
+pyarrow>=25.0.0
 # R5 foundation deps
 PyYAML>=6.0.3
 networkx>=3.6.1; python_version >= '3.11'
@@ -13,7 +13,7 @@ networkx>=3.0; python_version < '3.11'
 # ACT/ACUDEN PDF extraction harness
 pdfplumber>=0.11.10
 # SBA disaster-loan workbook importer
-openpyxl>=3.1.0
+openpyxl>=3.1.5
 # Shared maintenance core from thehub-pr, resolved via a local editable path
 # instead of a pinned commit SHA (edit-once, no per-repo bump). Requires
 # thehub-pr checked out as a sibling of this repo.
