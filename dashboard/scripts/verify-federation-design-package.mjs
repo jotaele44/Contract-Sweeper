@@ -6,8 +6,8 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const expectedUrl = 'https://github.com/jotaele44/thehub-pr/releases/download/federation-design-v0.4.0-rc.1/pr-federation-react-0.4.0-rc.1.tgz'
-const expectedSha256 = '4c68f03c8fc7ed0d1e62af7997e02bfca9b6c95ee1740376ebaf7a3a9752ee5b'
+const expectedUrl = 'https://github.com/jotaele44/thehub-pr/releases/download/federation-design-v0.4.1/pr-federation-react-0.4.1.tgz'
+const expectedSha256 = 'a609b6e88103e6bdfc4af8305e8997843f6e2c1e60ae386ef17ae3f211272f45'
 
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'))
 const pkg = await readJson(join(root, 'package.json'))
@@ -20,10 +20,10 @@ const harness = await readJson(join(root, 'node_modules/@pr-federation/react/dis
 
 assert.equal(pkg.dependencies['@pr-federation/react'], expectedUrl)
 assert.equal(lock.packages['node_modules/@pr-federation/react'].resolved, expectedUrl)
-assert.equal(installed.version, '0.4.0-rc.1')
+assert.equal(installed.version, '0.4.1')
 assert.equal(manifest.package, '@pr-federation/react')
-assert.equal(manifest.version, '0.4.0-rc.1')
-assert.equal(manifest.expectedTag, 'federation-design-v0.4.0-rc.1')
+assert.equal(manifest.version, '0.4.1')
+assert.equal(manifest.expectedTag, 'federation-design-v0.4.1')
 assert.equal(manifest.tokenVersion, '2.0.0')
 assert.equal(tokens.version, '2.0.0')
 assert.equal(manifest.mutableReferencesAllowed, false)

@@ -52,7 +52,7 @@ function Atlas() {
     <main className="atlas-shell">
       <header className="atlas-header">
         <div>
-          <p className="atlas-kicker">MoneySweep pilot · immutable RC</p>
+          <p className="atlas-kicker">MoneySweep pilot · immutable release</p>
           <h1>Federation async-state and primitive atlas</h1>
           <p>Runtime QueryBoundary states with shared buttons, panels, stat cards, and semantic-badge contracts.</p>
         </div>

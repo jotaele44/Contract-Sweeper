@@ -6,7 +6,7 @@
       "width": 390,
       "height": 844,
       "screenshot": "mobile-compact.png",
-      "sha256": "88c6a9d1b9cbcca03144e8401553732d1f3eb1a8b0250b4279eb16cc556b0888",
+      "sha256": "9cd8797023abcdbe03e1d5b1636a917d3f51b0f41d8d7928e6c81f2b76edafd2",
       "themes": [
         {
           "theme": "dark",
@@ -25,7 +25,7 @@
       "width": 430,
       "height": 932,
       "screenshot": "mobile-wide.png",
-      "sha256": "9628a9eb32f8a653bf729b45f3b2ef31e03f5d9fdb2e18cdab4a3863d01882c2",
+      "sha256": "55592bf92716140cb6fe177535654007b361008a33913a4cc773f8012ab316d2",
       "themes": [
         {
           "theme": "dark",
@@ -44,7 +44,7 @@
       "width": 768,
       "height": 1024,
       "screenshot": "tablet.png",
-      "sha256": "84b8f7578f732c9467c5e80dd2c47ec40b1f5395abf2b1de99fdcbbfe6d56b9b",
+      "sha256": "c6f75dd1af426461abf49b9d14f3804f870f469c1a548f9573484b6483a2bb35",
       "themes": [
         {
           "theme": "dark",
@@ -63,7 +63,7 @@
       "width": 1280,
       "height": 800,
       "screenshot": "desktop.png",
-      "sha256": "7d60239d9283c911be951c0cea809ed11e583b37d5a118534a0faca2b285ba49",
+      "sha256": "d897fdf00c7b75b10109dd6774349f49d4d5a05927d5a70fb668ee7d8efc97c4",
       "themes": [
         {
           "theme": "dark",
@@ -82,7 +82,7 @@
       "width": 1440,
       "height": 900,
       "screenshot": "desktop-wide.png",
-      "sha256": "b081fa5249b7b74d91a5f158984dbe491706a63d8378bfed2a235e6a06edf6b2",
+      "sha256": "b6cc9065d9bf1d28f6f3d1efbe3df3ae9535da7f53d680939d2706cf0b38b701",
       "themes": [
         {
           "theme": "dark",
@@ -101,7 +101,7 @@
       "width": 1920,
       "height": 1080,
       "screenshot": "wide.png",
-      "sha256": "541e67466eb87b23ee582b3344b1fd3bcc40115642df403e9c9f0be0e4eed41a",
+      "sha256": "dba5018d82567ea0ce32936e58471470df0b376469d13e83334a62cdb0b4f3e2",
       "themes": [
         {
           "theme": "dark",
