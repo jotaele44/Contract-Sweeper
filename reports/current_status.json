@@ -1,9 +1,9 @@
 {
-  "schema_version": "moneysweep_current_status_v3",
-  "generated_at": "2026-07-29T09:27:00-04:00",
+  "schema_version": "moneysweep_current_status_v4",
+  "generated_at": "2026-07-29T10:27:00-04:00",
   "base_sha": "34ef3b9352493d0b6ba4eb821d7ea544bec0933b",
-  "certified_input_head_sha": "1dc726893a3a15879fe828aeeeb46ddd8807c870",
-  "active_vector": "COMMIT_MONEYSWEEP_WAVE0_CERTIFIED_STATUS_v0_6",
+  "certified_input_head_sha": "33c123f1c3826f1b27b67172dd3227d81353af47",
+  "active_vector": "REMEDIATE_MONEYSWEEP_WAVE0_REQUIRED_GAPS_AND_ORPHAN_OWNERSHIP_v0_7",
   "active_branch": "agent/moneysweep-wave0-status-reconciliation-v0-3",
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "pause_lock_active": true,
@@ -15,6 +15,7 @@
   "authoritative_inputs": {
     "source_readiness": "reports/materialization_readiness.json",
     "materialization_evidence": "operator bundle MONEYSWEEP_WAVE0_OPERATOR_AUDIT.zip",
+    "gap_and_output_ownership_adjudication": "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json",
     "source_registry": "registries/source_registry.json",
     "detailed_roadmap": "docs/ROAD_TO_100.md",
     "normalized_roadmap": "docs/ROAD_TO_100_NORMALIZED.md"
@@ -58,11 +59,7 @@
       "head_sha": "47b822518caffdd24f223f9ae8466a60012077cb",
       "triggered_workflows": 16,
       "status": "GREEN_AND_MANUAL_PREFLIGHT_PASS",
-      "manual_preflight_runs": [
-        30452888839,
-        30452890975,
-        30452892905
-      ],
+      "manual_preflight_runs": [30452888839, 30452890975, 30452892905],
       "live_jobs_skipped": 3
     },
     "dependency_refresh_pr": {
@@ -73,8 +70,10 @@
     },
     "status_reconciliation_pr": {
       "number": 448,
-      "certified_input_head_sha": "1dc726893a3a15879fe828aeeeb46ddd8807c870",
-      "status": "PENDING_FULL_CI_ON_CERTIFIED_STATUS_REFRESH"
+      "previous_certified_head_sha": "33c123f1c3826f1b27b67172dd3227d81353af47",
+      "previous_triggered_workflows": 15,
+      "previous_status": "GREEN",
+      "current_status": "PENDING_FULL_CI_ON_GAP_OWNERSHIP_REFRESH"
     },
     "superseded_status_pr": {
       "number": 447,
@@ -83,7 +82,7 @@
     }
   },
   "materialization_coverage": {
-    "regeneration_status": "CERTIFIED_OPERATOR_CORPUS",
+    "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION",
     "certification_scope": "OFFLINE_LOCAL_OPERATOR_CORPUS",
     "evidence_generated_at": "2026-07-29T13:14:30.168036+00:00",
     "evidence_bundle_sha256": "2a37bf4c49f5e4d267ca4cbdc8366c718efc1738de607cdbe3cbbbd3ec8b9f85",
@@ -94,7 +93,6 @@
     "registry_digest_parity": true,
     "status_count_parity": true,
     "probe_ran": false,
-    "targeted_status_tests": "5_PASSED",
     "local_operator_snapshot": {
       "fully_materialized": 67,
       "partially_materialized": 11,
@@ -111,46 +109,35 @@
       "total_csv_files": 120,
       "total_rows_on_disk": 1183565,
       "registry_accounted_rows": 849898,
-      "orphan_rows": 212930,
-      "orphan_file_count": 6,
+      "raw_audit_undeclared_positive_rows": 212930,
+      "raw_audit_undeclared_file_count": 6,
+      "adjudicated_derived_output_rows": 212930,
+      "adjudicated_derived_output_file_count": 6,
+      "unadjudicated_orphan_rows": 0,
+      "unadjudicated_orphan_file_count": 0,
       "intermediate_rows": 120737,
-      "intermediate_file_count": 11
+      "intermediate_file_count": 11,
+      "row_total_parity": true,
+      "double_counting_detected": false
     },
-    "required_source_gaps": [
-      "cor3",
-      "hud_drgr_authorized",
-      "pr_cabilderos",
-      "prasa"
-    ],
-    "orphan_files": [
-      {
-        "file": "entity_master.csv",
-        "rows": 104280
-      },
-      {
-        "file": "pr_entity_profiles.csv",
-        "rows": 104280
-      },
-      {
-        "file": "high_value_unresolved.csv",
-        "rows": 4085
-      },
-      {
-        "file": "pr_report_builder_master.csv",
-        "rows": 238
-      },
-      {
-        "file": "pr_entity_gaps.csv",
-        "rows": 37
-      },
-      {
-        "file": "sam_entities.csv",
-        "rows": 10
-      }
+    "required_source_adjudication": {
+      "cor3": "DECLARED_EMPTY_OUTPUT_REQUIRES_AUTHORIZED_REFRESH",
+      "hud_drgr_authorized": "MANUAL_EXPORT_ABSENT",
+      "pr_cabilderos": "DECLARED_EMPTY_MANUAL_EXPORT",
+      "prasa": "DECLARED_EMPTY_MANUAL_EXPORT",
+      "materialization_credit_changed": false
+    },
+    "derived_output_files": [
+      "entity_master.csv",
+      "pr_entity_profiles.csv",
+      "high_value_unresolved.csv",
+      "pr_report_builder_master.csv",
+      "pr_entity_gaps.csv",
+      "sam_entities.csv"
     ],
     "external_universe_completeness": "NOT_CERTIFIED",
     "freshness_certification": "NOT_CERTIFIED",
-    "next_certification_action": "Resolve or formally classify the four required-source gaps, reconcile six orphan files, then validate freshness, production export, and downstream federation consumers before any production-status change."
+    "next_certification_action": "Acquire or refresh the four required sources only through separately authorized bounded or manual workflows, compare the two 104,280-row derived products by content keys, and validate production export plus downstream federation consumers before any production-status change."
   },
   "historical_coverage_evidence": {
     "status": "SUPERSEDED_FOR_CURRENT_COVERAGE",
@@ -166,11 +153,11 @@
     "fully_or_partially_materialized_pct": 51.66,
     "required_materialization_pct": 71.43,
     "production_gate": false,
-    "evidence_depth": "D3_CURRENT_OPERATOR_CORPUS",
-    "interpretation": "The current 151-source offline operator corpus is certified, but external-universe completeness, freshness, production export, and downstream federation validation remain open."
+    "evidence_depth": "D3_CURRENT_OPERATOR_CORPUS_ADJUDICATED",
+    "interpretation": "The current 151-source offline corpus and output ownership are certified. Four required-source data gaps, freshness, external-universe completeness, production export, and downstream validation remain open."
   },
   "issue_reconciliation": {
-    "epic_271": "OPEN_P0_CORPUS_GATE_COMPLETE_2026-07-29",
+    "epic_271": "OPEN_P0_CORPUS_AND_OWNERSHIP_GATES_COMPLETE_2026-07-29",
     "issue_258": "CLOSED_COMPLETED_2026-06-16",
     "issue_87": "CLOSED_SUPERSEDED_2026-07-28",
     "child_range_272_307": "OPEN_UNLESS_SEPARATELY_CLOSED",
@@ -180,36 +167,38 @@
     "superseded_status_pr": 447
   },
   "completed_in_wave0": [
-    "Full CI passed on workflow-repair PR #444, dependency-refresh PR #446, and certified input head 1dc726893a3a15879fe828aeeeb46ddd8807c870.",
+    "Full CI passed on workflow-repair PR #444, dependency-refresh PR #446, and PR #448 head 33c123f1c3826f1b27b67172dd3227d81353af47.",
     "Three GitHub-hosted preflight dispatches passed and all live jobs were skipped.",
     "Authoritative offline 151-source operator-corpus audit completed with registry-digest and status-count parity.",
-    "Original operator checkout retained its four pre-existing local modifications during detached-worktree certification.",
+    "Four required-source gaps were formally classified without awarding materialization credit.",
+    "Six undeclared positive-row files were adjudicated as derived outputs; row accounting reconciles exactly with zero unadjudicated orphan rows.",
     "Closed contaminated status PR #447 unmerged and preserved clean successor PR #448 without force push or history rewrite."
   ],
   "open_work": {
     "p0": [
-      "Resolve or formally classify required-source gaps: cor3, hud_drgr_authorized, pr_cabilderos, and prasa.",
-      "Reconcile ownership or intended exclusion for 212,930 rows across six orphan files.",
+      "Acquire or refresh cor3, hud_drgr_authorized, pr_cabilderos, and prasa through separately authorized bounded or manual workflows.",
+      "Compare entity_master.csv and pr_entity_profiles.csv by stable content keys; equal row counts alone do not establish duplication.",
       "Reconcile PR2.5 and PR2.6 before PR3 entity deduplication."
     ],
     "p1": [
       "Assess source freshness and external-universe completeness without conflating them with local output presence.",
-      "Execute bounded source refreshes only through authorized live-fetch workflows and retain operator receipts.",
       "Complete production export and downstream federation-consumer validation.",
       "Implement the two genuine scraper stubs: hacienda_sut_ivu and pr_act_154_excise."
     ]
   },
-  "next_command": "REMEDIATE_WAVE0_REQUIRED_GAPS_AND_ORPHAN_OWNERSHIP",
+  "next_command": "ACQUIRE_REQUIRED_SOURCES_AND_COMPARE_DERIVED_ENTITY_PRODUCTS",
   "next_command_detail": {
     "readiness_source_of_truth": "reports/materialization_readiness.json (151 total; 104/104 automatable ready; 47 queued/excluded)",
     "operator_corpus_source_of_truth": "MONEYSWEEP_WAVE0_OPERATOR_AUDIT.zip (SHA-256 2a37bf4c49f5e4d267ca4cbdc8366c718efc1738de607cdbe3cbbbd3ec8b9f85)",
+    "ownership_source_of_truth": "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json",
     "steps": [
       "Merge no Wave 0 PRs without explicit authorization.",
       "Preserve #444, #446, and #448 as drafts.",
-      "Resolve the four required-source gaps and six orphan-file ownership gaps.",
-      "Validate freshness and external-universe coverage separately from local materialization.",
+      "Do not run live acquisition without a separately explicit authorization vector.",
+      "Acquire the four required-source outputs and retain source-specific provenance receipts.",
+      "Compare the two large derived entity products by schema and stable identifiers before any duplicate classification.",
       "Run production export and downstream federation-consumer validation before changing production_status."
     ],
-    "gate": "production_status remains NON_PRODUCTION_DIAGNOSTIC until required gaps, production export, and downstream consumer validation pass"
+    "gate": "production_status remains NON_PRODUCTION_DIAGNOSTIC until required data gaps, production export, and downstream consumer validation pass"
   }
 }
