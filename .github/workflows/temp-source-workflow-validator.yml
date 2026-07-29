@@ -80,7 +80,7 @@ jobs:
             .github/workflows/sam-opportunities-fetch.yml; then
             exit 1
           fi
-          if grep -Fn '10#$DAYS' .github/workflows/sam-opportunities-fetch.yml; then
+          if grep -Fn '10#' .github/workflows/sam-opportunities-fetch.yml; then
             exit 1
           fi
           grep -Fq 'len(raw) > 4' .github/workflows/sam-opportunities-fetch.yml
