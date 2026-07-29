@@ -171,15 +171,19 @@ def get_case(case_id: str, x_case_clearance: str | None = Header(default=None)):
 def get_case_collection(
     case_id: str,
     collection: Literal[
-        "evidence", "claims", "contradictions", "events", "leads", "findings",
-        "snapshots", "audit-events",
+        "evidence",
+        "claims",
+        "contradictions",
+        "events",
+        "leads",
+        "findings",
+        "snapshots",
+        "audit-events",
     ],
     x_case_clearance: str | None = Header(default=None),
 ):
     try:
-        return _services()[1].get_case_collection(
-            case_id, collection, _clearance(x_case_clearance)
-        )
+        return _services()[1].get_case_collection(case_id, collection, _clearance(x_case_clearance))
     except Exception as exc:
         _raise(exc)
 
@@ -245,9 +249,7 @@ def link_claim_evidence(
         **payload.model_dump(),
     )
     try:
-        return _services()[0].link_claim_evidence(
-            case_id, record, _actor(x_case_actor)
-        )
+        return _services()[0].link_claim_evidence(case_id, record, _actor(x_case_actor))
     except Exception as exc:
         _raise(exc)
 
@@ -259,9 +261,7 @@ def create_contradiction(
     x_case_actor: str | None = Header(default=None),
 ):
     record = Contradiction(
-        contradiction_id=deterministic_id(
-            "contradiction", case_id, *sorted(payload.claim_ids)
-        ),
+        contradiction_id=deterministic_id("contradiction", case_id, *sorted(payload.claim_ids)),
         case_id=case_id,
         claim_ids=tuple(payload.claim_ids),
         contradiction_type=payload.contradiction_type,
@@ -297,9 +297,7 @@ def resolve_contradiction(
 
 
 @router.post("/{case_id}/leads", status_code=201)
-def create_lead(
-    case_id: str, payload: LeadCreate, x_case_actor: str | None = Header(default=None)
-):
+def create_lead(case_id: str, payload: LeadCreate, x_case_actor: str | None = Header(default=None)):
     lead = Lead(
         lead_id=deterministic_id("lead", case_id, payload.question),
         case_id=case_id,
@@ -369,9 +367,7 @@ def create_snapshot(
     case_id: str, payload: SnapshotCreate, x_case_actor: str | None = Header(default=None)
 ):
     snapshot = CaseSnapshot(
-        case_snapshot_id=deterministic_id(
-            "case_snapshot", case_id, payload.manifest_sha256
-        ),
+        case_snapshot_id=deterministic_id("case_snapshot", case_id, payload.manifest_sha256),
         case_id=case_id,
         evidence_ids=tuple(payload.evidence_ids),
         **payload.model_dump(exclude={"evidence_ids"}),

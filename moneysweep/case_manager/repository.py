@@ -7,7 +7,7 @@ import sqlite3
 from contextlib import contextmanager
 from dataclasses import asdict, is_dataclass
 from pathlib import Path
-from typing import Any, Iterator, Sequence
+from typing import Any, Iterator, Sequence, cast
 
 
 class CaseManagerConflict(RuntimeError):
@@ -50,9 +50,9 @@ class SQLiteCaseManagerRepository:
 
     @staticmethod
     def _payload(record: Any) -> dict[str, Any]:
-        if not is_dataclass(record):
+        if not is_dataclass(record) or isinstance(record, type):
             raise TypeError("record must be a dataclass instance")
-        return asdict(record)
+        return asdict(cast(Any, record))
 
     @staticmethod
     def _json(value: Sequence[str]) -> str:
@@ -85,9 +85,15 @@ class SQLiteCaseManagerRepository:
             connection,
             "contradictions",
             (
-                p["contradiction_id"], p["case_id"], self._json(p["claim_ids"]),
-                p["contradiction_type"], p["severity"], p["status"],
-                p["resolution_rationale"], p["assigned_reviewer"], p["visibility"],
+                p["contradiction_id"],
+                p["case_id"],
+                self._json(p["claim_ids"]),
+                p["contradiction_type"],
+                p["severity"],
+                p["status"],
+                p["resolution_rationale"],
+                p["assigned_reviewer"],
+                p["visibility"],
             ),
         )
 
@@ -113,9 +119,15 @@ class SQLiteCaseManagerRepository:
             connection,
             "leads",
             (
-                p["lead_id"], p["case_id"], p["question"], p["status"],
-                p["acquisition_target"], p["owner"], p["due_at"],
-                self._json(p["closure_evidence_ids"]), p["visibility"],
+                p["lead_id"],
+                p["case_id"],
+                p["question"],
+                p["status"],
+                p["acquisition_target"],
+                p["owner"],
+                p["due_at"],
+                self._json(p["closure_evidence_ids"]),
+                p["visibility"],
             ),
         )
 
@@ -139,9 +151,15 @@ class SQLiteCaseManagerRepository:
             connection,
             "findings",
             (
-                p["finding_id"], p["case_id"], p["claim_id"], p["conclusion"],
-                p["confidence"], p["reviewer"], int(p["contradiction_reviewed"]),
-                p["status"], p["visibility"],
+                p["finding_id"],
+                p["case_id"],
+                p["claim_id"],
+                p["conclusion"],
+                p["confidence"],
+                p["reviewer"],
+                int(p["contradiction_reviewed"]),
+                p["status"],
+                p["visibility"],
             ),
         )
 
@@ -160,9 +178,14 @@ class SQLiteCaseManagerRepository:
             connection,
             "case_snapshots",
             (
-                p["case_snapshot_id"], p["case_id"], p["created_at"],
-                p["manifest_sha256"], self._json(p["evidence_ids"]),
-                p["supersedes_snapshot_id"], p["redaction_profile"], p["visibility"],
+                p["case_snapshot_id"],
+                p["case_id"],
+                p["created_at"],
+                p["manifest_sha256"],
+                self._json(p["evidence_ids"]),
+                p["supersedes_snapshot_id"],
+                p["redaction_profile"],
+                p["visibility"],
             ),
         )
 
@@ -198,8 +221,16 @@ class SQLiteCaseManagerRepository:
 
     def fetch_one(self, table: str, id_column: str, object_id: str) -> dict[str, Any]:
         allowed = {
-            "cases", "case_evidence", "claims", "claim_evidence", "contradictions",
-            "leads", "findings", "case_snapshots", "case_audit_events", "case_events",
+            "cases",
+            "case_evidence",
+            "claims",
+            "claim_evidence",
+            "contradictions",
+            "leads",
+            "findings",
+            "case_snapshots",
+            "case_audit_events",
+            "case_events",
         }
         if table not in allowed:
             raise ValueError("unsupported table")
@@ -212,8 +243,14 @@ class SQLiteCaseManagerRepository:
 
     def fetch_case_rows(self, table: str, case_id: str) -> list[dict[str, Any]]:
         allowed = {
-            "case_evidence", "claims", "contradictions", "case_events", "leads", "findings",
-            "case_snapshots", "case_audit_events",
+            "case_evidence",
+            "claims",
+            "contradictions",
+            "case_events",
+            "leads",
+            "findings",
+            "case_snapshots",
+            "case_audit_events",
         }
         if table not in allowed:
             raise ValueError("unsupported case table")

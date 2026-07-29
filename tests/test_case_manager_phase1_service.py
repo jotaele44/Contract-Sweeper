@@ -183,8 +183,6 @@ def test_finding_acceptance_requires_review():
 def test_carraizo_fixture_remains_read_only():
     import json
 
-    fixture = json.loads(
-        Path("tests/fixtures/case_manager/carraizo_case.json").read_text()
-    )
+    fixture = json.loads(Path("tests/fixtures/case_manager/carraizo_case.json").read_text())
     assert fixture["fixture_status"] == "read_only_pending_review"
     assert fixture["canonical_promotion"] is False

@@ -19,6 +19,7 @@ from .models import (
     Contradiction,
     Finding,
     Lead,
+    Visibility,
 )
 from .repository import SQLiteCaseManagerRepository
 
@@ -63,14 +64,19 @@ class CaseCommandService:
         action: str,
         object_type: str,
         object_id: str,
-        visibility: str,
+        visibility: Visibility,
         payload: dict[str, Any],
         writer: Callable[[Any], None],
     ) -> dict[str, Any]:
         previous_sequence, previous_hash = self.repository.latest_audit(case_id)
         event = AuditEvent(
             audit_event_id=deterministic_id(
-                "audit_event", case_id, previous_sequence + 1, action, object_id, _payload_hash(payload)
+                "audit_event",
+                case_id,
+                previous_sequence + 1,
+                action,
+                object_id,
+                _payload_hash(payload),
             ),
             case_id=case_id,
             sequence=previous_sequence + 1,
@@ -170,7 +176,7 @@ class CaseCommandService:
         rationale: str,
         reviewer: str,
         actor: str,
-        visibility: str = "internal",
+        visibility: Visibility = "internal",
     ) -> dict[str, Any]:
         if status not in {"resolved", "held_apart"} or not rationale.strip():
             raise ValueError("explicit resolution status and rationale required")
@@ -213,7 +219,7 @@ class CaseCommandService:
         lead_id: str,
         closure_evidence_ids: tuple[str, ...],
         actor: str,
-        visibility: str = "internal",
+        visibility: Visibility = "internal",
     ) -> dict[str, Any]:
         if not closure_evidence_ids or any(
             not item.startswith("evidence_") for item in closure_evidence_ids
@@ -254,7 +260,7 @@ class CaseCommandService:
         case_id: str,
         finding_id: str,
         actor: str,
-        visibility: str = "internal",
+        visibility: Visibility = "internal",
     ) -> dict[str, Any]:
         payload = {"finding_id": finding_id, "status": "accepted"}
         return self._execute(
