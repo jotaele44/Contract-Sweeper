@@ -18,7 +18,10 @@ def test_current_status_matches_authoritative_readiness() -> None:
     status = _read("reports/current_status.json")
     readiness = _read("reports/materialization_readiness.json")
 
-    assert status["source_registry_current"]["total_sources"] == readiness["total_sources"]
+    assert (
+        status["source_registry_current"]["total_sources"]
+        == readiness["total_sources"]
+    )
     assert (
         status["source_registry_current"]["source_ids_sha256"]
         == readiness["source_count_provenance"]["source_ids_sha256"]
@@ -41,9 +44,16 @@ def test_coverage_uses_current_certified_operator_denominator() -> None:
     coverage = status["materialization_coverage"]
     snapshot = coverage["local_operator_snapshot"]
 
-    assert coverage["evidence_registry_total"] == coverage["current_registry_total"] == 151
+    assert (
+        coverage["evidence_registry_total"]
+        == coverage["current_registry_total"]
+        == 151
+    )
     assert coverage["denominator_comparable"] is True
-    assert coverage["regeneration_status"] == "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION"
+    assert (
+        coverage["regeneration_status"]
+        == "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION"
+    )
     assert coverage["probe_ran"] is False
     assert coverage["registry_digest_parity"] is True
     assert coverage["status_count_parity"] is True
@@ -63,12 +73,22 @@ def test_coverage_uses_current_certified_operator_denominator() -> None:
 def test_gap_and_output_ownership_adjudication_is_complete() -> None:
     adjudication = _read("reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json")
 
-    required = {row["source_id"]: row for row in adjudication["required_source_adjudication"]}
-    assert set(required) == {"cor3", "hud_drgr_authorized", "pr_cabilderos", "prasa"}
+    required = {
+        row["source_id"]: row
+        for row in adjudication["required_source_adjudication"]
+    }
+    assert set(required) == {
+        "cor3",
+        "hud_drgr_authorized",
+        "pr_cabilderos",
+        "prasa",
+    }
     assert all(row["materialization_credit"] is False for row in required.values())
     assert all(row["freshness_certified"] is False for row in required.values())
 
-    derived = {row["file"]: row for row in adjudication["derived_output_adjudication"]}
+    derived = {
+        row["file"]: row for row in adjudication["derived_output_adjudication"]
+    }
     assert set(derived) == {
         "entity_master.csv",
         "pr_entity_profiles.csv",
@@ -78,7 +98,9 @@ def test_gap_and_output_ownership_adjudication_is_complete() -> None:
         "sam_entities.csv",
     }
     assert all(row["classification"] == "DERIVED_OUTPUT" for row in derived.values())
-    assert all(row["source_materialization_credit"] is False for row in derived.values())
+    assert all(
+        row["source_materialization_credit"] is False for row in derived.values()
+    )
     assert sum(row["rows"] for row in derived.values()) == 212930
 
 
