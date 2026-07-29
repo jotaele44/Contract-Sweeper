@@ -9,6 +9,10 @@ pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# This file mirrors generated status-schema keys and long immutable digests.
+# Keep its assertion layout stable while Ruff linting and pytest remain active.
+# fmt: off
+
 
 def _read(path: str) -> dict:
     return json.loads((ROOT / path).read_text(encoding="utf-8"))
@@ -20,10 +24,7 @@ def test_current_status_matches_authoritative_readiness() -> None:
     registry = status["source_registry_current"]
 
     assert registry["total_sources"] == readiness["total_sources"]
-    assert (
-        registry["source_ids_sha256"]
-        == readiness["source_count_provenance"]["source_ids_sha256"]
-    )
+    assert registry["source_ids_sha256"] == readiness["source_count_provenance"]["source_ids_sha256"]
 
     expected_keys = (
         "total_sources",
@@ -45,9 +46,7 @@ def test_coverage_uses_current_certified_operator_denominator() -> None:
     assert coverage["evidence_registry_total"] == 151
     assert coverage["current_registry_total"] == 151
     assert coverage["denominator_comparable"] is True
-    assert coverage["regeneration_status"] == (
-        "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION"
-    )
+    assert coverage["regeneration_status"] == "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION"
     assert coverage["probe_ran"] is False
     assert coverage["registry_digest_parity"] is True
     assert coverage["status_count_parity"] is True
@@ -66,33 +65,19 @@ def test_coverage_uses_current_certified_operator_denominator() -> None:
 
 
 def test_gap_and_output_ownership_adjudication_is_complete() -> None:
-    adjudication = _read(
-        "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json"
-    )
+    adjudication = _read("reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json")
 
-    required = {
-        row["source_id"]: row
-        for row in adjudication["required_source_adjudication"]
-    }
+    required = {row["source_id"]: row for row in adjudication["required_source_adjudication"]}
     assert set(required) == {
         "cor3",
         "hud_drgr_authorized",
         "pr_cabilderos",
         "prasa",
     }
-    assert all(
-        row["materialization_credit"] is False
-        for row in required.values()
-    )
-    assert all(
-        row["freshness_certified"] is False
-        for row in required.values()
-    )
+    assert all(row["materialization_credit"] is False for row in required.values())
+    assert all(row["freshness_certified"] is False for row in required.values())
 
-    derived = {
-        row["file"]: row
-        for row in adjudication["derived_output_adjudication"]
-    }
+    derived = {row["file"]: row for row in adjudication["derived_output_adjudication"]}
     assert set(derived) == {
         "entity_master.csv",
         "pr_entity_profiles.csv",
@@ -101,21 +86,13 @@ def test_gap_and_output_ownership_adjudication_is_complete() -> None:
         "pr_entity_gaps.csv",
         "sam_entities.csv",
     }
-    assert all(
-        row["classification"] == "DERIVED_OUTPUT"
-        for row in derived.values()
-    )
-    assert all(
-        row["source_materialization_credit"] is False
-        for row in derived.values()
-    )
+    assert all(row["classification"] == "DERIVED_OUTPUT" for row in derived.values())
+    assert all(row["source_materialization_credit"] is False for row in derived.values())
     assert sum(row["rows"] for row in derived.values()) == 212930
 
 
 def test_adjudicated_row_buckets_have_exact_parity_and_no_double_counting() -> None:
-    adjudication = _read(
-        "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json"
-    )
+    adjudication = _read("reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json")
     rows = adjudication["row_accounting"]
 
     assert rows["registry_declared_rows"] == 849898
@@ -162,3 +139,6 @@ def test_issue_reconciliation_records_closed_supersession() -> None:
     assert reconciliation["issue_87"].startswith("CLOSED_SUPERSEDED")
     assert reconciliation["status_reconciliation_pr"] == 448
     assert reconciliation["superseded_status_pr"] == 447
+
+
+# fmt: on
