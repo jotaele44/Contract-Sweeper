@@ -43,7 +43,7 @@ def test_coverage_uses_current_certified_operator_denominator() -> None:
 
     assert coverage["evidence_registry_total"] == coverage["current_registry_total"] == 151
     assert coverage["denominator_comparable"] is True
-    assert coverage["regeneration_status"] == "CERTIFIED_OPERATOR_CORPUS"
+    assert coverage["regeneration_status"] == "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION"
     assert coverage["probe_ran"] is False
     assert coverage["registry_digest_parity"] is True
     assert coverage["status_count_parity"] is True
