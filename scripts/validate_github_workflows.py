@@ -11,6 +11,7 @@ from typing import Any
 import yaml
 
 UNSUPPORTED_FUNCTIONS = re.compile(r"\b(?:toLower|toUpper)\s*\(", re.IGNORECASE)
+EXPRESSION_BLOCKS = re.compile(r"\$\{\{(.*?)\}\}", re.DOTALL)
 SECRET_CONTEXT = "secrets" + "."
 LIVE_FETCH_WORKFLOWS = {
     "materialize-sources.yml",
@@ -32,6 +33,13 @@ def _walk(node: Any, path: tuple[str, ...] = ()):
             yield from _walk(value, child_path)
 
 
+def _expression_has_unsupported_helper(text: str) -> bool:
+    return any(
+        UNSUPPORTED_FUNCTIONS.search(expression)
+        for expression in EXPRESSION_BLOCKS.findall(text)
+    )
+
+
 def validate_workflow_file(path: Path) -> list[str]:
     errors: list[str] = []
     text = path.read_text(encoding="utf-8")
@@ -45,8 +53,14 @@ def validate_workflow_file(path: Path) -> list[str]:
         errors.append(f"{path}: workflow root must be a mapping")
         return errors
 
-    if UNSUPPORTED_FUNCTIONS.search(text):
+    if _expression_has_unsupported_helper(text):
         errors.append(f"{path}: unsupported expression helper detected")
+
+    for node_path, value in _walk(parsed):
+        if node_path and node_path[-1] == "if" and isinstance(value, str):
+            if UNSUPPORTED_FUNCTIONS.search(value):
+                location = ".".join(node_path)
+                errors.append(f"{path}:{location}: unsupported expression helper")
 
     if path.name in LIVE_FETCH_WORKFLOWS:
         for node_path, value in _walk(parsed):
