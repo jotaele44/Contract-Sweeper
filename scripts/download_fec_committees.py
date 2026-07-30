@@ -10,9 +10,10 @@ instead of issuing one request for every committee/cycle pair.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterator, Sequence, TypeVar
 
@@ -111,7 +112,14 @@ def _get(
         max_retries=MAX_RETRIES,
         page_sleep=sleep_s,
     )
-    return http_get_json(session, url, params, logger=logger, config=config)
+    return http_get_json(
+        session,
+        url,
+        params,
+        logger=logger,
+        config=config,
+        raise_on_failure=True,
+    )
 
 
 def _chunks(values: Sequence[_T], size: int) -> Iterator[list[_T]]:
@@ -331,6 +339,21 @@ def run(
     disbursements_path = processed_dir / "pr_fec_disbursements.csv"
     expenditures_path = processed_dir / "pr_fec_independent_expenditures.csv"
     logger = setup_logging("download_fec_committees")
+    manifest_dir = root / "data" / "manifests" / "campaign_finance"
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = manifest_dir / "fec_outflows_acquisition.json"
+    acquisition_manifest = {
+        "manifest_type": "fec_outflows_acquisition",
+        "status": "running",
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "committee_batch_size": COMMITTEE_BATCH_SIZE,
+        "cycle_start": START_CYCLE,
+        "cycle_end": END_CYCLE,
+    }
+    manifest_path.write_text(
+        json.dumps(acquisition_manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     api_key = api_key or os.environ.get("FEC_API_KEY", "DEMO_KEY")
     is_demo = api_key == "DEMO_KEY"
@@ -439,6 +462,34 @@ def run(
             f"{expenditure_rows:,}",
         )
 
+    committee_batches = (len(committee_ids) + COMMITTEE_BATCH_SIZE - 1) // COMMITTEE_BATCH_SIZE
+    schedule_b_planned = 0 if skip_disbursements else committee_batches * len(cycles)
+    schedule_e_planned = 0 if skip_expenditures else len(cycles)
+    acquisition_manifest.update(
+        {
+            "status": "complete",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "committee_count": len(committee_ids),
+            "cycles": cycles,
+            "schedule_b": {
+                "planned_batches": schedule_b_planned,
+                "completed_batches": schedule_b_planned,
+                "rows": disbursement_rows,
+                "skipped": skip_disbursements,
+            },
+            "schedule_e": {
+                "planned_cycles": schedule_e_planned,
+                "completed_cycles": schedule_e_planned,
+                "rows": expenditure_rows,
+                "skipped": skip_expenditures,
+            },
+        }
+    )
+    manifest_path.write_text(
+        json.dumps(acquisition_manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
     return {
         "rows": len(committee_frame),
         "committees": len(committee_frame),
@@ -455,6 +506,7 @@ def run(
             "committees": str(committees_path),
             "disbursements": str(disbursements_path),
             "independent_expenditures": str(expenditures_path),
+            "acquisition_manifest": str(manifest_path),
         },
     }
 

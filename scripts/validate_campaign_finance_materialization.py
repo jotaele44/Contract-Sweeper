@@ -87,6 +87,8 @@ FILE_RULES: dict[str, dict[str, Any]] = {
     },
 }
 
+FEC_OUTFLOW_MANIFEST = "data/manifests/campaign_finance/fec_outflows_acquisition.json"
+
 DERIVED_CONDITIONAL: dict[str, dict[str, Any]] = {
     "fec_awards_crossref": {
         "upstreams": [
@@ -162,6 +164,37 @@ def run(root: Path | None = None, *, strict: bool = False) -> dict:
         if info["required"] and info["status"] != "ok"
     ]
 
+    outflow_manifest_path = root / FEC_OUTFLOW_MANIFEST
+    outflow_acquisition: dict[str, Any] = {
+        "path": str(outflow_manifest_path),
+        "status": "missing",
+    }
+    if outflow_manifest_path.exists():
+        try:
+            payload = json.loads(outflow_manifest_path.read_text(encoding="utf-8"))
+            schedule_b = payload.get("schedule_b", {})
+            schedule_e = payload.get("schedule_e", {})
+            complete = (
+                payload.get("status") == "complete"
+                and not schedule_b.get("skipped", False)
+                and not schedule_e.get("skipped", False)
+                and schedule_b.get("planned_batches") == schedule_b.get("completed_batches")
+                and schedule_e.get("planned_cycles") == schedule_e.get("completed_cycles")
+            )
+            outflow_acquisition = {
+                **payload,
+                "path": str(outflow_manifest_path),
+                "status": "ok" if complete else "incomplete",
+            }
+        except (OSError, ValueError, TypeError) as exc:
+            outflow_acquisition = {
+                "path": str(outflow_manifest_path),
+                "status": "unreadable",
+                "error": str(exc),
+            }
+    if outflow_acquisition["status"] != "ok":
+        blocking.append(f"fec_outflow_acquisition:{outflow_acquisition['status']}")
+
     conditional = {}
     for name, rule in DERIVED_CONDITIONAL.items():
         upstream_ready = all((root / path).exists() for path in rule["upstreams"])
@@ -212,6 +245,7 @@ def run(root: Path | None = None, *, strict: bool = False) -> dict:
         "ok": not blocking,
         "blocking": blocking,
         "files": files,
+        "fec_outflow_acquisition": outflow_acquisition,
         "conditional_derived_outputs": conditional,
         "metrics": {
             "federal_receipt_rows": files["fec_contributions"]["rows"],
