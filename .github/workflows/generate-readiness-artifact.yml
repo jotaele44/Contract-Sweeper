@@ -27,8 +27,28 @@ jobs:
           grep -vE '^[[:space:]]*-e[[:space:]]' requirements.txt > /tmp/requirements.txt
           python -m pip install -r /tmp/requirements.txt
       - name: Regenerate deterministic readiness outputs
-        run: python scripts/build_source_recovery_matrix.py
-      - name: Validate legacy donations regression
+        shell: bash
+        run: |
+          python scripts/build_source_recovery_matrix.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          readiness_path = Path("reports/materialization_readiness.json")
+          status_path = Path("reports/current_status.json")
+          readiness = json.loads(readiness_path.read_text(encoding="utf-8"))
+          status = json.loads(status_path.read_text(encoding="utf-8"))
+          current = status["source_registry_current"]
+          current["total_sources"] = readiness["total_sources"]
+          current["source_ids_sha256"] = readiness["source_count_provenance"][
+              "source_ids_sha256"
+          ]
+          status_path.write_text(
+              json.dumps(status, indent=2, ensure_ascii=False) + "\n",
+              encoding="utf-8",
+          )
+          PY
+      - name: Validate readiness and legacy donations contracts
         run: python -m pytest -q -o addopts='' tests/test_donaciones_ingest.py tests/test_materialization_readiness.py
       - name: Publish and self-remove
         shell: bash
@@ -37,6 +57,7 @@ jobs:
           git add reports/source_recovery_matrix.csv \
             reports/source_recovery_matrix.md \
             reports/materialization_readiness.json \
+            reports/current_status.json \
             .github/workflows/generate-readiness-artifact.yml
           git diff --cached --check
           git config user.name github-actions[bot]
