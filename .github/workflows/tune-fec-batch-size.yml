@@ -26,12 +26,36 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          path = Path("scripts/download_fec_committees.py")
-          text = path.read_text(encoding="utf-8")
+
+          script = Path("scripts/download_fec_committees.py")
+          text = script.read_text(encoding="utf-8")
           old = "COMMITTEE_BATCH_SIZE = 10"
           if old not in text:
               raise SystemExit("expected ten-committee batch declaration not found")
-          path.write_text(text.replace(old, "COMMITTEE_BATCH_SIZE = 5", 1), encoding="utf-8")
+          script.write_text(text.replace(old, "COMMITTEE_BATCH_SIZE = 5", 1), encoding="utf-8")
+
+          test = Path("tests/test_fec_outflow_batching.py")
+          test_text = test.read_text(encoding="utf-8")
+          old_call = '''    rows = mod._fetch_disbursements(
+              object(),
+              [f"C{index:08d}" for index in range(10)],
+              [2018],
+              0,
+              logging.getLogger("test"),
+          )
+          '''
+          new_call = '''    rows = mod._fetch_disbursements(
+              object(),
+              [f"C{index:08d}" for index in range(10)],
+              [2018],
+              0,
+              logging.getLogger("test"),
+              batch_size=10,
+          )
+          '''
+          if old_call not in test_text:
+              raise SystemExit("expected adaptive test call not found")
+          test.write_text(test_text.replace(old_call, new_call, 1), encoding="utf-8")
           PY
           python -m pip install 'ruff==0.15.18' pandas requests pytest
           ruff format scripts/download_fec_committees.py tests/test_fec_outflow_batching.py
@@ -50,7 +74,10 @@ jobs:
         shell: bash
         run: |
           rm .github/workflows/tune-fec-batch-size.yml
-          git add scripts/download_fec_committees.py .github/workflows/tune-fec-batch-size.yml
+          git add \
+            scripts/download_fec_committees.py \
+            tests/test_fec_outflow_batching.py \
+            .github/workflows/tune-fec-batch-size.yml
           git diff --cached --check
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
