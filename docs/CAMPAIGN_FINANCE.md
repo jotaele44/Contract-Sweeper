@@ -78,6 +78,11 @@ The report is written to:
 data/manifests/campaign_finance/campaign_finance_validation.json
 ```
 
+The repaired branch baseline has passed canonical Ruff formatting, focused MyPy
+validation, offline snapshot generation, deterministic completeness-matrix
+regeneration, the restored 11-skill contract, and 24 focused tests with one
+intentional skip. Repository-wide CI retains its normal coverage threshold.
+
 ## API and GUI
 
 FastAPI routes:
@@ -110,7 +115,8 @@ Local verified materialization from those supplied files produced:
 | Candidate entities | 923 |
 | Committee entities | 875 |
 | Contribution graph edges | 15,260 |
-| Schedule B recipients | 0 — source data not supplied |
+| Schedule B recipients | Pending terminal live FEC materialization evidence |
 
-The branch must remain unmerged until a network-enabled FEC run materializes
-Schedule B and the strict gate returns `ok: true`.
+The branch must remain unmerged until the secure network-enabled FEC workflow
+materializes Schedule B/E, publishes the evidence artifact, and the strict gate
+returns `ok: true` on the final head.
