@@ -33,7 +33,7 @@ jobs:
               raise SystemExit("expected batch-size declaration not found")
           path.write_text(text.replace(old, "COMMITTEE_BATCH_SIZE = 10", 1), encoding="utf-8")
           PY
-          python -m pip install 'ruff==0.15.18'
+          python -m pip install 'ruff==0.15.18' pandas requests
           ruff format scripts/download_fec_committees.py
           ruff check scripts/download_fec_committees.py
           python - <<'PY'
