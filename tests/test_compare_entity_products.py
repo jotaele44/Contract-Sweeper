@@ -25,16 +25,32 @@ def test_different_products_with_same_entities_are_overlapping(tmp_path: Path) -
         left,
         ["entity_id", "canonical_name", "entity_type"],
         [
-            {"entity_id": "ENT_ORG_1", "canonical_name": "Acme, LLC", "entity_type": "organization"},
-            {"entity_id": "ENT_ORG_2", "canonical_name": "Beta Corp", "entity_type": "organization"},
+            {
+                "entity_id": "ENT_ORG_1",
+                "canonical_name": "Acme, LLC",
+                "entity_type": "organization",
+            },
+            {
+                "entity_id": "ENT_ORG_2",
+                "canonical_name": "Beta Corp",
+                "entity_type": "organization",
+            },
         ],
     )
     _write_csv(
         right,
         ["normalized_name", "recipient_name", "award_count"],
         [
-            {"normalized_name": "acme llc", "recipient_name": "ACME LLC", "award_count": "4"},
-            {"normalized_name": "beta corp", "recipient_name": "Beta Corp.", "award_count": "2"},
+            {
+                "normalized_name": "acme llc",
+                "recipient_name": "ACME LLC",
+                "award_count": "4",
+            },
+            {
+                "normalized_name": "beta corp",
+                "recipient_name": "Beta Corp.",
+                "award_count": "2",
+            },
         ],
     )
 
@@ -46,7 +62,9 @@ def test_different_products_with_same_entities_are_overlapping(tmp_path: Path) -
     assert report["stable_key_overlap"]["overlap_rate_max_denominator"] == 1.0
 
 
-def test_same_schema_and_rows_in_different_order_are_semantic_duplicate(tmp_path: Path) -> None:
+def test_same_schema_and_rows_in_different_order_are_semantic_duplicate(
+    tmp_path: Path,
+) -> None:
     columns = ["normalized_name", "award_count"]
     rows = [
         {"normalized_name": "Acme", "award_count": "4"},
