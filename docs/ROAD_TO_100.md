@@ -1,208 +1,85 @@
-# Road to 100%
+# MoneySweep — Road to 100
 
-A leverage-ordered ledger of what stands between `moneysweep-pr` today and a
-fully materialized, production-certified federation member. Counts are taken
-from the authoritative live registry snapshot in
-`reports/materialization_readiness.json` (schema `r5_readiness_v1`), not from
-historical narrative.
+**Reconciled:** 2026-07-30  
+**PR:** #448, draft and unmerged  
+**Current base incorporated:** `bd337fb092eb639cdb24b490bc90a8b07e9e51c4`  
+**Last certified v0.8 head:** `b1f088c98c8175298b856a5df8215c77fa933877`  
+**Production status:** `NON_PRODUCTION_DIAGNOSTIC`
 
-## Current completion ~75%
+## Certified baseline
 
-The pipeline, federation contract, test harness, and CI are essentially
-complete. The remaining 25% is dominated by **data materialization and
-network-gated certification**, not by missing code. Every automatable source is
-wired and ready; what is left is (a) running them against live endpoints with
-credentials, (b) hand-ingesting the manual-export tranche, and (c) finishing the
-entity-dedup chain.
+| Control | Result |
+|---|---:|
+| Registry sources | 151 |
+| Automatable / structurally ready | 104 / 104 |
+| Queued or excluded | 47 |
+| Fully / partially / not materialized | 67 / 11 / 73 |
+| Required fully materialized | 10 / 14 |
+| Registry source-ID digest | `7830358c254767bc9db34ae5230b41f815ffaea9aa0c3abe4dfdebfe36b2f2d0` |
+| Physical processed rows | 1,183,565 |
+| Registry-declared rows | 849,898 |
+| Adjudicated derived rows | 212,930 |
+| Pipeline intermediates | 120,737 |
+| Unadjudicated orphan rows | 0 |
+| Derived rows with unresolved lineage | 104,280 |
+| Live universe probe | Not run |
 
-## Live materialization — verified this session (keyed run)
+The last v0.8 head passed **16/16 triggered workflows**, including Skills Validation. GitHub checks remain authoritative for later remediation commits.
 
-With operator-supplied API keys and outbound egress via the environment proxy, the key-gated
-producers were run against their **live** endpoints. Keys were used as environment variables only
-and never committed — the pre-commit `scripts/scan_for_secrets.py` gate is clean (0 findings). Raw
-CSVs stay gitignored under `data/**` by design; the tracked evidence is
-`reports/materialization_coverage_audit.*`, which now records the materialized rows.
+## Residual repairs completed before source ingestion
 
-| Source | Producer | Result |
+### Entity comparison
+
+`entity_product_comparison_v2` now:
+
+- rejects duplicate headers, extra fields, missing fields, and empty products;
+- selects the first populated recognized key rather than the first matching header;
+- reports no-shared-column projection as not computable instead of 100% overlap;
+- distinguishes byte identity, semantic duplication, high key overlap, and distinct products;
+- exits nonzero for invalid or empty products even when `--allow-missing` is supplied.
+
+The real comparison remains pending because the certification bundle did not include the two operator CSVs.
+
+### HUD DRGR producer contract
+
+`scripts/ingest_hud_drgr_exports.py` now writes the registry-declared staging products:
+
+- `data/staging/processed/hud_drgr_activities.csv`
+- `data/staging/processed/hud_drgr_projects.csv`
+
+It also preserves normalized analytical products for activities, projects, drawdowns, and appropriations. Empty manual drops remain fail-closed with `manual_required` and zero credit.
+
+### Provenance metadata
+
+A validated source-override layer records metadata corrections without changing source IDs or the required-source denominator:
+
+- COR3 keeps `download_cor3.py` as the separately gated registry producer and records `ingest_cor3.py` as the authorized offline workbook path.
+- The cabilderos source records the Puerto Rico Department of Justice as official custodian and uses the Justice registry surface.
+
+### Derived-output lineage
+
+Five of six derived producers are confirmed. `data/staging/processed/entity_master.csv` remains a derived, non-credit output with unresolved staging lineage because the candidate `scripts/build_entity_master.py` declares `data/reference/entity_master.csv`.
+
+## Required-source queue
+
+| Source | Evidence status | Required next action |
 |---|---|---|
-| FRED (PR macro time series) | `download_fred.py` | **2,138 rows**, 8/8 series — OK |
-| EIA (PR power sector) | `download_eia.py` | **620 rows**, 5/5 series — OK |
-| FAC (municipal single audits) | `download_fac_municipal.py` | **785 rows** — OK |
-| FEC committees | `download_fec_committees.py` | **86 rows** (partial — run hit the time cap) |
-| FEC filings | `download_fec.py` | live (HTTP 200) but too slow to complete within the run cap |
-| SAM opportunities | `download_sam_opportunities.py` | ran; 0 rows for the PR date window |
-| SAM exclusions | `download_sam_exclusions.py` | download endpoint failed all retries; 0 rows |
-| OpenStates (legislative canonical) | `fetch_legislative_canonical_sources.py` | ran; 0 rows (SUTRA fallback / query tuning needed) |
-| LDA | `fetch_lda_gov.py` | reachable anonymously (HTTP 200); supplied token invalid, so anonymous access is used |
-| HIGHERGOV | `fetch_highergov_api.py` | **key rejected (403)** even after stripping stray wrapping quotes — a valid key is needed |
+| `cor3` | Export surface verified; workbook bytes absent | Supply official workbooks and run the offline ingest, or separately authorize a verified live producer |
+| `hud_drgr_authorized` | Authorized export absent | Drop exports under `data/manual/hud_drgr/` and run the producer |
+| `pr_cabilderos` | Official registry verified; complete export absent | Supply a current machine-readable Justice export |
+| `prasa` | Official contract-export route verified; filtered export absent | Supply the PRASA export and run the dropzone ingest |
 
-`materialized_any_data` in the coverage audit rose **11 → 15** (FRED, EIA, FAC, FEC committees).
-Still key-blocked or incomplete: `CENSUS_API_KEY` and `PROPUBLICA_API_KEY` (not supplied), HIGHERGOV
-(key rejected), `NREL` (host proxy-blocked), and the slow FEC-filings / SAM download paths. Full
-production certification of all 99 automatable sources remains the larger, longer run. See
-`docs/CERTIFICATION_STATUS.md` for the exact gate conditions (CI lock + runtime + required-source
-coverage) and the maintainer release-cut path — and why the CENSUS/PROPUBLICA keys do not move it.
+## Gates remaining before production consideration
 
-### Producer optimization (follow-up)
+1. Materialize and validate the four required sources.
+2. Execute `entity_product_comparison_v2` against the operator corpus.
+3. Resolve `entity_master.csv` staging lineage.
+4. Re-run the 151-source audit and preserve digest/status parity.
+5. Certify source freshness and external-universe completeness.
+6. Complete PR2.5/PR2.6 reconciliation before PR3 deduplication.
+7. Validate production export and downstream federation consumers.
+8. Keep promotion guards closed until every blocker is cleared.
 
-Scoping/robustness passes on the slow/empty producers, with a bounded live re-run:
+## Preservation
 
-- **`download_fec.py`** gained `--since-cycle` / `--max-pages` flags to bound the (otherwise 2000→current,
-  all-pages) PR Schedule-A pull. A bounded run (`--since-cycle 2022 --max-pages 5`, real key) materialized
-  **271 real rows** for `fec` — a `required: true` source (previously provisional) — so it now carries live
-  contribution data.
-- **`download_fec_committees.py --skip-disbursements --skip-expenditures`** completes the committee master
-  (86 rows) fast instead of the unbounded Schedule-B/E loops.
-- **`download_sam_opportunities.py --days 1095 --state PR`** widens the (backward-only) posted-date window;
-  the full 3-year PR pull is long (capped here).
-- Still open: `sam_exclusions` (v4 endpoint returns 429/403 — key-entitlement, not a scoping issue) and the
-  OpenStates chain (needs the upstream `legislapr_discovery` probe materialized first). Documented, not faked.
-
-### Reachable required-source materialization (this session)
-
-Targeted the coverage-gate denominator directly: the 14 `required: true` sources. Required-source
-coverage rose **0.43 → 0.57** (`required_fully_materialized` 6 → **8** of 14) in
-`reports/materialization_coverage_audit.json`. Per-source result:
-
-| Required source | Producer | Result |
-|---|---|---|
-| `lda` | `scripts/sources/fetch_lda_gov.py --live` | **materialized** — all 14 LDA.gov tables live (registrants 17,369 / clients 200 / lobbyists 200 / filings 25 / contributions 25 + 8 `constants/*` reference tables). Partial→**fully_materialized**. |
-| `sam_entities` | `scripts/sam_enrichment.py` | **materialized** — `enrichment/vendor_uei_index.csv` built from real PR contract vendors against the live SAM Entity-Information API; `entities_resolved.csv` already present. Partial→**fully_materialized**. Live UEI resolution was rate-limited (HTTP 429) in the bounded run — index rows carry honest per-row resolution status, not fabricated UEIs. |
-| `usaspending_prime` | `auto_download.py --only=usaspending` → `build_unified_master.py` | **blocked (honest)** — `pr_contracts_master.csv` present (5,147); the 2nd output `pr_all_awards_master.csv` is the cross-source unified master whose fail-closed builder needs ~15 upstream masters (most out-of-scope: `pr_doe_master`, `pr_dot_master`, `pr_grants_master`, `pr_sba_loans_master`, …) never materialized here. No partial aggregate fabricated. Stays partial. |
-| `emma_bonds`, `fec`, `fema_pa_openfema_v2`, `fsrs_subawards`, `hud_cdbg_dr_public`, `usaspending_subawards` | — | already `fully_materialized` (unchanged). |
-| `cor3`, `hud_drgr_authorized`, `oficina_contralor`, `pr_cabilderos`, `prasa` | — | portal / manual / JS-gated, no public API — out of scope, remain `not_materialized`. |
-
-Bonus (`required: false`): the OpenStates chain ran —
-`fetch_legislative_canonical_sources.py` (with `OPENSTATES_API_KEY`) materialized
-`legislative_canonical_sources` by cross-confirming PS 782 and RCS 14 to real OpenStates bill IDs
-(session 2025-2028). `legislapr_discovery` stays unmaterialized: `legislapr.com` is a JS-rendered SPA,
-so the HTML probe returns page-shell noise, not measure data.
-
-Producer fix (committed): `fetch_lda_gov.py` pagination is now resilient — the very large unfiltered
-`filings`/`contributions` tables (~2 M rows) reject `page>=2` with HTTP 400, and `collect_records`
-retains page-1 records instead of discarding the whole endpoint on a later-page failure.
-
-The reachable ceiling is **9/14 ≈ 0.64** (only `usaspending_prime` remains among reachable sources);
-the ≥0.85 gate is unattainable from reachable sources alone (5 portal sources are unmovable) and is
-**not** force-flipped. No gate, workflow, `federation.json`, or `*status*.json` file was touched.
-
-## Done
-
-- **~24K LOC of core pipeline** (registry-driven `run_all.py`, 82 wired producer
-  scripts, adapters, validation, federation layer). Whole-repo Python is much
-  larger (~140K LOC incl. tests, generated reports, and vendored tooling);
-  `scripts/` + `moneysweep/` + `run_all.py` measure ~104K LOC.
-- **Test baseline 1229 passed / 5 skipped / 0 failed** on the last full green run
-  (post-#144 materialization-readiness gate). The suite defines 1888 `def test_`
-  functions across `tests/`.
-- **32 CI workflows** under `.github/workflows/`.
-- **Complete `federation.json`** — schema, program id, active vector, source
-  truth, hub-callable commands, canonical outputs, Tranche B scope, and the
-  federation readiness gate are all populated.
-- **144 sources in the live registry**; **99 automatable sources, all 99 ready**
-  (`automatable_ready == automatable_total == 99`). The remaining 45 are queued
-  and deliberately excluded: 38 manual_export, 2 scraper_needed, 2 deferred_stub,
-  3 semantic_duplicate, 0 broken_producer.
-- **Source-registry rewire complete** — all producer_script paths point at
-  `scripts/`, 0 optional sources archived.
-- **Strict preflight** classifies all sources with 0 structural errors and no
-  live network or producer execution.
-
-## Remaining — code (closed in this PR)
-
-1. **ACT/ACUDEN dropzone reconciliation.** The `act`/`acuden` `SourceSpec`s in
-   `scripts/source_intake_tranche_b.py` share one dropzone
-   (`data/raw/act_transition/`) whose committed extract
-   (`transition_contracts_extracted.csv`, 1803 rows = 656 `ACT_2020` + 1147
-   `ACUDEN_2024`) carries **both** datasets in a `source_dataset` column. The
-   dropzone path itself was already correct (fixed in #370), but the controller
-   had no per-dataset partition — each spec would ingest all 1803 rows and
-   mislabel the other source's rows — and the column map did not recognize the
-   extract's actual headers (`contract_number`, `amount_numeric`, `transition_year`,
-   `start_date_raw`, `service_type`, …). This PR adds a `dataset_filter` to
-   `SourceSpec` (ACT→`ACT_2020` → 656 rows, ACUDEN→`ACUDEN_2024` → 1147 rows) and
-   extends `LOCAL_CONTRACT_MAP` so real fields populate.
-2. **`.gitignore` allow-list** for the new operator dropzones
-   `data/raw/Cabilderos/**.csv`, `data/raw/Donaciones/**.csv`, and the
-   `data/raw/reference/donantes_lookup/` tree (folder README tracked; binary
-   xlsx kept out by policy — see note below).
-3. **Pandas-free unit test.** Path-resolution and dataset-partition logic were
-   split into stdlib-only `scripts/source_intake_paths.py`; new
-   `tests/test_source_intake_paths.py` exercises dropzone discovery and the
-   ACT/ACUDEN reconciliation without importing pandas.
-
-> Note on the allow-list: the actual Cabilderos roster / Donaciones / donantes
-> xlsx files described in `reports/current_status.json` were staged in a
-> different sandbox and are **not present in this clone** (only `README.md` and
-> `.gitkeep` exist in those dirs). The allow-list is therefore forward policy —
-> it makes the CSVs trackable when placed — and commits no large or binary blob
-> here. The donor-lookup exports are binary xlsx and remain intentionally
-> untracked.
-
-## Remaining — data / network-blocked
-
-These cannot be closed offline; they need live HTTPS, credentials, or a
-dependency absent from the no-network sandbox.
-
-- **Production certification** needs live HTTPS reachability plus API keys to
-  materialize the 99 ready sources. Registry-required keys (13 sources across 9
-  key names): `CENSUS_API_KEY`, `EIA_API_KEY`, `FAC_API_KEY`, `FEC_API_KEY`,
-  `FINANCIALDATA_API_KEY`, `FRED_API_KEY`, `HIGHERGOV_API_KEY`,
-  `OPENSTATES_API_KEY`, `SAM_API_KEY`.
-- **Tranche B manual ingestion** (`ACQUIRED_NOT_INGESTED`): DCAA active
-  contractor listings (FY2007 / FY2012 / FY2013), PRASA completed projects, PRASA
-  FY2024 Consulting Engineer report, and Federal LDA registrants — no files in
-  the expected dropzones. Parser + canonical output + schema validation +
-  regression tests must all pass before any is `fully_materialized`.
-- **PR2.5 / PR2.6 → PR3 entity-dedup chain.** The entity-gate branches must be
-  reconciled against latest `main` before PR3 deduplication/entity integration
-  can run.
-- **2 scraper stubs** remain (`scraper_needed`): `hacienda_sut_ivu` and
-  `pr_act_154_excise`.
-- **81-page Abril-18-2026 cabilderos registry PDF**
-  (`Registro_de_cabilderos_Abril_18_2026_2.pdf`, ~7.9 MB) — the authoritative
-  full lobbyist snapshot — cannot be parsed here; Claude's multi-page PDF path
-  needs `poppler-utils` (`pdftoppm`), absent and not installable under the
-  no-network rule. The March-2025 roster (70 registrations) plus 23 later
-  certificate-only entries were already placed and structurally validated.
-
-## Leverage-ordered checklist
-
-Ordered by unlock value per unit of effort.
-
-1. **[data] Provision the 9 API keys** → flips all 13 key-gated sources and lets
-   the 99 ready automatable sources actually materialize. Single highest-leverage
-   action; unblocks production certification.
-2. **[data] Live-HTTPS certification run** of the 99 ready sources once keys are
-   in place → moves `production_status` off `NON_PRODUCTION_DIAGNOSTIC`.
-3. **[code] Reconcile PR2.5/PR2.6 onto main, then run PR3 dedup** → unblocks
-   entity integration, the largest remaining code milestone.
-4. **[data] Ingest the Tranche B manual exports** (DCAA ×3, PRASA ×2, Federal
-   LDA) → drops the manual_export queue from 38 and closes the
-   `ACQUIRED_NOT_INGESTED` backlog. ACT/ACUDEN are already extracted and, after
-   this PR, correctly partitioned.
-5. **[data] Parse the Abril-2026 cabilderos PDF** in an environment with
-   `poppler-utils` → replaces the March-2025 roster snapshot with the
-   authoritative registry.
-6. **[code] Implement the 2 scraper stubs** (`hacienda_sut_ivu`,
-   `pr_act_154_excise`) → clears the `scraper_needed` queue.
-7. **[data] Run the Donaciones ingest end-to-end** once pandas is available
-   (extractor already extended for the previously-unmapped columns).
-
----
-
-## Two completion numbers, and why they differ
-
-This ledger says **~75%**. [`MATURITY_AUDIT.md`](MATURITY_AUDIT.md) says **73%**.
-Both are correct; they measure different things and should be read together.
-
-| | Measures | Counts a thing "done" when |
-|---|---|---|
-| **`ROAD_TO_100.md`** (~75%) | code completeness against intended scope | the code exists and works, with data- and network-blocked items called out separately |
-| **`MATURITY_AUDIT.md`** (73%) | maturity of the repo as an engineering artifact | a **CI gate** keeps it working |
-
-The spread is largely **enforcement rather than implementation**. Concretely, what this
-repo is missing on the audit's axis: no frontend tests and an ungated JS linter. Python enforcement here is the federation's reference standard, so almost none of the gap is Python tooling.
-
-Neither number supersedes the other. Use this ledger to answer "what is left to build";
-use the audit to answer "what would a reviewer refuse to merge".
+This roadmap does not authorize merge, auto-merge, live fetch, credential automation, data promotion, force push, or history rewrite.

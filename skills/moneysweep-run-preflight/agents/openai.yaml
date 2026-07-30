@@ -1,0 +1,25 @@
+# OpenAI-runtime agent manifest for moneysweep-run-preflight.
+# The SKILL.md is the canonical instruction source; this file adapts it for an
+# OpenAI-agent consumer in the federation. Keep fields in sync with the
+# skill-registry.yaml entry (validated by scripts/validate_skills.py).
+schema_version: prii_openai_agent_v1
+name: moneysweep-run-preflight
+description: >-
+  Structural preflight gate for MoneySweep. Runs setup + strict preflight,
+  separates missing keys from structural failures, and blocks live execution on
+  any structural error.
+instructions_ref: ../SKILL.md
+owner_repo: jotaele44/moneysweep-pr
+default_mode: read_only
+allowed_modes: [read_only, offline_write]
+command_ids: [setup, strict_preflight]
+stop_conditions:
+  - any structural error before live execution
+result_envelope:
+  - status
+  - commands_considered
+  - commands_run
+  - artifacts
+  - blockers
+  - contradictions
+  - next_safe_action

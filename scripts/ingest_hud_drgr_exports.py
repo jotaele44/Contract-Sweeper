@@ -1,36 +1,32 @@
-"""
-Load authorized local HUD DRGR exports from data/raw/HUD DRGR/ or data/raw/HUD/.
+"""Load authorized local HUD DRGR exports without credential automation.
 
-These are files manually exported from the DRGR portal by authorized users.
-No credential automation — this script only reads files already on disk.
+Inputs are operator-exported CSV/XLS/XLSX files under ``data/manual/hud_drgr/``
+or documented legacy HUD raw directories.
 
-Outputs:
+Canonical registry outputs:
+  data/staging/processed/hud_drgr_activities.csv
+  data/staging/processed/hud_drgr_projects.csv
+
+Normalized analytical outputs retained for downstream consumers:
   data/normalized/hud_drgr_activities.parquet
   data/normalized/hud_drgr_drawdowns.parquet
   data/normalized/hud_drgr_appropriations.parquet
-
-Usage:
-  python3 scripts/ingest_hud_drgr_exports.py
-  python3 scripts/ingest_hud_drgr_exports.py --force
 """
+
+from __future__ import annotations
 
 import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from scripts.build_unified_master import _normalize_name
-from scripts.parquet_utils import pq_read, pq_write
 from scripts.config import PROJECT_ROOT, setup_logging
+from scripts.parquet_utils import pq_read, pq_write
 
-NORMALIZED_DIR = PROJECT_ROOT / "data" / "normalized"
-
-# Directories scanned for HUD DRGR exports, relative to the run root.
-# `data/manual/hud_drgr/` is the registry's manual_drop_dir for the
-# `hud_drgr_authorized` source; the others catch legacy drop locations.
 RAW_RELATIVE_DIRS = (
     "data/manual/hud_drgr",
     "data/raw",
@@ -39,11 +35,6 @@ RAW_RELATIVE_DIRS = (
     "data/raw/hud_drgr",
     "data/raw/hud",
 )
-
-# A file is treated as a HUD DRGR export only if its basename or parent dir
-# contains one of these keywords. Without this filter, unrelated CSVs that
-# live under `data/raw/` (e.g. Follow the Money, FEC, documents) get pulled
-# in and crash `_map_to_schema` on an all-scalar column dict.
 HUD_DRGR_FILENAME_KEYWORDS = ("hud", "drgr", "cdbg")
 
 ACTIVITY_COLUMNS = [
@@ -67,7 +58,6 @@ ACTIVITY_COLUMNS = [
     "end_date",
     "source_file",
 ]
-
 DRAWDOWN_COLUMNS = [
     "drawdown_id",
     "grant_number",
@@ -78,7 +68,6 @@ DRAWDOWN_COLUMNS = [
     "remaining_budget",
     "source_file",
 ]
-
 APPROPRIATION_COLUMNS = [
     "appropriation_id",
     "grant_number",
@@ -91,8 +80,21 @@ APPROPRIATION_COLUMNS = [
     "cfda_number",
     "source_file",
 ]
+PROJECT_COLUMNS = [
+    "project_id",
+    "grant_number",
+    "project_name",
+    "responsible_org",
+    "responsible_org_normalized",
+    "municipality",
+    "status",
+    "total_budget",
+    "amount_drawn",
+    "amount_remaining",
+    "activity_count",
+    "source_file",
+]
 
-# Flexible column maps for each category
 ACTIVITY_COL_MAP = {
     "activity_id": ["Activity ID", "Activity Number", "Activity #", "activity_id", "id"],
     "grant_number": ["Grant Number", "Grant #", "CDBG Grant", "grant_number", "Grant"],
@@ -110,52 +112,33 @@ ACTIVITY_COL_MAP = {
     "address": ["Address", "Location", "Site Address", "address"],
     "municipality": ["Municipality", "City", "Locality", "municipality"],
     "county": ["County", "county"],
-    "national_objective": [
-        "National Objective",
-        "HUD National Objective",
-        "Objective",
-        "national_objective",
-    ],
-    "benefit_type": ["Benefit Type", "Benefit", "LMI", "benefit_type"],
-    "total_budget": [
-        "Total Budget",
-        "Budget Amount",
-        "Allocation",
-        "Approved Amount",
-        "total_budget",
-    ],
-    "amount_drawn": ["Amount Drawn", "Drawn", "Disbursed", "Expended", "amount_drawn"],
-    "amount_remaining": ["Amount Remaining", "Balance", "Remaining", "amount_remaining"],
-    "start_date": ["Start Date", "Begin Date", "start_date"],
-    "end_date": ["End Date", "Completion Date", "end_date"],
+    "national_objective": ["National Objective", "HUD National Objective", "Objective"],
+    "benefit_type": ["Benefit Type", "Benefit", "LMI"],
+    "total_budget": ["Total Budget", "Budget Amount", "Allocation", "Approved Amount"],
+    "amount_drawn": ["Amount Drawn", "Drawn", "Disbursed", "Expended"],
+    "amount_remaining": ["Amount Remaining", "Balance", "Remaining"],
+    "start_date": ["Start Date", "Begin Date"],
+    "end_date": ["End Date", "Completion Date"],
 }
-
 DRAWDOWN_COL_MAP = {
     "drawdown_id": ["Drawdown ID", "Draw ID", "Transaction ID", "drawdown_id"],
     "grant_number": ["Grant Number", "Grant #", "grant_number"],
     "activity_id": ["Activity ID", "Activity Number", "activity_id"],
     "drawdown_date": ["Drawdown Date", "Date", "Transaction Date", "drawdown_date"],
     "drawdown_amount": ["Drawdown Amount", "Amount", "Draw Amount", "drawdown_amount"],
-    "cumulative_drawn": ["Cumulative Drawn", "Cumulative", "Total Drawn", "cumulative_drawn"],
-    "remaining_budget": ["Remaining Budget", "Balance", "remaining_budget"],
+    "cumulative_drawn": ["Cumulative Drawn", "Cumulative", "Total Drawn"],
+    "remaining_budget": ["Remaining Budget", "Balance"],
 }
-
 APPROPRIATION_COL_MAP = {
     "appropriation_id": ["Appropriation ID", "ID", "appropriation_id"],
     "grant_number": ["Grant Number", "Grant", "grant_number"],
-    "program_type": ["Program Type", "Program", "Type", "program_type"],
-    "appropriation_year": ["Year", "Appropriation Year", "FY", "appropriation_year"],
-    "appropriation_amount": [
-        "Amount",
-        "Appropriation Amount",
-        "Total Amount",
-        "appropriation_amount",
-    ],
-    "allocation_date": ["Date", "Allocation Date", "allocation_date"],
-    "grantee_name": ["Grantee Name", "Grantee", "Recipient", "grantee_name"],
-    "cfda_number": ["CFDA", "CFDA Number", "Assistance Listing", "cfda_number"],
+    "program_type": ["Program Type", "Program", "Type"],
+    "appropriation_year": ["Year", "Appropriation Year", "FY"],
+    "appropriation_amount": ["Amount", "Appropriation Amount", "Total Amount"],
+    "allocation_date": ["Date", "Allocation Date"],
+    "grantee_name": ["Grantee Name", "Grantee", "Recipient"],
+    "cfda_number": ["CFDA", "CFDA Number", "Assistance Listing"],
 }
-
 CLASSIFY_KEYWORDS = {
     "drawdowns": ["drawdown", "draw ", "disbursement", "payment", "transaction"],
     "activities": ["activit", "project_list", "projectlist"],
@@ -164,194 +147,235 @@ CLASSIFY_KEYWORDS = {
 
 
 def _map_col(df_cols, candidates):
-    cols_lower = {c.lower().strip(): c for c in df_cols}
-    for cand in candidates:
-        if cand in df_cols:
-            return cand
-        if cand.lower() in cols_lower:
-            return cols_lower[cand.lower()]
+    cols_lower = {str(column).lower().strip(): column for column in df_cols}
+    for candidate in candidates:
+        if candidate in df_cols:
+            return candidate
+        actual = cols_lower.get(candidate.lower())
+        if actual is not None:
+            return actual
     return None
 
 
-def _read_file(path, logger):
-    suffix = path.suffix.lower()
+def _read_file(path: Path, logger) -> pd.DataFrame:
     try:
-        if suffix in (".xlsx", ".xls"):
-            xl = pd.ExcelFile(path)
-            best = pd.DataFrame()
-            for sheet in xl.sheet_names:
+        if path.suffix.lower() in {".xlsx", ".xls"}:
+            workbook = pd.ExcelFile(path)
+            frames = []
+            for sheet in workbook.sheet_names:
                 try:
-                    df = pd.read_excel(xl, sheet_name=sheet, dtype=str, na_filter=False)
-                    if len(df) > len(best):
-                        best = df
-                except Exception:
-                    pass
-            return best
-        elif suffix == ".csv":
-            for enc in ("utf-8", "latin-1", "cp1252"):
+                    frame = pd.read_excel(workbook, sheet_name=sheet, dtype=str, na_filter=False)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(f"  Failed sheet {sheet!r} in {path.name}: {exc}")
+                    continue
+                if not frame.empty:
+                    frames.append(frame)
+            return max(frames, key=len) if frames else pd.DataFrame()
+        if path.suffix.lower() == ".csv":
+            for encoding in ("utf-8", "latin-1", "cp1252"):
                 try:
                     return pd.read_csv(
-                        path, dtype=str, na_filter=False, encoding=enc, low_memory=False
+                        path, dtype=str, na_filter=False, encoding=encoding, low_memory=False
                     )
                 except UnicodeDecodeError:
                     continue
-    except Exception as e:
-        logger.warning(f"  Failed to read {path.name}: {e}")
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f"  Failed to read {path.name}: {exc}")
     return pd.DataFrame()
 
 
-def _classify(path, df):
-    name = path.stem.lower()
-    col_names = " ".join(c.lower() for c in df.columns)
-    combined = name + " " + col_names
-    scores = {}
-    for category, keywords in CLASSIFY_KEYWORDS.items():
-        scores[category] = sum(1 for kw in keywords if kw in combined)
-    best = max(scores, key=scores.get)
+def _classify(path: Path, frame: pd.DataFrame) -> str:
+    combined = path.stem.lower() + " " + " ".join(str(c).lower() for c in frame.columns)
+    scores = {
+        category: sum(keyword in combined for keyword in keywords)
+        for category, keywords in CLASSIFY_KEYWORDS.items()
+    }
+    best = max(scores, key=lambda category: scores[category])
     return best if scores[best] > 0 else "activities"
 
 
-def _map_to_schema(df, col_map, columns, source_file):
-    out = {}
-    for out_col, candidates in col_map.items():
-        src = _map_col(df.columns.tolist(), candidates)
-        out[out_col] = df[src] if src else ""
-    # Pass index=df.index so an all-scalar `out` still constructs cleanly.
-    result = pd.DataFrame(out, index=df.index)
+def _map_to_schema(frame, column_map, columns, source_file):
+    output = {}
+    for output_column, candidates in column_map.items():
+        source_column = _map_col(frame.columns.tolist(), candidates)
+        output[output_column] = frame[source_column] if source_column else ""
+    result = pd.DataFrame(output, index=frame.index)
     result["source_file"] = source_file
-    for col in columns:
-        if col not in result.columns:
-            result[col] = ""
+    for column in columns:
+        if column not in result.columns:
+            result[column] = ""
     return result[columns]
 
 
-def _looks_like_hud_drgr(path):
-    """True only if filename or parent dir suggests a HUD/DRGR/CDBG export."""
+def _looks_like_hud_drgr(path: Path) -> bool:
     name = path.name.lower()
     parent = path.parent.name.lower()
-    return any(kw in name or kw in parent for kw in HUD_DRGR_FILENAME_KEYWORDS)
+    return any(keyword in name or keyword in parent for keyword in HUD_DRGR_FILENAME_KEYWORDS)
 
 
-def _find_raw_files(root, logger):
-    found = []
-    for rel in RAW_RELATIVE_DIRS:
-        raw_dir = root / rel
+def _find_raw_files(root: Path, logger) -> list[Path]:
+    candidates: set[Path] = set()
+    for relative in RAW_RELATIVE_DIRS:
+        raw_dir = root / relative
         if not raw_dir.exists():
             continue
         for pattern in ("*.xlsx", "*.xls", "*.csv"):
-            for f in raw_dir.glob(pattern):
-                if not f.name.startswith("."):
-                    found.append(f)
-        # One level deep
-        for sub in raw_dir.iterdir():
-            if sub.is_dir():
+            candidates.update(
+                path for path in raw_dir.glob(pattern) if not path.name.startswith(".")
+            )
+        for child in raw_dir.iterdir():
+            if child.is_dir():
                 for pattern in ("*.xlsx", "*.xls", "*.csv"):
-                    for f in sub.glob(pattern):
-                        if not f.name.startswith("."):
-                            found.append(f)
-    relevant = sorted({f for f in found if _looks_like_hud_drgr(f)})
-    if not relevant:
-        logger.info(
-            f"  Found 0 HUD DRGR export files (scanned {len(found)} candidates; "
-            f"none matched {HUD_DRGR_FILENAME_KEYWORDS})"
-        )
-    else:
-        logger.info(f"  Found {len(relevant)} HUD DRGR export files")
+                    candidates.update(
+                        path for path in child.glob(pattern) if not path.name.startswith(".")
+                    )
+    relevant = sorted(path for path in candidates if _looks_like_hud_drgr(path))
+    logger.info(f"  Found {len(relevant)} HUD DRGR export file(s)")
     return relevant
+
+
+def _numeric(series: pd.Series) -> pd.Series:
+    return pd.to_numeric(
+        series.fillna("").astype(str).str.replace(r"[$,\s]", "", regex=True), errors="coerce"
+    ).fillna(0)
+
+
+def _build_projects(activities: pd.DataFrame) -> pd.DataFrame:
+    if activities.empty or "project_id" not in activities:
+        return pd.DataFrame(columns=PROJECT_COLUMNS)
+    source = activities.copy()
+    source["project_id"] = source["project_id"].fillna("").astype(str).str.strip()
+    source = source[source["project_id"] != ""].copy()
+    if source.empty:
+        return pd.DataFrame(columns=PROJECT_COLUMNS)
+    for column in ("total_budget", "amount_drawn", "amount_remaining"):
+        source[column] = _numeric(source[column])
+    projects = (
+        source.groupby("project_id", sort=True, dropna=False)
+        .agg(
+            grant_number=("grant_number", "first"),
+            project_name=("activity_name", "first"),
+            responsible_org=("responsible_org", "first"),
+            responsible_org_normalized=("responsible_org_normalized", "first"),
+            municipality=("municipality", "first"),
+            status=("status", "first"),
+            total_budget=("total_budget", "sum"),
+            amount_drawn=("amount_drawn", "sum"),
+            amount_remaining=("amount_remaining", "sum"),
+            activity_count=("activity_id", "count"),
+            source_file=("source_file", lambda values: "|".join(sorted(set(values)))),
+        )
+        .reset_index()
+    )
+    return projects[PROJECT_COLUMNS]
+
+
+def _write_outputs(
+    frame: pd.DataFrame, columns: list[str], parquet_path: Path, csv_path: Path | None = None
+) -> int:
+    materialized = frame if not frame.empty else pd.DataFrame(columns=columns)
+    pq_write(materialized, parquet_path)
+    if csv_path is not None:
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        materialized.to_csv(csv_path, index=False, encoding="utf-8")
+    return len(materialized)
 
 
 def run(root=None, force=False):
     root = Path(root or PROJECT_ROOT)
-    norm_dir = root / "data" / "normalized"
-    norm_dir.mkdir(parents=True, exist_ok=True)
-
-    activity_path = norm_dir / "hud_drgr_activities.parquet"
-    drawdown_path = norm_dir / "hud_drgr_drawdowns.parquet"
-    appropriation_path = norm_dir / "hud_drgr_appropriations.parquet"
+    normalized_dir = root / "data" / "normalized"
+    processed_dir = root / "data" / "staging" / "processed"
+    normalized_dir.mkdir(parents=True, exist_ok=True)
+    processed_dir.mkdir(parents=True, exist_ok=True)
     logger = setup_logging("ingest_hud_drgr_exports")
 
-    if not force and all(p.exists() for p in [activity_path, drawdown_path, appropriation_path]):
-        a_rows = len(pq_read(activity_path))
-        logger.info(f"  HUD DRGR exports: {a_rows:,} activities — skipping (use --force).")
+    activity_parquet = normalized_dir / "hud_drgr_activities.parquet"
+    project_parquet = normalized_dir / "hud_drgr_projects.parquet"
+    drawdown_parquet = normalized_dir / "hud_drgr_drawdowns.parquet"
+    appropriation_parquet = normalized_dir / "hud_drgr_appropriations.parquet"
+    activity_csv = processed_dir / "hud_drgr_activities.csv"
+    project_csv = processed_dir / "hud_drgr_projects.csv"
+
+    normalized_paths = [activity_parquet, project_parquet, drawdown_parquet, appropriation_parquet]
+    if not force and all(
+        path.exists() or path.with_suffix(".csv").exists() for path in normalized_paths
+    ):
+        activities = pq_read(activity_parquet)
+        projects = pq_read(project_parquet)
+        drawdowns = pq_read(drawdown_parquet)
+        appropriations = pq_read(appropriation_parquet)
+        activities.to_csv(activity_csv, index=False, encoding="utf-8")
+        projects.to_csv(project_csv, index=False, encoding="utf-8")
         return {
-            "activity_rows": a_rows,
-            "drawdown_rows": 0,
-            "appropriation_rows": 0,
+            "activity_rows": len(activities),
+            "project_rows": len(projects),
+            "drawdown_rows": len(drawdowns),
+            "appropriation_rows": len(appropriations),
             "status": "CACHED",
         }
 
     files = _find_raw_files(root, logger)
-
-    if not files:
-        logger.warning(
-            "  No HUD DRGR manual export files found — drop authorized exports at "
-            "data/manual/hud_drgr/ (or data/raw/HUD DRGR/) and re-run."
-        )
-        # Write empty parquets so expected_outputs exist; signal manual_required.
-        pq_write(pd.DataFrame(columns=ACTIVITY_COLUMNS), activity_path)
-        pq_write(pd.DataFrame(columns=DRAWDOWN_COLUMNS), drawdown_path)
-        pq_write(pd.DataFrame(columns=APPROPRIATION_COLUMNS), appropriation_path)
-        return {
-            "activity_rows": 0,
-            "drawdown_rows": 0,
-            "appropriation_rows": 0,
-            "status": "manual_required",
-        }
-
-    activity_dfs, drawdown_dfs, appropriation_dfs = [], [], []
-
-    for f in files:
-        logger.info(f"  Processing {f.name}...")
-        df = _read_file(f, logger)
-        if df.empty:
+    activity_frames = []
+    drawdown_frames = []
+    appropriation_frames = []
+    for path in files:
+        frame = _read_file(path, logger)
+        if frame.empty:
             continue
-        cat = _classify(f, df)
-        logger.info(f"    → classified as: {cat} ({len(df):,} rows)")
-        if cat == "drawdowns":
-            mapped = _map_to_schema(df, DRAWDOWN_COL_MAP, DRAWDOWN_COLUMNS, f.name)
-            drawdown_dfs.append(mapped)
-        elif cat == "appropriations":
-            mapped = _map_to_schema(df, APPROPRIATION_COL_MAP, APPROPRIATION_COLUMNS, f.name)
-            appropriation_dfs.append(mapped)
+        category = _classify(path, frame)
+        if category == "drawdowns":
+            drawdown_frames.append(
+                _map_to_schema(frame, DRAWDOWN_COL_MAP, DRAWDOWN_COLUMNS, path.name)
+            )
+        elif category == "appropriations":
+            mapped = _map_to_schema(frame, APPROPRIATION_COL_MAP, APPROPRIATION_COLUMNS, path.name)
+            mapped["grantee_normalized"] = mapped["grantee_name"].apply(_normalize_name)
+            appropriation_frames.append(mapped)
         else:
-            mapped = _map_to_schema(df, ACTIVITY_COL_MAP, ACTIVITY_COLUMNS, f.name)
-            if "responsible_org" in mapped.columns:
-                mapped["responsible_org_normalized"] = mapped["responsible_org"].apply(
-                    _normalize_name
-                )
-            activity_dfs.append(mapped)
+            mapped = _map_to_schema(frame, ACTIVITY_COL_MAP, ACTIVITY_COLUMNS, path.name)
+            mapped["responsible_org_normalized"] = mapped["responsible_org"].apply(_normalize_name)
+            activity_frames.append(mapped)
 
-    def _save(dfs, columns, path, label):
-        if dfs:
-            combined = pd.concat(dfs, ignore_index=True)
-            pq_write(combined, path)
-            n = len(combined)
-        else:
-            logger.warning(f"  No {label} data found — writing empty parquet")
-            pq_write(pd.DataFrame(columns=columns), path)
-            n = 0
-        logger.info(f"  {label}: {n:,} rows → {path.name}")
-        return n
+    activities = (
+        pd.concat(activity_frames, ignore_index=True)
+        if activity_frames
+        else pd.DataFrame(columns=ACTIVITY_COLUMNS)
+    )
+    drawdowns = (
+        pd.concat(drawdown_frames, ignore_index=True)
+        if drawdown_frames
+        else pd.DataFrame(columns=DRAWDOWN_COLUMNS)
+    )
+    appropriations = (
+        pd.concat(appropriation_frames, ignore_index=True)
+        if appropriation_frames
+        else pd.DataFrame(columns=APPROPRIATION_COLUMNS)
+    )
+    projects = _build_projects(activities)
 
-    a_rows = _save(activity_dfs, ACTIVITY_COLUMNS, activity_path, "activities")
-    d_rows = _save(drawdown_dfs, DRAWDOWN_COLUMNS, drawdown_path, "drawdowns")
-    p_rows = _save(appropriation_dfs, APPROPRIATION_COLUMNS, appropriation_path, "appropriations")
-
+    activity_rows = _write_outputs(activities, ACTIVITY_COLUMNS, activity_parquet, activity_csv)
+    project_rows = _write_outputs(projects, PROJECT_COLUMNS, project_parquet, project_csv)
+    drawdown_rows = _write_outputs(drawdowns, DRAWDOWN_COLUMNS, drawdown_parquet)
+    appropriation_rows = _write_outputs(
+        appropriations, APPROPRIATION_COLUMNS, appropriation_parquet
+    )
     return {
-        "activity_rows": a_rows,
-        "drawdown_rows": d_rows,
-        "appropriation_rows": p_rows,
-        "status": "OK",
+        "activity_rows": activity_rows,
+        "project_rows": project_rows,
+        "drawdown_rows": drawdown_rows,
+        "appropriation_rows": appropriation_rows,
+        "status": "OK" if files else "manual_required",
     }
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Ingest HUD DRGR local export files")
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
     result = run(force=args.force)
     print(
-        f"\nHUD DRGR exports: {result['activity_rows']:,} activities, "
+        "HUD DRGR exports: "
+        f"{result['activity_rows']:,} activities, {result['project_rows']:,} projects, "
         f"{result['drawdown_rows']:,} drawdowns, {result['appropriation_rows']:,} appropriations"
     )
     return 0

@@ -1,14 +1,15 @@
 """
 Ingest PR Cabilderos (state-level lobbyist registry) data.
 
-Puerto Rico's Oficina de Ética Gubernamental maintains a registry of lobbyists
-(cabilderos) registered to lobby the PR Legislature and executive agencies.
+Puerto Rico's Department of Justice is the official custodian of the public
+cabilderos registry created under Executive Order OE-2019-031. Legislative
+chambers may publish additional registration records and certificates.
 Cross-referencing cabildero clients with federal award recipients reveals
 entities that lobby both the PR government AND receive federal contracts —
 a dual-influence signal not captured by the federal LDA pipeline.
 
 Input:
-  data/raw/Cabilderos/ — CSV or Excel files from PR Ethics Office
+  data/raw/Cabilderos/ — CSV or Excel exports from official public registries
 
 Output:
   data/staging/processed/pr_cabilderos.csv

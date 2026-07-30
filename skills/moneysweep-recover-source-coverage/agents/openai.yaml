@@ -1,0 +1,26 @@
+# OpenAI-runtime agent manifest for moneysweep-recover-source-coverage.
+# SKILL.md is canonical; keep fields synced with skill-registry.yaml.
+schema_version: prii_openai_agent_v1
+name: moneysweep-recover-source-coverage
+description: >-
+  Accounts for MoneySweep materialization coverage and 0→100 gap closure —
+  denominator, automatable/queued split, unresolved-gap ledger, and cross-surface
+  contradictions. Read-only/offline; every coverage % carries its denominator and
+  the registry SHA.
+instructions_ref: ../SKILL.md
+owner_repo: jotaele44/moneysweep-pr
+default_mode: read_only
+allowed_modes: [read_only, offline_write]
+command_ids: [materialization_matrix, gap_matrix]
+stop_conditions:
+  - source-count disagreement across surfaces
+  - unclassified source
+  - proposed denominator inflation (e.g. identifier range as universe)
+result_envelope:
+  - status
+  - commands_considered
+  - commands_run
+  - artifacts
+  - blockers
+  - contradictions
+  - next_safe_action
