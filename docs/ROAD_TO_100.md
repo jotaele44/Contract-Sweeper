@@ -1,10 +1,16 @@
 # MoneySweep — Road to 100
 
 **Reconciled:** 2026-07-30  
-**PR:** #448, draft and unmerged  
-**Current base incorporated:** `bd337fb092eb639cdb24b490bc90a8b07e9e51c4`  
-**Last certified v0.8 head:** `b1f088c98c8175298b856a5df8215c77fa933877`  
+**Merged PR:** #448  
+**Main:** `9e911203a05cf8f2e99c762161b7ec18de8cef73`  
+**Pre-merge certified head:** `ab576462ded2f2e99c762161b7ec18de8cef73`  
 **Production status:** `NON_PRODUCTION_DIAGNOSTIC`
+
+## Post-merge control plane
+
+PR #448 passed **17/17 triggered workflows**, was marked ready for review, and was squash-merged with expected-head protection. `main` was verified byte-identical to squash commit `9e911203a05cf8f2e99c762161b7ec18de8cef73` immediately after merge.
+
+The merge completed the repository-side Wave 0 repair and reconciliation scope. It did not authorize live acquisition, credential automation, data promotion, or production activation.
 
 ## Certified baseline
 
@@ -24,41 +30,16 @@
 | Derived rows with unresolved lineage | 104,280 |
 | Live universe probe | Not run |
 
-The last v0.8 head passed **16/16 triggered workflows**, including Skills Validation. GitHub checks remain authoritative for later remediation commits.
+## Repository-side gates completed
 
-## Residual repairs completed before source ingestion
-
-### Entity comparison
-
-`entity_product_comparison_v2` now:
-
-- rejects duplicate headers, extra fields, missing fields, and empty products;
-- selects the first populated recognized key rather than the first matching header;
-- reports no-shared-column projection as not computable instead of 100% overlap;
-- distinguishes byte identity, semantic duplication, high key overlap, and distinct products;
-- exits nonzero for invalid or empty products even when `--allow-missing` is supplied.
-
-The real comparison remains pending because the certification bundle did not include the two operator CSVs.
-
-### HUD DRGR producer contract
-
-`scripts/ingest_hud_drgr_exports.py` now writes the registry-declared staging products:
-
-- `data/staging/processed/hud_drgr_activities.csv`
-- `data/staging/processed/hud_drgr_projects.csv`
-
-It also preserves normalized analytical products for activities, projects, drawdowns, and appropriations. Empty manual drops remain fail-closed with `manual_required` and zero credit.
-
-### Provenance metadata
-
-A validated source-override layer records metadata corrections without changing source IDs or the required-source denominator:
-
-- COR3 keeps `download_cor3.py` as the separately gated registry producer and records `ingest_cor3.py` as the authorized offline workbook path.
-- The cabilderos source records the Puerto Rico Department of Justice as official custodian and uses the Justice registry surface.
-
-### Derived-output lineage
-
-Five of six derived producers are confirmed. `data/staging/processed/entity_master.csv` remains a derived, non-credit output with unresolved staging lineage because the candidate `scripts/build_entity_master.py` declares `data/reference/entity_master.csv`.
+1. Wave 0 workflow controls and hosted preflight-only runs passed with live jobs skipped.
+2. Dependency reconstruction passed full CI.
+3. The 151-source offline operator audit passed digest and status-count parity.
+4. HUD DRGR registry and producer contracts were aligned.
+5. COR3 and cabilderos provenance boundaries were corrected.
+6. The entity-product comparator was hardened to fail closed on malformed, empty, or missing inputs.
+7. Registry YAML/JSON regeneration, Ruff, mypy, pre-commit, readiness, completeness, skills, and Contract Sweeper failures were repaired.
+8. PR #448 passed 17/17 checks and was squash-merged.
 
 ## Required-source queue
 
@@ -82,4 +63,4 @@ Five of six derived producers are confirmed. `data/staging/processed/entity_mast
 
 ## Preservation
 
-This roadmap does not authorize merge, auto-merge, live fetch, credential automation, data promotion, force push, or history rewrite.
+The completed PR #448 merge is historical and authorized. This roadmap does not authorize any additional merge, direct write to `main`, live fetch, credential automation, data promotion, production activation, force push, or history rewrite.
