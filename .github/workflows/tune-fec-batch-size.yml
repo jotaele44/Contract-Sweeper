@@ -36,26 +36,11 @@ jobs:
 
           test = Path("tests/test_fec_outflow_batching.py")
           test_text = test.read_text(encoding="utf-8")
-          old_call = '''    rows = mod._fetch_disbursements(
-              object(),
-              [f"C{index:08d}" for index in range(10)],
-              [2018],
-              0,
-              logging.getLogger("test"),
-          )
-          '''
-          new_call = '''    rows = mod._fetch_disbursements(
-              object(),
-              [f"C{index:08d}" for index in range(10)],
-              [2018],
-              0,
-              logging.getLogger("test"),
-              batch_size=10,
-          )
-          '''
-          if old_call not in test_text:
-              raise SystemExit("expected adaptive test call not found")
-          test.write_text(test_text.replace(old_call, new_call, 1), encoding="utf-8")
+          suffix = '        logging.getLogger("test"),\n    )'
+          replacement = '        logging.getLogger("test"),\n        batch_size=10,\n    )'
+          if suffix not in test_text:
+              raise SystemExit("expected adaptive test call suffix not found")
+          test.write_text(test_text.replace(suffix, replacement, 1), encoding="utf-8")
           PY
           python -m pip install 'ruff==0.15.18' pandas requests pytest
           ruff format scripts/download_fec_committees.py tests/test_fec_outflow_batching.py
