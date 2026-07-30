@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - ".github/workflows/campaign-finance-live-materialization.yml"
-      - "scripts/download_fec.py"
       - "scripts/download_fec_committees.py"
       - "scripts/materialize_campaign_finance.py"
       - "scripts/validate_campaign_finance_materialization.py"
@@ -52,14 +51,20 @@ jobs:
           grep -vE '^[[:space:]]*-e[[:space:]]' requirements.txt > /tmp/campaign-finance-requirements.txt
           python -m pip install -r /tmp/campaign-finance-requirements.txt
 
-      - name: Run strict live campaign-finance materialization
+      - name: Fetch live FEC committee master and outflows
         shell: bash
         run: |
           set -o pipefail
           mkdir -p reports/campaign_finance
+          python scripts/download_fec_committees.py --force \
+            2>&1 | tee reports/campaign_finance/fec_outflows.txt
+
+      - name: Run strict campaign-finance materialization
+        shell: bash
+        run: |
+          set -o pipefail
           python scripts/materialize_campaign_finance.py \
             --live-oce \
-            --live-fec \
             --strict \
             2>&1 | tee reports/campaign_finance/live_materialization.txt
 
