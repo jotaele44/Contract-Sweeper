@@ -1,4 +1,4 @@
-"""Run the complete MoneySweep campaign-finance materialization ladder."""
+"""Run the complete, fail-closed MoneySweep campaign-finance materialization ladder."""
 
 from __future__ import annotations
 
