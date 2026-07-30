@@ -3,16 +3,16 @@
   "active_vector": "PREP_TRANCHE_B_MANUAL_SOURCE_INGESTION",
   "reconciled_at": "2026-07-11",
   "status": "CONTROL_PLANE_RECONCILED",
-  "canonical_source_count": 151,
+  "canonical_source_count": 154,
   "source_count_file": "reports/materialization_readiness.json",
-  "automatable_total": 104,
-  "automatable_ready": 104,
+  "automatable_total": 107,
+  "automatable_ready": 107,
   "queued_excluded_total": 47,
   "queued_excluded": {
     "manual_export": 40,
     "scraper_needed": 2,
-    "semantic_duplicate": 3,
     "deferred_stub": 2,
+    "semantic_duplicate": 3,
     "broken_producer": 0
   },
   "runtime_required_keys": [

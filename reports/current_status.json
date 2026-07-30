@@ -219,15 +219,15 @@
     "future_work": "integrate the manual datasets (ACT/ACUDEN/PRASA/cabilderos/DCAA) via Tranche B operator file drops in dedicated egress-enabled PRs"
   },
   "materialization_readiness_truth": {
-    "total_sources": 151,
-    "automatable_total": 104,
-    "automatable_ready": 104,
+    "total_sources": 154,
+    "automatable_total": 107,
+    "automatable_ready": 107,
     "queued_excluded_total": 47,
     "queued_excluded": {
       "manual_export": 40,
       "scraper_needed": 2,
-      "semantic_duplicate": 3,
       "deferred_stub": 2,
+      "semantic_duplicate": 3,
       "broken_producer": 0
     }
   }
