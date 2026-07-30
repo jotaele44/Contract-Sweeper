@@ -162,8 +162,7 @@ def _parse_df(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
         if col not in out_df.columns:
             out_df[col] = ""
     donor = out_df["donor_name"].fillna("").astype(str).str.strip()
-    amount = out_df["amount"].fillna("").astype(str).str.strip()
-    out_df = out_df[(donor != "") & (donor.str.lower() != "nan") & (amount != "")]
+    out_df = out_df[(donor != "") & (donor.str.lower() != "nan")]
     return out_df[OUTPUT_COLUMNS]
 
 
