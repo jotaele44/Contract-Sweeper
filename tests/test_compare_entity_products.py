@@ -9,6 +9,10 @@ from scripts.compare_entity_products import compare, main
 
 pytestmark = pytest.mark.unit
 
+# The synthetic records intentionally keep complete cross-product rows visible.
+# Ruff lint and pytest remain active; only automatic layout rewriting is disabled.
+# fmt: off
+
 
 def _write_csv(path: Path, columns: list[str], rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -121,3 +125,6 @@ def test_cli_allow_missing_writes_report_and_exits_zero(tmp_path: Path) -> None:
 
     assert result == 0
     assert output.exists()
+
+
+# fmt: on
