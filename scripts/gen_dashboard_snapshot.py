@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate dashboard/src/lib/snapshot.json for the offline export."""
+"""Generate the offline dashboard snapshot using concrete route arguments."""
 
 from __future__ import annotations
 
