@@ -1,4 +1,4 @@
-"""Validate campaign-finance inputs, derived outputs, and cross-reference gates."""
+"""Validate campaign-finance data, derivations, and complete FEC acquisition accounting."""
 
 from __future__ import annotations
 
