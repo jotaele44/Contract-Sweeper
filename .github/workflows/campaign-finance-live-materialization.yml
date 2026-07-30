@@ -45,10 +45,12 @@ jobs:
           fi
           echo "::add-mask::$FEC_API_KEY"
 
-      - name: Install dependencies
+      - name: Install campaign-finance dependencies
+        shell: bash
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          grep -vE '^[[:space:]]*-e[[:space:]]' requirements.txt > /tmp/campaign-finance-requirements.txt
+          python -m pip install -r /tmp/campaign-finance-requirements.txt
 
       - name: Run strict live campaign-finance materialization
         shell: bash
