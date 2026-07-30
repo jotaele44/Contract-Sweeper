@@ -1,0 +1,209 @@
+name: Harden FEC Outflow Accounting
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/harden-fec-outflow-accounting.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: codex/campaign-finance-completion-v0-1
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - name: Install focused tooling
+        run: python -m pip install 'ruff==0.15.18' pandas requests pytest
+      - name: Apply fail-closed acquisition accounting
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text(encoding="utf-8")
+              if old not in text:
+                  raise SystemExit(f"expected text not found in {path}: {old!r}")
+              file.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          downloader = "scripts/download_fec_committees.py"
+          replace_once(downloader, "import argparse\nimport os\n", "import argparse\nimport json\nimport os\n")
+          replace_once(
+              downloader,
+              "from datetime import date\n",
+              "from datetime import date, datetime, timezone\n",
+          )
+          replace_once(
+              downloader,
+              "    return http_get_json(session, url, params, logger=logger, config=config)\n",
+              "    return http_get_json(\n"
+              "        session,\n"
+              "        url,\n"
+              "        params,\n"
+              "        logger=logger,\n"
+              "        config=config,\n"
+              "        raise_on_failure=True,\n"
+              "    )\n",
+          )
+          replace_once(
+              downloader,
+              '    logger = setup_logging("download_fec_committees")\n\n',
+              '    logger = setup_logging("download_fec_committees")\n'
+              '    manifest_dir = root / "data" / "manifests" / "campaign_finance"\n'
+              '    manifest_dir.mkdir(parents=True, exist_ok=True)\n'
+              '    manifest_path = manifest_dir / "fec_outflows_acquisition.json"\n'
+              '    acquisition_manifest = {\n'
+              '        "manifest_type": "fec_outflows_acquisition",\n'
+              '        "status": "running",\n'
+              '        "started_at": datetime.now(timezone.utc).isoformat(),\n'
+              '        "committee_batch_size": COMMITTEE_BATCH_SIZE,\n'
+              '        "cycle_start": START_CYCLE,\n'
+              '        "cycle_end": END_CYCLE,\n'
+              '    }\n'
+              '    manifest_path.write_text(\n'
+              '        json.dumps(acquisition_manifest, indent=2) + "\\n",\n'
+              '        encoding="utf-8",\n'
+              '    )\n\n',
+          )
+          replace_once(
+              downloader,
+              "    return {\n        \"rows\": len(committee_frame),\n",
+              "    committee_batches = (\n"
+              "        len(committee_ids) + COMMITTEE_BATCH_SIZE - 1\n"
+              "    ) // COMMITTEE_BATCH_SIZE\n"
+              "    schedule_b_planned = 0 if skip_disbursements else committee_batches * len(cycles)\n"
+              "    schedule_e_planned = 0 if skip_expenditures else len(cycles)\n"
+              "    acquisition_manifest.update(\n"
+              "        {\n"
+              "            \"status\": \"complete\",\n"
+              "            \"completed_at\": datetime.now(timezone.utc).isoformat(),\n"
+              "            \"committee_count\": len(committee_ids),\n"
+              "            \"cycles\": cycles,\n"
+              "            \"schedule_b\": {\n"
+              "                \"planned_batches\": schedule_b_planned,\n"
+              "                \"completed_batches\": schedule_b_planned,\n"
+              "                \"rows\": disbursement_rows,\n"
+              "                \"skipped\": skip_disbursements,\n"
+              "            },\n"
+              "            \"schedule_e\": {\n"
+              "                \"planned_cycles\": schedule_e_planned,\n"
+              "                \"completed_cycles\": schedule_e_planned,\n"
+              "                \"rows\": expenditure_rows,\n"
+              "                \"skipped\": skip_expenditures,\n"
+              "            },\n"
+              "        }\n"
+              "    )\n"
+              "    manifest_path.write_text(\n"
+              "        json.dumps(acquisition_manifest, indent=2) + \"\\n\",\n"
+              "        encoding=\"utf-8\",\n"
+              "    )\n\n"
+              "    return {\n        \"rows\": len(committee_frame),\n",
+          )
+          replace_once(
+              downloader,
+              '            "independent_expenditures": str(expenditures_path),\n        },\n',
+              '            "independent_expenditures": str(expenditures_path),\n'
+              '            "acquisition_manifest": str(manifest_path),\n'
+              '        },\n',
+          )
+
+          validator = "scripts/validate_campaign_finance_materialization.py"
+          replace_once(
+              validator,
+              "DERIVED_CONDITIONAL: dict[str, dict[str, Any]] = {\n",
+              'FEC_OUTFLOW_MANIFEST = (\n'
+              '    "data/manifests/campaign_finance/fec_outflows_acquisition.json"\n'
+              ')\n\n'
+              "DERIVED_CONDITIONAL: dict[str, dict[str, Any]] = {\n",
+          )
+          replace_once(
+              validator,
+              "    conditional = {}\n",
+              '    outflow_manifest_path = root / FEC_OUTFLOW_MANIFEST\n'
+              '    outflow_acquisition: dict[str, Any] = {\n'
+              '        "path": str(outflow_manifest_path),\n'
+              '        "status": "missing",\n'
+              '    }\n'
+              '    if outflow_manifest_path.exists():\n'
+              '        try:\n'
+              '            payload = json.loads(outflow_manifest_path.read_text(encoding="utf-8"))\n'
+              '            schedule_b = payload.get("schedule_b", {})\n'
+              '            schedule_e = payload.get("schedule_e", {})\n'
+              '            complete = (\n'
+              '                payload.get("status") == "complete"\n'
+              '                and not schedule_b.get("skipped", False)\n'
+              '                and not schedule_e.get("skipped", False)\n'
+              '                and schedule_b.get("planned_batches")\n'
+              '                == schedule_b.get("completed_batches")\n'
+              '                and schedule_e.get("planned_cycles")\n'
+              '                == schedule_e.get("completed_cycles")\n'
+              '            )\n'
+              '            outflow_acquisition = {\n'
+              '                **payload,\n'
+              '                "path": str(outflow_manifest_path),\n'
+              '                "status": "ok" if complete else "incomplete",\n'
+              '            }\n'
+              '        except (OSError, ValueError, TypeError) as exc:\n'
+              '            outflow_acquisition = {\n'
+              '                "path": str(outflow_manifest_path),\n'
+              '                "status": "unreadable",\n'
+              '                "error": str(exc),\n'
+              '            }\n'
+              '    if outflow_acquisition["status"] != "ok":\n'
+              '        blocking.append(\n'
+              '            f"fec_outflow_acquisition:{outflow_acquisition[\"status\"]}"\n'
+              '        )\n\n'
+              "    conditional = {}\n",
+          )
+          replace_once(
+              validator,
+              '        "conditional_derived_outputs": conditional,\n',
+              '        "fec_outflow_acquisition": outflow_acquisition,\n'
+              '        "conditional_derived_outputs": conditional,\n',
+          )
+
+          test_path = "tests/test_campaign_finance_validation.py"
+          replace_once(
+              test_path,
+              '    assert any(item.startswith("fec_contributions:") for item in report["blocking"])\n',
+              '    assert any(item.startswith("fec_contributions:") for item in report["blocking"])\n'
+              '    assert "fec_outflow_acquisition:missing" in report["blocking"]\n',
+          )
+          PY
+      - name: Format and validate focused changes
+        shell: bash
+        run: |
+          ruff format \
+            scripts/download_fec_committees.py \
+            scripts/validate_campaign_finance_materialization.py \
+            tests/test_campaign_finance_validation.py
+          ruff check \
+            scripts/download_fec_committees.py \
+            scripts/validate_campaign_finance_materialization.py \
+            tests/test_campaign_finance_validation.py
+          python -m pytest -q -o addopts='' tests/test_campaign_finance_validation.py
+      - name: Publish and self-remove
+        shell: bash
+        run: |
+          rm .github/workflows/harden-fec-outflow-accounting.yml
+          git add \
+            scripts/download_fec_committees.py \
+            scripts/validate_campaign_finance_materialization.py \
+            tests/test_campaign_finance_validation.py \
+            .github/workflows/harden-fec-outflow-accounting.yml
+          git diff --cached --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "fix: fail closed on incomplete FEC outflow acquisition"
+          git push origin HEAD:codex/campaign-finance-completion-v0-1
