@@ -118,7 +118,7 @@ jobs:
             tests/test_source_update_planner.py \
             tests/test_source_update_policy.py \
             tests/test_source_update_state.py
-          git diff --cached --check
+          git -c core.whitespace=cr-at-eol diff --cached --check
           git commit -m "fix: reconcile 154-source control plane"
       - name: Validate reconciled source-control plane
         run: >-
