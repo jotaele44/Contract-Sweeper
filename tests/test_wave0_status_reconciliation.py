@@ -8,6 +8,10 @@ import pytest
 pytestmark = pytest.mark.unit
 ROOT = Path(__file__).resolve().parents[1]
 
+# This file mirrors long immutable status identifiers and generated-schema keys.
+# Keep its assertion layout stable while Ruff linting and pytest remain active.
+# fmt: off
+
 
 def _read(path: str) -> dict:
     return json.loads((ROOT / path).read_text(encoding="utf-8"))
@@ -40,7 +44,7 @@ def test_status_records_pr448_postmerge_state() -> None:
         "bd337fb092eb639cdb24b490bc90a8b07e9e51c4"
     )
     assert status["certified_input_head_sha"] == (
-        "ab576462ded2f2e99c762161b7ec18de8cef73"
+        "ab576462ded2f2ca590002011861322c9ece2a32"
     )
 
     merge = status["merge_record"]
@@ -167,3 +171,6 @@ def test_postmerge_preservation_flags_are_explicit() -> None:
     assert preservation["production_activation_authorized"] is False
     assert preservation["force_push_authorized"] is False
     assert preservation["history_rewrite_authorized"] is False
+
+
+# fmt: on
