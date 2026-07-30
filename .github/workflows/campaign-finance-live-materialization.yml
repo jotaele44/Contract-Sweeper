@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: campaign-finance-live-materialization-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   materialize:
