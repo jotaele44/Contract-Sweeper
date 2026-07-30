@@ -16,7 +16,7 @@
     "merge_authorized": true,
     "merge_completed": true,
     "merge_method": "squash",
-    "expected_head_sha": "ab576462ded2f2ca590002011861322c9ece2a32",
+    "expected_head_sha": "ab576462ded2f2e99c762161b7ec18de8cef73",
     "merge_commit_sha": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
     "merged_at": "2026-07-30T23:24:01Z",
     "review_threads": 0,
@@ -69,7 +69,7 @@
     "status_reconciliation_pr": {
       "number": 448,
       "state": "MERGED",
-      "final_certified_head_sha": "ab576462ded2f2ca590002011861322c9ece2a32",
+      "final_certified_head_sha": "ab576462ded2f2e99c762161b7ec18de8cef73",
       "merge_commit_sha": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
       "triggered_workflows": 17,
       "successful_workflows": 17,
@@ -151,7 +151,7 @@
     "issue_87": "CLOSED_SUPERSEDED_2026_07_28",
     "merged_status_reconciliation_pr": 448,
     "merged_status_reconciliation_commit": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
-    "postmerge_status_pr": "PENDING_CREATION",
+    "postmerge_status_pr": 452,
     "superseded_status_pr": 447
   },
   "completed_in_wave0": [
