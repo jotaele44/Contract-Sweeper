@@ -1,8 +1,10 @@
 {
-  "schema_version": "moneysweep_required_source_evidence_v1",
+  "schema_version": "moneysweep_required_source_evidence_v2",
   "observed_at": "2026-07-30T01:14:00-04:00",
+  "reconciled_at": "2026-07-30T11:43:00-04:00",
   "target_pr": 448,
-  "input_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
+  "evidence_input_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
+  "last_certified_v0_8_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "live_producer_execution": false,
   "credentialed_access_attempted": false,
@@ -15,23 +17,28 @@
       "source_id": "cor3",
       "status": "PUBLIC_EXPORT_SURFACE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
       "official_surface": "https://recovery.pr.gov/en/financial-analysis/financial-summary",
-      "observed_evidence": "Official COR3 financial-summary portal exposes an Export to Excel control and identifies FEMA/COR3 data sources. The portal displayed data as of 2026-06-16 during this review.",
-      "repo_producer": "scripts/ingest_cor3.py",
-      "expected_operator_input": "COR3 Transparency Portal Excel exports under data/raw/COR3/",
-      "output": "data/staging/processed/pr_cor3_projects.csv",
+      "registry_producer": "scripts/download_cor3.py",
+      "registry_live_endpoint_status": "UNVERIFIED_BEST_EFFORT",
+      "authorized_manual_ingest": "scripts/ingest_cor3.py",
+      "manual_drop_dir": "data/raw/COR3/",
+      "expected_output": "data/staging/processed/pr_cor3_projects.csv",
       "freshness_status": "ACCESS_SURFACE_CURRENT_OUTPUT_NOT_CERTIFIED",
       "materialization_credit": false,
-      "blocker": "No COR3 workbook bytes were present in the connected evidence or execution environment. The separate download_cor3.py endpoint list remains explicitly unverified and was not executed."
+      "blocker": "No official COR3 workbook bytes were available. The unverified endpoint downloader was not executed."
     },
     {
       "source_id": "hud_drgr_authorized",
       "status": "AUTHORIZED_EXPORT_REQUIRED_NOT_PRESENT",
       "official_surface": "https://drgr.hud.gov/public/",
-      "observed_evidence": "HUD exposes a public DRGR data portal, but the repository source contract specifically requires authorized local exports and forbids credential automation.",
-      "repo_producer": "scripts/ingest_hud_drgr_exports.py",
-      "expected_operator_input": "Authorized DRGR CSV/XLSX exports under data/manual/hud_drgr/ or documented legacy raw paths",
-      "outputs": [
+      "registry_producer": "scripts/ingest_hud_drgr_exports.py",
+      "manual_drop_dir": "data/manual/hud_drgr/",
+      "canonical_registry_outputs": [
+        "data/staging/processed/hud_drgr_activities.csv",
+        "data/staging/processed/hud_drgr_projects.csv"
+      ],
+      "normalized_outputs": [
         "data/normalized/hud_drgr_activities.parquet",
+        "data/normalized/hud_drgr_projects.parquet",
         "data/normalized/hud_drgr_drawdowns.parquet",
         "data/normalized/hud_drgr_appropriations.parquet"
       ],
@@ -43,37 +50,36 @@
       "source_id": "pr_cabilderos",
       "status": "PUBLIC_REGISTRY_VERIFIED_FULL_EXPORT_NOT_ACQUIRED",
       "official_surface": "https://www.justicia.pr.gov/registro-de-cabilderos/",
-      "observed_evidence": "Puerto Rico Department of Justice is the official custodian of the public cabilderos registry created under Executive Order OE-2019-031. Public registration details are available, with legislative chambers publishing supplementary records.",
+      "official_custodian": "Puerto Rico Department of Justice",
       "repo_producer": "scripts/ingest_cabilderos.py",
-      "expected_operator_input": "Official registry CSV/XLSX exports under data/raw/Cabilderos/",
-      "output": "data/staging/processed/pr_cabilderos.csv",
-      "provenance_correction": "Producer documentation corrected from Oficina de Etica Gubernamental to Department of Justice custody.",
+      "manual_drop_dir": "data/raw/Cabilderos/",
+      "expected_output": "data/staging/processed/pr_cabilderos.csv",
       "freshness_status": "PUBLIC_LIST_OBSERVED_CURRENT_FULL_CORPUS_NOT_CERTIFIED",
       "materialization_credit": false,
-      "blocker": "No complete machine-readable export bytes were present in the execution environment."
+      "blocker": "No complete machine-readable official export bytes were available."
     },
     {
       "source_id": "prasa",
       "status": "OFFICIAL_CONTRACT_EXPORT_ROUTE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
       "official_surface": "https://consultacontratos.ocpr.gov.pr/",
-      "observed_evidence": "The Puerto Rico Comptroller contract registry supports entity-filtered contract searches and operator-requested exports. The public interface documents an on-screen limit of 30,000 records and email delivery for exports.",
       "repo_producer": "scripts/ingest_prasa.py",
-      "expected_operator_input": "PRASA/AAA contract CSV/XLSX exports under data/raw/PRASA/",
-      "output": "data/staging/processed/pr_prasa_contracts.csv",
+      "manual_drop_dir": "data/raw/PRASA/",
+      "expected_output": "data/staging/processed/pr_prasa_contracts.csv",
       "freshness_status": "ACCESS_ROUTE_CURRENT_OUTPUT_NOT_CERTIFIED",
       "materialization_credit": false,
-      "blocker": "No PRASA-filtered export was supplied. Export delivery is an operator action and may require partitioning when the result exceeds the interface limit."
+      "blocker": "No PRASA-filtered export was supplied. Export delivery remains an operator action."
     }
   ],
   "entity_product_comparison": {
     "script": "scripts/compare_entity_products.py",
+    "schema_version": "entity_product_comparison_v2",
     "test": "tests/test_compare_entity_products.py",
     "left": "data/staging/processed/entity_master.csv",
     "right": "data/staging/processed/pr_entity_profiles.csv",
     "status": "PENDING_OPERATOR_CORPUS_EXECUTION",
-    "reason": "The certified operator bundle contains audit summaries but not the two 104,280-row CSV inputs; schema, file hashes, row hashes, stable-key overlap, and duplicate status cannot be computed from summaries alone.",
+    "reason": "The certified bundle contains audit summaries but not the two local CSV inputs.",
     "command": "python3 scripts/compare_entity_products.py --output reports/entity_product_comparison.json",
-    "certification_boundary": "The generated comparison certifies local-file structure and overlap only; it does not certify upstream external-source freshness."
+    "certification_boundary": "The generated comparison certifies local-file validity and overlap only; it does not certify upstream freshness."
   },
   "decision": "ACCESS_AND_PROVENANCE_EVIDENCE_CERTIFIED_MATERIALIZATION_AND_ENTITY_COMPARISON_PENDING_OPERATOR_INPUTS"
 }

@@ -1,34 +1,19 @@
 {
-  "schema_version": "moneysweep_current_status_v5",
-  "generated_at": "2026-07-30T01:14:00-04:00",
-  "base_sha": "34ef3b9352493d0b6ba4eb821d7ea544bec0933b",
+  "schema_version": "moneysweep_current_status_v6",
+  "generated_at": "2026-07-30T11:43:00-04:00",
+  "base_sha": "bd337fb092eb639cdb24b490bc90a8b07e9e51c4",
   "certified_input_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
-  "active_vector": "ACQUIRE_MONEYSWEEP_REQUIRED_SOURCE_EVIDENCE_AND_COMPARE_ENTITY_PRODUCTS_v0_8",
+  "last_certified_v0_8_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
+  "current_head_authority": "GitHub PR #448 metadata and checks; this file intentionally does not self-pin the commit containing it.",
+  "active_vector": "REMEDIATE_MONEYSWEEP_PR448_RESIDUAL_CONFLICTS_v0_9_PREP",
   "active_branch": "agent/moneysweep-wave0-status-reconciliation-v0-3",
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "pause_lock_active": true,
-  "historical_status_evidence": {
-    "path_at_base": "reports/current_status.json",
-    "blob_sha": "b175df73deb6ecf5bbf0d0040b89ca75f5d1e10c",
-    "preservation": "immutable Git blob referenced instead of duplicating a dated 236-line snapshot"
-  },
-  "authoritative_inputs": {
-    "source_readiness": "reports/materialization_readiness.json",
-    "materialization_evidence": "operator bundle MONEYSWEEP_WAVE0_OPERATOR_AUDIT.zip",
-    "gap_and_output_ownership_adjudication": "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json",
-    "required_source_access_evidence": "reports/WAVE0_REQUIRED_SOURCE_EVIDENCE_2026-07-30.json",
-    "entity_product_comparison_tool": "scripts/compare_entity_products.py",
-    "entity_product_comparison_report": "reports/entity_product_comparison.json (pending operator-corpus execution)",
-    "source_registry": "registries/source_registry.json",
-    "detailed_roadmap": "docs/ROAD_TO_100.md",
-    "normalized_roadmap": "docs/ROAD_TO_100_NORMALIZED.md"
-  },
   "source_registry_current": {
-    "authoritative_report": "reports/materialization_readiness.json",
-    "count_semantics": "current live registry",
-    "historical_counts_are_snapshots": true,
     "total_sources": 151,
-    "source_ids_sha256": "7830358c254767bc9db34ae5230b41f815ffaea9aa0c3abe4dfdebfe36b2f2d0"
+    "source_ids_sha256": "7830358c254767bc9db34ae5230b41f815ffaea9aa0c3abe4dfdebfe36b2f2d0",
+    "required_sources": 14,
+    "override_policy": "Existing source IDs only; source_id and required are immutable."
   },
   "materialization_readiness_truth": {
     "total_sources": 151,
@@ -36,195 +21,137 @@
     "automatable_ready": 104,
     "queued_excluded_total": 47,
     "queued_excluded": {
-      "manual_export": 40,
-      "scraper_needed": 2,
+      "manual": 40,
+      "scraper": 2,
       "semantic_duplicate": 3,
-      "deferred_stub": 2,
-      "broken_producer": 0
-    },
-    "automatable_needs_key_count": 12,
-    "required_key_names": 9,
-    "required_keys": [
-      "CENSUS_API_KEY",
-      "EIA_API_KEY",
-      "FAC_API_KEY",
-      "FEC_API_KEY",
-      "FINANCIALDATA_API_KEY",
-      "FRED_API_KEY",
-      "HIGHERGOV_API_KEY",
-      "OPENSTATES_API_KEY",
-      "SAM_API_KEY"
-    ]
-  },
-  "wave0_ci_certification": {
-    "workflow_repair_pr": {
-      "number": 444,
-      "head_sha": "47b822518caffdd24f223f9ae8466a60012077cb",
-      "triggered_workflows": 16,
-      "status": "GREEN_AND_MANUAL_PREFLIGHT_PASS",
-      "manual_preflight_runs": [30452888839, 30452890975, 30452892905],
-      "live_jobs_skipped": 3
-    },
-    "dependency_refresh_pr": {
-      "number": 446,
-      "head_sha": "60e3cedd482bf5a3c6dbce4bfdea01c10fb424c3",
-      "triggered_workflows": 15,
-      "status": "GREEN"
-    },
-    "status_reconciliation_pr": {
-      "number": 448,
-      "certified_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
-      "triggered_workflows": 15,
-      "status": "GREEN_BEFORE_V0_8_REFRESH"
-    },
-    "superseded_status_pr": {
-      "number": 447,
-      "state": "CLOSED_UNMERGED",
-      "reason": "connector-side placeholder write was restored; clean successor #448 preserves the certified pre-write head without history rewrite"
+      "deferred": 2
     }
   },
   "materialization_coverage": {
-    "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION",
-    "certification_scope": "OFFLINE_LOCAL_OPERATOR_CORPUS",
-    "evidence_generated_at": "2026-07-29T13:14:30.168036+00:00",
-    "evidence_bundle_sha256": "2a37bf4c49f5e4d267ca4cbdc8366c718efc1738de607cdbe3cbbbd3ec8b9f85",
-    "audit_code_sha": "1dc726893a3a15879fe828aeeeb46ddd8807c870",
     "evidence_registry_total": 151,
     "current_registry_total": 151,
     "denominator_comparable": true,
+    "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION",
+    "probe_ran": false,
     "registry_digest_parity": true,
     "status_count_parity": true,
-    "probe_ran": false,
     "local_operator_snapshot": {
       "fully_materialized": 67,
       "partially_materialized": 11,
       "not_materialized": 73,
-      "materialized_any_data": 64,
-      "coverage_rate_fully": 0.4437,
-      "fully_or_partially_materialized_rate": 0.5166,
+      "required_fully_materialized": 10,
       "required_sources": 14,
-      "required_fully_materialized": 10,
-      "required_materialization_rate": 0.7143,
-      "total_local_rows": 858090
-    },
-    "processed_file_inventory": {
-      "total_csv_files": 120,
-      "total_rows_on_disk": 1183565,
-      "registry_accounted_rows": 849898,
-      "raw_audit_undeclared_positive_rows": 212930,
-      "raw_audit_undeclared_file_count": 6,
+      "physical_processed_rows": 1183565,
+      "registry_declared_rows": 849898,
       "adjudicated_derived_output_rows": 212930,
-      "adjudicated_derived_output_file_count": 6,
+      "pipeline_intermediate_rows": 120737,
       "unadjudicated_orphan_rows": 0,
-      "unadjudicated_orphan_file_count": 0,
-      "intermediate_rows": 120737,
-      "intermediate_file_count": 11,
-      "row_total_parity": true,
-      "double_counting_detected": false
+      "unresolved_lineage_rows_within_derived_outputs": 104280
+    }
+  },
+  "wave0_ci_certification": {
+    "status_reconciliation_pr": {
+      "number": 448,
+      "last_certified_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
+      "triggered_workflows": 16,
+      "status": "GREEN",
+      "includes_path_specific_skills_validation": true,
+      "current_head_ci": "AUTHORITATIVE_IN_GITHUB_PR_CHECKS"
     },
-    "required_source_adjudication": {
-      "cor3": "PUBLIC_EXPORT_SURFACE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
-      "hud_drgr_authorized": "AUTHORIZED_EXPORT_REQUIRED_NOT_PRESENT",
-      "pr_cabilderos": "PUBLIC_REGISTRY_VERIFIED_FULL_EXPORT_NOT_ACQUIRED",
-      "prasa": "OFFICIAL_CONTRACT_EXPORT_ROUTE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
-      "materialization_credit_changed": false,
-      "required_fully_materialized": 10,
-      "required_sources": 14
-    },
-    "derived_output_files": [
-      "entity_master.csv",
-      "pr_entity_profiles.csv",
-      "high_value_unresolved.csv",
-      "pr_report_builder_master.csv",
-      "pr_entity_gaps.csv",
-      "sam_entities.csv"
-    ],
-    "external_universe_completeness": "NOT_CERTIFIED",
-    "freshness_certification": "NOT_CERTIFIED",
-    "next_certification_action": "Supply and ingest source-authorized export bytes, then run the deterministic entity-product comparison against the operator corpus before production-export or downstream-consumer certification."
+    "workflow_repair_pr": 444,
+    "dependency_refresh_pr": 446,
+    "hosted_preflight_runs": [30452888839, 30452890975, 30452892905],
+    "hosted_live_jobs_skipped": true
   },
   "required_source_evidence": {
     "report": "reports/WAVE0_REQUIRED_SOURCE_EVIDENCE_2026-07-30.json",
-    "status": "ACCESS_AND_PROVENANCE_EVIDENCE_CERTIFIED",
-    "live_producer_execution": false,
-    "credentialed_access_attempted": false,
-    "new_output_rows": 0,
+    "required_fully_materialized": 10,
+    "required_sources": 14,
     "materialization_credit_changed": false,
-    "freshness_boundary": "Access surfaces were observed; output-corpus freshness is not certified without acquired export bytes."
+    "sources": {
+      "cor3": "PUBLIC_EXPORT_SURFACE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
+      "hud_drgr_authorized": "AUTHORIZED_EXPORT_REQUIRED_NOT_PRESENT",
+      "pr_cabilderos": "PUBLIC_REGISTRY_VERIFIED_FULL_EXPORT_NOT_ACQUIRED",
+      "prasa": "OFFICIAL_CONTRACT_EXPORT_ROUTE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED"
+    }
+  },
+  "contract_repairs": {
+    "hud_drgr_authorized": {
+      "registry_outputs": [
+        "data/staging/processed/hud_drgr_activities.csv",
+        "data/staging/processed/hud_drgr_projects.csv"
+      ],
+      "normalized_outputs": [
+        "data/normalized/hud_drgr_activities.parquet",
+        "data/normalized/hud_drgr_projects.parquet",
+        "data/normalized/hud_drgr_drawdowns.parquet",
+        "data/normalized/hud_drgr_appropriations.parquet"
+      ],
+      "status": "PRODUCER_AND_REGISTRY_CONTRACT_ALIGNED"
+    },
+    "cor3": {
+      "registry_producer": "scripts/download_cor3.py",
+      "authorized_manual_ingest": "scripts/ingest_cor3.py",
+      "status": "LIVE_ENDPOINT_UNVERIFIED_MANUAL_EXPORT_PATH_DOCUMENTED"
+    },
+    "pr_cabilderos": {
+      "official_custodian": "Puerto Rico Department of Justice",
+      "status": "EXPLICIT_PROVENANCE_OVERRIDE_APPLIED"
+    }
   },
   "entity_product_comparison": {
-    "tool": "scripts/compare_entity_products.py",
-    "test": "tests/test_compare_entity_products.py",
-    "left": "data/staging/processed/entity_master.csv",
-    "right": "data/staging/processed/pr_entity_profiles.csv",
-    "reported_rows_each": 104280,
+    "script": "scripts/compare_entity_products.py",
+    "schema_version": "entity_product_comparison_v2",
     "status": "PENDING_OPERATOR_CORPUS_EXECUTION",
-    "reason": "The evidence bundle contains summary rows but not either CSV; file SHA-256, schema fingerprints, row-hash multisets, stable-key overlap, projected-row overlap, and duplicate status remain uncomputed.",
-    "command": "python3 scripts/compare_entity_products.py --output reports/entity_product_comparison.json",
-    "equal_row_counts_establish_duplication": false
+    "input_files_present_in_certification_bundle": false,
+    "validation_policy": "Malformed, empty, or missing inputs fail closed; blank preferred keys fall back to populated recognized keys; no-shared-column projection is not computable rather than 100% overlap."
   },
-  "historical_coverage_evidence": {
-    "status": "SUPERSEDED_FOR_CURRENT_COVERAGE",
-    "evidence_generated_at": "2026-07-13T06:00:16.613129+00:00",
-    "evidence_registry_total": 144,
-    "reason": "retained as dated evidence only; replaced for current offline local-corpus accounting by the certified 151-source operator audit"
+  "derived_output_lineage": {
+    "adjudication_report": "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json",
+    "confirmed_files": 5,
+    "unresolved_files": 1,
+    "unresolved_file": "data/staging/processed/entity_master.csv",
+    "unresolved_rows": 104280,
+    "candidate_producer": "scripts/build_entity_master.py",
+    "candidate_output_conflict": "Candidate producer declares data/reference/entity_master.csv, not the staging artifact.",
+    "source_materialization_credit": false
   },
-  "road_to_100": {
-    "implemented_scope_pct": 75,
-    "ci_enforced_maturity_pct": 73,
-    "automatable_wiring_pct": 100,
-    "fully_materialized_pct": 44.37,
-    "fully_or_partially_materialized_pct": 51.66,
-    "required_materialization_pct": 71.43,
-    "production_gate": false,
-    "evidence_depth": "D3_CURRENT_OPERATOR_CORPUS_ADJUDICATED_WITH_ACCESS_EVIDENCE",
-    "interpretation": "The 151-source offline corpus, output ownership, and access/provenance routes for four required gaps are documented. Required export bytes, entity-product comparison results, freshness, external-universe completeness, production export, and downstream validation remain open."
+  "historical_status_evidence": {
+    "path_at_base": "reports/current_status.json",
+    "blob_sha": "b175df73deb6ecf5bbf0d0040b89ca75f5d1e10c",
+    "classification": "HISTORICAL_144_SOURCE_NONCERTIFICATION"
   },
   "issue_reconciliation": {
-    "epic_271": "OPEN_P0_ACCESS_EVIDENCE_COMPLETE_INPUT_BYTES_PENDING_2026-07-30",
-    "issue_258": "CLOSED_COMPLETED_2026-06-16",
-    "issue_87": "CLOSED_SUPERSEDED_2026-07-28",
-    "child_range_272_307": "OPEN_UNLESS_SEPARATELY_CLOSED",
-    "workflow_repair_pr": 444,
-    "dependency_refresh_pr": 446,
+    "issue_271": "OPEN_WAVE0_CONTROL_PLANE_AND_LOCAL_CORPUS_CERTIFIED",
+    "issue_258": "CLOSED_COMPLETED_2026_06_16",
+    "issue_87": "CLOSED_SUPERSEDED_2026_07_28",
     "status_reconciliation_pr": 448,
     "superseded_status_pr": 447
   },
   "completed_in_wave0": [
-    "Full CI passed on workflow-repair PR #444, dependency-refresh PR #446, and PR #448 head 53e0069ccf7ca7b7dfa65f62382681e0f61c552c.",
-    "Three GitHub-hosted preflight dispatches passed and all live jobs were skipped.",
-    "Authoritative offline 151-source operator-corpus audit completed with registry-digest and status-count parity.",
-    "Four required-source gaps were formally classified without awarding materialization credit.",
-    "Six undeclared positive-row files were adjudicated as derived outputs; row accounting reconciles exactly with zero unadjudicated orphan rows.",
-    "Official access and provenance routes were documented for COR3, HUD DRGR, cabilderos, and PRASA without credential automation or live producer execution.",
-    "A deterministic offline entity-product comparison harness and hermetic tests were added."
+    "PR #448 was synchronized to base bd337fb092eb639cdb24b490bc90a8b07e9e51c4 through a non-force two-parent commit.",
+    "The last v0.8 head b1f088c98c8175298b856a5df8215c77fa933877 passed all 16 triggered workflows.",
+    "The 151-source offline operator corpus passed digest and status-count parity.",
+    "Six positive-row non-registry files were assigned to the derived-output bucket with exact row arithmetic and zero unadjudicated orphan rows.",
+    "Five derived-output producers are confirmed; the staging lineage for entity_master.csv remains explicitly unresolved.",
+    "Required-source access routes were documented without live producer execution, credential automation, materialization credit, or data promotion."
   ],
-  "open_work": {
-    "p0": [
-      "Supply COR3 workbooks, authorized HUD DRGR exports, an official cabilderos export, and a PRASA/AAA contract export to their documented local dropzones.",
-      "Run scripts/compare_entity_products.py against the operator corpus and commit only the comparison report, not the gitignored source CSVs.",
-      "Reconcile PR2.5 and PR2.6 before PR3 entity deduplication."
-    ],
-    "p1": [
-      "Assess source freshness and external-universe completeness after valid export ingestion without conflating them with access-surface availability.",
-      "Complete production export and downstream federation-consumer validation.",
-      "Implement the two genuine scraper stubs: hacienda_sut_ivu and pr_act_154_excise."
-    ]
-  },
-  "next_command": "INGEST_REQUIRED_EXPORTS_AND_RUN_ENTITY_PRODUCT_COMPARISON",
-  "next_command_detail": {
-    "readiness_source_of_truth": "reports/materialization_readiness.json (151 total; 104/104 automatable ready; 47 queued/excluded)",
-    "operator_corpus_source_of_truth": "MONEYSWEEP_WAVE0_OPERATOR_AUDIT.zip (SHA-256 2a37bf4c49f5e4d267ca4cbdc8366c718efc1738de607cdbe3cbbbd3ec8b9f85)",
-    "ownership_source_of_truth": "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json",
-    "access_evidence_source_of_truth": "reports/WAVE0_REQUIRED_SOURCE_EVIDENCE_2026-07-30.json",
-    "steps": [
-      "Merge no Wave 0 PRs without explicit authorization.",
-      "Preserve #444, #446, and #448 as drafts.",
-      "Do not run credentialed or live acquisition without separately explicit authorization and valid source access.",
-      "Place authorized export files in their documented local dropzones and retain source-specific provenance receipts.",
-      "Run the entity-product comparison and inspect schema, stable keys, hashes, overlap, and duplicate status.",
-      "Run production export and downstream federation-consumer validation before changing production_status."
-    ],
-    "gate": "production_status remains NON_PRODUCTION_DIAGNOSTIC until required data gaps, entity comparison, freshness, production export, and downstream consumer validation pass"
+  "open_work": [
+    "Supply and validate COR3, authorized HUD DRGR, official cabilderos, and PRASA export bytes.",
+    "Run entity_product_comparison_v2 against the two local 104,280-row products.",
+    "Resolve the producing or copy step for data/staging/processed/entity_master.csv.",
+    "Regenerate the 151-source materialization audit after valid source ingestion.",
+    "Certify source freshness and authoritative-universe completeness.",
+    "Complete PR2.5/PR2.6 reconciliation before PR3 deduplication.",
+    "Validate production export and downstream federation consumers."
+  ],
+  "preservation": {
+    "pr_draft": true,
+    "merge_authorized": false,
+    "auto_merge_authorized": false,
+    "live_fetch_authorized": false,
+    "data_promotion_authorized": false,
+    "force_push_authorized": false,
+    "history_rewrite_authorized": false
   }
 }

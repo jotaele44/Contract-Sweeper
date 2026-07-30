@@ -1,8 +1,9 @@
 {
-  "schema_version": "moneysweep_wave0_gap_orphan_adjudication_v1",
-  "generated_at": "2026-07-29T10:27:00-04:00",
+  "schema_version": "moneysweep_wave0_gap_orphan_adjudication_v2",
+  "generated_at": "2026-07-30T11:43:00-04:00",
   "target_pr": 448,
-  "target_head_sha": "33c123f1c3826f1b27b67172dd3227d81353af47",
+  "adjudication_input_head_sha": "33c123f1c3826f1b27b67172dd3227d81353af47",
+  "last_certified_v0_8_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "live_fetch_authorized": false,
   "evidence": {
@@ -19,19 +20,19 @@
       "observed_state": "header-only declared output; 0 data rows",
       "materialization_credit": false,
       "freshness_certified": false,
-      "next_action": "Run the bounded COR3 producer only under a separately authorized live-fetch vector and retain an operator receipt."
+      "next_action": "Acquire official portal workbooks and run scripts/ingest_cor3.py, or separately authorize the bounded live producer after endpoint verification."
     },
     {
       "source_id": "hud_drgr_authorized",
       "classification": "MANUAL_EXPORT_ABSENT",
       "expected_outputs": [
         "data/staging/processed/hud_drgr_activities.csv",
-        "data/staging/processed/hud_drgr_grantees.csv"
+        "data/staging/processed/hud_drgr_projects.csv"
       ],
-      "observed_state": "both declared manual-export outputs absent",
+      "observed_state": "authorized export absent; canonical registry CSVs contain no certified rows",
       "materialization_credit": false,
       "freshness_certified": false,
-      "next_action": "Acquire and validate the authorized HUD DRGR export through the manual-source runbook; no automated fetch is implied."
+      "next_action": "Drop authorized exports under data/manual/hud_drgr/ and run scripts/ingest_hud_drgr_exports.py."
     },
     {
       "source_id": "pr_cabilderos",
@@ -40,7 +41,7 @@
       "observed_state": "header-only declared output; 0 data rows",
       "materialization_credit": false,
       "freshness_certified": false,
-      "next_action": "Acquire a current cabilderos export and pass schema, provenance, and row-level validation before materialization credit."
+      "next_action": "Acquire a current Department of Justice registry export and validate schema, provenance, and rows."
     },
     {
       "source_id": "prasa",
@@ -49,7 +50,7 @@
       "observed_state": "header-only declared output; 0 data rows",
       "materialization_credit": false,
       "freshness_certified": false,
-      "next_action": "Acquire a current PRASA contracts export and pass schema, provenance, and row-level validation before materialization credit."
+      "next_action": "Acquire a current PRASA contracts export and validate schema, provenance, and rows."
     }
   ],
   "derived_output_adjudication": [
@@ -57,7 +58,11 @@
       "file": "entity_master.csv",
       "rows": 104280,
       "classification": "DERIVED_OUTPUT",
-      "producer": "scripts/build_entity_master.py",
+      "producer": null,
+      "producer_status": "UNRESOLVED_STAGING_LINEAGE",
+      "candidate_producer": "scripts/build_entity_master.py",
+      "candidate_declared_output": "data/reference/entity_master.csv",
+      "lineage_conflict": "The candidate producer does not declare data/staging/processed/entity_master.csv.",
       "duplicate_status": "NOT_ESTABLISHED",
       "source_materialization_credit": false
     },
@@ -66,6 +71,7 @@
       "rows": 104280,
       "classification": "DERIVED_OUTPUT",
       "producer": "scripts/analyze_entity_profiles.py",
+      "producer_status": "CONFIRMED",
       "duplicate_status": "NOT_ESTABLISHED",
       "source_materialization_credit": false
     },
@@ -74,6 +80,7 @@
       "rows": 4085,
       "classification": "DERIVED_OUTPUT",
       "producer": "scripts/parent_collapse.py",
+      "producer_status": "CONFIRMED",
       "duplicate_status": "NOT_APPLICABLE",
       "source_materialization_credit": false
     },
@@ -82,6 +89,7 @@
       "rows": 238,
       "classification": "DERIVED_OUTPUT",
       "producer": "scripts/ingest_report_builder.py",
+      "producer_status": "CONFIRMED",
       "duplicate_status": "NOT_APPLICABLE",
       "source_materialization_credit": false
     },
@@ -90,6 +98,7 @@
       "rows": 37,
       "classification": "DERIVED_OUTPUT",
       "producer": "scripts/analyze_entity_profiles.py",
+      "producer_status": "CONFIRMED",
       "duplicate_status": "NOT_APPLICABLE",
       "source_materialization_credit": false
     },
@@ -98,6 +107,7 @@
       "rows": 10,
       "classification": "DERIVED_OUTPUT",
       "producer": "scripts/sam_uei_parent_lookup.py",
+      "producer_status": "CONFIRMED",
       "duplicate_status": "NOT_APPLICABLE",
       "source_materialization_credit": false
     }
@@ -108,15 +118,18 @@
     "derived_output_rows": 212930,
     "intermediate_rows": 120737,
     "unadjudicated_orphan_rows": 0,
+    "unresolved_lineage_rows_within_derived_outputs": 104280,
     "equation": "849898 + 212930 + 120737 + 0 = 1183565",
     "parity": true,
     "double_counting_detected": false
   },
   "boundaries": {
     "local_file_presence_only": true,
+    "all_derived_output_lineage_certified": false,
     "external_universe_completeness_certified": false,
     "freshness_certified": false,
     "production_export_certified": false,
     "downstream_federation_consumers_certified": false
-  }
+  },
+  "decision": "OWNERSHIP_BUCKETS_ADJUDICATED_ONE_STAGING_LINEAGE_UNRESOLVED"
 }

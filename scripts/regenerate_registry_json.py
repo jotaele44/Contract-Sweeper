@@ -1,9 +1,4 @@
-"""Regenerate JSON siblings of the YAML registries.
-
-YAML is the human-editable source of truth in `registries/*.yaml`.
-JSON is the runtime wire format read by `moneysweep.runtime.*`.
-Run this after editing any YAML registry.
-"""
+"""Regenerate JSON siblings of the YAML registries and override fragments."""
 
 from __future__ import annotations
 
@@ -21,7 +16,6 @@ except ImportError:
     )
     sys.exit(2)
 
-
 REGISTRY_PAIRS = [
     ("source_registry.yaml", "source_registry.json"),
     ("schema_registry.yaml", "schema_registry.json"),
@@ -32,18 +26,30 @@ REGISTRY_PAIRS = [
 ]
 
 
+def _write_pair(source: Path, destination: Path) -> None:
+    data = yaml.safe_load(source.read_text(encoding="utf-8"))
+    destination.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+
+
 def regenerate(registries_dir: Path) -> int:
     written = 0
     for yaml_name, json_name in REGISTRY_PAIRS:
-        src = registries_dir / yaml_name
-        dst = registries_dir / json_name
-        if not src.exists():
-            print(f"skip: {src} does not exist")
+        source = registries_dir / yaml_name
+        destination = registries_dir / json_name
+        if not source.exists():
+            print(f"skip: {source} does not exist")
             continue
-        data = yaml.safe_load(src.read_text(encoding="utf-8"))
-        dst.write_text(json.dumps(data, indent=2, sort_keys=False), encoding="utf-8")
-        print(f"wrote {dst.relative_to(registries_dir.parent)}")
+        _write_pair(source, destination)
+        print(f"wrote {destination.relative_to(registries_dir.parent)}")
         written += 1
+
+    overrides_dir = registries_dir / "source_registry_overrides"
+    if overrides_dir.exists():
+        for source in sorted(overrides_dir.glob("*.yaml")):
+            destination = source.with_suffix(".json")
+            _write_pair(source, destination)
+            print(f"wrote {destination.relative_to(registries_dir.parent)}")
+            written += 1
     return written
 
 
