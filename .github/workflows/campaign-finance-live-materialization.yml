@@ -167,7 +167,7 @@ jobs:
 
       - name: Run focused repair tests
         run: >-
-          python -m pytest -q
+          python -m pytest -q -o addopts=''
           tests/test_campaign_finance_api.py
           tests/test_campaign_finance_entities.py
           tests/test_campaign_finance_validation.py
