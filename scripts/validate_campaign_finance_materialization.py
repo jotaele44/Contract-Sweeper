@@ -1,4 +1,4 @@
-"""Validate campaign-finance data, derivations, and complete FEC acquisition accounting."""
+"""Validate campaign-finance data, derivations, and fully accounted FEC acquisition."""
 
 from __future__ import annotations
 
