@@ -24,6 +24,7 @@ import requests
 
 from moneysweep.runtime.base_downloader import (
     HttpConfig,
+    HttpRequestFailed,
     PageResult,
     build_session,
     http_get_json,
@@ -199,7 +200,7 @@ def _fetch_disbursements(
     logger,
     batch_size: int = COMMITTEE_BATCH_SIZE,
 ) -> list[dict]:
-    """Fetch Schedule B using repeated committee_id parameters in bounded batches."""
+    """Fetch Schedule B with bounded batches and adaptive retry splitting."""
     url = f"{FEC_BASE}/schedules/schedule_b/"
     rows: list[dict] = []
     unique_ids = _unique_committee_ids(committee_ids)
@@ -211,52 +212,66 @@ def _fetch_disbursements(
         len(cycles),
     )
 
+    def _fetch_batch(cycle: int, committee_batch: list[str]) -> list[dict]:
+        def _fetch(page: int) -> PageResult:
+            params = {
+                "committee_id": committee_batch,
+                "two_year_transaction_period": cycle,
+                "per_page": PAGE_SIZE,
+                "page": page,
+                "sort": "-disbursement_date",
+                "sort_hide_null": "false",
+            }
+            data = _get(session, url, params, logger, sleep_s)
+            if data is None:
+                return PageResult([], None)
+            results = data.get("results", [])
+            if not results:
+                return PageResult([], None)
+            page_rows = []
+            for item in results:
+                page_rows.append(
+                    {
+                        "cycle": cycle,
+                        "committee_id": item.get("committee_id", ""),
+                        "committee_name": item.get("committee_name", ""),
+                        "recipient_name": item.get("recipient_name", ""),
+                        "recipient_city": item.get("recipient_city", ""),
+                        "recipient_state": item.get("recipient_state", ""),
+                        "disbursement_amount": item.get("disbursement_amount", ""),
+                        "disbursement_date": item.get("disbursement_date", ""),
+                        "disbursement_description": item.get("disbursement_description", ""),
+                        "disbursement_purpose_category": item.get(
+                            "disbursement_purpose_category", ""
+                        ),
+                        "memo_text": item.get("memo_text", ""),
+                    }
+                )
+            pagination = data.get("pagination", {})
+            pages = int(pagination.get("pages", 1) or 1)
+            return PageResult(page_rows, None if page >= pages else page + 1)
+
+        try:
+            return list(paginate(_fetch, start_marker=1))
+        except HttpRequestFailed as exc:
+            if not exc.retryable or len(committee_batch) <= 1:
+                raise
+            midpoint = len(committee_batch) // 2
+            left = committee_batch[:midpoint]
+            right = committee_batch[midpoint:]
+            logger.warning(
+                "  Retryable Schedule B failure for cycle %s and %s committees; "
+                "splitting into %s + %s",
+                cycle,
+                len(committee_batch),
+                len(left),
+                len(right),
+            )
+            return _fetch_batch(cycle, left) + _fetch_batch(cycle, right)
+
     for cycle in cycles:
         for batch_number, committee_batch in enumerate(batches, start=1):
-
-            def _fetch(
-                page: int,
-                cycle: int = cycle,
-                committee_batch: list[str] = committee_batch,
-            ) -> PageResult:
-                params = {
-                    "committee_id": committee_batch,
-                    "two_year_transaction_period": cycle,
-                    "per_page": PAGE_SIZE,
-                    "page": page,
-                    "sort": "-disbursement_date",
-                    "sort_hide_null": "false",
-                }
-                data = _get(session, url, params, logger, sleep_s)
-                if data is None:
-                    return PageResult([], None)
-                results = data.get("results", [])
-                if not results:
-                    return PageResult([], None)
-                page_rows = []
-                for item in results:
-                    page_rows.append(
-                        {
-                            "cycle": cycle,
-                            "committee_id": item.get("committee_id", ""),
-                            "committee_name": item.get("committee_name", ""),
-                            "recipient_name": item.get("recipient_name", ""),
-                            "recipient_city": item.get("recipient_city", ""),
-                            "recipient_state": item.get("recipient_state", ""),
-                            "disbursement_amount": item.get("disbursement_amount", ""),
-                            "disbursement_date": item.get("disbursement_date", ""),
-                            "disbursement_description": item.get("disbursement_description", ""),
-                            "disbursement_purpose_category": item.get(
-                                "disbursement_purpose_category", ""
-                            ),
-                            "memo_text": item.get("memo_text", ""),
-                        }
-                    )
-                pagination = data.get("pagination", {})
-                pages = int(pagination.get("pages", 1) or 1)
-                return PageResult(page_rows, None if page >= pages else page + 1)
-
-            rows.extend(paginate(_fetch, start_marker=1))
+            rows.extend(_fetch_batch(cycle, committee_batch))
             if batch_number == len(batches) or batch_number % 10 == 0:
                 logger.info(
                     "  Schedule B cycle %s: completed batch %s/%s",
