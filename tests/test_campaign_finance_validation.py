@@ -1,4 +1,3 @@
-import pandas as pd
 import pytest
 
 from scripts import validate_campaign_finance_materialization as mod

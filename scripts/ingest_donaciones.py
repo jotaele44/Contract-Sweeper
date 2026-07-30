@@ -23,6 +23,13 @@ from scripts.campaign_finance_common import (
 )
 from scripts.config import PROJECT_ROOT, setup_logging
 
+
+def _map_col(df: pd.DataFrame, candidates: list[str]):
+    """Backward-compatible column lookup used by the original test contract."""
+    from scripts.campaign_finance_common import find_column
+
+    return find_column(df, candidates)
+
 RAW_DIR_NAME = "data/raw/Donaciones"
 
 OUTPUT_COLUMNS = [
