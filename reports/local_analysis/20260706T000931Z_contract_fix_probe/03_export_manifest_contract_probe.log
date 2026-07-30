@@ -1,0 +1,108 @@
+
+=== PACKAGE data/exports/canonical_v1_federation ===
+file_count: 4
+FILE data/exports/canonical_v1_federation/entities.jsonl
+FILE data/exports/canonical_v1_federation/manifest.json
+FILE data/exports/canonical_v1_federation/relationships.jsonl
+FILE data/exports/canonical_v1_federation/sources.jsonl
+
+manifest.json:
+{
+  "producer_script": "scripts/bridge_canonical_v1_federation.py",
+  "producer_phase": "CANONICAL_V1_FEDERATION_BRIDGE",
+  "gate": "NON_PRODUCTION_DIAGNOSTIC",
+  "stream_counts": {
+    "sources": 4480,
+    "entities": 200,
+    "relationships": 64
+  },
+  "source_feeds": {
+    "federal_publications": 4248,
+    "canonical_v1_evidence": 232
+  },
+  "not_yet_federated_count": 0,
+  "edges_federated_pct": 100.0,
+  "generated_at": "2026-06-08T11:00:22.151313+00:00"
+}
+top_level_keys: ['producer_script', 'producer_phase', 'gate', 'stream_counts', 'source_feeds', 'not_yet_federated_count', 'edges_federated_pct', 'generated_at']
+
+=== PACKAGE exports ===
+file_count: 23
+FILE exports/.DS_Store
+FILE exports/.gitkeep
+FILE exports/README.md
+FILE exports/conformance/v1_2/entities.jsonl
+FILE exports/conformance/v1_2/funding_awards.jsonl
+FILE exports/conformance/v1_2/manifest.json
+FILE exports/conformance/v1_2/relationships.jsonl
+FILE exports/conformance/v1_2/sources.jsonl
+FILE exports/conformance/v1_2/transactions.jsonl
+FILE exports/dashboard/index.html
+FILE exports/gis/layer_manifest.json
+FILE exports/graph/edges.csv
+FILE exports/graph/neo4j_edges.csv
+FILE exports/graph/neo4j_nodes.csv
+FILE exports/graph/nodes.csv
+FILE exports/reports/analyst_reports_manifest.json
+FILE exports/reports/source_drilldown.json
+FILE exports/samples/entities.sample.jsonl
+FILE exports/samples/funding_awards.sample.jsonl
+FILE exports/samples/manifest.sample.json
+FILE exports/samples/relationships.sample.jsonl
+FILE exports/samples/sources.sample.jsonl
+FILE exports/samples/transactions.sample.jsonl
+manifest.json: MISSING
+
+=== PACKAGE data/exports ===
+file_count: 100
+FILE data/exports/acquisition_package_r4_8g.json
+FILE data/exports/acquisition_package_r4_8g.md
+FILE data/exports/artifact_lineage_audit.csv
+FILE data/exports/backfill_execution_plan_r4_6.csv
+FILE data/exports/backfill_execution_plan_r4_6.md
+FILE data/exports/backfill_execution_plan_r4_6_status.json
+FILE data/exports/backfill_failure_remediation_matrix_r4_8c.csv
+FILE data/exports/backfill_failure_remediation_status_r4_8c.json
+FILE data/exports/backfill_readiness_matrix_r4_8a.csv
+FILE data/exports/backfill_readiness_status_r4_8a.json
+FILE data/exports/backfill_runner_manifest_r4_7.csv
+FILE data/exports/backfill_runner_plan_r4_7.json
+FILE data/exports/cache_reuse_audit.csv
+FILE data/exports/canonical_v1_federation/entities.jsonl
+FILE data/exports/canonical_v1_federation/manifest.json
+FILE data/exports/canonical_v1_federation/relationships.jsonl
+FILE data/exports/canonical_v1_federation/sources.jsonl
+FILE data/exports/controlled_backfill_execution_results_r4_8b.csv
+FILE data/exports/controlled_backfill_execution_status_r4_8b.json
+FILE data/exports/controlled_backfill_manifest_r4_8.csv
+FILE data/exports/controlled_backfill_plan_r4_8.json
+FILE data/exports/credential_unblock_plan_r4_8g.csv
+FILE data/exports/credentialed_endpoint_retry_results_r4_8h.csv
+FILE data/exports/delivered_source_validation_report_r4_9c.csv
+FILE data/exports/dependency_security_audit_r4_9z_e.json
+FILE data/exports/endpoint_patch_retry_report_r4_8f.csv
+FILE data/exports/endpoint_resolution_report_r4_8e.csv
+FILE data/exports/entity_collapse_diagnostics.csv
+FILE data/exports/entity_universe_audit.csv
+FILE data/exports/external_acquisition_blocker_package_r4_8i.json
+FILE data/exports/external_acquisition_blocker_package_r4_8i.md
+FILE data/exports/external_blocker_freeze_matrix_r4_9d.csv
+FILE data/exports/external_blocker_freeze_status_r4_9d.json
+FILE data/exports/external_source_delivery_results_r4_9c.csv
+FILE data/exports/external_source_delivery_status_r4_9c.json
+FILE data/exports/final_backfill_retry_results_r4_8h.csv
+FILE data/exports/final_source_recovery_results_r4_8i.csv
+FILE data/exports/final_source_recovery_status_r4_8i.json
+FILE data/exports/import_slots_r4_7.csv
+FILE data/exports/manual_fallback_inventory_r4_8e.csv
+FILE data/exports/manual_fallback_package_r4_8e.json
+FILE data/exports/manual_file_acquisition_matrix_r4_8g.csv
+FILE data/exports/manual_fulfillment_endpoint_retry_status_r4_8h.json
+FILE data/exports/manual_fulfillment_results_r4_8h.csv
+FILE data/exports/manual_import_dropzone_inventory_r4_8f.csv
+FILE data/exports/manual_import_dropzone_status_r4_8f.json
+FILE data/exports/manual_import_validation_r4_8.csv
+FILE data/exports/master_input_recovery_audit.csv
+FILE data/exports/master_input_recovery_audit.json
+FILE data/exports/partial_master_rebuild_gap_report_r4_9a.csv
+manifest.json: MISSING

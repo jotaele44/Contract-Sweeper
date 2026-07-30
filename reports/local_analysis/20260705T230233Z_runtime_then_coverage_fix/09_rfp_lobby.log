@@ -1,0 +1,4 @@
+2026-07-05 19:07:19 [INFO]   Compras RFPs: 0 rows
+2026-07-05 19:07:19 [INFO]   Compras awards: 0 rows
+2026-07-05 19:07:19 [INFO]   LDA filings: 25 rows
+2026-07-05 19:07:19 [WARNING]   No Compras RFP data — run download_compras.py first

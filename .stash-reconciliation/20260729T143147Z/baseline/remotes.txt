@@ -1,0 +1,2 @@
+origin	https://github.com/jotaele44/moneysweep-pr.git (fetch)
+origin	https://github.com/jotaele44/moneysweep-pr.git (push)

@@ -1,0 +1,20 @@
+financial_flows_rows: 90598
+financial_flows_total: 63797332465.08
+parent_entity_nodes: 0
+total_nodes: 5262
+total_edges: 7072
+ranked_placeholder_rows_entity_id: 5
+                 entity_id             entity_name  risk_score  signal_count                  signal_families dominant_signal_family  confidence                      generated_at
+0                     NONE                    NONE      1.0000            90  political_overlap;repeat_awards          repeat_awards      0.6028  2026-07-06T00:24:49.580597+00:00
+2                  RETIRED                 RETIRED      1.0000          2876                political_overlap      political_overlap      0.6000  2026-07-06T00:24:49.630597+00:00
+3            SELF EMPLOYED           Self Employed      1.0000           489                political_overlap      political_overlap      0.6000  2026-07-06T00:24:49.630751+00:00
+11                     YES                     YES      0.2201            14  political_overlap;repeat_awards          repeat_awards      0.6179  2026-07-06T00:24:49.599552+00:00
+20  INDEPENDENT CONTRACTOR  INDEPENDENT CONTRACTOR      0.1526             9  political_overlap;repeat_awards          repeat_awards      0.6278  2026-07-06T00:24:49.565778+00:00
+ranked_placeholder_rows_entity_name: 5
+                 entity_id             entity_name  risk_score  signal_count                  signal_families dominant_signal_family  confidence                      generated_at
+0                     NONE                    NONE      1.0000            90  political_overlap;repeat_awards          repeat_awards      0.6028  2026-07-06T00:24:49.580597+00:00
+2                  RETIRED                 RETIRED      1.0000          2876                political_overlap      political_overlap      0.6000  2026-07-06T00:24:49.630597+00:00
+3            SELF EMPLOYED           Self Employed      1.0000           489                political_overlap      political_overlap      0.6000  2026-07-06T00:24:49.630751+00:00
+11                     YES                     YES      0.2201            14  political_overlap;repeat_awards          repeat_awards      0.6179  2026-07-06T00:24:49.599552+00:00
+20  INDEPENDENT CONTRACTOR  INDEPENDENT CONTRACTOR      0.1526             9  political_overlap;repeat_awards          repeat_awards      0.6278  2026-07-06T00:24:49.565778+00:00
+raw_risk_signals_rows: 23262

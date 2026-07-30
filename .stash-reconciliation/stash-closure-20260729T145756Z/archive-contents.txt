@@ -1,0 +1,21 @@
+highergov-validation-20260729T145311Z/
+highergov-validation-20260729T145311Z/staged-files.txt
+highergov-validation-20260729T145311Z/staged-scope.diff
+highergov-validation-20260729T145311Z/final-worktree-status.txt
+highergov-validation-20260729T145311Z/modified-tracked-files.txt
+highergov-validation-20260729T145311Z/untracked-files.txt
+highergov-validation-20260729T145311Z/pdf-validation.tsv
+highergov-validation-20260729T145311Z/FINAL_STASH_DISPOSITION.md
+highergov-validation-20260729T145311Z/original-stash-name-status.txt
+highergov-validation-20260729T145311Z/staged-stat.txt
+highergov-validation-20260729T145311Z/commit-sha.txt
+highergov-validation-20260729T145311Z/HigherGov PR Data (Municipal Awards).pdf.pdfinfo.txt
+highergov-validation-20260729T145311Z/checksum-ledger.diff
+highergov-validation-20260729T145311Z/recomputed-sha256.txt
+highergov-validation-20260729T145311Z/expected-files.txt
+highergov-validation-20260729T145311Z/HigherGov PR Data (Prime Awards).pdf.pdfinfo.txt
+highergov-validation-20260729T145311Z/final-commit.txt
+highergov-validation-20260729T145311Z/HigherGov PR Data (IDV Awards).pdf.pdfinfo.txt
+highergov-validation-20260729T145311Z/untracked-scope.diff
+highergov-validation-20260729T145311Z/SHA256SUMS
+highergov-validation-20260729T145311Z/HigherGov PR Data (Sub Awards).pdf.pdfinfo.txt

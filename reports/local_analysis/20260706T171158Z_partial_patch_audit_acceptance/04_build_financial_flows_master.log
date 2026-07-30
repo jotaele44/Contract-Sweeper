@@ -1,0 +1,3 @@
+2026-07-06 13:12:00 [INFO]   financial_flows_master.parquet exists (90,598 rows, $63,797,332,465) — skipping rebuild.
+
+Financial flows master: 90,598 rows, $63,797,332,465 total (CACHED)

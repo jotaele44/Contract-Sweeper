@@ -1,0 +1,13 @@
+2026-07-06 13:12:02 [INFO] Building vendor-agency network graph...
+2026-07-06 13:12:04 [INFO]   Parent-map control edges added: 20
+2026-07-06 13:12:04 [INFO]   Graph: 5283 nodes, 7092 edges (5283 vendors/agencies)
+2026-07-06 13:14:49 [INFO]   GraphML written: network.graphml
+2026-07-06 13:14:50 [INFO]   Entity edges: entity_edges.csv (7,092 edges)
+2026-07-06 13:14:50 [INFO]   Top 30 nodes by PageRank: top_nodes.csv
+2026-07-06 13:14:50 [INFO] 
+Graph summary:
+2026-07-06 13:14:50 [INFO]   Vendor nodes:  5226
+2026-07-06 13:14:50 [INFO]   Agency nodes:  36
+2026-07-06 13:14:50 [INFO]   Parent nodes:  3
+2026-07-06 13:14:50 [INFO]   Top PageRank:  Department of Defense (agency)
+2026-07-06 13:14:50 [INFO]   Summary:       /Users/jotaele/Developer/moneysweep-pr/data/staging/processed/graph/network_summary.json

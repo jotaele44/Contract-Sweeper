@@ -1,0 +1,4 @@
+2026-07-06 22:35:40 [INFO] Computing risk signals from R5 data (root=/Users/jotaele/Developer/moneysweep-pr)
+2026-07-06 22:40:02 [INFO]   Quarantined 5 placeholder entity rows from ranked output
+2026-07-06 22:40:02 [INFO]   Signals: 23262 | Entities: 18720 | Projects: 5989 | Municipalities: 127
+2026-07-06 22:40:02 [INFO]   Manifest: /Users/jotaele/Developer/moneysweep-pr/data/manifests/risk_signal_report.json

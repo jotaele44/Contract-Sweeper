@@ -1,0 +1,49 @@
+
+=== data/reference/entity_parent_map.csv ===
+size: 4469
+rows: 20
+columns: ['relation_id', 'parent_entity_id', 'child_entity_id', 'relationship_type', 'source_id', 'evidence_tier', 'confidence', 'notes']
+                    relation_id             parent_entity_id              child_entity_id       relationship_type               source_id evidence_tier  confidence                                                                                                                           notes
+0   REL_PARENT_85f1d8432497d2cb  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_1c1ee3c0f0c85d23      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90             AAFAF is a public corporation and instrumentality of the Commonwealth acting as fiscal agent and financial advisor.
+1   REL_PARENT_ae36e601477169e6  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_8d511bc1aaa048d4      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                         The P3 Authority is an instrumentality of the Commonwealth that structures public-private partnerships.
+2   REL_PARENT_7f61f9dfe62e132e  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_6c1d858c1babe390      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                          PREPA is a public corporation and instrumentality of the Commonwealth.
+3   REL_PARENT_3efb77baf0623fa3  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_c5fb8a7f44e8ff18      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                          PRASA is a public corporation and instrumentality of the Commonwealth.
+4   REL_PARENT_3cec99da1f7579a4  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_b182f85acf46f69b      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                            HTA is a public corporation and instrumentality of the Commonwealth.
+5   REL_PARENT_fbb9e5a12cc1bd1f  ENT_AGENCY_125b538f289a4708     ENT_ORG_5204a3d8f84bbfcd      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                               COFINA is a government-owned corporation and instrumentality of the Commonwealth.
+6   REL_PARENT_4fbb1ad3bcf14ee5  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_d363e4ddf2ce6a5d      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                            GDB is a public corporation and instrumentality of the Commonwealth.
+7   REL_PARENT_89044e1f43d47e84  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_67880db21dd281cd      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                        DDEC is an executive department and instrumentality of the Commonwealth.
+8   REL_PARENT_d03246f88c940f71  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_42ffd9ad9ab45e6a      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                            PBA is a public corporation and instrumentality of the Commonwealth.
+9   REL_PARENT_c4e82715195aeba0  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_7cf79ff780fb8279      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                          PRIFA is a public corporation and instrumentality of the Commonwealth.
+10  REL_PARENT_e52f14bffca6a193  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_c6aa8887d7248228      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                          PRHFA is a public corporation and instrumentality of the Commonwealth.
+11  REL_PARENT_e27894a478af7ae9  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_5f99300da364ea64      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                         PRIDCO is a public corporation and instrumentality of the Commonwealth.
+12  REL_PARENT_7d7decf322becc37  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_cc41784f4b40b6ff      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                            UPR is a public corporation and instrumentality of the Commonwealth.
+13  REL_PARENT_5b605d1bc1c5770f  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_2c16f9ae54df7e1e      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                           CCDA is a public corporation and instrumentality of the Commonwealth.
+14  REL_PARENT_e9c85678ccb03b59  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_efcec09764306ade      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                            The Ports Authority is a public corporation and instrumentality of the Commonwealth.
+15  REL_PARENT_a2771a0c54784450  ENT_AGENCY_125b538f289a4708     ENT_ORG_b14376987d82d5ee      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                                PRPFC is a government-owned corporation and instrumentality of the Commonwealth.
+16  REL_PARENT_d6165b6dfb2d45b4  ENT_AGENCY_125b538f289a4708  ENT_AGENCY_e73c9879d715653a      INSTRUMENTALITY_OF  entity_parent_map_seed            T2        0.90                                   The Municipal Finance Agency is a public corporation and instrumentality of the Commonwealth.
+17  REL_PARENT_7736b8bc98c27cc1  ENT_AGENCY_6c1d858c1babe390     ENT_ORG_299e165490469537          P3_OPERATOR_OF  entity_parent_map_seed            T2        0.85  LUMA Energy operates and controls the PREPA transmission and distribution system under a public-private partnership agreement.
+18  REL_PARENT_fa31848d001a6231  ENT_AGENCY_6c1d858c1babe390     ENT_ORG_0f8f1789b2c687ed          P3_OPERATOR_OF  entity_parent_map_seed            T2        0.85           Genera PR operates and controls the legacy PREPA power-generation fleet under a public-private partnership agreement.
+19  REL_PARENT_7ab57c9adac3554a  ENT_AGENCY_b182f85acf46f69b     ENT_ORG_3719113e87688e83  CONCESSION_OPERATOR_OF  entity_parent_map_seed            T2        0.85           Autopistas Metropolitanas operates the PR-22 and PR-5 toll roads under a long-term concession agreement with the HTA.
+
+=== data/manifests/entity_parent_map.json ===
+size: 504
+{
+  "producer_script": "scripts/build_entity_parent_map.py",
+  "producer_phase": "TOP_FORM_PARENT_MAP",
+  "schema": "schemas/entity_parent_map.schema.json",
+  "source_inputs": [
+    "data/reference/entity_parent_map_seed.csv",
+    "data/reference/entity_master.csv"
+  ],
+  "output": "data/reference/entity_parent_map.csv",
+  "row_count": 20,
+  "relationship_types": [
+    "CONCESSION_OPERATOR_OF",
+    "INSTRUMENTALITY_OF",
+    "P3_OPERATOR_OF"
+  ],
+  "generated_at": "2026-06-16T10:13:54.365072+00:00"
+}
+
+=== data/exports/entity_parent_map.csv ===
+MISSING

@@ -1,0 +1,322 @@
+diff --git a/data/exports/canonical_v1_federation/manifest.json b/data/exports/canonical_v1_federation/manifest.json
+index ff00d03..7799b5f 100644
+--- a/data/exports/canonical_v1_federation/manifest.json
++++ b/data/exports/canonical_v1_federation/manifest.json
+@@ -1,17 +1,34 @@
+ {
+-  "producer_script": "scripts/bridge_canonical_v1_federation.py",
+-  "producer_phase": "CANONICAL_V1_FEDERATION_BRIDGE",
+-  "gate": "NON_PRODUCTION_DIAGNOSTIC",
+-  "stream_counts": {
+-    "sources": 4480,
+-    "entities": 200,
+-    "relationships": 64
++  "created_at": "1970-01-01T00:00:00Z",
++  "export_contract_version": "1.0.0",
++  "federation": {
++    "hub_parent": "thehub-pr",
++    "producer_repo": "moneysweep-pr"
+   },
+-  "source_feeds": {
+-    "federal_publications": 4248,
+-    "canonical_v1_evidence": 232
+-  },
+-  "not_yet_federated_count": 0,
+-  "edges_federated_pct": 100.0,
+-  "generated_at": "2026-06-08T11:00:22.151313+00:00"
+-}
++  "files": [
++    {
++      "filename": "sources.jsonl",
++      "record_count": 4480,
++      "schema_id": "federation_source.schema.json",
++      "sha256": "81e0d9712a457d61b677ae7f2daa8f12c0d5840edc1ac86696f6eb43beb21f50",
++      "stream": "sources"
++    },
++    {
++      "filename": "entities.jsonl",
++      "record_count": 200,
++      "schema_id": "federation_entity.schema.json",
++      "sha256": "0da5865f2a875d441e7578283d7aeddf5deeed3aa2af6daabf75637a5ef89251",
++      "stream": "entities"
++    },
++    {
++      "filename": "relationships.jsonl",
++      "record_count": 64,
++      "schema_id": "federation_relationship.schema.json",
++      "sha256": "67b77a310678cfd5bb832f2dad4d405e30bcc3ca5b300a1237c2ee96369436e6",
++      "stream": "relationships"
++    }
++  ],
++  "mode": "production",
++  "package_id": "pkg_2b7ea32349462202f82698f68a9a1fd5",
++  "producer": "moneysweep-pr"
++}
+\ No newline at end of file
+diff --git a/moneysweep/runtime/risk_signals.py b/moneysweep/runtime/risk_signals.py
+index 9bcaa2e..426310f 100644
+--- a/moneysweep/runtime/risk_signals.py
++++ b/moneysweep/runtime/risk_signals.py
+@@ -517,6 +517,68 @@ def _signals_stale_lineage(awards: pd.DataFrame) -> list[dict]:
+     return signals
+ 
+ 
++# ---------- Placeholder-token quarantine ----------
++
++# Non-entity junk that pollutes recipient-name fields (form defaults, "unknown"
++# markers, occupation stand-ins). These must never surface in the *ranked*
++# entity_risk_scores.csv or analyst-facing top-risk lists. They are quarantined
++# from ranked outputs only — the raw risk_signals_master.csv evidence that cites
++# them is preserved untouched.
++PLACEHOLDER_ENTITY_TOKENS: frozenset[str] = frozenset(
++    {
++        "NONE",
++        "YES",
++        "NO",
++        "N/A",
++        "NA",
++        "UNKNOWN",
++        "RETIRED",
++        "SELF EMPLOYED",
++        "SELF-EMPLOYED",
++        "INDEPENDENT CONTRACTOR",
++    }
++)
++
++
++def _placeholder_key(value: Any) -> str:
++    """Uppercase + whitespace-collapse a name for exact placeholder matching.
++
++    Deliberately does NOT strip corporate suffixes (unlike ``_normalize``): we
++    match the whole string against the token set so real entities like
++    ``NORTHROP`` or ``NATIONAL BUILDERS`` are never caught by a ``NO``/``NA``
++    substring.
++    """
++    import re
++
++    if value is None:
++        return ""
++    return re.sub(r"\s+", " ", str(value).upper().strip())
++
++
++def is_placeholder_entity(name: Any) -> bool:
++    """True when ``name`` is a placeholder token, not a real entity (exact match)."""
++    return _placeholder_key(name) in PLACEHOLDER_ENTITY_TOKENS
++
++
++def quarantine_entity_scores(
++    entity_scores: list[dict],
++) -> tuple[list[dict], list[dict]]:
++    """Split ranked entity scores into (kept, quarantined) by placeholder name.
++
++    Matches on ``entity_name`` (the display name) — NOT ``entity_id``, which is
++    the suffix-stripped ``_normalize`` form and could distort matching. Order of
++    kept rows is preserved so the ranking is unchanged.
++    """
++    kept: list[dict] = []
++    quarantined: list[dict] = []
++    for row in entity_scores:
++        if is_placeholder_entity(row.get("entity_name")):
++            quarantined.append(row)
++        else:
++            kept.append(row)
++    return kept, quarantined
++
++
+ # ---------- Score aggregation ----------
+ 
+ _FAMILY_WEIGHT: dict[str, float] = {
+diff --git a/scripts/build_financial_flows_master.py b/scripts/build_financial_flows_master.py
+index ab6bd29..b267795 100644
+--- a/scripts/build_financial_flows_master.py
++++ b/scripts/build_financial_flows_master.py
+@@ -387,9 +387,20 @@ def run(root=None, force=False):
+     logger = setup_logging("build_financial_flows_master")
+ 
+     if out_path.exists() and not force:
+-        rows = len(pq_read(out_path))
+-        logger.info(f"  financial_flows_master.parquet exists ({rows:,} rows) — skipping.")
+-        return {"rows": rows, "status": "CACHED"}
++        df_cached = pq_read(out_path)
++        rows = len(df_cached)
++        # Compute the real total from the cached frame using the same numeric
++        # coercion as the rebuild path, so CACHED and OK totals agree exactly.
++        total_amount = (
++            pd.to_numeric(df_cached.get("amount"), errors="coerce").fillna(0).sum()
++            if "amount" in df_cached.columns
++            else 0.0
++        )
++        logger.info(
++            f"  financial_flows_master.parquet exists ({rows:,} rows, "
++            f"${total_amount:,.0f}) — skipping rebuild."
++        )
++        return {"rows": rows, "total_amount": total_amount, "status": "CACHED"}
+ 
+     logger.info("Loading upstream inputs...")
+     df_fema_v2 = _load_parquet(norm_dir / "fema_pa_projects_v2.parquet", logger)
+@@ -456,7 +467,7 @@ def main():
+     result = run(force=args.force)
+     print(
+         f"\nFinancial flows master: {result['rows']:,} rows, "
+-        f"${result.get('total_amount', 0):,.0f} total"
++        f"${result.get('total_amount', 0):,.0f} total ({result.get('status', '')})"
+     )
+     return 0
+ 
+diff --git a/scripts/build_risk_signals.py b/scripts/build_risk_signals.py
+index 09e2335..f636f94 100644
+--- a/scripts/build_risk_signals.py
++++ b/scripts/build_risk_signals.py
+@@ -29,6 +29,7 @@ from moneysweep.runtime.risk_signals import (
+     PROJECT_SCORE_COLUMNS,
+     MUNICIPALITY_SCORE_COLUMNS,
+     compute_signals,
++    quarantine_entity_scores,
+ )
+ from scripts.config import setup_logging
+ 
+@@ -59,8 +60,24 @@ def run(root: Path) -> dict:
+ 
+     out_base = root / RISK_OUT
+ 
++    # Raw signal evidence is written FIRST and untouched — placeholder-cited
++    # signals stay in risk_signals_master.csv as evidence. Only the *ranked*
++    # entity_risk_scores.csv (and analyst-facing top-risk views) exclude
++    # placeholder tokens; quarantined rows are set aside in a sidecar, not deleted.
+     n_sig = _write_csv(out_base / "risk_signals_master.csv", signals, SIGNAL_COLUMNS)
+-    n_ent = _write_csv(out_base / "entity_risk_scores.csv", entity_scores, ENTITY_SCORE_COLUMNS)
++
++    ranked_entities, quarantined_entities = quarantine_entity_scores(entity_scores)
++    n_ent = _write_csv(
++        out_base / "entity_risk_scores.csv", ranked_entities, ENTITY_SCORE_COLUMNS
++    )
++    n_quar = _write_csv(
++        out_base / "entity_risk_scores_quarantined.csv",
++        quarantined_entities,
++        ENTITY_SCORE_COLUMNS,
++    )
++    if n_quar:
++        logger.info("  Quarantined %d placeholder entity rows from ranked output", n_quar)
++
+     n_proj = _write_csv(out_base / "project_risk_scores.csv", project_scores, PROJECT_SCORE_COLUMNS)
+     n_muni = _write_csv(
+         out_base / "municipality_risk_scores.csv", municipality_scores, MUNICIPALITY_SCORE_COLUMNS
+@@ -79,6 +96,7 @@ def run(root: Path) -> dict:
+         "output_rows": {
+             "risk_signals_master": n_sig,
+             "entity_risk_scores": n_ent,
++            "entity_risk_scores_quarantined": n_quar,
+             "project_risk_scores": n_proj,
+             "municipality_risk_scores": n_muni,
+         },
+diff --git a/scripts/network_graph.py b/scripts/network_graph.py
+index f22f5a3..787c1fe 100644
+--- a/scripts/network_graph.py
++++ b/scripts/network_graph.py
+@@ -69,6 +69,77 @@ def load_hierarchy(root: Path) -> pd.DataFrame | None:
+     return pd.read_csv(path, dtype=str, low_memory=False, keep_default_na=False)
+ 
+ 
++# Curated parent/control relationships that carry a control semantic — the
++# federation cares about these hierarchy edges regardless of award activity.
++PARENT_MAP_CONTROL_TYPES = (
++    "INSTRUMENTALITY_OF",
++    "P3_OPERATOR_OF",
++    "CONCESSION_OPERATOR_OF",
++)
++
++
++def load_parent_map(root: Path) -> pd.DataFrame | None:
++    """Load the curated entity parent/control map (data/reference/entity_parent_map.csv).
++
++    Columns: relation_id, parent_entity_id, child_entity_id, relationship_type,
++    source_id, evidence_tier, confidence, notes.
++    """
++    path = root / "data" / "reference" / "entity_parent_map.csv"
++    if not path.exists():
++        return None
++    return pd.read_csv(path, dtype=str, low_memory=False, keep_default_na=False)
++
++
++def add_parent_map_edges(G: nx.DiGraph, parent_map: pd.DataFrame | None) -> int:
++    """Add parent_entity nodes and hierarchy/control edges from the parent map.
++
++    Returns the number of control edges added. Parent nodes are typed
++    ``parent_entity``; child nodes are added as ``controlled_entity`` only when
++    not already present (never clobbering an existing vendor/agency/parent node).
++    Only the control relationship types in PARENT_MAP_CONTROL_TYPES are wired.
++    """
++    if parent_map is None or parent_map.empty:
++        return 0
++
++    edges_added = 0
++    for _, row in parent_map.iterrows():
++        rel_type = (row.get("relationship_type") or "").strip()
++        if rel_type not in PARENT_MAP_CONTROL_TYPES:
++            continue
++        parent = (row.get("parent_entity_id") or "").strip()
++        child = (row.get("child_entity_id") or "").strip()
++        if not parent or not child or parent == child:
++            continue
++
++        # Parent always carries the parent_entity type (a parent may appear as a
++        # child elsewhere, e.g. PREPA/HTA — set node_type on the parent add and
++        # only default it on the child add so neither role clobbers the other).
++        if G.has_node(parent):
++            G.nodes[parent]["node_type"] = "parent_entity"
++            G.nodes[parent].setdefault("label", parent[:60])
++        else:
++            G.add_node(parent, node_type="parent_entity", label=parent[:60])
++        if not G.has_node(child):
++            G.add_node(child, node_type="controlled_entity", label=child[:60])
++
++        try:
++            confidence = float(row.get("confidence") or 0.0)
++        except ValueError:
++            confidence = 0.0
++        G.add_edge(
++            parent,
++            child,
++            edge_type="control",
++            relationship_type=rel_type,
++            weight=1.0,
++            evidence_tier=(row.get("evidence_tier") or "").strip(),
++            confidence=round(confidence, 4),
++            relation_id=(row.get("relation_id") or "").strip(),
++        )
++        edges_added += 1
++    return edges_added
++
++
+ def build_graph(
+     df: pd.DataFrame, hierarchy: pd.DataFrame | None, min_obligation: float
+ ) -> nx.DiGraph:
+@@ -175,12 +246,20 @@ def run(
+ 
+     df = load_master(root)
+     hierarchy = load_hierarchy(root)
++    parent_map = load_parent_map(root)
+ 
+     if min_obligation > 0:
+         df = df[df["obligated_amount"] >= min_obligation]
+         logger.info(f"  Filtered to obligations ≥ ${min_obligation:,.0f}: {len(df):,} rows")
+ 
+     G = build_graph(df, hierarchy, min_obligation)
++
++    # Overlay curated parent/control hierarchy (entity_parent_map.csv) so the
++    # federation's instrumentality / P3 / concession control edges are present
++    # alongside the vendor→agency award graph.
++    control_edges = add_parent_map_edges(G, parent_map)
++    logger.info(f"  Parent-map control edges added: {control_edges}")
++
+     logger.info(
+         f"  Graph: {G.number_of_nodes()} nodes, {G.number_of_edges()} edges "
+         f"({G.number_of_nodes()} vendors/agencies)"
+@@ -240,6 +319,7 @@ def run(
+         "vendor_nodes": len(vendor_nodes),
+         "agency_nodes": len(agency_nodes),
+         "parent_entity_nodes": len(parent_nodes),
++        "control_edges": control_edges,
+         "production_status": status_payload["production_status"],
+         "production_status_message": status_payload["status_message"],
+         "top_node_by_pagerank": top1.get("node", ""),

@@ -1,0 +1,2 @@
+2026-07-05 19:07:18 [WARNING]   Bond claim tier: blocked — unmaterialized sources: pr_msrb_trades.csv. Outputs carry claim_tier=blocked per CLAIM_LANGUAGE_POLICY.md.
+2026-07-05 19:07:18 [INFO]   Bond flow: exists (0 rows) — skipping (use --force).

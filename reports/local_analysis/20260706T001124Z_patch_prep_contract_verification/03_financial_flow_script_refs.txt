@@ -1,0 +1,49 @@
+2:Build financial_flows_master — synthesizes all upstream financial data into a single
+8:              financial_flows_master.parquet
+11:  data/normalized/fema_pa_projects_v2.parquet
+12:  data/normalized/fema_pa_portal_178_pws.parquet
+14:  data/normalized/hud_drgr_grants.parquet
+15:  data/normalized/hud_drgr_activities.parquet
+16:  data/normalized/hud_drgr_drawdowns.parquet
+17:  data/normalized/hud_drgr_projects.parquet
+18:  data/staging/processed/pr_cor3_projects.csv
+19:  data/staging/processed/pr_prasa_contracts.csv
+20:  data/staging/processed/pr_compras_awards.csv
+21:  data/staging/processed/pr_contracts_master.csv  (or pr_all_awards_master.csv)
+24:  data/normalized/financial_flows_master.parquet
+27:  python3 scripts/build_financial_flows_master.py
+28:  python3 scripts/build_financial_flows_master.py --force
+44:NORMALIZED_DIR = PROJECT_ROOT / "data" / "normalized"
+62:    "amount_type",
+63:    "amount",
+83:    if not path.exists():
+95:    if not path.exists():
+142:                amount_type="federal_share_obligated",
+143:                amount=str(r.get("federal_share_obligated", "")),
+173:                    amount_type="grant_amount",
+174:                    amount=str(r.get("grant_amount", "")),
+194:                    amount_type="activity_budget",
+195:                    amount=str(r.get("total_budget", "")),
+213:                    amount_type="drawdown",
+214:                    amount=str(r.get("drawdown_amount", "")),
+239:                amount_type="total_approved",
+240:                amount=str(r.get("total_approved", "")),
+262:        amount_col = next(
+265:                for c in ["contract_value", "awarded_amount", "obligated_amount"]
+282:                    amount_type="contract_value",
+283:                    amount=str(r.get(amount_col, "")) if amount_col else "",
+340:                    amount_type="gross_revenue",
+341:                    amount=str(r.get("amount", "")),
+366:                amount_type="obligated_amount",
+367:                amount=str(r.get("obligated_amount", "")),
+381:    norm_dir = root / "data" / "normalized"
+382:    proc_dir = root / "data" / "staging" / "processed"
+386:    out_path = norm_dir / "financial_flows_master.parquet"
+387:    logger = setup_logging("build_financial_flows_master")
+389:    if out_path.exists() and not force:
+391:        logger.info(f"  financial_flows_master.parquet exists ({rows:,} rows) — skipping.")
+432:        logger.warning("  No upstream data found — writing empty financial_flows_master")
+437:    total_amount = pd.to_numeric(df_out["amount"], errors="coerce").fillna(0).sum()
+444:    logger.info(f"  Total amount:     ${total_amount:,.0f}")
+449:    return {"rows": len(df_out), "total_amount": total_amount, "status": "OK"}
+459:        f"${result.get('total_amount', 0):,.0f} total"

@@ -1,0 +1,51 @@
+candidate_count: 3
+
+=== data/normalized/financial_flows_master.parquet ===
+rows_sampled: 90598
+columns: ['flow_id', 'flow_type', 'source_system', 'source_file', 'funding_source', 'appropriation', 'grant_number', 'disaster_number', 'pw_number', 'activity_id', 'project_id', 'applicant_or_grantee', 'responsible_organization', 'prime_vendor', 'sub_vendor', 'amount_type', 'amount', 'obligation_date', 'drawdown_date', 'award_date', 'municipality', 'asset_id', 'contract_id', 'parent_uei', 'link_confidence', 'evidence_path']
+amount_like_columns: ['funding_source', 'amount_type', 'amount', 'obligation_date', 'award_date']
+funding_source: non_null=0 sum=0.0 max=nan
+amount_type: non_null=0 sum=0.0 max=nan
+amount: non_null=90598 sum=63797332465.08 max=2886250258.16
+obligation_date: non_null=0 sum=0.0 max=nan
+award_date: non_null=0 sum=0.0 max=nan
+head:
+        flow_id               flow_type source_system                  source_file funding_source appropriation grant_number disaster_number pw_number activity_id project_id applicant_or_grantee responsible_organization prime_vendor sub_vendor              amount_type    amount obligation_date drawdown_date award_date municipality asset_id contract_id parent_uei link_confidence                evidence_path
+0  c27ea2cc-c26  federal_disaster_grant   openfema_v2  fema_pa_projects_v2.parquet        FEMA_PA                                       3384         6                                                                                               federal_share_obligated  44834.99                                                Aguada                                            none  fema_pa_projects_v2.parquet
+1  1c037435-3cb  federal_disaster_grant   openfema_v2  fema_pa_projects_v2.parquet        FEMA_PA                                       3384        17                                                                                               federal_share_obligated  15249.85                                               Guayama                                            none  fema_pa_projects_v2.parquet
+2  e6f4e16e-dda  federal_disaster_grant   openfema_v2  fema_pa_projects_v2.parquet        FEMA_PA                                       3384        27                                                                                               federal_share_obligated  36996.46                                              San Juan                                            none  fema_pa_projects_v2.parquet
+
+=== data/staging/processed/pr_subawards_master.csv ===
+rows_sampled: 7122
+columns: ['award_id', 'recipient_name', 'recipient_uei', 'awarding_agency', 'awarding_sub_agency', 'obligated_amount', 'award_date', 'fiscal_year', 'pop_state', 'pop_county', 'description', 'prime_award_id', 'prime_recipient_name', 'prime_award_generated_internal_id', 'source_file', 'source_dataset', 'award_category']
+amount_like_columns: ['award_id', 'awarding_agency', 'awarding_sub_agency', 'obligated_amount', 'award_date', 'prime_award_id', 'prime_award_generated_internal_id', 'award_category']
+award_id: non_null=689 sum=3068949807383.96 max=101387100127.0
+awarding_agency: non_null=0 sum=0.0 max=nan
+awarding_sub_agency: non_null=0 sum=0.0 max=nan
+obligated_amount: non_null=7122 sum=33488914440.97 max=10188243769.74
+award_date: non_null=0 sum=0.0 max=nan
+prime_award_id: non_null=237 sum=948403783203899.2 max=20247704043177.0
+prime_award_generated_internal_id: non_null=0 sum=0.0 max=nan
+award_category: non_null=0 sum=0.0 max=nan
+head:
+    award_id                        recipient_name  recipient_uei                 awarding_agency  awarding_sub_agency  obligated_amount  award_date  fiscal_year  pop_state  pop_county  description prime_award_id            prime_recipient_name          prime_award_generated_internal_id                        source_file source_dataset award_category
+0  210121S06         BERMUDEZ LONGO DIAZ-MASSO LLC            NaN  Department of Veterans Affairs                  NaN        19777709.0  2011-03-03         2011        NaN         NaN          NaN  VA101CFMC0111  WALSH CONSTRUCTION PUERTO RICO  CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  subawards_contracts_2010f2017.csv      subawards       subaward
+1  210126S06  BERMUDEZ  &  LONGO  DIAZ-MASSO  S  E            NaN  Department of Veterans Affairs                  NaN        18277141.0  2011-09-27         2011        NaN         NaN          NaN  VA101CFMC0111  WALSH CONSTRUCTION PUERTO RICO  CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  subawards_contracts_2010f2017.csv      subawards       subaward
+2  210121S09  BERMUDEZ  &  LONGO  DIAZ-MASSO  S  E            NaN  Department of Veterans Affairs                  NaN        18160000.0  2011-02-25         2011        NaN         NaN          NaN  VA101CFMC0111  WALSH CONSTRUCTION PUERTO RICO  CONT_AWD_VA101CFMC0111_3600_-NONE-_-NONE-  subawards_contracts_2010f2017.csv      subawards       subaward
+
+=== data/staging/processed/pr_all_awards_master.csv ===
+rows_sampled: 50000
+columns: ['award_id', 'recipient_name', 'recipient_name_normalized', 'recipient_uei', 'awarding_agency', 'awarding_sub_agency', 'obligated_amount', 'award_date', 'fiscal_year', 'pop_state', 'pop_county', 'description', 'source_file', 'source_dataset', 'award_category', 'source_system', 'source_record_id', 'source_lineage_path', 'source_lineage_mode', 'geo_municipality_code', 'geo_municipality_name', 'geo_county_fips', 'geo_zip', 'geo_lat', 'geo_lon', 'geo_attribution_source', 'geo_attribution_confidence', 'entity_normalized', 'obligated_amount_canonical']
+amount_like_columns: ['award_id', 'awarding_agency', 'awarding_sub_agency', 'obligated_amount', 'award_date', 'award_category', 'obligated_amount_canonical']
+award_id: non_null=23274 sum=inf max=inf
+awarding_agency: non_null=0 sum=0.0 max=nan
+awarding_sub_agency: non_null=0 sum=0.0 max=nan
+obligated_amount: non_null=50000 sum=93860631542.89001 max=10188243769.74
+award_date: non_null=0 sum=0.0 max=nan
+award_category: non_null=0 sum=0.0 max=nan
+obligated_amount_canonical: non_null=50000 sum=93860631542.89001 max=10188243769.74
+head:
+            award_id                                             recipient_name                                 recipient_name_normalized recipient_uei              awarding_agency awarding_sub_agency  obligated_amount  award_date  fiscal_year pop_state pop_county description                     source_file source_dataset award_category source_system             source_record_id                                                                       source_lineage_path source_lineage_mode  geo_municipality_code geo_municipality_name  geo_county_fips  geo_zip  geo_lat  geo_lon geo_attribution_source geo_attribution_confidence                                         entity_normalized  obligated_amount_canonical
+0  #2017-NPAL-PR-141                            BOYS & GIRLS CLUBS OF P.R., INC                                   BOYS GIRLS CLUBS OF P R           NaN        Department of Justice                 NaN           36000.0  2017-06-01         2017       NaN        NaN         NaN  subawards_grants_2010f2017.csv      subawards       subaward     subawards  subawards:#2017-NPAL-PR-141  /Users/jotaele/Developer/Contract-Sweeper/data/staging/processed/pr_subawards_master.csv               exact                    NaN                   NaN              NaN      NaN      NaN      NaN                    NaN                    unknown                                BOYS AND GIRLS CLUBS OF PR                     36000.0
+1            (15908)  UNIVERSITY OF PUERTO RICO, ESTACION EXPERIMENTAL AGRICOLA  UNIVERSITY OF PUERTO RICO ESTACION EXPERIMENTAL AGRICOLA           NaN    Department of Agriculture                 NaN           45418.0  2019-05-23         2019       NaN        NaN         NaN  subawards_grants_2018f2022.csv      subawards       subaward     subawards            subawards:(15908)  /Users/jotaele/Developer/Contract-Sweeper/data/staging/processed/pr_subawards_master.csv               exact                    NaN                   NaN              NaN      NaN      NaN      NaN                    NaN                    unknown  UNIVERSITY OF PUERTO RICO ESTACION EXPERIMENTAL AGRICOLA                     45418.0
+2            (16663)                                  UNIVERSITY OF PUERTO RICO                                 UNIVERSITY OF PUERTO RICO           NaN  National Science Foundation                 NaN           22605.0  2019-12-11         2020       NaN        NaN         NaN  subawards_grants_2018f2022.csv      subawards       subaward     subawards            subawards:(16663)  /Users/jotaele/Developer/Contract-Sweeper/data/staging/processed/pr_subawards_master.csv               exact                    NaN                   NaN              NaN      NaN      NaN      NaN                    NaN                    unknown                                 UNIVERSITY OF PUERTO RICO                     22605.0

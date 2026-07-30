@@ -1,0 +1,9 @@
+.stash-reconciliation/20260729T143147Z/baseline/branch.txt
+.stash-reconciliation/20260729T143147Z/baseline/head.txt
+.stash-reconciliation/20260729T143147Z/baseline/remotes.txt
+.stash-reconciliation/20260729T143147Z/baseline/repository.txt
+.stash-reconciliation/20260729T143147Z/baseline/show-ref.txt
+.stash-reconciliation/20260729T143147Z/baseline/stash-list.tsv
+.stash-reconciliation/20260729T143147Z/baseline/status.txt
+.stash-reconciliation/20260729T143147Z/baseline/untracked-files.txt
+.stash-reconciliation/20260729T143147Z/baseline/worktrees.txt

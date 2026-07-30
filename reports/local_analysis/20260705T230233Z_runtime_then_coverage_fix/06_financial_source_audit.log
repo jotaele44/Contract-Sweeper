@@ -1,0 +1,11 @@
+wrote reports/financial_source_audit.csv (147 rows)
+wrote reports/financial_source_audit.md
+  wired_materializing            66
+  wired_offline_ready            3
+  wired_ready_unmaterialized     24
+  wired_needs_key                5
+  wired_not_set_to_materialize   5
+  queued_manual                  37
+  queued_scraper                 2
+  broken                         0
+  not_considered                 5

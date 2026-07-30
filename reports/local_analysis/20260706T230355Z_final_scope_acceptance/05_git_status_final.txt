@@ -1,0 +1,21 @@
+ M data/staging/processed/graph/entity_edges.csv
+ M data/staging/processed/graph/network.graphml
+ M data/staging/processed/graph/network_summary.json
+ M data/staging/processed/graph/top_nodes.csv
+ M data/staging/processed/risk/entity_risk_scores.csv
+ M data/staging/processed/risk/municipality_risk_scores.csv
+ M data/staging/processed/risk/project_risk_scores.csv
+ M data/staging/processed/risk/risk_signals_master.csv
+M  moneysweep/runtime/risk_signals.py
+M  scripts/build_financial_flows_master.py
+M  scripts/build_risk_signals.py
+M  scripts/network_graph.py
+A  tests/test_build_financial_flows_master.py
+?? data/manifests/consolidation/
+?? data/manifests/risk_signal_report.json
+?? "data/raw/HigherGov/HigherGov PR Data (IDV Awards).pdf"
+?? "data/raw/HigherGov/HigherGov PR Data (Municipal Awards).pdf"
+?? "data/raw/HigherGov/HigherGov PR Data (Prime Awards).pdf"
+?? "data/raw/HigherGov/HigherGov PR Data (Sub Awards).pdf"
+?? registries/source_registry_overlays/consolidated_2026_07_05.yaml
+?? reports/local_analysis/
