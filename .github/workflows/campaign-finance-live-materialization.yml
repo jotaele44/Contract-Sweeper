@@ -27,7 +27,7 @@ concurrency:
 jobs:
   materialize:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 360
     env:
       FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
     steps:
@@ -56,13 +56,32 @@ jobs:
           grep -vE '^[[:space:]]*-e[[:space:]]' requirements.txt > /tmp/campaign-finance-requirements.txt
           python -m pip install -r /tmp/campaign-finance-requirements.txt
 
-      - name: Fetch live FEC committee master and outflows
+      - name: Fetch live FEC committee master and Schedule B
         shell: bash
         run: |
           set -o pipefail
           mkdir -p reports/campaign_finance
-          python scripts/download_fec_committees.py --force \
-            2>&1 | tee reports/campaign_finance/fec_outflows.txt
+          python scripts/download_fec_committees.py --force --skip-expenditures \
+            2>&1 | tee reports/campaign_finance/fec_schedule_b.txt
+
+      - name: Retain Schedule B checkpoint
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: campaign-finance-schedule-b-checkpoint
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            reports/campaign_finance/fec_schedule_b.txt
+            data/manifests/campaign_finance/fec_outflows_acquisition.json
+            data/staging/processed/pr_fec_committees.csv
+            data/staging/processed/pr_fec_disbursements.csv
+
+      - name: Fetch live FEC Schedule E
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/download_fec_committees.py --skip-disbursements \
+            2>&1 | tee reports/campaign_finance/fec_schedule_e.txt
 
       - name: Run strict campaign-finance materialization
         shell: bash
