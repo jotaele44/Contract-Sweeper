@@ -67,9 +67,7 @@ def _apply_registry_overrides(
         base = by_id[source_id]
         for field in _IMMUTABLE_OVERRIDE_FIELDS:
             if field in override and override[field] != base.get(field):
-                raise ValueError(
-                    f"{source_id}: override may not change immutable field {field}"
-                )
+                raise ValueError(f"{source_id}: override may not change immutable field {field}")
         base.update({key: value for key, value in override.items() if key != "source_id"})
         by_id[source_id] = base
     return [by_id[source.get("source_id")] for source in sources]
@@ -87,7 +85,9 @@ def load_source_registry(root: Path | None = None) -> dict[str, Any]:
 
 
 def required_sources(root: Path | None = None) -> list[dict[str, Any]]:
-    return [source for source in load_source_registry(root).get("sources", []) if source.get("required")]
+    return [
+        source for source in load_source_registry(root).get("sources", []) if source.get("required")
+    ]
 
 
 def all_sources(root: Path | None = None) -> list[dict[str, Any]]:
@@ -144,14 +144,10 @@ def validate_registry(root: Path | None = None) -> dict[str, Any]:
         outputs = source.get("expected_outputs") or []
         for output in outputs:
             if ".." in Path(output).parts:
-                errors.append(
-                    f"{source_id}: expected_output contains parent traversal: {output}"
-                )
+                errors.append(f"{source_id}: expected_output contains parent traversal: {output}")
         if source.get("required") and not outputs:
             warnings.append(f"{source_id}: required source has no expected_outputs declared")
-        if source.get("authentication") == "manual_export" and not source.get(
-            "manual_drop_dir"
-        ):
+        if source.get("authentication") == "manual_export" and not source.get("manual_drop_dir"):
             warnings.append(f"{source_id}: manual_export source missing manual_drop_dir")
     return {
         "source_count": len(sources),

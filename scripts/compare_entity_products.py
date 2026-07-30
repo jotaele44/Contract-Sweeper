@@ -113,7 +113,9 @@ def _inspect_csv(path: Path) -> dict[str, Any]:
             )
 
         candidate_columns = [candidate for candidate in KEY_CANDIDATES if candidate in columns]
-        candidate_hashes = {candidate: Counter() for candidate in candidate_columns}
+        candidate_hashes: dict[str, Counter[str]] = {
+            candidate: Counter() for candidate in candidate_columns
+        }
         candidate_nonblank_rows = Counter[str]()
         row_hashes: Counter[str] = Counter()
         row_count = 0
@@ -153,8 +155,13 @@ def _inspect_csv(path: Path) -> dict[str, Any]:
         ),
         None,
     )
-    selected_hashes = candidate_hashes.get(selected_key, Counter())
-    selected_nonblank_rows = candidate_nonblank_rows.get(selected_key, 0)
+    selected_hashes: Counter[str]
+    if selected_key is None:
+        selected_hashes = Counter()
+        selected_nonblank_rows = 0
+    else:
+        selected_hashes = candidate_hashes[selected_key]
+        selected_nonblank_rows = candidate_nonblank_rows.get(selected_key, 0)
     key_profiles = {
         candidate: _key_profile(
             candidate_hashes[candidate], candidate_nonblank_rows.get(candidate, 0)
@@ -178,9 +185,7 @@ def _inspect_csv(path: Path) -> dict[str, Any]:
         "stable_key_candidates": key_profiles,
         "nonblank_unique_keys": len(selected_hashes),
         "blank_key_rows": row_count - selected_nonblank_rows if selected_key else row_count,
-        "duplicate_key_rows": sum(
-            count - 1 for count in selected_hashes.values() if count > 1
-        ),
+        "duplicate_key_rows": sum(count - 1 for count in selected_hashes.values() if count > 1),
         "row_hash_multiset_sha256": _counter_digest(row_hashes),
         "key_hash_set_sha256": _counter_digest(Counter(selected_hashes.keys())),
         "validation_error_count": validation_error_count,
@@ -324,8 +329,8 @@ def compare(left_path: Path, right_path: Path) -> dict[str, Any]:
             "DISTINCT_DERIVED_PRODUCTS": "Normalized stable-key overlap is below 95%.",
             "INDETERMINATE_NO_STABLE_KEY": "At least one product has no populated recognized stable-key column.",
             "INDETERMINATE_INVALID_INPUT": "At least one CSV is structurally malformed.",
-            "INDETERMINATE_EMPTY_PRODUCT": "At least one valid CSV has zero data rows."
-        }
+            "INDETERMINATE_EMPTY_PRODUCT": "At least one valid CSV has zero data rows.",
+        },
     }
 
 

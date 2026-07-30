@@ -21,10 +21,11 @@
     "automatable_ready": 104,
     "queued_excluded_total": 47,
     "queued_excluded": {
-      "manual": 40,
-      "scraper": 2,
+      "manual_export": 40,
+      "scraper_needed": 2,
+      "deferred_stub": 2,
       "semantic_duplicate": 3,
-      "deferred": 2
+      "broken_producer": 0
     }
   },
   "materialization_coverage": {
@@ -60,7 +61,11 @@
     },
     "workflow_repair_pr": 444,
     "dependency_refresh_pr": 446,
-    "hosted_preflight_runs": [30452888839, 30452890975, 30452892905],
+    "hosted_preflight_runs": [
+      30452888839,
+      30452890975,
+      30452892905
+    ],
     "hosted_live_jobs_skipped": true
   },
   "required_source_evidence": {

@@ -2,7 +2,7 @@ schema_version: source_registry_overrides_v1
 source_overrides:
 - source_id: cor3
   authorized_manual_ingest_script: scripts/ingest_cor3.py
-  manual_drop_dir: data/raw/COR3/
+  authorized_manual_drop_dir: data/raw/COR3/
   live_endpoint_status: UNVERIFIED_BEST_EFFORT
   manual_ingest_boundary: Official portal Excel exports may be ingested offline; the registered download_cor3.py endpoint probe remains separately gated.
 - source_id: pr_cabilderos

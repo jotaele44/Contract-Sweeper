@@ -38,24 +38,61 @@ RAW_RELATIVE_DIRS = (
 HUD_DRGR_FILENAME_KEYWORDS = ("hud", "drgr", "cdbg")
 
 ACTIVITY_COLUMNS = [
-    "activity_id", "grant_number", "project_id", "activity_name", "activity_type",
-    "status", "responsible_org", "responsible_org_normalized", "address",
-    "municipality", "county", "national_objective", "benefit_type", "total_budget",
-    "amount_drawn", "amount_remaining", "start_date", "end_date", "source_file",
+    "activity_id",
+    "grant_number",
+    "project_id",
+    "activity_name",
+    "activity_type",
+    "status",
+    "responsible_org",
+    "responsible_org_normalized",
+    "address",
+    "municipality",
+    "county",
+    "national_objective",
+    "benefit_type",
+    "total_budget",
+    "amount_drawn",
+    "amount_remaining",
+    "start_date",
+    "end_date",
+    "source_file",
 ]
 DRAWDOWN_COLUMNS = [
-    "drawdown_id", "grant_number", "activity_id", "drawdown_date", "drawdown_amount",
-    "cumulative_drawn", "remaining_budget", "source_file",
+    "drawdown_id",
+    "grant_number",
+    "activity_id",
+    "drawdown_date",
+    "drawdown_amount",
+    "cumulative_drawn",
+    "remaining_budget",
+    "source_file",
 ]
 APPROPRIATION_COLUMNS = [
-    "appropriation_id", "grant_number", "program_type", "appropriation_year",
-    "appropriation_amount", "allocation_date", "grantee_name", "grantee_normalized",
-    "cfda_number", "source_file",
+    "appropriation_id",
+    "grant_number",
+    "program_type",
+    "appropriation_year",
+    "appropriation_amount",
+    "allocation_date",
+    "grantee_name",
+    "grantee_normalized",
+    "cfda_number",
+    "source_file",
 ]
 PROJECT_COLUMNS = [
-    "project_id", "grant_number", "project_name", "responsible_org",
-    "responsible_org_normalized", "municipality", "status", "total_budget",
-    "amount_drawn", "amount_remaining", "activity_count", "source_file",
+    "project_id",
+    "grant_number",
+    "project_name",
+    "responsible_org",
+    "responsible_org_normalized",
+    "municipality",
+    "status",
+    "total_budget",
+    "amount_drawn",
+    "amount_remaining",
+    "activity_count",
+    "source_file",
 ]
 
 ACTIVITY_COL_MAP = {
@@ -65,7 +102,13 @@ ACTIVITY_COL_MAP = {
     "activity_name": ["Activity Name", "Activity Description", "Name", "activity_name"],
     "activity_type": ["Activity Type", "Type", "Category", "activity_type"],
     "status": ["Status", "Activity Status", "Current Status", "status"],
-    "responsible_org": ["Responsible Organization", "Responsible Org", "Organization", "Subrecipient", "responsible_org"],
+    "responsible_org": [
+        "Responsible Organization",
+        "Responsible Org",
+        "Organization",
+        "Subrecipient",
+        "responsible_org",
+    ],
     "address": ["Address", "Location", "Site Address", "address"],
     "municipality": ["Municipality", "City", "Locality", "municipality"],
     "county": ["County", "county"],
@@ -131,7 +174,9 @@ def _read_file(path: Path, logger) -> pd.DataFrame:
         if path.suffix.lower() == ".csv":
             for encoding in ("utf-8", "latin-1", "cp1252"):
                 try:
-                    return pd.read_csv(path, dtype=str, na_filter=False, encoding=encoding, low_memory=False)
+                    return pd.read_csv(
+                        path, dtype=str, na_filter=False, encoding=encoding, low_memory=False
+                    )
                 except UnicodeDecodeError:
                     continue
     except Exception as exc:  # noqa: BLE001
@@ -141,8 +186,11 @@ def _read_file(path: Path, logger) -> pd.DataFrame:
 
 def _classify(path: Path, frame: pd.DataFrame) -> str:
     combined = path.stem.lower() + " " + " ".join(str(c).lower() for c in frame.columns)
-    scores = {category: sum(keyword in combined for keyword in keywords) for category, keywords in CLASSIFY_KEYWORDS.items()}
-    best = max(scores, key=scores.get)
+    scores = {
+        category: sum(keyword in combined for keyword in keywords)
+        for category, keywords in CLASSIFY_KEYWORDS.items()
+    }
+    best = max(scores, key=lambda category: scores[category])
     return best if scores[best] > 0 else "activities"
 
 
@@ -172,18 +220,24 @@ def _find_raw_files(root: Path, logger) -> list[Path]:
         if not raw_dir.exists():
             continue
         for pattern in ("*.xlsx", "*.xls", "*.csv"):
-            candidates.update(path for path in raw_dir.glob(pattern) if not path.name.startswith("."))
+            candidates.update(
+                path for path in raw_dir.glob(pattern) if not path.name.startswith(".")
+            )
         for child in raw_dir.iterdir():
             if child.is_dir():
                 for pattern in ("*.xlsx", "*.xls", "*.csv"):
-                    candidates.update(path for path in child.glob(pattern) if not path.name.startswith("."))
+                    candidates.update(
+                        path for path in child.glob(pattern) if not path.name.startswith(".")
+                    )
     relevant = sorted(path for path in candidates if _looks_like_hud_drgr(path))
     logger.info(f"  Found {len(relevant)} HUD DRGR export file(s)")
     return relevant
 
 
 def _numeric(series: pd.Series) -> pd.Series:
-    return pd.to_numeric(series.fillna("").astype(str).str.replace(r"[$,\s]", "", regex=True), errors="coerce").fillna(0)
+    return pd.to_numeric(
+        series.fillna("").astype(str).str.replace(r"[$,\s]", "", regex=True), errors="coerce"
+    ).fillna(0)
 
 
 def _build_projects(activities: pd.DataFrame) -> pd.DataFrame:
@@ -196,23 +250,29 @@ def _build_projects(activities: pd.DataFrame) -> pd.DataFrame:
         return pd.DataFrame(columns=PROJECT_COLUMNS)
     for column in ("total_budget", "amount_drawn", "amount_remaining"):
         source[column] = _numeric(source[column])
-    projects = source.groupby("project_id", sort=True, dropna=False).agg(
-        grant_number=("grant_number", "first"),
-        project_name=("activity_name", "first"),
-        responsible_org=("responsible_org", "first"),
-        responsible_org_normalized=("responsible_org_normalized", "first"),
-        municipality=("municipality", "first"),
-        status=("status", "first"),
-        total_budget=("total_budget", "sum"),
-        amount_drawn=("amount_drawn", "sum"),
-        amount_remaining=("amount_remaining", "sum"),
-        activity_count=("activity_id", "count"),
-        source_file=("source_file", lambda values: "|".join(sorted(set(values)))),
-    ).reset_index()
+    projects = (
+        source.groupby("project_id", sort=True, dropna=False)
+        .agg(
+            grant_number=("grant_number", "first"),
+            project_name=("activity_name", "first"),
+            responsible_org=("responsible_org", "first"),
+            responsible_org_normalized=("responsible_org_normalized", "first"),
+            municipality=("municipality", "first"),
+            status=("status", "first"),
+            total_budget=("total_budget", "sum"),
+            amount_drawn=("amount_drawn", "sum"),
+            amount_remaining=("amount_remaining", "sum"),
+            activity_count=("activity_id", "count"),
+            source_file=("source_file", lambda values: "|".join(sorted(set(values)))),
+        )
+        .reset_index()
+    )
     return projects[PROJECT_COLUMNS]
 
 
-def _write_outputs(frame: pd.DataFrame, columns: list[str], parquet_path: Path, csv_path: Path | None = None) -> int:
+def _write_outputs(
+    frame: pd.DataFrame, columns: list[str], parquet_path: Path, csv_path: Path | None = None
+) -> int:
     materialized = frame if not frame.empty else pd.DataFrame(columns=columns)
     pq_write(materialized, parquet_path)
     if csv_path is not None:
@@ -237,7 +297,9 @@ def run(root=None, force=False):
     project_csv = processed_dir / "hud_drgr_projects.csv"
 
     normalized_paths = [activity_parquet, project_parquet, drawdown_parquet, appropriation_parquet]
-    if not force and all(path.exists() or path.with_suffix(".csv").exists() for path in normalized_paths):
+    if not force and all(
+        path.exists() or path.with_suffix(".csv").exists() for path in normalized_paths
+    ):
         activities = pq_read(activity_parquet)
         projects = pq_read(project_parquet)
         drawdowns = pq_read(drawdown_parquet)
@@ -245,8 +307,10 @@ def run(root=None, force=False):
         activities.to_csv(activity_csv, index=False, encoding="utf-8")
         projects.to_csv(project_csv, index=False, encoding="utf-8")
         return {
-            "activity_rows": len(activities), "project_rows": len(projects),
-            "drawdown_rows": len(drawdowns), "appropriation_rows": len(appropriations),
+            "activity_rows": len(activities),
+            "project_rows": len(projects),
+            "drawdown_rows": len(drawdowns),
+            "appropriation_rows": len(appropriations),
             "status": "CACHED",
         }
 
@@ -260,7 +324,9 @@ def run(root=None, force=False):
             continue
         category = _classify(path, frame)
         if category == "drawdowns":
-            drawdown_frames.append(_map_to_schema(frame, DRAWDOWN_COL_MAP, DRAWDOWN_COLUMNS, path.name))
+            drawdown_frames.append(
+                _map_to_schema(frame, DRAWDOWN_COL_MAP, DRAWDOWN_COLUMNS, path.name)
+            )
         elif category == "appropriations":
             mapped = _map_to_schema(frame, APPROPRIATION_COL_MAP, APPROPRIATION_COLUMNS, path.name)
             mapped["grantee_normalized"] = mapped["grantee_name"].apply(_normalize_name)
@@ -270,18 +336,34 @@ def run(root=None, force=False):
             mapped["responsible_org_normalized"] = mapped["responsible_org"].apply(_normalize_name)
             activity_frames.append(mapped)
 
-    activities = pd.concat(activity_frames, ignore_index=True) if activity_frames else pd.DataFrame(columns=ACTIVITY_COLUMNS)
-    drawdowns = pd.concat(drawdown_frames, ignore_index=True) if drawdown_frames else pd.DataFrame(columns=DRAWDOWN_COLUMNS)
-    appropriations = pd.concat(appropriation_frames, ignore_index=True) if appropriation_frames else pd.DataFrame(columns=APPROPRIATION_COLUMNS)
+    activities = (
+        pd.concat(activity_frames, ignore_index=True)
+        if activity_frames
+        else pd.DataFrame(columns=ACTIVITY_COLUMNS)
+    )
+    drawdowns = (
+        pd.concat(drawdown_frames, ignore_index=True)
+        if drawdown_frames
+        else pd.DataFrame(columns=DRAWDOWN_COLUMNS)
+    )
+    appropriations = (
+        pd.concat(appropriation_frames, ignore_index=True)
+        if appropriation_frames
+        else pd.DataFrame(columns=APPROPRIATION_COLUMNS)
+    )
     projects = _build_projects(activities)
 
     activity_rows = _write_outputs(activities, ACTIVITY_COLUMNS, activity_parquet, activity_csv)
     project_rows = _write_outputs(projects, PROJECT_COLUMNS, project_parquet, project_csv)
     drawdown_rows = _write_outputs(drawdowns, DRAWDOWN_COLUMNS, drawdown_parquet)
-    appropriation_rows = _write_outputs(appropriations, APPROPRIATION_COLUMNS, appropriation_parquet)
+    appropriation_rows = _write_outputs(
+        appropriations, APPROPRIATION_COLUMNS, appropriation_parquet
+    )
     return {
-        "activity_rows": activity_rows, "project_rows": project_rows,
-        "drawdown_rows": drawdown_rows, "appropriation_rows": appropriation_rows,
+        "activity_rows": activity_rows,
+        "project_rows": project_rows,
+        "drawdown_rows": drawdown_rows,
+        "appropriation_rows": appropriation_rows,
         "status": "OK" if files else "manual_required",
     }
 

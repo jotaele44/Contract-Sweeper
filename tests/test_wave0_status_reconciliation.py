@@ -18,10 +18,15 @@ def test_current_status_matches_authoritative_readiness() -> None:
     readiness = _read("reports/materialization_readiness.json")
     registry = status["source_registry_current"]
     assert registry["total_sources"] == readiness["total_sources"] == 151
-    assert registry["source_ids_sha256"] == readiness["source_count_provenance"]["source_ids_sha256"]
+    assert (
+        registry["source_ids_sha256"] == readiness["source_count_provenance"]["source_ids_sha256"]
+    )
     for key in (
-        "total_sources", "automatable_total", "automatable_ready",
-        "queued_excluded_total", "queued_excluded",
+        "total_sources",
+        "automatable_total",
+        "automatable_ready",
+        "queued_excluded_total",
+        "queued_excluded",
     ):
         assert status["materialization_readiness_truth"][key] == readiness[key]
 
@@ -79,9 +84,12 @@ def test_adjudicated_row_buckets_have_exact_parity_without_double_counting() -> 
     assert rows["intermediate_rows"] == 120737
     assert rows["unadjudicated_orphan_rows"] == 0
     assert (
-        rows["registry_declared_rows"] + rows["derived_output_rows"]
-        + rows["intermediate_rows"] + rows["unadjudicated_orphan_rows"]
-        == rows["total_rows_on_disk"] == 1183565
+        rows["registry_declared_rows"]
+        + rows["derived_output_rows"]
+        + rows["intermediate_rows"]
+        + rows["unadjudicated_orphan_rows"]
+        == rows["total_rows_on_disk"]
+        == 1183565
     )
     assert rows["parity"] is True
     assert rows["double_counting_detected"] is False

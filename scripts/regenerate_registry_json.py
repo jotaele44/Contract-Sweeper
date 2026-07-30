@@ -28,7 +28,7 @@ REGISTRY_PAIRS = [
 
 def _write_pair(source: Path, destination: Path) -> None:
     data = yaml.safe_load(source.read_text(encoding="utf-8"))
-    destination.write_text(json.dumps(data, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+    destination.write_text(json.dumps(data, indent=2, sort_keys=False), encoding="utf-8")
 
 
 def regenerate(registries_dir: Path) -> int:

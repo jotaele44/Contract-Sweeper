@@ -25,8 +25,16 @@ def test_different_products_with_same_entities_are_overlapping(tmp_path: Path) -
         left,
         ["entity_id", "canonical_name", "entity_type"],
         [
-            {"entity_id": "ENT_ORG_1", "canonical_name": "Acme, LLC", "entity_type": "organization"},
-            {"entity_id": "ENT_ORG_2", "canonical_name": "Beta Corp", "entity_type": "organization"},
+            {
+                "entity_id": "ENT_ORG_1",
+                "canonical_name": "Acme, LLC",
+                "entity_type": "organization",
+            },
+            {
+                "entity_id": "ENT_ORG_2",
+                "canonical_name": "Beta Corp",
+                "entity_type": "organization",
+            },
         ],
     )
     _write_csv(
@@ -62,7 +70,11 @@ def test_same_schema_and_rows_in_different_order_are_semantic_duplicate(tmp_path
 def test_blank_preferred_key_falls_back_to_populated_name(tmp_path: Path) -> None:
     left = tmp_path / "left.csv"
     right = tmp_path / "right.csv"
-    _write_csv(left, ["normalized_name", "canonical_name"], [{"normalized_name": "", "canonical_name": "Acme LLC"}])
+    _write_csv(
+        left,
+        ["normalized_name", "canonical_name"],
+        [{"normalized_name": "", "canonical_name": "Acme LLC"}],
+    )
     _write_csv(right, ["recipient_name"], [{"recipient_name": "Acme LLC"}])
     report = compare(left, right)
     assert report["left"]["stable_key_column"] == "canonical_name"
@@ -118,10 +130,19 @@ def test_missing_input_is_indeterminate(tmp_path: Path) -> None:
 
 def test_cli_allow_missing_writes_report_and_exits_zero(tmp_path: Path) -> None:
     output = tmp_path / "report.json"
-    result = main([
-        "--root", str(tmp_path), "--left", "left.csv", "--right", "right.csv",
-        "--output", output.name, "--allow-missing",
-    ])
+    result = main(
+        [
+            "--root",
+            str(tmp_path),
+            "--left",
+            "left.csv",
+            "--right",
+            "right.csv",
+            "--output",
+            output.name,
+            "--allow-missing",
+        ]
+    )
     assert result == 0
     assert output.exists()
 
@@ -129,8 +150,17 @@ def test_cli_allow_missing_writes_report_and_exits_zero(tmp_path: Path) -> None:
 def test_cli_invalid_input_exits_nonzero_even_with_allow_missing(tmp_path: Path) -> None:
     _write_csv(tmp_path / "left.csv", ["name"], [])
     _write_csv(tmp_path / "right.csv", ["name"], [{"name": "Acme"}])
-    result = main([
-        "--root", str(tmp_path), "--left", "left.csv", "--right", "right.csv",
-        "--output", "report.json", "--allow-missing",
-    ])
+    result = main(
+        [
+            "--root",
+            str(tmp_path),
+            "--left",
+            "left.csv",
+            "--right",
+            "right.csv",
+            "--output",
+            "report.json",
+            "--allow-missing",
+        ]
+    )
     assert result == 3
