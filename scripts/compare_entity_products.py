@@ -26,14 +26,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LEFT = "data/staging/processed/entity_master.csv"
 DEFAULT_RIGHT = "data/staging/processed/pr_entity_profiles.csv"
 DEFAULT_OUTPUT = "reports/entity_product_comparison.json"
 
+# Prefer names across independently derived products. Opaque IDs are useful only
+# when neither product exposes a canonical or normalized entity name.
 KEY_CANDIDATES = (
-    "entity_id",
-    "canonical_entity_id",
     "normalized_name",
     "canonical_name",
     "recipient_name",
@@ -41,6 +40,8 @@ KEY_CANDIDATES = (
     "vendor_name",
     "entity_name",
     "name",
+    "entity_id",
+    "canonical_entity_id",
 )
 
 _SPACE_RE = re.compile(r"\s+")
@@ -73,6 +74,13 @@ def _row_digest(row: dict[str, str], columns: Iterable[str]) -> str:
 def _choose_key(columns: list[str]) -> str | None:
     column_set = set(columns)
     return next((candidate for candidate in KEY_CANDIDATES if candidate in column_set), None)
+
+
+def _counter_digest(counter: Counter[str]) -> str:
+    digest = hashlib.sha256()
+    for value, count in sorted(counter.items()):
+        digest.update(f"{value}:{count}\n".encode("ascii"))
+    return digest.hexdigest()
 
 
 def _inspect_csv(path: Path) -> dict[str, Any]:
@@ -117,13 +125,6 @@ def _inspect_csv(path: Path) -> dict[str, Any]:
         "_row_hashes": row_hashes,
         "_key_hashes": key_hashes,
     }
-
-
-def _counter_digest(counter: Counter[str]) -> str:
-    digest = hashlib.sha256()
-    for value, count in sorted(counter.items()):
-        digest.update(f"{value}:{count}\n".encode("ascii"))
-    return digest.hexdigest()
 
 
 def _projection_hashes(path: Path, columns: list[str]) -> Counter[str]:
@@ -182,6 +183,8 @@ def _duplicate_status(
         return "SEMANTIC_DUPLICATE"
     if not left["stable_key_column"] or not right["stable_key_column"]:
         return "INDETERMINATE_NO_STABLE_KEY"
+    if not left["_key_hashes"] or not right["_key_hashes"]:
+        return "INDETERMINATE_NO_NONBLANK_KEYS"
     if key_overlap["overlap_rate_max_denominator"] >= 0.95:
         return "OVERLAPPING_DERIVED_PRODUCTS"
     return "DISTINCT_DERIVED_PRODUCTS"
@@ -195,7 +198,9 @@ def compare(left_path: Path, right_path: Path) -> dict[str, Any]:
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "status": "INDETERMINATE_MISSING_INPUT",
             "missing_inputs": missing,
-            "freshness_boundary": "Local filesystem metadata only; external-source freshness not certified.",
+            "freshness_boundary": (
+                "Local filesystem metadata only; external-source freshness not certified."
+            ),
         }
 
     left = _inspect_csv(left_path)
@@ -230,11 +235,20 @@ def compare(left_path: Path, right_path: Path) -> dict[str, Any]:
         "decision_rules": {
             "IDENTICAL_FILE": "Byte SHA-256 values match.",
             "SEMANTIC_DUPLICATE": "Ordered schemas and canonical row-hash multisets match.",
-            "OVERLAPPING_DERIVED_PRODUCTS": "Different products share at least 95% of normalized stable keys.",
+            "OVERLAPPING_DERIVED_PRODUCTS": (
+                "Different products share at least 95% of normalized stable keys."
+            ),
             "DISTINCT_DERIVED_PRODUCTS": "Normalized stable-key overlap is below 95%.",
-            "INDETERMINATE_NO_STABLE_KEY": "At least one product has no recognized stable-key column.",
+            "INDETERMINATE_NO_STABLE_KEY": (
+                "At least one product has no recognized stable-key column."
+            ),
+            "INDETERMINATE_NO_NONBLANK_KEYS": (
+                "At least one recognized key column contains no nonblank values."
+            ),
         },
-        "freshness_boundary": "Local filesystem metadata only; external-source freshness not certified.",
+        "freshness_boundary": (
+            "Local filesystem metadata only; external-source freshness not certified."
+        ),
     }
 
 
