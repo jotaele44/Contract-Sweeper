@@ -24,6 +24,7 @@ def test_retryable_batch_failure_splits_until_requests_succeed(monkeypatch):
         [2018],
         0,
         logging.getLogger("test"),
+        batch_size=10,
     )
     assert rows == []
     assert [len(batch) for batch in calls] == [10, 5, 5]
