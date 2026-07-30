@@ -46,6 +46,9 @@
         "data/manifests/campaign_finance/campaign_finance_validation.json"
       ],
       "update_cadence": "after_source_refresh",
+      "validation_threshold": {
+        "min_rows": 1
+      },
       "notes": "Fail-closed validation for FEC Schedule A/B/E, PR donation feeds, entity resolution, graph edges, and conditional cross-reference outputs."
     }
   ]
