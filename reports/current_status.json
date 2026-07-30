@@ -1,9 +1,9 @@
 {
-  "schema_version": "moneysweep_current_status_v4",
-  "generated_at": "2026-07-29T10:27:00-04:00",
+  "schema_version": "moneysweep_current_status_v5",
+  "generated_at": "2026-07-30T01:14:00-04:00",
   "base_sha": "34ef3b9352493d0b6ba4eb821d7ea544bec0933b",
-  "certified_input_head_sha": "33c123f1c3826f1b27b67172dd3227d81353af47",
-  "active_vector": "REMEDIATE_MONEYSWEEP_WAVE0_REQUIRED_GAPS_AND_ORPHAN_OWNERSHIP_v0_7",
+  "certified_input_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
+  "active_vector": "ACQUIRE_MONEYSWEEP_REQUIRED_SOURCE_EVIDENCE_AND_COMPARE_ENTITY_PRODUCTS_v0_8",
   "active_branch": "agent/moneysweep-wave0-status-reconciliation-v0-3",
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "pause_lock_active": true,
@@ -16,6 +16,9 @@
     "source_readiness": "reports/materialization_readiness.json",
     "materialization_evidence": "operator bundle MONEYSWEEP_WAVE0_OPERATOR_AUDIT.zip",
     "gap_and_output_ownership_adjudication": "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json",
+    "required_source_access_evidence": "reports/WAVE0_REQUIRED_SOURCE_EVIDENCE_2026-07-30.json",
+    "entity_product_comparison_tool": "scripts/compare_entity_products.py",
+    "entity_product_comparison_report": "reports/entity_product_comparison.json (pending operator-corpus execution)",
     "source_registry": "registries/source_registry.json",
     "detailed_roadmap": "docs/ROAD_TO_100.md",
     "normalized_roadmap": "docs/ROAD_TO_100_NORMALIZED.md"
@@ -70,10 +73,9 @@
     },
     "status_reconciliation_pr": {
       "number": 448,
-      "previous_certified_head_sha": "33c123f1c3826f1b27b67172dd3227d81353af47",
-      "previous_triggered_workflows": 15,
-      "previous_status": "GREEN",
-      "current_status": "PENDING_FULL_CI_ON_GAP_OWNERSHIP_REFRESH"
+      "certified_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
+      "triggered_workflows": 15,
+      "status": "GREEN_BEFORE_V0_8_REFRESH"
     },
     "superseded_status_pr": {
       "number": 447,
@@ -121,11 +123,13 @@
       "double_counting_detected": false
     },
     "required_source_adjudication": {
-      "cor3": "DECLARED_EMPTY_OUTPUT_REQUIRES_AUTHORIZED_REFRESH",
-      "hud_drgr_authorized": "MANUAL_EXPORT_ABSENT",
-      "pr_cabilderos": "DECLARED_EMPTY_MANUAL_EXPORT",
-      "prasa": "DECLARED_EMPTY_MANUAL_EXPORT",
-      "materialization_credit_changed": false
+      "cor3": "PUBLIC_EXPORT_SURFACE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
+      "hud_drgr_authorized": "AUTHORIZED_EXPORT_REQUIRED_NOT_PRESENT",
+      "pr_cabilderos": "PUBLIC_REGISTRY_VERIFIED_FULL_EXPORT_NOT_ACQUIRED",
+      "prasa": "OFFICIAL_CONTRACT_EXPORT_ROUTE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
+      "materialization_credit_changed": false,
+      "required_fully_materialized": 10,
+      "required_sources": 14
     },
     "derived_output_files": [
       "entity_master.csv",
@@ -137,7 +141,27 @@
     ],
     "external_universe_completeness": "NOT_CERTIFIED",
     "freshness_certification": "NOT_CERTIFIED",
-    "next_certification_action": "Acquire or refresh the four required sources only through separately authorized bounded or manual workflows, compare the two 104,280-row derived products by content keys, and validate production export plus downstream federation consumers before any production-status change."
+    "next_certification_action": "Supply and ingest source-authorized export bytes, then run the deterministic entity-product comparison against the operator corpus before production-export or downstream-consumer certification."
+  },
+  "required_source_evidence": {
+    "report": "reports/WAVE0_REQUIRED_SOURCE_EVIDENCE_2026-07-30.json",
+    "status": "ACCESS_AND_PROVENANCE_EVIDENCE_CERTIFIED",
+    "live_producer_execution": false,
+    "credentialed_access_attempted": false,
+    "new_output_rows": 0,
+    "materialization_credit_changed": false,
+    "freshness_boundary": "Access surfaces were observed; output-corpus freshness is not certified without acquired export bytes."
+  },
+  "entity_product_comparison": {
+    "tool": "scripts/compare_entity_products.py",
+    "test": "tests/test_compare_entity_products.py",
+    "left": "data/staging/processed/entity_master.csv",
+    "right": "data/staging/processed/pr_entity_profiles.csv",
+    "reported_rows_each": 104280,
+    "status": "PENDING_OPERATOR_CORPUS_EXECUTION",
+    "reason": "The evidence bundle contains summary rows but not either CSV; file SHA-256, schema fingerprints, row-hash multisets, stable-key overlap, projected-row overlap, and duplicate status remain uncomputed.",
+    "command": "python3 scripts/compare_entity_products.py --output reports/entity_product_comparison.json",
+    "equal_row_counts_establish_duplication": false
   },
   "historical_coverage_evidence": {
     "status": "SUPERSEDED_FOR_CURRENT_COVERAGE",
@@ -153,11 +177,11 @@
     "fully_or_partially_materialized_pct": 51.66,
     "required_materialization_pct": 71.43,
     "production_gate": false,
-    "evidence_depth": "D3_CURRENT_OPERATOR_CORPUS_ADJUDICATED",
-    "interpretation": "The current 151-source offline corpus and output ownership are certified. Four required-source data gaps, freshness, external-universe completeness, production export, and downstream validation remain open."
+    "evidence_depth": "D3_CURRENT_OPERATOR_CORPUS_ADJUDICATED_WITH_ACCESS_EVIDENCE",
+    "interpretation": "The 151-source offline corpus, output ownership, and access/provenance routes for four required gaps are documented. Required export bytes, entity-product comparison results, freshness, external-universe completeness, production export, and downstream validation remain open."
   },
   "issue_reconciliation": {
-    "epic_271": "OPEN_P0_CORPUS_AND_OWNERSHIP_GATES_COMPLETE_2026-07-29",
+    "epic_271": "OPEN_P0_ACCESS_EVIDENCE_COMPLETE_INPUT_BYTES_PENDING_2026-07-30",
     "issue_258": "CLOSED_COMPLETED_2026-06-16",
     "issue_87": "CLOSED_SUPERSEDED_2026-07-28",
     "child_range_272_307": "OPEN_UNLESS_SEPARATELY_CLOSED",
@@ -167,38 +191,40 @@
     "superseded_status_pr": 447
   },
   "completed_in_wave0": [
-    "Full CI passed on workflow-repair PR #444, dependency-refresh PR #446, and PR #448 head 33c123f1c3826f1b27b67172dd3227d81353af47.",
+    "Full CI passed on workflow-repair PR #444, dependency-refresh PR #446, and PR #448 head 53e0069ccf7ca7b7dfa65f62382681e0f61c552c.",
     "Three GitHub-hosted preflight dispatches passed and all live jobs were skipped.",
     "Authoritative offline 151-source operator-corpus audit completed with registry-digest and status-count parity.",
     "Four required-source gaps were formally classified without awarding materialization credit.",
     "Six undeclared positive-row files were adjudicated as derived outputs; row accounting reconciles exactly with zero unadjudicated orphan rows.",
-    "Closed contaminated status PR #447 unmerged and preserved clean successor PR #448 without force push or history rewrite."
+    "Official access and provenance routes were documented for COR3, HUD DRGR, cabilderos, and PRASA without credential automation or live producer execution.",
+    "A deterministic offline entity-product comparison harness and hermetic tests were added."
   ],
   "open_work": {
     "p0": [
-      "Acquire or refresh cor3, hud_drgr_authorized, pr_cabilderos, and prasa through separately authorized bounded or manual workflows.",
-      "Compare entity_master.csv and pr_entity_profiles.csv by stable content keys; equal row counts alone do not establish duplication.",
+      "Supply COR3 workbooks, authorized HUD DRGR exports, an official cabilderos export, and a PRASA/AAA contract export to their documented local dropzones.",
+      "Run scripts/compare_entity_products.py against the operator corpus and commit only the comparison report, not the gitignored source CSVs.",
       "Reconcile PR2.5 and PR2.6 before PR3 entity deduplication."
     ],
     "p1": [
-      "Assess source freshness and external-universe completeness without conflating them with local output presence.",
+      "Assess source freshness and external-universe completeness after valid export ingestion without conflating them with access-surface availability.",
       "Complete production export and downstream federation-consumer validation.",
       "Implement the two genuine scraper stubs: hacienda_sut_ivu and pr_act_154_excise."
     ]
   },
-  "next_command": "ACQUIRE_REQUIRED_SOURCES_AND_COMPARE_DERIVED_ENTITY_PRODUCTS",
+  "next_command": "INGEST_REQUIRED_EXPORTS_AND_RUN_ENTITY_PRODUCT_COMPARISON",
   "next_command_detail": {
     "readiness_source_of_truth": "reports/materialization_readiness.json (151 total; 104/104 automatable ready; 47 queued/excluded)",
     "operator_corpus_source_of_truth": "MONEYSWEEP_WAVE0_OPERATOR_AUDIT.zip (SHA-256 2a37bf4c49f5e4d267ca4cbdc8366c718efc1738de607cdbe3cbbbd3ec8b9f85)",
     "ownership_source_of_truth": "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json",
+    "access_evidence_source_of_truth": "reports/WAVE0_REQUIRED_SOURCE_EVIDENCE_2026-07-30.json",
     "steps": [
       "Merge no Wave 0 PRs without explicit authorization.",
       "Preserve #444, #446, and #448 as drafts.",
-      "Do not run live acquisition without a separately explicit authorization vector.",
-      "Acquire the four required-source outputs and retain source-specific provenance receipts.",
-      "Compare the two large derived entity products by schema and stable identifiers before any duplicate classification.",
+      "Do not run credentialed or live acquisition without separately explicit authorization and valid source access.",
+      "Place authorized export files in their documented local dropzones and retain source-specific provenance receipts.",
+      "Run the entity-product comparison and inspect schema, stable keys, hashes, overlap, and duplicate status.",
       "Run production export and downstream federation-consumer validation before changing production_status."
     ],
-    "gate": "production_status remains NON_PRODUCTION_DIAGNOSTIC until required data gaps, production export, and downstream consumer validation pass"
+    "gate": "production_status remains NON_PRODUCTION_DIAGNOSTIC until required data gaps, entity comparison, freshness, production export, and downstream consumer validation pass"
   }
 }
