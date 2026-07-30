@@ -1,13 +1,23 @@
 name: Campaign Finance Live Materialization
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/campaign-finance-live-materialization.yml"
+      - "scripts/download_fec.py"
+      - "scripts/download_fec_committees.py"
+      - "scripts/materialize_campaign_finance.py"
+      - "scripts/validate_campaign_finance_materialization.py"
+      - "scripts/build_campaign_finance_entities.py"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: campaign-finance-live-materialization
+  group: campaign-finance-live-materialization-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
