@@ -1,14 +1,29 @@
 {
-  "schema_version": "moneysweep_current_status_v6",
-  "generated_at": "2026-07-30T11:43:00-04:00",
-  "base_sha": "bd337fb092eb639cdb24b490bc90a8b07e9e51c4",
-  "certified_input_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
-  "last_certified_v0_8_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
-  "current_head_authority": "GitHub PR #448 metadata and checks; this file intentionally does not self-pin the commit containing it.",
-  "active_vector": "REMEDIATE_MONEYSWEEP_PR448_RESIDUAL_CONFLICTS_v0_9_PREP",
-  "active_branch": "agent/moneysweep-wave0-status-reconciliation-v0-3",
+  "schema_version": "moneysweep_current_status_v7",
+  "generated_at": "2026-07-30T19:30:00-04:00",
+  "main_sha": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
+  "premerge_base_sha": "bd337fb092eb639cdb24b490bc90a8b07e9e51c4",
+  "certified_input_head_sha": "ab576462ded2f2ca590002011861322c9ece2a32",
+  "current_head_authority": "GitHub main at squash commit 9e911203a05cf8f2e99c762161b7ec18de8cef73 and merged PR #448 metadata.",
+  "active_vector": "RECONCILE_MONEYSWEEP_POSTMERGE_STATUS_AND_RESUME_REQUIRED_EXPORT_GATES_v0_2",
+  "active_branch": "agent/moneysweep-postmerge-status-pr448-v0-2",
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "pause_lock_active": true,
+  "merge_record": {
+    "pr_number": 448,
+    "state": "MERGED",
+    "draft": false,
+    "merge_authorized": true,
+    "merge_completed": true,
+    "merge_method": "squash",
+    "expected_head_sha": "ab576462ded2f2ca590002011861322c9ece2a32",
+    "merge_commit_sha": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
+    "merged_at": "2026-07-30T23:24:01Z",
+    "review_threads": 0,
+    "premerge_workflows": 17,
+    "premerge_workflows_successful": 17,
+    "main_identical_to_merge_commit": true
+  },
   "source_registry_current": {
     "total_sources": 151,
     "source_ids_sha256": "7830358c254767bc9db34ae5230b41f815ffaea9aa0c3abe4dfdebfe36b2f2d0",
@@ -53,11 +68,15 @@
   "wave0_ci_certification": {
     "status_reconciliation_pr": {
       "number": 448,
-      "last_certified_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
-      "triggered_workflows": 16,
+      "state": "MERGED",
+      "final_certified_head_sha": "ab576462ded2f2ca590002011861322c9ece2a32",
+      "merge_commit_sha": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
+      "triggered_workflows": 17,
+      "successful_workflows": 17,
       "status": "GREEN",
+      "includes_registry_sync": true,
       "includes_path_specific_skills_validation": true,
-      "current_head_ci": "AUTHORITATIVE_IN_GITHUB_PR_CHECKS"
+      "postmerge_main_identity_verified": true
     },
     "workflow_repair_pr": 444,
     "dependency_refresh_pr": 446,
@@ -127,15 +146,18 @@
     "classification": "HISTORICAL_144_SOURCE_NONCERTIFICATION"
   },
   "issue_reconciliation": {
-    "issue_271": "OPEN_WAVE0_CONTROL_PLANE_AND_LOCAL_CORPUS_CERTIFIED",
+    "issue_271": "OPEN_POSTMERGE_REQUIRED_EXPORT_AND_EXTERNAL_EVIDENCE_GATES",
     "issue_258": "CLOSED_COMPLETED_2026_06_16",
     "issue_87": "CLOSED_SUPERSEDED_2026_07_28",
-    "status_reconciliation_pr": 448,
+    "merged_status_reconciliation_pr": 448,
+    "merged_status_reconciliation_commit": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
+    "postmerge_status_pr": "PENDING_CREATION",
     "superseded_status_pr": 447
   },
   "completed_in_wave0": [
-    "PR #448 was synchronized to base bd337fb092eb639cdb24b490bc90a8b07e9e51c4 through a non-force two-parent commit.",
-    "The last v0.8 head b1f088c98c8175298b856a5df8215c77fa933877 passed all 16 triggered workflows.",
+    "PR #448 passed 17 of 17 triggered workflows on exact head ab576462ded2f2e99c762161b7ec18de8cef73.",
+    "PR #448 was squash-merged into main as 9e911203a05cf8f2e99c762161b7ec18de8cef73.",
+    "Main was verified identical to the squash commit after merge.",
     "The 151-source offline operator corpus passed digest and status-count parity.",
     "Six positive-row non-registry files were assigned to the derived-output bucket with exact row arithmetic and zero unadjudicated orphan rows.",
     "Five derived-output producers are confirmed; the staging lineage for entity_master.csv remains explicitly unresolved.",
@@ -151,11 +173,15 @@
     "Validate production export and downstream federation consumers."
   ],
   "preservation": {
-    "pr_draft": true,
-    "merge_authorized": false,
-    "auto_merge_authorized": false,
+    "pr_448_draft": false,
+    "pr_448_merge_authorized": true,
+    "pr_448_merge_completed": true,
+    "auto_merge_used": false,
+    "direct_main_write_authorized": false,
     "live_fetch_authorized": false,
+    "credential_automation_authorized": false,
     "data_promotion_authorized": false,
+    "production_activation_authorized": false,
     "force_push_authorized": false,
     "history_rewrite_authorized": false
   }
