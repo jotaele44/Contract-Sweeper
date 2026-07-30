@@ -104,7 +104,9 @@ def iter_tabular_frames(path: Path, chunksize: int = 100_000) -> Iterator[pd.Dat
     last_error: Exception | None = None
     for encoding in ("utf-8", "utf-8-sig", "latin-1"):
         try:
-            reader = pd.read_csv(path, dtype=str, low_memory=False, encoding=encoding, chunksize=chunksize)
+            reader = pd.read_csv(
+                path, dtype=str, low_memory=False, encoding=encoding, chunksize=chunksize
+            )
             yield from reader
             return
         except UnicodeDecodeError as exc:

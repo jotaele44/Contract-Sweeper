@@ -22,9 +22,11 @@ ENDPOINTS = {
     "/municipalities": backend.municipalities,
     "/stats": backend.stats,
     "/campaign-finance/summary": campaign.campaign_finance_summary,
-    "/campaign-finance/contributions": campaign.campaign_finance_contributions,
-    "/campaign-finance/entities": campaign.campaign_finance_entities,
-    "/campaign-finance/reports": campaign.campaign_finance_reports,
+    "/campaign-finance/contributions": lambda: campaign.campaign_finance_contributions(
+        limit=500, offset=0
+    ),
+    "/campaign-finance/entities": lambda: campaign.campaign_finance_entities(limit=1000),
+    "/campaign-finance/reports": lambda: campaign.campaign_finance_reports(limit=1000),
 }
 
 OUT = _ROOT / "dashboard" / "src" / "lib" / "snapshot.json"
@@ -34,8 +36,10 @@ def main() -> None:
     snapshot = {path: fn() for path, fn in ENDPOINTS.items()}
     OUT.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False) + "\n")
     counts = {
-        path: len(value.get("rows", [])) if isinstance(value, dict) and "rows" in value
-        else len(value) if isinstance(value, list)
+        path: len(value.get("rows", []))
+        if isinstance(value, dict) and "rows" in value
+        else len(value)
+        if isinstance(value, list)
         else 1
         for path, value in snapshot.items()
     }

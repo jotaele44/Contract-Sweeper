@@ -7,6 +7,7 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -15,7 +16,7 @@ import pandas as pd
 from scripts.campaign_finance_common import file_sha256
 from scripts.config import PROJECT_ROOT
 
-FILE_RULES = {
+FILE_RULES: dict[str, dict[str, Any]] = {
     "fec_contributions": {
         "path": "data/staging/processed/pr_fec_contributions.csv",
         "required": True,
@@ -86,7 +87,7 @@ FILE_RULES = {
     },
 }
 
-DERIVED_CONDITIONAL = {
+DERIVED_CONDITIONAL: dict[str, dict[str, Any]] = {
     "fec_awards_crossref": {
         "upstreams": [
             "data/staging/processed/pr_fec_contributions.csv",
@@ -117,7 +118,15 @@ def _inspect_csv(path: Path, rule: dict) -> dict:
     try:
         df = pd.read_csv(path, dtype=str, low_memory=False)
     except Exception as exc:
-        result.update({"rows": 0, "columns": [], "sha256": file_sha256(path), "status": "unreadable", "error": str(exc)})
+        result.update(
+            {
+                "rows": 0,
+                "columns": [],
+                "sha256": file_sha256(path),
+                "status": "unreadable",
+                "error": str(exc),
+            }
+        )
         return result
     missing = [col for col in rule.get("columns", []) if col not in df.columns]
     rows = len(df)
@@ -146,10 +155,7 @@ def run(root: Path | None = None, *, strict: bool = False) -> dict:
     report_dir = root / "data" / "manifests" / "campaign_finance"
     report_dir.mkdir(parents=True, exist_ok=True)
 
-    files = {
-        name: _inspect_csv(root / rule["path"], rule)
-        for name, rule in FILE_RULES.items()
-    }
+    files = {name: _inspect_csv(root / rule["path"], rule) for name, rule in FILE_RULES.items()}
     blocking = [
         f"{name}:{info['status']}"
         for name, info in files.items()
@@ -161,7 +167,13 @@ def run(root: Path | None = None, *, strict: bool = False) -> dict:
         upstream_ready = all((root / path).exists() for path in rule["upstreams"])
         output = root / rule["path"]
         output_ready = output.exists() and output.stat().st_size > 0
-        status = "not_applicable" if not upstream_ready else "ok" if output_ready else "missing_derived_output"
+        status = (
+            "not_applicable"
+            if not upstream_ready
+            else "ok"
+            if output_ready
+            else "missing_derived_output"
+        )
         conditional[name] = {
             "upstream_ready": upstream_ready,
             "output": str(output),
@@ -176,7 +188,11 @@ def run(root: Path | None = None, *, strict: bool = False) -> dict:
         blocking.append("pr_donation_feeds:no_rows")
 
     recipient = files["recipient_resolution"]
-    resolution_metrics = {"resolved": 0, "unresolved": 0, "resolution_rate": None}
+    resolution_metrics: dict[str, int | float | None] = {
+        "resolved": 0,
+        "unresolved": 0,
+        "resolution_rate": None,
+    }
     recipient_path = root / FILE_RULES["recipient_resolution"]["path"]
     if recipient_path.exists() and recipient["status"] == "ok":
         rdf = pd.read_csv(recipient_path, dtype=str, low_memory=False).fillna("")

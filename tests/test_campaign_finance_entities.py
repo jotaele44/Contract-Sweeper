@@ -1,4 +1,3 @@
-
 import pandas as pd
 import pytest
 
@@ -9,21 +8,36 @@ from scripts import build_campaign_finance_entities as mod
 def test_builds_candidates_committees_and_recipient_resolution(tmp_path):
     processed = tmp_path / "data" / "staging" / "processed"
     processed.mkdir(parents=True)
-    pd.DataFrame([
-        {
-            "cycle": "2024", "contributor_name": "DONOR X", "contribution_receipt_amount": "100",
-            "contribution_receipt_date": "2024-01-01", "committee_id": "C1",
-            "committee_name": "FRIENDS OF X", "candidate_id": "H1", "candidate_name": "CANDIDATE X",
-            "is_individual": "False",
-        }
-    ]).to_csv(processed / "pr_fec_contributions.csv", index=False)
-    pd.DataFrame([
-        {"committee_id": "C1", "name": "FRIENDS OF X", "committee_type": "H", "state": "PR"}
-    ]).to_csv(processed / "pr_fec_committees.csv", index=False)
-    pd.DataFrame([
-        {"cycle": "2024", "committee_id": "C1", "committee_name": "FRIENDS OF X",
-         "recipient_name": "CANDIDATE X", "disbursement_amount": "50", "disbursement_date": "2024-02-01"}
-    ]).to_csv(processed / "pr_fec_disbursements.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "cycle": "2024",
+                "contributor_name": "DONOR X",
+                "contribution_receipt_amount": "100",
+                "contribution_receipt_date": "2024-01-01",
+                "committee_id": "C1",
+                "committee_name": "FRIENDS OF X",
+                "candidate_id": "H1",
+                "candidate_name": "CANDIDATE X",
+                "is_individual": "False",
+            }
+        ]
+    ).to_csv(processed / "pr_fec_contributions.csv", index=False)
+    pd.DataFrame(
+        [{"committee_id": "C1", "name": "FRIENDS OF X", "committee_type": "H", "state": "PR"}]
+    ).to_csv(processed / "pr_fec_committees.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "cycle": "2024",
+                "committee_id": "C1",
+                "committee_name": "FRIENDS OF X",
+                "recipient_name": "CANDIDATE X",
+                "disbursement_amount": "50",
+                "disbursement_date": "2024-02-01",
+            }
+        ]
+    ).to_csv(processed / "pr_fec_disbursements.csv", index=False)
     pd.DataFrame(columns=["committee_id", "candidate_id", "expenditure_amount"]).to_csv(
         processed / "pr_fec_independent_expenditures.csv", index=False
     )

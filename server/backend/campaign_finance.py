@@ -125,14 +125,18 @@ def _standardize_contributions(source: str) -> pd.DataFrame:
             {
                 "source": "fec",
                 "donorName": frame.get("contributor_name", ""),
-                "amount": _amount(frame.get("contribution_receipt_amount", pd.Series("", index=frame.index))),
+                "amount": _amount(
+                    frame.get("contribution_receipt_amount", pd.Series("", index=frame.index))
+                ),
                 "date": frame.get("contribution_receipt_date", ""),
                 "recipientName": frame.get("committee_name", ""),
                 "party": "",
                 "cycle": frame.get("cycle", ""),
-                "donorType": frame.get("is_individual", "").astype(str).str.lower().map(
-                    {"true": "individual", "false": "organization"}
-                ).fillna("unknown"),
+                "donorType": frame.get("is_individual", "")
+                .astype(str)
+                .str.lower()
+                .map({"true": "individual", "false": "organization"})
+                .fillna("unknown"),
                 "committeeId": frame.get("committee_id", ""),
                 "candidateId": frame.get("candidate_id", ""),
             }
@@ -171,7 +175,9 @@ def campaign_finance_contributions(
     if q:
         frame = frame[frame["donorName"].astype(str).str.contains(q, case=False, na=False)]
     if recipient:
-        frame = frame[frame["recipientName"].astype(str).str.contains(recipient, case=False, na=False)]
+        frame = frame[
+            frame["recipientName"].astype(str).str.contains(recipient, case=False, na=False)
+        ]
     if party:
         frame = frame[frame["party"].astype(str).str.contains(party, case=False, na=False)]
     if cycle:

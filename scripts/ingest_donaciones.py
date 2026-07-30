@@ -30,6 +30,7 @@ def _map_col(df: pd.DataFrame, candidates: list[str]):
 
     return find_column(df, candidates)
 
+
 RAW_DIR_NAME = "data/raw/Donaciones"
 
 OUTPUT_COLUMNS = [
@@ -65,10 +66,32 @@ COL_MAP = {
         "nombre",
     ],
     "donor_city": ["ciudad_donante", "ciudad", "city", "donor_city", "municipio", "pueblo"],
-    "donor_zip_code": ["zip_donante", "zip", "zip code", "codigo_postal", "postal_code", "donor_zip"],
+    "donor_zip_code": [
+        "zip_donante",
+        "zip",
+        "zip code",
+        "codigo_postal",
+        "postal_code",
+        "donor_zip",
+    ],
     "donor_employer": ["patrono", "empleador", "employer", "donor_employer", "empleo"],
-    "donor_occupation": ["ocupacion", "ocupación", "occupation", "donor_occupation", "profesion", "profesión"],
-    "amount": ["cantidad", "monto", "amount", "contribucion", "contribution_amount", "donativo", "donación"],
+    "donor_occupation": [
+        "ocupacion",
+        "ocupación",
+        "occupation",
+        "donor_occupation",
+        "profesion",
+        "profesión",
+    ],
+    "amount": [
+        "cantidad",
+        "monto",
+        "amount",
+        "contribucion",
+        "contribution_amount",
+        "donativo",
+        "donación",
+    ],
     "contribution_date": [
         "fecha_donacion",
         "fecha donacion",
@@ -99,7 +122,14 @@ COL_MAP = {
         "siglas",
     ],
     "office_sought": ["cargo", "puesto", "office", "office_sought", "posicion", "posición"],
-    "election_type": ["tipo_eleccion", "tipo eleccion", "election_type", "tipo", "eleccion", "elección"],
+    "election_type": [
+        "tipo_eleccion",
+        "tipo eleccion",
+        "election_type",
+        "tipo",
+        "eleccion",
+        "elección",
+    ],
     "report_type": ["tipo_informe", "informe", "report_type", "report", "tipo_reporte"],
     "candidacy_type": ["candidatura", "candidacy_type", "tipo_candidatura"],
     "payment_method": [
@@ -150,9 +180,14 @@ def run(root: Path | None = None, force: bool = False) -> dict:
             logger.info(f"  Cached — {len(existing):,} rows in {out_path.name}")
             return {"rows": len(existing), "path": str(out_path), "status": "CACHED"}
 
-    files = [] if not raw_dir.exists() else sorted(
-        f for f in raw_dir.iterdir()
-        if f.suffix.lower() in {".csv", ".xlsx", ".xls"} and not f.name.startswith("~")
+    files = (
+        []
+        if not raw_dir.exists()
+        else sorted(
+            f
+            for f in raw_dir.iterdir()
+            if f.suffix.lower() in {".csv", ".xlsx", ".xls"} and not f.name.startswith("~")
+        )
     )
     if not files:
         pd.DataFrame(columns=OUTPUT_COLUMNS).to_csv(out_path, index=False, encoding="utf-8")

@@ -23,24 +23,26 @@ def test_no_raw_dir_writes_empty_headers(tmp_path):
 def test_spanish_column_mapping(tmp_path):
     raw = tmp_path / "data" / "raw" / "OCE"
     raw.mkdir(parents=True)
-    pd.DataFrame([
-        {
-            "Nombre_Donante": "Civic Trust",
-            "Cantidad": "2500",
-            "Fecha": "2024-09-01",
-            "Comite": "Comite OCE",
-            "Partido": "PNP",
-            "Ciudad": "Bayamon",
-        },
-        {
-            "Nombre_Donante": "",
-            "Cantidad": "100",
-            "Fecha": "2024-09-02",
-            "Comite": "Other",
-            "Partido": "PPD",
-            "Ciudad": "San Juan",
-        },
-    ]).to_csv(raw / "oce_2024.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Nombre_Donante": "Civic Trust",
+                "Cantidad": "2500",
+                "Fecha": "2024-09-01",
+                "Comite": "Comite OCE",
+                "Partido": "PNP",
+                "Ciudad": "Bayamon",
+            },
+            {
+                "Nombre_Donante": "",
+                "Cantidad": "100",
+                "Fecha": "2024-09-02",
+                "Comite": "Other",
+                "Partido": "PPD",
+                "Ciudad": "San Juan",
+            },
+        ]
+    ).to_csv(raw / "oce_2024.csv", index=False)
     result = ingest_oce.run(root=tmp_path, force=True)
     assert result["rows"] == 1
     row = pd.read_csv(Path(result["path"]), dtype=str).iloc[0]
@@ -54,20 +56,22 @@ def test_spanish_column_mapping(tmp_path):
 def test_maps_socrata_api_field_names(tmp_path):
     raw = tmp_path / "data" / "raw" / "OCE"
     raw.mkdir(parents=True)
-    pd.DataFrame([
-        {
-            "candidato": "PARTIDO INDEPENDENTISTA PUERTORRIQUEÑO",
-            "candidatura": "Partido",
-            "siglas": "PIP",
-            "cantidad_donacion": "200",
-            "metodo_donacion": "Cheque",
-            "nombre_completo": "DAMARIS MANGUAL VELEZ",
-            "donante_pueblo": "ARECIBO",
-            "fecha_donacion": "2018-03-31T00:00:00.000",
-            "descripcion_evento": "2018 - Año no eleccionario",
-            "zip_code": "00612",
-        }
-    ]).to_csv(raw / "oce.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "candidato": "PARTIDO INDEPENDENTISTA PUERTORRIQUEÑO",
+                "candidatura": "Partido",
+                "siglas": "PIP",
+                "cantidad_donacion": "200",
+                "metodo_donacion": "Cheque",
+                "nombre_completo": "DAMARIS MANGUAL VELEZ",
+                "donante_pueblo": "ARECIBO",
+                "fecha_donacion": "2018-03-31T00:00:00.000",
+                "descripcion_evento": "2018 - Año no eleccionario",
+                "zip_code": "00612",
+            }
+        ]
+    ).to_csv(raw / "oce.csv", index=False)
     result = ingest_oce.run(root=tmp_path, force=True)
     row = pd.read_csv(Path(result["path"]), dtype=str).iloc[0]
     assert row["donor_name"] == "DAMARIS MANGUAL VELEZ"
@@ -82,17 +86,19 @@ def test_maps_socrata_api_field_names(tmp_path):
 def test_maps_oce_donor_search_headers(tmp_path):
     raw = tmp_path / "data" / "raw" / "OCE"
     raw.mkdir(parents=True)
-    pd.DataFrame([
-        {
-            "Nombre completo": "BANK FIRST",
-            "Comité": "CARLOS MOLINA RODRIGUEZ",
-            "Partido de afiliación": "PARTIDO NUEVO PROGRESISTA",
-            "Fecha de donación": "2018-12-31",
-            "Ciudad": "SAN JUAN",
-            "Método de cobro": "Transferencia electrónica",
-            "Cantidad": "2.98",
-        }
-    ]).to_excel(raw / "donantes.xlsx", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Nombre completo": "BANK FIRST",
+                "Comité": "CARLOS MOLINA RODRIGUEZ",
+                "Partido de afiliación": "PARTIDO NUEVO PROGRESISTA",
+                "Fecha de donación": "2018-12-31",
+                "Ciudad": "SAN JUAN",
+                "Método de cobro": "Transferencia electrónica",
+                "Cantidad": "2.98",
+            }
+        ]
+    ).to_excel(raw / "donantes.xlsx", index=False)
     result = ingest_oce.run(root=tmp_path, force=True)
     row = pd.read_csv(Path(result["path"]), dtype=str).iloc[0]
     assert row["donor_name"] == "BANK FIRST"
@@ -104,16 +110,18 @@ def test_maps_oce_donor_search_headers(tmp_path):
 def test_report_exports_are_separated(tmp_path):
     raw = tmp_path / "data" / "raw" / "OCE"
     raw.mkdir(parents=True)
-    pd.DataFrame([
-        {
-            "Comité": "COMITE X",
-            "Número de informe": "IG-2024-1",
-            "Tipo de informe": "Ingresos y gastos",
-            "Evento electoral": "2024 Año Electoral",
-            "Periodo del informe": "Julio a septiembre 2024",
-            "Fecha de radicación": "2026-04-23 14:22:30",
-        }
-    ]).to_excel(raw / "informes.xlsx", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Comité": "COMITE X",
+                "Número de informe": "IG-2024-1",
+                "Tipo de informe": "Ingresos y gastos",
+                "Evento electoral": "2024 Año Electoral",
+                "Periodo del informe": "Julio a septiembre 2024",
+                "Fecha de radicación": "2026-04-23 14:22:30",
+            }
+        ]
+    ).to_excel(raw / "informes.xlsx", index=False)
     result = ingest_oce.run(root=tmp_path, force=True)
     assert result["rows"] == 0
     assert result["report_rows"] == 1
@@ -126,7 +134,9 @@ def test_report_exports_are_separated(tmp_path):
 def test_cached_output_short_circuits(tmp_path):
     out_path = tmp_path / "data" / "staging" / "processed" / "pr_oce_donations.csv"
     out_path.parent.mkdir(parents=True)
-    pd.DataFrame([{c: ("X" if c == "donor_name" else "") for c in ingest_oce.OUTPUT_COLUMNS}]).to_csv(out_path, index=False)
+    pd.DataFrame(
+        [{c: ("X" if c == "donor_name" else "") for c in ingest_oce.OUTPUT_COLUMNS}]
+    ).to_csv(out_path, index=False)
     result = ingest_oce.run(root=tmp_path, force=False)
     assert result["status"] == "CACHED"
     assert result["rows"] == 1

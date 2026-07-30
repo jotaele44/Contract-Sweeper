@@ -64,7 +64,7 @@ def fetch_rows(
     page = 0
     while True:
         page += 1
-        params: dict[str, object] = {
+        params: dict[str, str | int] = {
             "$limit": page_size,
             "$offset": offset,
             "$order": "fecha_donacion asc",
@@ -146,7 +146,9 @@ def run(
         "pages": pages,
     }
     manifest_path = manifest_dir / "oce_socrata_latest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     ingest = ingest_oce(root=root, force=True)
     return {

@@ -85,7 +85,9 @@ def run(
     try:
         from scripts import analyze_political_crossref
 
-        _run_step("fec_awards_crossref", analyze_political_crossref.build_fec_crossref, results, root=root)
+        _run_step(
+            "fec_awards_crossref", analyze_political_crossref.build_fec_crossref, results, root=root
+        )
         _run_step(
             "ngo_donation_crossref",
             analyze_political_crossref.build_ngo_donation_crossref,

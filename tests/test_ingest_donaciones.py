@@ -10,17 +10,19 @@ from scripts import ingest_donaciones
 def test_maps_actual_historical_search_headers(tmp_path):
     raw = tmp_path / "data" / "raw" / "Donaciones"
     raw.mkdir(parents=True)
-    pd.DataFrame([
-        {
-            "Nombre completo": "CIVIC TRUST",
-            "Comité": "COMITE LOCAL",
-            "Partido de afiliación": "PARTIDO X",
-            "Fecha de donación": "2018-12-31",
-            "Ciudad": "SAN JUAN",
-            "Método de cobro": "Transferencia electrónica",
-            "Cantidad": "$2,500.00",
-        }
-    ]).to_excel(raw / "historicos.xlsx", index=False)
+    pd.DataFrame(
+        [
+            {
+                "Nombre completo": "CIVIC TRUST",
+                "Comité": "COMITE LOCAL",
+                "Partido de afiliación": "PARTIDO X",
+                "Fecha de donación": "2018-12-31",
+                "Ciudad": "SAN JUAN",
+                "Método de cobro": "Transferencia electrónica",
+                "Cantidad": "$2,500.00",
+            }
+        ]
+    ).to_excel(raw / "historicos.xlsx", index=False)
 
     result = ingest_donaciones.run(root=tmp_path, force=True)
     assert result["status"] == "OK"

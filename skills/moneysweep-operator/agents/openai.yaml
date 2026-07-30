@@ -1,0 +1,24 @@
+# OpenAI-runtime agent manifest for moneysweep-operator.
+# SKILL.md is canonical; keep fields synced with skill-registry.yaml.
+schema_version: prii_openai_agent_v1
+name: moneysweep-operator
+description: >-
+  MoneySweep entry point and router. Reports active vector, readiness truth, and
+  blockers from the manifest/status reports, then routes to a specific skill.
+  Read-only; never executes the pipeline or crosses a producer boundary.
+instructions_ref: ../SKILL.md
+owner_repo: jotaele44/moneysweep-pr
+default_mode: read_only
+allowed_modes: [read_only]
+command_ids: []
+stop_conditions:
+  - ambiguous target
+  - requested action is owned by thehub-pr or another producer
+result_envelope:
+  - status
+  - commands_considered
+  - commands_run
+  - artifacts
+  - blockers
+  - contradictions
+  - next_safe_action

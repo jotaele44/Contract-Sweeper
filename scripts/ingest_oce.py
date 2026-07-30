@@ -79,7 +79,14 @@ COL_MAP = {
         "donante_pueblo",
         "pueblo",
     ],
-    "donor_zip_code": ["zip", "zip code", "zip_code", "codigo_postal", "código_postal", "donor_zip"],
+    "donor_zip_code": [
+        "zip",
+        "zip code",
+        "zip_code",
+        "codigo_postal",
+        "código_postal",
+        "donor_zip",
+    ],
     "donor_employer": ["patrono", "empleador", "empleo", "employer", "donor_employer"],
     "donor_occupation": ["ocupacion", "ocupación", "profesion", "profesión", "occupation"],
     "amount": [
@@ -112,12 +119,34 @@ COL_MAP = {
         "comite",
         "comité",
     ],
-    "party": ["siglas", "partido", "partido_politico", "partido_político", "partido de afiliación", "partido de afiliacion", "party"],
+    "party": [
+        "siglas",
+        "partido",
+        "partido_politico",
+        "partido_político",
+        "partido de afiliación",
+        "partido de afiliacion",
+        "party",
+    ],
     "office_sought": ["cargo", "puesto", "posicion", "posición", "office", "office_sought"],
-    "election_type": ["tipo_eleccion", "tipo_elección", "tipo", "eleccion", "elección", "election_type"],
+    "election_type": [
+        "tipo_eleccion",
+        "tipo_elección",
+        "tipo",
+        "eleccion",
+        "elección",
+        "election_type",
+    ],
     "report_type": ["tipo_informe", "informe", "tipo_reporte", "report_type", "report"],
     "candidacy_type": ["candidatura", "candidacy_type", "tipo_candidatura"],
-    "payment_method": ["metodo", "método", "metodo_donacion", "método de cobro", "metodo de cobro", "payment_method"],
+    "payment_method": [
+        "metodo",
+        "método",
+        "metodo_donacion",
+        "método de cobro",
+        "metodo de cobro",
+        "payment_method",
+    ],
     "event_name": ["evento", "descripcion_evento", "descripción_evento", "event", "event_name"],
 }
 
@@ -190,9 +219,14 @@ def run(root: Path | None = None, force: bool = False) -> dict:
                 "status": "CACHED",
             }
 
-    files = [] if not raw_dir.exists() else sorted(
-        f for f in raw_dir.iterdir()
-        if f.suffix.lower() in {".csv", ".xlsx", ".xls"} and not f.name.startswith("~")
+    files = (
+        []
+        if not raw_dir.exists()
+        else sorted(
+            f
+            for f in raw_dir.iterdir()
+            if f.suffix.lower() in {".csv", ".xlsx", ".xls"} and not f.name.startswith("~")
+        )
     )
     if not files:
         pd.DataFrame(columns=OUTPUT_COLUMNS).to_csv(donations_path, index=False, encoding="utf-8")

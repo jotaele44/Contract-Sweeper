@@ -1,0 +1,26 @@
+# OpenAI-runtime agent manifest for moneysweep-audit-financial-gaps.
+# SKILL.md is canonical; keep fields synced with skill-registry.yaml.
+schema_version: prii_openai_agent_v1
+name: moneysweep-audit-financial-gaps
+description: >-
+  Financial-gap auditor for MoneySweep. Runs the gap and completeness builders
+  and returns a gap matrix where every row carries a denominator, priority,
+  owner, and acquisition path. Read-only; overlapping sources are never counted
+  as separate financial events.
+instructions_ref: ../SKILL.md
+owner_repo: jotaele44/moneysweep-pr
+default_mode: read_only
+allowed_modes: [read_only]
+command_ids: [gap_matrix]
+stop_conditions:
+  - unknown denominator
+  - duplicate source counted twice
+  - unresolved contradiction
+result_envelope:
+  - status
+  - commands_considered
+  - commands_run
+  - artifacts
+  - blockers
+  - contradictions
+  - next_safe_action

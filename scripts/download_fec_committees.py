@@ -235,13 +235,9 @@ def _fetch_disbursements(
                             "recipient_name": item.get("recipient_name", ""),
                             "recipient_city": item.get("recipient_city", ""),
                             "recipient_state": item.get("recipient_state", ""),
-                            "disbursement_amount": item.get(
-                                "disbursement_amount", ""
-                            ),
+                            "disbursement_amount": item.get("disbursement_amount", ""),
                             "disbursement_date": item.get("disbursement_date", ""),
-                            "disbursement_description": item.get(
-                                "disbursement_description", ""
-                            ),
+                            "disbursement_description": item.get("disbursement_description", ""),
                             "disbursement_purpose_category": item.get(
                                 "disbursement_purpose_category", ""
                             ),
@@ -297,9 +293,7 @@ def _fetch_independent_expenditures(
                     "committee_name": item.get("committee_name", ""),
                     "candidate_id": item.get("candidate_id", ""),
                     "candidate_name": item.get("candidate_name", ""),
-                    "support_oppose_indicator": item.get(
-                        "support_oppose_indicator", ""
-                    ),
+                    "support_oppose_indicator": item.get("support_oppose_indicator", ""),
                     "expenditure_amount": item.get("expenditure_amount", ""),
                     "expenditure_date": item.get("expenditure_date", ""),
                     "office": item.get("office", ""),
@@ -342,9 +336,7 @@ def run(
     is_demo = api_key == "DEMO_KEY"
     sleep_s = PAGE_SLEEP_DEMO if is_demo else PAGE_SLEEP_KEY
     if is_demo:
-        logger.warning(
-            "Using DEMO_KEY (30 requests/hour); configure FEC_API_KEY for a full run."
-        )
+        logger.warning("Using DEMO_KEY (30 requests/hour); configure FEC_API_KEY for a full run.")
 
     if not force and committees_path.exists():
         committee_frame = pd.read_csv(
@@ -371,10 +363,7 @@ def run(
         )
 
     committee_ids = (
-        committee_frame.get("committee_id", pd.Series(dtype=str))
-        .dropna()
-        .astype(str)
-        .tolist()
+        committee_frame.get("committee_id", pd.Series(dtype=str)).dropna().astype(str).tolist()
     )
     committee_ids = _unique_committee_ids(committee_ids)
     cycles = list(range(START_CYCLE, END_CYCLE + 1, 2))
@@ -458,9 +447,7 @@ def run(
         "status": "OK",
         "request_plan": {
             "committee_batch_size": COMMITTEE_BATCH_SIZE,
-            "committee_batches": (
-                len(committee_ids) + COMMITTEE_BATCH_SIZE - 1
-            )
+            "committee_batches": (len(committee_ids) + COMMITTEE_BATCH_SIZE - 1)
             // COMMITTEE_BATCH_SIZE,
             "cycles": len(cycles),
         },
