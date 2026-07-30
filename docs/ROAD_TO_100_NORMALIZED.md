@@ -1,9 +1,9 @@
 # MoneySweep — Normalized Road to 100
 
 **Reconciled:** 2026-07-30  
-**Current base incorporated:** `bd337fb092eb639cdb24b490bc90a8b07e9e51c4`  
-**Last certified v0.8 head:** `b1f088c98c8175298b856a5df8215c77fa933877`  
-**Status PR:** #448, draft and unmerged  
+**Merged PR:** #448  
+**Main:** `9e911203a05cf8f2e99c762161b7ec18de8cef73`  
+**Pre-merge certified head:** `ab576462ded2f2e99c762161b7ec18de8cef73`  
 **Production status:** `NON_PRODUCTION_DIAGNOSTIC`
 
 ## Certified denominator and local corpus
@@ -30,10 +30,11 @@
 1. PR #444 workflow controls passed, including three hosted preflight-only runs with live jobs skipped.
 2. PR #446 dependency reconstruction passed full CI.
 3. The 151-source offline operator audit passed digest and status-count parity.
-4. PR #448 incorporated current base without force-push or history rewrite.
-5. Head `b1f088c98c8175298b856a5df8215c77fa933877` passed all 16 triggered workflows, including Skills Validation.
-6. Required-source access routes were documented without awarding rows.
-7. Row ownership arithmetic closes with zero unadjudicated orphan rows.
+4. PR #448 passed 17/17 triggered workflows on exact head `ab576462ded2f2e99c762161b7ec18de8cef73`.
+5. PR #448 was squash-merged as `9e911203a05cf8f2e99c762161b7ec18de8cef73`.
+6. `main` was verified identical to the squash commit immediately after merge.
+7. Required-source access routes were documented without awarding rows.
+8. Row ownership arithmetic closes with zero unadjudicated orphan rows.
 
 ## Remaining gates
 
@@ -47,4 +48,4 @@
 
 ## Boundary
 
-Local accounting is certified; production readiness is not. No live fetch, merge, promotion, force push, or history rewrite is authorized by this roadmap.
+Local accounting and the PR #448 repository repair are merged. Production readiness is not certified. No additional merge, direct write to `main`, live fetch, credential automation, promotion, production activation, force push, or history rewrite is authorized by this roadmap.
