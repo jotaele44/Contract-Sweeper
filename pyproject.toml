@@ -4,7 +4,11 @@
 # GATING check. As of sequence task 24, scripts/ is also in scope and clean.
 # Remaining widening (future work): bring run_all.py into scope and drop
 # ignore_missing_imports per-module as third-party stubs land.
-python_version = "3.13"
+#
+# The federation local-workspace baseline is Python 3.11. Keep this value,
+# .python-version, the gating workflows, SETUP.md, and requirements.lock
+# generation provenance synchronized.
+python_version = "3.11"
 ignore_missing_imports = true
 warn_unused_ignores = false
 warn_redundant_casts = true
@@ -24,7 +28,7 @@ exclude = "(^archive/|tests/)"
 # CI job is flipped to blocking (Wave B, task 13). Keep the rule set here aligned
 # with ruff's defaults so the measured baseline stays stable.
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 extend-exclude = ["archive"]
 
 [tool.ruff.lint]
