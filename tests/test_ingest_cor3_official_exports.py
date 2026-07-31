@@ -46,9 +46,7 @@ def test_parse_official_pa_spanish_headers() -> None:
 
 
 def test_summary_only_sheet_is_rejected() -> None:
-    frame = pd.DataFrame(
-        [{"Programa": "Asistencia Pública", "Asignado": "$10", "Obligado": "$9"}]
-    )
+    frame = pd.DataFrame([{"Programa": "Asistencia Pública", "Asignado": "$10", "Obligado": "$9"}])
 
     parsed = _parse_sheet(frame, "COR3 Resumen_Financiero.xlsx")
 
