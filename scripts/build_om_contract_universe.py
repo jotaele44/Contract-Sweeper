@@ -5,6 +5,7 @@ This command never claims completeness. It classifies available contract rows,
 deduplicates exact/source-overlap records, emits coverage matrices, and writes an
 explicit blocker ledger consumed by ``validate_om_contract_universe.py``.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -82,7 +83,9 @@ def load_taxonomy(path: Path) -> dict:
 
 
 def classify(row: pd.Series, taxonomy: dict) -> tuple[str, str, int, str]:
-    evidence = " ".join(norm(row.get(field, "")) for field in taxonomy["classification_policy"]["evidence_fields"])
+    evidence = " ".join(
+        norm(row.get(field, "")) for field in taxonomy["classification_policy"]["evidence_fields"]
+    )
     negatives = [term for term in taxonomy.get("negative_terms", []) if norm(term) in evidence]
     matches: list[tuple[str, str]] = []
     for category, spec in taxonomy["categories"].items():
@@ -125,11 +128,15 @@ def materialization_status(root: Path) -> pd.DataFrame:
         row_count = 0
         if path.exists():
             try:
-                row_count = max(sum(1 for _ in path.open(encoding="utf-8", errors="replace")) - 1, 0)
+                row_count = max(
+                    sum(1 for _ in path.open(encoding="utf-8", errors="replace")) - 1, 0
+                )
                 status = "materialized" if row_count else "empty"
             except OSError:
                 status = "unreadable"
-        rows.append({"source_id": source_id, "path": relative, "status": status, "row_count": row_count})
+        rows.append(
+            {"source_id": source_id, "path": relative, "status": status, "row_count": row_count}
+        )
     return pd.DataFrame(rows)
 
 
@@ -145,22 +152,36 @@ def run(root: Path = ROOT, out_dir: Path = OUT_DIR) -> dict:
             continue
         path = root / item["path"]
         try:
-            frames.append(canonicalize(pd.read_csv(path, dtype=str, keep_default_na=False), item["source_id"]))
+            frames.append(
+                canonicalize(pd.read_csv(path, dtype=str, keep_default_na=False), item["source_id"])
+            )
         except Exception as exc:
-            status.loc[status.source_id == item["source_id"], "status"] = f"read_error:{type(exc).__name__}"
+            status.loc[status.source_id == item["source_id"], "status"] = (
+                f"read_error:{type(exc).__name__}"
+            )
     status.to_csv(out_dir / "source_materialization.csv", index=False)
 
-    universe = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=list(ALIASES) + ["source_id", "source_row", "source_present"])
+    universe = (
+        pd.concat(frames, ignore_index=True)
+        if frames
+        else pd.DataFrame(columns=list(ALIASES) + ["source_id", "source_row", "source_present"])
+    )
     if not universe.empty:
         results = universe.apply(lambda row: classify(row, taxonomy), axis=1, result_type="expand")
         results.columns = ["om_classification", "om_categories", "om_score", "om_match_terms"]
         universe = pd.concat([universe, results], axis=1)
         universe["dedup_fingerprint"] = universe.apply(fingerprint, axis=1)
-        universe["duplicate_count"] = universe.groupby("dedup_fingerprint")["dedup_fingerprint"].transform("size")
-        universe["dedup_status"] = universe["duplicate_count"].map(lambda n: "duplicate_review" if n > 1 else "unique")
+        universe["duplicate_count"] = universe.groupby("dedup_fingerprint")[
+            "dedup_fingerprint"
+        ].transform("size")
+        universe["dedup_status"] = universe["duplicate_count"].map(
+            lambda n: "duplicate_review" if n > 1 else "unique"
+        )
     universe.to_csv(out_dir / "om_contract_universe.csv", index=False)
 
-    om = universe[universe.get("om_classification", pd.Series(dtype=str)).isin(["om", "om_review"])].copy()
+    om = universe[
+        universe.get("om_classification", pd.Series(dtype=str)).isin(["om", "om_review"])
+    ].copy()
     dimensions = {
         "agency": "coverage_by_agency.csv",
         "municipality": "coverage_by_municipality.csv",
@@ -171,7 +192,9 @@ def run(root: Path = ROOT, out_dir: Path = OUT_DIR) -> dict:
     }
     for column, filename in dimensions.items():
         if column not in om.columns or om.empty:
-            pd.DataFrame(columns=[column, "record_count", "contract_amount_numeric"]).to_csv(out_dir / filename, index=False)
+            pd.DataFrame(columns=[column, "record_count", "contract_amount_numeric"]).to_csv(
+                out_dir / filename, index=False
+            )
             continue
         work = om.copy()
         if column == "start_date":
@@ -179,22 +202,59 @@ def run(root: Path = ROOT, out_dir: Path = OUT_DIR) -> dict:
             group_column = "fiscal_year"
         else:
             group_column = column
-        work["contract_amount_numeric"] = pd.to_numeric(work["contract_amount"].str.replace(r"[^0-9.\-]", "", regex=True), errors="coerce")
-        matrix = work.groupby(group_column, dropna=False).agg(record_count=("source_id", "size"), contract_amount_numeric=("contract_amount_numeric", "sum")).reset_index()
+        work["contract_amount_numeric"] = pd.to_numeric(
+            work["contract_amount"].str.replace(r"[^0-9.\-]", "", regex=True), errors="coerce"
+        )
+        matrix = (
+            work.groupby(group_column, dropna=False)
+            .agg(
+                record_count=("source_id", "size"),
+                contract_amount_numeric=("contract_amount_numeric", "sum"),
+            )
+            .reset_index()
+        )
         matrix.to_csv(out_dir / filename, index=False)
 
     blockers = []
     for item in status.to_dict("records"):
         if item["status"] != "materialized":
-            blockers.append({"blocker_id": f"SOURCE_{item['source_id'].upper()}", "severity": "blocking", "detail": f"{item['source_id']} is {item['status']}"})
+            blockers.append(
+                {
+                    "blocker_id": f"SOURCE_{item['source_id'].upper()}",
+                    "severity": "blocking",
+                    "detail": f"{item['source_id']} is {item['status']}",
+                }
+            )
     if not universe.empty and (universe.get("dedup_status") == "duplicate_review").any():
-        blockers.append({"blocker_id": "UNEXPLAINED_DUPLICATES", "severity": "blocking", "detail": "One or more cross-source fingerprints require adjudication"})
-    blockers.extend([
-        {"blocker_id": "MUNICIPALITY_78_ACCOUNTING", "severity": "blocking", "detail": "78-municipality accounting has not yet been certified"},
-        {"blocker_id": "PUBLIC_CORPORATION_ACCOUNTING", "severity": "blocking", "detail": "Public-corporation universe has not yet been certified"},
-        {"blocker_id": "OCPR_FULL_MATERIALIZATION", "severity": "blocking", "detail": "OCPR full-registry completion receipt is required"},
-    ])
-    pd.DataFrame(blockers).drop_duplicates(subset=["blocker_id"]).to_csv(out_dir / "unresolved_gap_ledger.csv", index=False)
+        blockers.append(
+            {
+                "blocker_id": "UNEXPLAINED_DUPLICATES",
+                "severity": "blocking",
+                "detail": "One or more cross-source fingerprints require adjudication",
+            }
+        )
+    blockers.extend(
+        [
+            {
+                "blocker_id": "MUNICIPALITY_78_ACCOUNTING",
+                "severity": "blocking",
+                "detail": "78-municipality accounting has not yet been certified",
+            },
+            {
+                "blocker_id": "PUBLIC_CORPORATION_ACCOUNTING",
+                "severity": "blocking",
+                "detail": "Public-corporation universe has not yet been certified",
+            },
+            {
+                "blocker_id": "OCPR_FULL_MATERIALIZATION",
+                "severity": "blocking",
+                "detail": "OCPR full-registry completion receipt is required",
+            },
+        ]
+    )
+    pd.DataFrame(blockers).drop_duplicates(subset=["blocker_id"]).to_csv(
+        out_dir / "unresolved_gap_ledger.csv", index=False
+    )
 
     summary = {
         "schema_version": "om_contract_universe_summary_v1",
@@ -204,7 +264,9 @@ def run(root: Path = ROOT, out_dir: Path = OUT_DIR) -> dict:
         "materialized_source_count": int((status.status == "materialized").sum()),
         "input_rows": int(len(universe)),
         "om_rows": int((universe.get("om_classification", pd.Series(dtype=str)) == "om").sum()),
-        "om_review_rows": int((universe.get("om_classification", pd.Series(dtype=str)) == "om_review").sum()),
+        "om_review_rows": int(
+            (universe.get("om_classification", pd.Series(dtype=str)) == "om_review").sum()
+        ),
         "blocking_items": int(len(pd.DataFrame(blockers).drop_duplicates(subset=["blocker_id"]))),
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
