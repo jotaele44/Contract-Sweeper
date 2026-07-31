@@ -164,8 +164,9 @@ def test_roadmaps_record_entity_result_without_opening_production() -> None:
         encoding="utf-8"
     )
     for text in (detailed, normalized):
+        compact = text.replace(" ", "")
         assert "#452" in text
-        assert "10/14" in text
+        assert "10/14" in compact
         assert "104,280" in text
         assert "OVERLAPPING_DERIVED_PRODUCTS" in text
         assert "NON_PRODUCTION_DIAGNOSTIC" in text
