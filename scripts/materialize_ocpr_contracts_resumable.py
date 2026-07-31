@@ -7,6 +7,7 @@ SHA-256 of the work file. The canonical CSV is replaced only after a clean full
 run; smoke or interrupted runs remain provisional and cannot masquerade as a
 complete source.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -17,7 +18,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
-import requests
 
 from scripts import scrape_ocpr_contracts as ocpr
 from scripts.config import PROJECT_ROOT, setup_logging
@@ -42,7 +42,11 @@ def utc_now() -> str:
 
 def paths(root: Path) -> tuple[Path, Path, Path]:
     state_dir = root / STATE_DIR_REL
-    return state_dir / "checkpoint.json", state_dir / "pages.jsonl", state_dir / "completion_receipt.json"
+    return (
+        state_dir / "checkpoint.json",
+        state_dir / "pages.jsonl",
+        state_dir / "completion_receipt.json",
+    )
 
 
 def atomic_json(path: Path, payload: dict) -> None:
@@ -120,7 +124,9 @@ def promote(root: Path, work_path: Path, checkpoint: dict, receipt_path: Path) -
     frame = frame[frame["contract_number"].astype(str).str.strip() != ""].drop_duplicates()
     observed_total = int(checkpoint["observed_total"])
     if len(rows) != observed_total:
-        raise RuntimeError(f"Refusing promotion: fetched {len(rows)} rows but OCPR reported {observed_total}")
+        raise RuntimeError(
+            f"Refusing promotion: fetched {len(rows)} rows but OCPR reported {observed_total}"
+        )
     output = root / OUT_PATH_REL
     output.parent.mkdir(parents=True, exist_ok=True)
     tmp = output.with_suffix(output.suffix + ".tmp")
@@ -155,7 +161,9 @@ def run(root: Path, page_length: int, max_pages: int | None, reset: bool) -> dic
     try:
         while True:
             offset = int(checkpoint["next_offset"])
-            session, token, data = fetch_page_with_reauth(session, token, offset, page_length, logger)
+            session, token, data = fetch_page_with_reauth(
+                session, token, offset, page_length, logger
+            )
             if data is None:
                 checkpoint.update(status="BLOCKED_PAGE_FETCH", updated_at=utc_now())
                 atomic_json(checkpoint_path, checkpoint)
@@ -168,7 +176,11 @@ def run(root: Path, page_length: int, max_pages: int | None, reset: bool) -> dic
             if checkpoint["observed_total"] is None:
                 checkpoint["observed_total"] = reported_total
             elif int(checkpoint["observed_total"]) != reported_total:
-                checkpoint.update(status="BLOCKED_TOTAL_CHANGED", updated_at=utc_now(), latest_total=reported_total)
+                checkpoint.update(
+                    status="BLOCKED_TOTAL_CHANGED",
+                    updated_at=utc_now(),
+                    latest_total=reported_total,
+                )
                 atomic_json(checkpoint_path, checkpoint)
                 return checkpoint
             records = data.get("data") or []
