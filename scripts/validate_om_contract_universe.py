@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Fail-closed validator for the Puerto Rico O&M contract universe."""
+
 from __future__ import annotations
 
 import argparse
@@ -51,7 +52,9 @@ def validate(report_dir: Path) -> tuple[bool, list[str]]:
     if missing:
         errors.append("required blockers missing: " + ", ".join(missing))
 
-    status = pd.read_csv(report_dir / "source_materialization.csv", dtype=str, keep_default_na=False)
+    status = pd.read_csv(
+        report_dir / "source_materialization.csv", dtype=str, keep_default_na=False
+    )
     required_sources = {
         "ocpr_contracts",
         "asg_emergency_purchases",
@@ -70,7 +73,9 @@ def validate(report_dir: Path) -> tuple[bool, list[str]]:
     if missing_sources:
         errors.append("source inventory missing: " + ", ".join(missing_sources))
 
-    receipt_path = report_dir.parents[1] / "data/staging/checkpoints/ocpr_contracts/completion_receipt.json"
+    receipt_path = (
+        report_dir.parents[1] / "data/staging/checkpoints/ocpr_contracts/completion_receipt.json"
+    )
     if receipt_path.exists():
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         if receipt.get("status") != "COMPLETE":
@@ -83,7 +88,12 @@ def main() -> int:
     parser.add_argument("--report-dir", type=Path, default=REPORT_DIR)
     args = parser.parse_args()
     ok, errors = validate(args.report_dir.resolve())
-    result = {"validator": "om_contract_universe_v1", "structural_validation": "PASS" if ok else "FAIL", "certification": "BLOCKED", "errors": errors}
+    result = {
+        "validator": "om_contract_universe_v1",
+        "structural_validation": "PASS" if ok else "FAIL",
+        "certification": "BLOCKED",
+        "errors": errors,
+    }
     print(json.dumps(result, indent=2))
     return 0 if ok else 1
 
