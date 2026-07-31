@@ -2,15 +2,15 @@
 
 **Reconciled:** 2026-07-30  
 **Merged PR:** #448  
+**Active draft PR:** #452  
 **Main:** `9e911203a05cf8f2e99c762161b7ec18de8cef73`  
-**Pre-merge certified head:** `ab576462ded2f2e99c762161b7ec18de8cef73`  
 **Production status:** `NON_PRODUCTION_DIAGNOSTIC`
 
-## Post-merge control plane
+## Current control plane
 
-PR #448 passed **17/17 triggered workflows**, was marked ready for review, and was squash-merged with expected-head protection. `main` was verified byte-identical to squash commit `9e911203a05cf8f2e99c762161b7ec18de8cef73` immediately after merge.
+PR #448 passed **17/17 triggered workflows** and was squash-merged with expected-head protection. PR #452 remains draft and unmerged. Its input head `d1d0dcb24c03760c3e67f83297f2de22d09cf3ea` passed **15/15 triggered workflows** before this evidence update.
 
-The merge completed the repository-side Wave 0 repair and reconciliation scope. It did not authorize live acquisition, credential automation, data promotion, or production activation.
+No live acquisition, credential automation, raw-data commit, data promotion, or production activation was authorized.
 
 ## Certified baseline
 
@@ -27,40 +27,55 @@ The merge completed the repository-side Wave 0 repair and reconciliation scope. 
 | Adjudicated derived rows | 212,930 |
 | Pipeline intermediates | 120,737 |
 | Unadjudicated orphan rows | 0 |
-| Derived rows with unresolved lineage | 104,280 |
+| Derived rows with unresolved lineage | 0 |
 | Live universe probe | Not run |
 
-## Repository-side gates completed
+The complete 151-source audit was not rerun because the supplied upload set is only a partial corpus. Baseline source counts remain certified and unchanged.
 
-1. Wave 0 workflow controls and hosted preflight-only runs passed with live jobs skipped.
-2. Dependency reconstruction passed full CI.
-3. The 151-source offline operator audit passed digest and status-count parity.
-4. HUD DRGR registry and producer contracts were aligned.
-5. COR3 and cabilderos provenance boundaries were corrected.
-6. The entity-product comparator was hardened to fail closed on malformed, empty, or missing inputs.
-7. Registry YAML/JSON regeneration, Ruff, mypy, pre-commit, readiness, completeness, skills, and Contract Sweeper failures were repaired.
-8. PR #448 passed 17/17 checks and was squash-merged.
+## Required-export upload adjudication
 
-## Required-source queue
-
-| Source | Evidence status | Required next action |
+| Source | Supplied evidence | Result |
 |---|---|---|
-| `cor3` | Export surface verified; workbook bytes absent | Supply official workbooks and run the offline ingest, or separately authorize a verified live producer |
-| `hud_drgr_authorized` | Authorized export absent | Drop exports under `data/manual/hud_drgr/` and run the producer |
-| `pr_cabilderos` | Official registry verified; complete export absent | Supply a current machine-readable Justice export |
-| `prasa` | Official contract-export route verified; filtered export absent | Supply the PRASA export and run the dropzone ingest |
+| `cor3` | `pr_cor3_projects.csv` | Header-only, 0 rows; no credit |
+| `hud_drgr_authorized` | Two HUD DRGR Parquets | Both 0 rows and not registry staging CSVs; no credit |
+| `pr_cabilderos` | `pr_cabilderos.csv` | Header-only, 0 rows; no credit |
+| `prasa` | `pr_prasa_contracts(1).csv` | Header-only, 0 rows; no credit |
+
+`pr_hud_hcv.csv` is a Housing Choice Voucher summary, not a DRGR export. Federal awards mentioning PRASA and PREPA contract records are not substitutes for an official PRASA contract export.
+
+Evidence is recorded in `reports/WAVE0_REQUIRED_EXPORT_INGESTION_RECEIPT_2026-07-30.json`.
+
+## Entity-product comparison
+
+The uploaded `entity_master(2).csv` contains 104,280 valid rows. The uploaded 453,352-row awards master reproducibly generated a 104,280-row entity-profile spine using the `analyze_entity_profiles.py` normalization and aggregation contract.
+
+A comparator defect was corrected: staging `entity_master.csv` uses `entity_key`, but `entity_key` was absent from the stable-key candidate list. With the proper keys:
+
+- left stable key: `entity_key`;
+- right stable key: `normalized_name`;
+- unique keys: 104,280 on each side;
+- intersection: 104,280;
+- stable-key overlap and Jaccard: 100%;
+- shared `award_count` and `fiscal_year_range` row projection: 100%;
+- classification: `OVERLAPPING_DERIVED_PRODUCTS`;
+- not byte-identical and not semantic duplicates because the schemas serve different purposes.
+
+The actual enriched `pr_entity_profiles.csv` and its 990, CMS, and FDIC supplementary inputs were not supplied, so the comparison is certified for the common awards spine rather than every enrichment column.
+
+## Lineage resolution
+
+`data/staging/processed/entity_master.csv` is produced by `scripts/build_unified_master.py`, not `scripts/build_entity_master.py`. The uploaded artifact matches the reconstructed awards aggregation on all 104,280 entity keys and seven non-numeric aggregate fields. All six derived-output producer lineages are now confirmed.
 
 ## Gates remaining before production consideration
 
-1. Materialize and validate the four required sources.
-2. Execute `entity_product_comparison_v2` against the operator corpus.
-3. Resolve `entity_master.csv` staging lineage.
-4. Re-run the 151-source audit and preserve digest/status parity.
-5. Certify source freshness and external-universe completeness.
-6. Complete PR2.5/PR2.6 reconciliation before PR3 deduplication.
-7. Validate production export and downstream federation consumers.
-8. Keep promotion guards closed until every blocker is cleared.
+1. Supply non-empty COR3, authorized HUD DRGR, Department of Justice cabilderos, and PRASA exports.
+2. Run the comparison against the actual enriched `pr_entity_profiles.csv` when supplied.
+3. Re-run the complete 151-source audit after valid source ingestion.
+4. Certify source freshness and external-universe completeness.
+5. Complete PR2.5/PR2.6 reconciliation before PR3 deduplication.
+6. Validate production export and downstream federation consumers.
+7. Keep promotion guards closed until every blocker is cleared.
 
 ## Preservation
 
-The completed PR #448 merge is historical and authorized. This roadmap does not authorize any additional merge, direct write to `main`, live fetch, credential automation, data promotion, production activation, force push, or history rewrite.
+PR #452 remains draft and unmerged. This roadmap does not authorize an additional merge, direct write to `main`, live fetch, credential automation, raw data commit, data promotion, production activation, force push, or history rewrite.
