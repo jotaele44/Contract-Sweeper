@@ -108,5 +108,11 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Lint
         run: npm run lint
+      # `test` is the vitest suite (src/**/*.test.{js,jsx}), which is distinct
+      # from `test:pilot` — the node --test suite in dashboard/tests/ that
+      # verify:pilot runs. vitest's include glob deliberately excludes it, so
+      # the two never collect each other's files.
+      - name: Tests
+        run: npm run test
       - name: Build
         run: npm run build
