@@ -23,7 +23,9 @@ PRODUCTION_STATUS = "NON_PRODUCTION_DIAGNOSTIC"
 REQUIRED_TOTAL = 14
 REQUIRED_CREDIT_CEILING = 10
 
-INPUTS: tuple[tuple[str, tuple[str, ...], bool, str], ...] = (
+InputSpec = tuple[str, tuple[str, ...], bool, str]
+
+INPUTS: tuple[InputSpec, ...] = (
     (
         "cor3_official_workbook",
         ("cor3_official_projects_export.xlsx",),
@@ -81,14 +83,12 @@ KEY_CANDIDATES = (
 )
 
 REGISTRATION_RE = re.compile(r"\b20\d{2}Q[1-4]-\d{5}\b")
-WAYBACK_RE = re.compile(
-    r"The Wayback Machine - (https://web\.archive\.org/web/(\d{14})/\S+)"
-)
+WAYBACK_RE = re.compile(r"The Wayback Machine - (https://web\.archive\.org/web/(\d{14})/\S+)")
 CREDENTIAL_MARKERS = ("API_KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL", "PRIVATE_KEY")
 
 
 class OfflineBaselineViolation(RuntimeError):
-    """Raised when offline-baseline invariants are violated."""
+    """Raised when an offline-baseline invariant is violated."""
 
 
 @dataclass(frozen=True)
@@ -132,34 +132,37 @@ def _file_info(path: Path, display: str | None = None) -> dict[str, Any]:
         "size_bytes": path.stat().st_size,
         "sha256": sha256_file(path),
     }
-    if path.suffix.casefold() == ".csv":
+    suffix = path.suffix.casefold()
+    if suffix == ".csv":
         info["row_count"], info["schema"] = _csv_info(path)
-    elif path.suffix.casefold() == ".parquet":
+    elif suffix == ".parquet":
         try:
             import pyarrow.parquet as pq
-
-            metadata = pq.read_metadata(path)
-            info["row_count"] = metadata.num_rows
-            info["schema"] = [
-                metadata.schema.column(index).name
-                for index in range(metadata.num_columns)
-            ]
         except ImportError:
             info["row_count"] = None
             info["profile_status"] = "PYARROW_UNAVAILABLE"
+        else:
+            metadata = pq.read_metadata(path)
+            info["row_count"] = metadata.num_rows
+            info["schema"] = [
+                metadata.schema.column(index).name for index in range(metadata.num_columns)
+            ]
     return info
 
 
 def discover_inputs(input_dir: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     found: list[dict[str, Any]] = []
     missing: list[dict[str, Any]] = []
-    for logical_name, names, required, stage_path in INPUTS:
-        selected = next((input_dir / name for name in names if (input_dir / name).is_file()), None)
+    for logical_name, filenames, required, stage_path in INPUTS:
+        selected = next(
+            (input_dir / name for name in filenames if (input_dir / name).is_file()),
+            None,
+        )
         if selected is None:
             missing.append(
                 {
                     "logical_name": logical_name,
-                    "accepted_filenames": list(names),
+                    "accepted_filenames": list(filenames),
                     "required_for_run": required,
                     "status": "MISSING",
                 }
@@ -180,27 +183,30 @@ def discover_inputs(input_dir: Path) -> tuple[list[dict[str, Any]], list[dict[st
 
 
 def _credential_names(env: Mapping[str, str]) -> list[str]:
-    return sorted(
-        name
-        for name in env
-        if any(marker in name.upper() for marker in CREDENTIAL_MARKERS)
-    )
+    names = []
+    for name in env:
+        if any(marker in name.upper() for marker in CREDENTIAL_MARKERS):
+            names.append(name)
+    return sorted(names)
 
 
 def sanitized_child_environment(env: Mapping[str, str] | None = None) -> dict[str, str]:
     result = dict(os.environ if env is None else env)
     for name in _credential_names(result):
         result.pop(name, None)
-    for name in (
+    proxy_names = (
         "HTTP_PROXY",
         "HTTPS_PROXY",
         "ALL_PROXY",
         "http_proxy",
         "https_proxy",
         "all_proxy",
-    ):
+    )
+    for name in proxy_names:
         result.pop(name, None)
-    result.update({"MONEYSWEEP_OFFLINE_BASELINE": "1", "NO_PROXY": "*", "no_proxy": "*"})
+    result["MONEYSWEEP_OFFLINE_BASELINE"] = "1"
+    result["NO_PROXY"] = "*"
+    result["no_proxy"] = "*"
     return result
 
 
@@ -224,7 +230,7 @@ def block_network() -> Iterator[None]:
         socket.create_connection = original_create  # type: ignore[assignment]
 
 
-def _stage(found: Sequence[Mapping[str, Any]], repo_root: Path) -> list[dict[str, Any]]:
+def _stage_inputs(found: Sequence[Mapping[str, Any]], repo_root: Path) -> list[dict[str, Any]]:
     staged: list[dict[str, Any]] = []
     for record in found:
         source = Path(str(record["source_path"]))
@@ -247,7 +253,15 @@ def _run_repo_stages(repo_root: Path, output_dir: Path) -> list[dict[str, Any]]:
     stages: list[dict[str, Any]] = []
     try:
         from scripts.ingest_cor3 import run as ingest_cor3
-
+    except ImportError as error:
+        stages.append(
+            {
+                "stage": "cor3_ingest",
+                "status": "BLOCKED_IMPORT_ERROR",
+                "detail": str(error),
+            }
+        )
+    else:
         result = ingest_cor3(root=repo_root, force=True)
         output = repo_root / "data/staging/processed/pr_cor3_projects.csv"
         stages.append(
@@ -255,14 +269,12 @@ def _run_repo_stages(repo_root: Path, output_dir: Path) -> list[dict[str, Any]]:
                 "stage": "cor3_ingest",
                 "status": result.get("status", "UNKNOWN"),
                 "rows": result.get("rows", 0),
-                "output": _file_info(output, output.relative_to(repo_root).as_posix())
-                if output.exists()
-                else None,
+                "output": (
+                    _file_info(output, output.relative_to(repo_root).as_posix())
+                    if output.exists()
+                    else None
+                ),
             }
-        )
-    except ImportError as error:
-        stages.append(
-            {"stage": "cor3_ingest", "status": "BLOCKED_IMPORT_ERROR", "detail": str(error)}
         )
 
     stages.append(
@@ -274,7 +286,15 @@ def _run_repo_stages(repo_root: Path, output_dir: Path) -> list[dict[str, Any]]:
     )
     try:
         from scripts.compare_entity_products import compare
-
+    except ImportError as error:
+        stages.append(
+            {
+                "stage": "entity_product_comparison_v2",
+                "status": "BLOCKED_IMPORT_ERROR",
+                "detail": str(error),
+            }
+        )
+    else:
         report = compare(
             repo_root / "data/staging/processed/entity_master.csv",
             repo_root / "data/staging/processed/pr_entity_profiles.csv",
@@ -285,14 +305,6 @@ def _run_repo_stages(repo_root: Path, output_dir: Path) -> list[dict[str, Any]]:
                 "stage": "entity_product_comparison_v2",
                 "status": report.get("status"),
                 "duplicate_status": report.get("duplicate_status"),
-            }
-        )
-    except ImportError as error:
-        stages.append(
-            {
-                "stage": "entity_product_comparison_v2",
-                "status": "BLOCKED_IMPORT_ERROR",
-                "detail": str(error),
             }
         )
     return stages
@@ -323,26 +335,31 @@ def extract_cabilderos(pdf: Path, output_csv: Path, work_dir: Path) -> dict[str,
     for page_number, page in enumerate(pages, start=1):
         snapshot = WAYBACK_RE.search(page)
         if snapshot:
-            current_url, current_timestamp = snapshot.group(1), snapshot.group(2)
+            current_url = snapshot.group(1)
+            current_timestamp = snapshot.group(2)
         lines = page.splitlines()
         for index, line in enumerate(lines):
-            for registration in REGISTRATION_RE.findall(line):
-                before = [value.strip() for value in lines[max(0, index - 4) : index] if value.strip()]
+            registrations = REGISTRATION_RE.findall(line)
+            for registration in registrations:
+                before = [
+                    value.strip() for value in lines[max(0, index - 4) : index] if value.strip()
+                ]
                 after = [value.strip() for value in lines[index : index + 7] if value.strip()]
                 prefix = line.split(registration, 1)[0].strip()
-                name = " ".join(before[-2:] + ([prefix] if prefix else [])).strip()
+                name_parts = before[-2:] + ([prefix] if prefix else [])
+                snapshot_date = ""
+                if len(current_timestamp) >= 8:
+                    snapshot_date = (
+                        f"{current_timestamp[:4]}-{current_timestamp[4:6]}-"
+                        f"{current_timestamp[6:8]}"
+                    )
                 rows.append(
                     {
                         "snapshot_url": current_url,
                         "snapshot_timestamp": current_timestamp,
-                        "snapshot_date": (
-                            f"{current_timestamp[:4]}-{current_timestamp[4:6]}-"
-                            f"{current_timestamp[6:8]}"
-                            if len(current_timestamp) >= 8
-                            else ""
-                        ),
+                        "snapshot_date": snapshot_date,
                         "registration_number": registration,
-                        "lobbyist_name_heuristic": name,
+                        "lobbyist_name_heuristic": " ".join(name_parts).strip(),
                         "source_page": page_number,
                         "context_raw": " | ".join(before[-3:] + after[:5]),
                         "extraction_status": "PROVISIONAL_REGISTRATION_INDEX",
@@ -356,7 +373,7 @@ def extract_cabilderos(pdf: Path, output_csv: Path, work_dir: Path) -> dict[str,
             int(row["source_page"]),
         )
     )
-    fields = list(rows[0]) if rows else [
+    default_fields = [
         "snapshot_url",
         "snapshot_timestamp",
         "snapshot_date",
@@ -367,6 +384,7 @@ def extract_cabilderos(pdf: Path, output_csv: Path, work_dir: Path) -> dict[str,
         "extraction_status",
         "canonical_credit",
     ]
+    fields = list(rows[0]) if rows else default_fields
     with output_csv.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
@@ -391,20 +409,19 @@ def _normalized_keys(path: Path) -> tuple[dict[str, Any], set[str]]:
         reader = csv.DictReader(handle)
         columns = list(reader.fieldnames or [])
         rows = list(reader)
-    key = next(
-        (
-            candidate
-            for candidate in KEY_CANDIDATES
-            if candidate in columns
-            and any(" ".join((row.get(candidate) or "").casefold().split()) for row in rows)
-        ),
-        None,
-    )
-    keys = {
-        " ".join((row.get(key) or "").casefold().split())
-        for row in rows
-        if key and " ".join((row.get(key) or "").casefold().split())
-    }
+    key: str | None = None
+    for candidate in KEY_CANDIDATES:
+        if candidate not in columns:
+            continue
+        if any(" ".join((row.get(candidate) or "").casefold().split()) for row in rows):
+            key = candidate
+            break
+    keys: set[str] = set()
+    if key is not None:
+        for row in rows:
+            value = " ".join((row.get(key) or "").casefold().split())
+            if value:
+                keys.add(value)
     return (
         {
             "path": path.name,
@@ -452,45 +469,61 @@ def local_entity_comparison(left: Path, right: Path) -> dict[str, Any]:
 def _row_count(path: Path) -> int | None:
     if not path.is_file():
         return None
-    if path.suffix.casefold() == ".csv":
+    suffix = path.suffix.casefold()
+    if suffix == ".csv":
         return _csv_info(path)[0]
-    if path.suffix.casefold() == ".parquet":
-        return _file_info(path).get("row_count")
-    if path.suffix.casefold() == ".jsonl":
+    if suffix == ".parquet":
+        value = _file_info(path).get("row_count")
+        return value if isinstance(value, int) else None
+    if suffix == ".jsonl":
         return sum(1 for line in path.read_text().splitlines() if line.strip())
-    if path.suffix.casefold() == ".json":
+    if suffix == ".json":
         value = json.loads(path.read_text())
         return len(value) if isinstance(value, list) else 1
     return None
 
 
+def _fallback_coverage(json_path: Path, csv_path: Path) -> dict[str, Any]:
+    summary = {
+        "status": "BASELINE_OVERLAY_ONLY_REGISTRY_UNAVAILABLE",
+        "total_sources": 151,
+        "fully_materialized": 67,
+        "partially_materialized": 11,
+        "not_materialized": 73,
+        "required_fully_materialized": REQUIRED_CREDIT_CEILING,
+        "required_sources": REQUIRED_TOTAL,
+        "source_credit_changed": False,
+    }
+    _write_json(
+        json_path,
+        {"schema_version": SCHEMA_VERSION, "summary": summary, "sources": []},
+    )
+    csv_path.write_text("source_id,required,status,rows\n")
+    return summary
+
+
 def source_coverage(repo_root: Path | None, json_path: Path, csv_path: Path) -> dict[str, Any]:
-    registry_path = repo_root / "registries/source_registry.json" if repo_root else None
-    if registry_path is None or not registry_path.exists():
-        summary = {
-            "status": "BASELINE_OVERLAY_ONLY_REGISTRY_UNAVAILABLE",
-            "total_sources": 151,
-            "fully_materialized": 67,
-            "partially_materialized": 11,
-            "not_materialized": 73,
-            "required_fully_materialized": REQUIRED_CREDIT_CEILING,
-            "required_sources": REQUIRED_TOTAL,
-            "source_credit_changed": False,
-        }
-        _write_json(json_path, {"schema_version": SCHEMA_VERSION, "summary": summary, "sources": []})
-        csv_path.write_text("source_id,required,status,rows\n")
-        return summary
+    if repo_root is None:
+        return _fallback_coverage(json_path, csv_path)
+    registry_path = repo_root / "registries/source_registry.json"
+    if not registry_path.exists():
+        return _fallback_coverage(json_path, csv_path)
 
     value = json.loads(registry_path.read_text())
     sources = value.get("sources", []) if isinstance(value, dict) else value
     matrix: list[dict[str, Any]] = []
     owned_paths: set[str] = set()
     total_rows = 0
-    fully = partially = missing = required_full = 0
+    fully = 0
+    partially = 0
+    missing = 0
+    required_full = 0
     for source in sorted(sources, key=lambda item: str(item.get("source_id", ""))):
         expected = [str(path) for path in source.get("expected_outputs", [])]
         outputs: list[dict[str, Any]] = []
-        present = nonempty = source_rows = 0
+        present = 0
+        nonempty = 0
+        source_rows = 0
         for relative in expected:
             path = repo_root / relative
             rows = _row_count(path)
@@ -503,7 +536,12 @@ def source_coverage(repo_root: Path | None, json_path: Path, csv_path: Path) -> 
                 total_rows += rows
                 owned_paths.add(relative)
             outputs.append(
-                {"path": relative, "present": exists, "row_count": rows, "nonempty": has_rows}
+                {
+                    "path": relative,
+                    "present": exists,
+                    "row_count": rows,
+                    "nonempty": has_rows,
+                }
             )
         if expected and nonempty == len(expected):
             status = "fully_materialized"
@@ -547,26 +585,25 @@ def source_coverage(repo_root: Path | None, json_path: Path, csv_path: Path) -> 
         },
     )
     with csv_path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(
-            handle,
-            fieldnames=["source_id", "required", "status", "rows"],
-        )
+        fieldnames = ["source_id", "required", "status", "rows"]
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         for row in matrix:
-            writer.writerow({key: row[key] for key in writer.fieldnames})
+            writer.writerow({key: row[key] for key in fieldnames})
     return summary
 
 
-def _digest(found: Sequence[Mapping[str, Any]], git_sha: str) -> str:
-    compact = [
-        {
-            "logical_name": row["logical_name"],
-            "sha256": row["sha256"],
-            "size_bytes": row["size_bytes"],
-            "row_count": row.get("row_count"),
-        }
-        for row in sorted(found, key=lambda item: str(item["logical_name"]))
-    ]
+def _input_digest(found: Sequence[Mapping[str, Any]], git_sha: str) -> str:
+    compact = []
+    for row in sorted(found, key=lambda item: str(item["logical_name"])):
+        compact.append(
+            {
+                "logical_name": row["logical_name"],
+                "sha256": row["sha256"],
+                "size_bytes": row["size_bytes"],
+                "row_count": row.get("row_count"),
+            }
+        )
     payload = json.dumps(
         {"schema_version": SCHEMA_VERSION, "git_sha": git_sha, "inputs": compact},
         sort_keys=True,
@@ -575,48 +612,51 @@ def _digest(found: Sequence[Mapping[str, Any]], git_sha: str) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def _blocked(found: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _blocked_sources(found: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     names = {str(row["logical_name"]) for row in found}
-    blocked = [
+    cabilderos_status = "BLOCKED_MISSING_STRUCTURED_EXPORT"
+    if "cabilderos_pdf" in names:
+        cabilderos_status = "PROVISIONAL_PDF_INDEX_NO_CANONICAL_CREDIT"
+    cor3_status = "BLOCKED_MISSING_OFFICIAL_WORKBOOK"
+    if "cor3_official_workbook" in names:
+        cor3_status = "LOCAL_INGEST_PRESENT_CREDIT_HELD_PENDING_RECEIPT"
+    pairs = [
         ("hud_drgr_authorized", "BLOCKED_MISSING_AUTHORIZED_EXPORTS"),
         ("prasa", "BLOCKED_MISSING_OFFICIAL_FILTERED_EXPORT"),
-        (
-            "pr_cabilderos",
-            "PROVISIONAL_PDF_INDEX_NO_CANONICAL_CREDIT"
-            if "cabilderos_pdf" in names
-            else "BLOCKED_MISSING_STRUCTURED_EXPORT",
-        ),
+        ("pr_cabilderos", cabilderos_status),
         ("cms_provider_enrichment", "BLOCKED_MISSING_PROVIDER_LEVEL_INPUT"),
         ("export_receipts", "BLOCKED_MISSING_AUTHORITATIVE_RECEIPT_MANIFEST"),
+        ("cor3", cor3_status),
     ]
-    if "cor3_official_workbook" in names:
-        blocked.append(("cor3", "LOCAL_INGEST_PRESENT_CREDIT_HELD_PENDING_RECEIPT"))
-    else:
-        blocked.append(("cor3", "BLOCKED_MISSING_OFFICIAL_WORKBOOK"))
     return [
-        {"source_id": source, "status": status, "canonical_credit": False}
-        for source, status in blocked
+        {"source_id": source_id, "status": status, "canonical_credit": False}
+        for source_id, status in pairs
     ]
+
+
+def _file_hashes(root: Path) -> dict[str, str]:
+    hashes = {}
+    for path in root.rglob("*"):
+        if path.is_file():
+            hashes[path.relative_to(root).as_posix()] = sha256_file(path)
+    return hashes
 
 
 def _finalize(temp_dir: Path, final_dir: Path) -> str:
     if final_dir.exists():
-        existing = {
-            path.relative_to(final_dir).as_posix(): sha256_file(path)
-            for path in final_dir.rglob("*")
-            if path.is_file()
-        }
-        proposed = {
-            path.relative_to(temp_dir).as_posix(): sha256_file(path)
-            for path in temp_dir.rglob("*")
-            if path.is_file()
-        }
-        if existing != proposed:
+        if _file_hashes(final_dir) != _file_hashes(temp_dir):
             raise OfflineBaselineViolation("immutable run directory contains different bytes")
         shutil.rmtree(temp_dir)
         return "EXISTING_IDENTICAL"
     temp_dir.replace(final_dir)
     return "CREATED"
+
+
+def _find_input(found: Sequence[Mapping[str, Any]], logical_name: str) -> Path | None:
+    for row in found:
+        if row["logical_name"] == logical_name:
+            return Path(str(row["source_path"]))
+    return None
 
 
 def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
@@ -630,7 +670,7 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
         names = ", ".join(str(row["logical_name"]) for row in required_missing)
         raise OfflineBaselineViolation(f"missing required local inputs: {names}")
 
-    digest = _digest(found, config.git_sha)
+    digest = _input_digest(found, config.git_sha)
     run_id = f"offline-baseline-{digest[:16]}"
     temp_dir = output_root / f".{run_id}.tmp"
     final_dir = output_root / run_id
@@ -639,6 +679,9 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
     temp_dir.mkdir(parents=True)
     generated_at = config.generated_at or datetime.now(timezone.utc).isoformat()
 
+    public_inputs = []
+    for row in found:
+        public_inputs.append({key: value for key, value in row.items() if key != "source_path"})
     _write_json(
         temp_dir / "input_manifest.json",
         {
@@ -649,10 +692,7 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
             "generated_at": generated_at,
             "input_manifest_sha256": digest,
             "credentials_present_but_not_used": _credential_names(os.environ),
-            "inputs": [
-                {key: value for key, value in row.items() if key != "source_path"}
-                for row in found
-            ],
+            "inputs": public_inputs,
             "missing_inputs": missing,
         },
     )
@@ -663,8 +703,8 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
 
     staged: list[dict[str, Any]] = []
     with block_network():
-        if repo_root:
-            staged = _stage(found, repo_root)
+        if repo_root is not None:
+            staged = _stage_inputs(found, repo_root)
             stages = _run_repo_stages(repo_root, temp_dir)
         else:
             stages = [
@@ -678,27 +718,23 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
                 },
                 {"stage": "entity_product_comparison_v2", "status": "LOCAL_FALLBACK"},
             ]
-        pdf = next(
-            (Path(str(row["source_path"])) for row in found if row["logical_name"] == "cabilderos_pdf"),
-            None,
-        )
-        if pdf:
-            stages.append(extract_cabilderos(pdf, temp_dir / "pr_cabilderos_provisional.csv", temp_dir))
+        pdf = _find_input(found, "cabilderos_pdf")
+        if pdf is None:
+            stages.append(
+                {
+                    "stage": "cabilderos_provisional_extraction",
+                    "status": "BLOCKED_MISSING_PDF",
+                }
+            )
         else:
             stages.append(
-                {"stage": "cabilderos_provisional_extraction", "status": "BLOCKED_MISSING_PDF"}
+                extract_cabilderos(pdf, temp_dir / "pr_cabilderos_provisional.csv", temp_dir)
             )
 
-    if not repo_root:
-        left = next(
-            (Path(str(row["source_path"])) for row in found if row["logical_name"] == "entity_master"),
-            None,
-        )
-        right = next(
-            (Path(str(row["source_path"])) for row in found if row["logical_name"] == "entity_profiles"),
-            None,
-        )
-        if left and right:
+    if repo_root is None:
+        left = _find_input(found, "entity_master")
+        right = _find_input(found, "entity_profiles")
+        if left is not None and right is not None:
             _write_json(
                 temp_dir / "entity_product_comparison.json",
                 local_entity_comparison(left, right),
@@ -709,7 +745,7 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
         temp_dir / "source_coverage_matrix.json",
         temp_dir / "source_coverage_matrix.csv",
     )
-    blocked = _blocked(found)
+    blocked = _blocked_sources(found)
     _write_json(
         temp_dir / "blocked_source_ledger.json",
         {
@@ -719,6 +755,8 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
             "blocked_sources": blocked,
         },
     )
+    required_after = int(coverage.get("required_fully_materialized", REQUIRED_CREDIT_CEILING))
+    required_after = min(required_after, REQUIRED_CREDIT_CEILING)
     receipt = {
         "schema_version": SCHEMA_VERSION,
         "run_id": run_id,
@@ -732,10 +770,7 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
         "coverage_summary": coverage,
         "required_source_credit": {
             "before": REQUIRED_CREDIT_CEILING,
-            "after": min(
-                int(coverage.get("required_fully_materialized", REQUIRED_CREDIT_CEILING)),
-                REQUIRED_CREDIT_CEILING,
-            ),
+            "after": required_after,
             "required_total": REQUIRED_TOTAL,
             "credit_changed": False,
             "policy": "Fail closed until receipt-backed authoritative exports are validated.",
@@ -754,21 +789,21 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
         ),
     }
     _write_json(temp_dir / "run_receipt.json", receipt)
-    outputs = [
-        _file_info(path, path.relative_to(temp_dir).as_posix())
-        for path in sorted(temp_dir.rglob("*"))
-        if path.is_file() and path.name != "output_manifest.json"
-    ]
+
+    outputs = []
+    for path in sorted(temp_dir.rglob("*")):
+        if path.is_file() and path.name != "output_manifest.json":
+            outputs.append(_file_info(path, path.relative_to(temp_dir).as_posix()))
     _write_json(
         temp_dir / "output_manifest.json",
         {"schema_version": SCHEMA_VERSION, "run_id": run_id, "outputs": outputs},
     )
     receipt_sha = sha256_file(temp_dir / "run_receipt.json")
-    sums = [
-        f"{sha256_file(path)}  {path.relative_to(temp_dir).as_posix()}"
-        for path in sorted(temp_dir.rglob("*"))
-        if path.is_file()
-    ]
+    sums = []
+    for path in sorted(temp_dir.rglob("*")):
+        if path.is_file():
+            relative = path.relative_to(temp_dir).as_posix()
+            sums.append(f"{sha256_file(path)}  {relative}")
     (temp_dir / "SHA256SUMS.txt").write_text("\n".join(sums) + "\n")
     immutable_status = _finalize(temp_dir, final_dir)
     return {
