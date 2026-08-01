@@ -69,8 +69,6 @@ def ensure_hub_sibling() -> None:
 
 def setup_python() -> None:
     ensure_hub_sibling()
-    if sys.version_info < MIN_PYTHON:
-        raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
     if not venv_python().exists():
         print(f"Creating virtual environment at {VENV_DIR} …")
         venv.EnvBuilder(with_pip=True, clear=False).create(VENV_DIR)
@@ -109,6 +107,11 @@ def setup_frontend() -> None:
 
 
 def main() -> None:
+    # Checked before anything else: macOS ships 3.9 with the Command Line Tools,
+    # and cloning the hub sibling only to fail on the version afterwards buries
+    # the one line that says what is actually wrong.
+    if sys.version_info < MIN_PYTHON:
+        raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
     args = set(sys.argv[1:])
     if "--force" in args:
         MARKER.unlink(missing_ok=True)

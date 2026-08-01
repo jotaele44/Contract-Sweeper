@@ -4,6 +4,26 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
+
+notify() { osascript -e "display dialog \"$1\" buttons {\"OK\"} with title \"MoneySweep — PRII\"" >/dev/null 2>&1 || true; }
+
+# Gatekeeper "App Translocation": when a quarantined .app is opened from where
+# it was unzipped, macOS runs it from a read-only disk image under a random
+# /private/var/folders/…/AppTranslocation/ path. Only the bundle is copied
+# there, so the checkout next to it is gone and setup cannot write a .venv. The
+# generic setup failure below would blame the network, so name the real cause.
+case "$HERE" in
+  */AppTranslocation/*)
+    notify "macOS is running this app from a temporary read-only copy, so it cannot see the rest of the MoneySweep folder.\n\nFix it once:\n1. Move the folder that contains this app out of Downloads (or the Trash) — your home folder is fine.\n2. Double-click Fix-Gatekeeper.command in that folder.\n3. Open this app again."
+    exit 1
+    ;;
+esac
+
+if [ ! -f "$REPO/desktop/setup.py" ]; then
+  notify "This app must stay inside the MoneySweep checkout — desktop/setup.py was not found next to it.\n\nLooked in: $REPO\n\nMove PRII-MONEYSWEEP.app back beside the desktop, server and dashboard folders of the checkout, and open it from there."
+  exit 1
+fi
+
 cd "$REPO"
 
 # Finder launches .app bundles with a minimal PATH that omits python.org
@@ -11,15 +31,17 @@ cd "$REPO"
 # them so python3 and npm resolve the same way they do in a normal shell.
 export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
 
-notify() { osascript -e "display dialog \"$1\" buttons {\"OK\"} with title \"MoneySweep — PRII\"" >/dev/null 2>&1 || true; }
-
 PY="$(command -v python3 || true)"
 if [ -z "$PY" ]; then
   notify "Python 3 is required. Install it from https://www.python.org/downloads/ and open this app again."
   exit 1
 fi
-if ! "$PY" desktop/setup.py --ensure; then
-  notify "First-run setup could not finish. It needs internet the first time (and Node.js for the dashboard build). Open Terminal in $REPO and run: python3 desktop/setup.py"
+
+# Finder discards the launcher's output, so keep a log the failure text can point
+# at. It lives in the temp dir because the folder itself may not be writable.
+LOG="${TMPDIR:-/tmp}/prii-moneysweep-setup.log"
+if ! "$PY" desktop/setup.py --ensure >"$LOG" 2>&1; then
+  notify "First-run setup could not finish. It needs internet the first time (and Node.js for the dashboard build).\n\nDetails: $LOG\n\nOpen Terminal in $REPO and run: python3 desktop/setup.py"
   exit 1
 fi
-exec .venv/bin/python desktop/launch.py 
+exec .venv/bin/python desktop/launch.py
