@@ -18,6 +18,7 @@ from moneysweep.orchestrator._offline_baseline_core import (
     sha256_file,
 )
 
+
 def _pdf_text(pdf: Path, work_dir: Path) -> Path:
     executable = shutil.which("pdftotext")
     if executable is None:
@@ -171,5 +172,3 @@ def local_entity_comparison(left: Path, right: Path) -> dict[str, Any]:
         "duplicate_status": duplicate_status,
         "canonical_certification": False,
     }
-
-

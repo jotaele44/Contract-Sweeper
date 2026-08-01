@@ -22,6 +22,7 @@ __all__ = [
     "sanitized_child_environment",
 ]
 
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", required=True)

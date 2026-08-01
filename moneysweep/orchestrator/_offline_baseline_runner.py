@@ -31,6 +31,7 @@ from moneysweep.orchestrator._offline_baseline_extract import (
     local_entity_comparison,
 )
 
+
 def _stage_inputs(found: Sequence[Mapping[str, Any]], repo_root: Path) -> list[dict[str, Any]]:
     staged: list[dict[str, Any]] = []
     for record in found:
@@ -109,7 +110,6 @@ def _run_repo_stages(repo_root: Path, output_dir: Path) -> list[dict[str, Any]]:
             }
         )
     return stages
-
 
 
 def _input_digest(found: Sequence[Mapping[str, Any]], git_sha: str) -> str:
@@ -274,9 +274,7 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
             "blocked_sources": blocked,
         },
     )
-    required_after = int(
-        coverage.get("required_fully_materialized", REQUIRED_CREDIT_CEILING)
-    )
+    required_after = int(coverage.get("required_fully_materialized", REQUIRED_CREDIT_CEILING))
     required_after = min(required_after, REQUIRED_CREDIT_CEILING)
     receipt = {
         "schema_version": SCHEMA_VERSION,
@@ -338,5 +336,3 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
         "coverage_summary": coverage,
         "blocked_source_count": len(blocked),
     }
-
-

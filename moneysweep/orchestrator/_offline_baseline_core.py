@@ -84,7 +84,6 @@ WAYBACK_RE = re.compile(r"The Wayback Machine - (https://web\.archive\.org/web/(
 CREDENTIAL_MARKERS = ("API_KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL", "PRIVATE_KEY")
 
 
-
 class OfflineBaselineViolation(RuntimeError):
     """Raised when an offline-baseline invariant is violated."""
 
@@ -226,5 +225,3 @@ def block_network() -> Iterator[None]:
         socket.socket.connect = original_connect  # type: ignore[method-assign]
         socket.socket.connect_ex = original_connect_ex  # type: ignore[method-assign]
         socket.create_connection = original_create  # type: ignore[assignment]
-
-

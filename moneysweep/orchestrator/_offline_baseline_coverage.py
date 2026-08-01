@@ -18,6 +18,7 @@ from moneysweep.orchestrator._offline_baseline_core import (
     _write_json,
 )
 
+
 def _row_count(path: Path) -> int | None:
     if not path.is_file():
         return None
@@ -143,5 +144,3 @@ def source_coverage(repo_root: Path | None, json_path: Path, csv_path: Path) -> 
         for row in matrix:
             writer.writerow({key: row[key] for key in fieldnames})
     return summary
-
-
