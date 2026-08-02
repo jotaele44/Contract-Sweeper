@@ -17,21 +17,47 @@ import pandas as pd
 
 
 ENTITY_COLUMNS = [
-    "entity_id", "entity_type", "canonical_name", "jurisdiction", "source_id",
-    "source_record_id", "confidence", "provenance"
+    "entity_id",
+    "entity_type",
+    "canonical_name",
+    "jurisdiction",
+    "source_id",
+    "source_record_id",
+    "confidence",
+    "provenance",
 ]
 EDGE_COLUMNS = [
-    "edge_id", "source_entity_id", "target_entity_id", "edge_type", "amount",
-    "transaction_date", "cycle", "support_oppose", "source_id",
-    "source_record_id", "confidence", "provenance"
+    "edge_id",
+    "source_entity_id",
+    "target_entity_id",
+    "edge_type",
+    "amount",
+    "transaction_date",
+    "cycle",
+    "support_oppose",
+    "source_id",
+    "source_record_id",
+    "confidence",
+    "provenance",
 ]
 RESOLUTION_COLUMNS = [
-    "source_id", "source_record_id", "raw_recipient_name", "resolved_entity_id",
-    "resolved_name", "resolution_method", "confidence", "review_required"
+    "source_id",
+    "source_record_id",
+    "raw_recipient_name",
+    "resolved_entity_id",
+    "resolved_name",
+    "resolution_method",
+    "confidence",
+    "review_required",
 ]
 CORRELATION_COLUMNS = [
-    "political_entity_id", "external_entity_id", "external_dataset",
-    "relationship_type", "match_method", "confidence", "evidence"
+    "political_entity_id",
+    "external_entity_id",
+    "external_dataset",
+    "relationship_type",
+    "match_method",
+    "confidence",
+    "evidence",
 ]
 
 
@@ -98,8 +124,29 @@ def _entity_index(frames: Iterable[tuple[str, pd.DataFrame]]) -> dict[str, list[
     for source, frame in frames:
         if frame is None or frame.empty:
             continue
-        id_col = next((c for c in ("entity_id", "recipient_id", "awardee_id", "ein", "committee_id") if c in frame), None)
-        name_col = next((c for c in ("canonical_name", "name", "recipient_name", "awardee_name", "organization_name", "committee_name") if c in frame), None)
+        id_col = next(
+            (
+                c
+                for c in ("entity_id", "recipient_id", "awardee_id", "ein", "committee_id")
+                if c in frame
+            ),
+            None,
+        )
+        name_col = next(
+            (
+                c
+                for c in (
+                    "canonical_name",
+                    "name",
+                    "recipient_name",
+                    "awardee_name",
+                    "organization_name",
+                    "committee_name",
+                )
+                if c in frame
+            ),
+            None,
+        )
         if not id_col or not name_col:
             continue
         for row in frame[[id_col, name_col]].dropna().drop_duplicates().itertuples(index=False):
@@ -151,22 +198,41 @@ def build_political_finance_graph(
     resolutions: list[dict] = []
     index = _entity_index(entity_frames)
 
-    def add_entity(entity_id: str, entity_type: str, name: object, source: str,
-                   record_id: str, confidence: float = 1.0, jurisdiction: str = "") -> None:
-        entities.setdefault(entity_id, {
-            "entity_id": entity_id,
-            "entity_type": entity_type,
-            "canonical_name": str(name or "").strip(),
-            "jurisdiction": jurisdiction,
-            "source_id": source,
-            "source_record_id": record_id,
-            "confidence": confidence,
-            "provenance": f"{source}:{record_id}",
-        })
+    def add_entity(
+        entity_id: str,
+        entity_type: str,
+        name: object,
+        source: str,
+        record_id: str,
+        confidence: float = 1.0,
+        jurisdiction: str = "",
+    ) -> None:
+        entities.setdefault(
+            entity_id,
+            {
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "canonical_name": str(name or "").strip(),
+                "jurisdiction": jurisdiction,
+                "source_id": source,
+                "source_record_id": record_id,
+                "confidence": confidence,
+                "provenance": f"{source}:{record_id}",
+            },
+        )
 
-    def add_edge(source_entity: str, target_entity: str, edge_type: str, row: Mapping[str, object],
-                 source: str, record_id: str, amount_key: str = "", date_key: str = "",
-                 confidence: float = 1.0, support_oppose: str = "") -> None:
+    def add_edge(
+        source_entity: str,
+        target_entity: str,
+        edge_type: str,
+        row: Mapping[str, object],
+        source: str,
+        record_id: str,
+        amount_key: str = "",
+        date_key: str = "",
+        confidence: float = 1.0,
+        support_oppose: str = "",
+    ) -> None:
         edge_id = _stable_id("pfe", source, record_id, source_entity, target_entity, edge_type)
         edges[edge_id] = {
             "edge_id": edge_id,
@@ -186,9 +252,20 @@ def build_political_finance_graph(
     if committees is not None:
         for i, row in enumerate(committees.fillna("").to_dict("records")):
             cid = str(row.get("committee_id") or _stable_id("committee", row.get("name")))
-            add_entity(f"fec_committee:{cid}", classify_committee(row), row.get("name"), "fec_committees", cid, jurisdiction=str(row.get("state", "")))
+            add_entity(
+                f"fec_committee:{cid}",
+                classify_committee(row),
+                row.get("name"),
+                "fec_committees",
+                cid,
+                jurisdiction=str(row.get("state", "")),
+            )
 
-    receipt_frames = (("fec_schedule_a", contributions), ("oce", oce_donations), ("cee", cee_donations))
+    receipt_frames = (
+        ("fec_schedule_a", contributions),
+        ("oce", oce_donations),
+        ("cee", cee_donations),
+    )
     for source, frame in receipt_frames:
         if frame is None or frame.empty:
             continue
@@ -198,18 +275,42 @@ def build_political_finance_graph(
             committee_id = str(row.get("committee_id") or row.get("recipient_committee_id") or "")
             committee_name = row.get("committee_name") or row.get("recipient_name") or committee_id
             donor_id = _stable_id("donor", donor_name)
-            target_id = f"fec_committee:{committee_id}" if committee_id else _stable_id("committee", committee_name)
+            target_id = (
+                f"fec_committee:{committee_id}"
+                if committee_id
+                else _stable_id("committee", committee_name)
+            )
             add_entity(donor_id, "DONOR", donor_name, source, rid, 0.90)
             add_entity(target_id, "POLITICAL_COMMITTEE", committee_name, source, rid, 0.85)
-            add_edge(donor_id, target_id, "DONATED_TO", row, source, rid,
-                     amount_key=next((k for k in ("contribution_receipt_amount", "amount", "donation_amount") if k in row), ""),
-                     date_key=next((k for k in ("contribution_receipt_date", "date", "donation_date") if k in row), ""), confidence=0.95)
+            add_edge(
+                donor_id,
+                target_id,
+                "DONATED_TO",
+                row,
+                source,
+                rid,
+                amount_key=next(
+                    (
+                        k
+                        for k in ("contribution_receipt_amount", "amount", "donation_amount")
+                        if k in row
+                    ),
+                    "",
+                ),
+                date_key=next(
+                    (k for k in ("contribution_receipt_date", "date", "donation_date") if k in row),
+                    "",
+                ),
+                confidence=0.95,
+            )
 
     if disbursements is not None:
         for i, row in enumerate(disbursements.fillna("").to_dict("records")):
             rid = _record_id(row, str(i))
             source_id = f"fec_committee:{row.get('committee_id', '')}"
-            add_entity(source_id, "POLITICAL_COMMITTEE", row.get("committee_name"), "fec_schedule_b", rid)
+            add_entity(
+                source_id, "POLITICAL_COMMITTEE", row.get("committee_name"), "fec_schedule_b", rid
+            )
             resolution = resolve_recipient(row.get("recipient_name"), index)
             if resolution:
                 target_id = resolution.entity_id
@@ -221,17 +322,32 @@ def build_political_finance_graph(
                 target_id = _stable_id("unresolved_recipient", target_name)
                 confidence = 0.40
                 method = "unresolved"
-            add_entity(target_id, "DOWNSTREAM_RECIPIENT", target_name, "fec_schedule_b", rid, confidence)
-            add_edge(source_id, target_id, "DISBURSED_TO", row, "fec_schedule_b", rid,
-                     "disbursement_amount", "disbursement_date", confidence)
-            resolutions.append({
-                "source_id": "fec_schedule_b", "source_record_id": rid,
-                "raw_recipient_name": row.get("recipient_name", ""),
-                "resolved_entity_id": target_id if resolution else "",
-                "resolved_name": target_name if resolution else "",
-                "resolution_method": method, "confidence": confidence,
-                "review_required": not bool(resolution),
-            })
+            add_entity(
+                target_id, "DOWNSTREAM_RECIPIENT", target_name, "fec_schedule_b", rid, confidence
+            )
+            add_edge(
+                source_id,
+                target_id,
+                "DISBURSED_TO",
+                row,
+                "fec_schedule_b",
+                rid,
+                "disbursement_amount",
+                "disbursement_date",
+                confidence,
+            )
+            resolutions.append(
+                {
+                    "source_id": "fec_schedule_b",
+                    "source_record_id": rid,
+                    "raw_recipient_name": row.get("recipient_name", ""),
+                    "resolved_entity_id": target_id if resolution else "",
+                    "resolved_name": target_name if resolution else "",
+                    "resolution_method": method,
+                    "confidence": confidence,
+                    "review_required": not bool(resolution),
+                }
+            )
 
     if independent_expenditures is not None:
         for i, row in enumerate(independent_expenditures.fillna("").to_dict("records")):
@@ -239,31 +355,68 @@ def build_political_finance_graph(
             committee_id = f"fec_committee:{row.get('committee_id', '')}"
             candidate_key = row.get("candidate_id") or row.get("candidate_name")
             candidate_id = f"fec_candidate:{candidate_key}"
-            add_entity(committee_id, "POLITICAL_COMMITTEE", row.get("committee_name"), "fec_schedule_e", rid)
+            add_entity(
+                committee_id,
+                "POLITICAL_COMMITTEE",
+                row.get("committee_name"),
+                "fec_schedule_e",
+                rid,
+            )
             add_entity(candidate_id, "CANDIDATE", row.get("candidate_name"), "fec_schedule_e", rid)
             indicator = normalize_name(row.get("support_oppose_indicator"))
-            edge_type = "INDEPENDENT_EXPENDITURE_AGAINST" if indicator.startswith("O") else "INDEPENDENT_EXPENDITURE_FOR"
-            add_edge(committee_id, candidate_id, edge_type, row, "fec_schedule_e", rid,
-                     "expenditure_amount", "expenditure_date", 1.0, indicator)
+            edge_type = (
+                "INDEPENDENT_EXPENDITURE_AGAINST"
+                if indicator.startswith("O")
+                else "INDEPENDENT_EXPENDITURE_FOR"
+            )
+            add_edge(
+                committee_id,
+                candidate_id,
+                edge_type,
+                row,
+                "fec_schedule_e",
+                rid,
+                "expenditure_amount",
+                "expenditure_date",
+                1.0,
+                indicator,
+            )
 
-    entity_df = pd.DataFrame(entities.values(), columns=ENTITY_COLUMNS).sort_values("entity_id") if entities else pd.DataFrame(columns=ENTITY_COLUMNS)
-    edge_df = pd.DataFrame(edges.values(), columns=EDGE_COLUMNS).sort_values("edge_id") if edges else pd.DataFrame(columns=EDGE_COLUMNS)
+    entity_df = (
+        pd.DataFrame(entities.values(), columns=ENTITY_COLUMNS).sort_values("entity_id")
+        if entities
+        else pd.DataFrame(columns=ENTITY_COLUMNS)
+    )
+    edge_df = (
+        pd.DataFrame(edges.values(), columns=EDGE_COLUMNS).sort_values("edge_id")
+        if edges
+        else pd.DataFrame(columns=EDGE_COLUMNS)
+    )
     resolution_df = pd.DataFrame(resolutions, columns=RESOLUTION_COLUMNS)
 
     correlations = []
     for item in resolutions:
         if item["resolved_entity_id"]:
-            correlations.append({
-                "political_entity_id": _stable_id("unresolved_recipient", item["raw_recipient_name"]),
-                "external_entity_id": item["resolved_entity_id"],
-                "external_dataset": item["resolution_method"].split(":")[-1],
-                "relationship_type": "RESOLVED_AS",
-                "match_method": item["resolution_method"],
-                "confidence": item["confidence"],
-                "evidence": f"normalized_name={normalize_name(item['raw_recipient_name'])}",
-            })
+            correlations.append(
+                {
+                    "political_entity_id": _stable_id(
+                        "unresolved_recipient", item["raw_recipient_name"]
+                    ),
+                    "external_entity_id": item["resolved_entity_id"],
+                    "external_dataset": item["resolution_method"].split(":")[-1],
+                    "relationship_type": "RESOLVED_AS",
+                    "match_method": item["resolution_method"],
+                    "confidence": item["confidence"],
+                    "evidence": f"normalized_name={normalize_name(item['raw_recipient_name'])}",
+                }
+            )
     correlation_df = pd.DataFrame(correlations, columns=CORRELATION_COLUMNS)
-    return {"entities": entity_df, "edges": edge_df, "resolutions": resolution_df, "correlations": correlation_df}
+    return {
+        "entities": entity_df,
+        "edges": edge_df,
+        "resolutions": resolution_df,
+        "correlations": correlation_df,
+    }
 
 
 def find_flow_paths(edges: pd.DataFrame, origin_entity_id: str, max_hops: int = 4) -> pd.DataFrame:
@@ -271,7 +424,9 @@ def find_flow_paths(edges: pd.DataFrame, origin_entity_id: str, max_hops: int = 
     if edges.empty or max_hops < 1:
         return pd.DataFrame(columns=["origin_entity_id", "terminal_entity_id", "hop_count", "path"])
     adjacency: dict[str, list[str]] = {}
-    for row in edges[["source_entity_id", "target_entity_id"]].drop_duplicates().itertuples(index=False):
+    for row in (
+        edges[["source_entity_id", "target_entity_id"]].drop_duplicates().itertuples(index=False)
+    ):
         adjacency.setdefault(str(row[0]), []).append(str(row[1]))
     results = []
     stack = [(origin_entity_id, [origin_entity_id])]
@@ -283,11 +438,13 @@ def find_flow_paths(edges: pd.DataFrame, origin_entity_id: str, max_hops: int = 
             if nxt in path:
                 continue
             new_path = path + [nxt]
-            results.append({
-                "origin_entity_id": origin_entity_id,
-                "terminal_entity_id": nxt,
-                "hop_count": len(new_path) - 1,
-                "path": " > ".join(new_path),
-            })
+            results.append(
+                {
+                    "origin_entity_id": origin_entity_id,
+                    "terminal_entity_id": nxt,
+                    "hop_count": len(new_path) - 1,
+                    "path": " > ".join(new_path),
+                }
+            )
             stack.append((nxt, new_path))
     return pd.DataFrame(results).drop_duplicates()
