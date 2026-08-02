@@ -1,12 +1,8 @@
 name: Source update — freshness
 
-# Daily per-source freshness report. Read-only: computes each source's freshness
-# against its SLA from committed state and uploads the CSV as an artifact. State
-# is never committed from CI. GitHub cron is UTC; Puerto Rico is UTC-4 (no DST).
-
 on:
   schedule:
-    - cron: "47 10 * * *" # daily 10:47 UTC = 06:47 AST
+    - cron: "47 10 * * *"
   workflow_dispatch:
 
 permissions:
@@ -21,36 +17,30 @@ jobs:
     name: Freshness report
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.13"
           cache: pip
-
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           pip install -r requirements.txt
-
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Validate policy
         run: python3 scripts/update_sources.py validate-policy
-
-      - name: Freshness report (fail only on exit 2 — a required source past SLA)
+      - name: Freshness report
         run: |
           set +e
           python3 scripts/update_sources.py freshness --json
           code=$?
-          # exit 1 = optional/bootstrap warnings (tolerated); exit 2 = required
-          # source stale/blocked past SLA (fail the job).
           if [ "$code" -eq 2 ]; then exit 1; fi
           exit 0
-
       - name: Upload freshness report
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: source-update-freshness
           path: reports/source_freshness.csv
