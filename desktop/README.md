@@ -75,3 +75,21 @@ one of the following clears it — you only do this once per download:
   **System Settings → Privacy & Security**, scroll to the message naming the app,
   and click **Open Anyway**. On macOS Sequoia 15 and later this replaces the old
   right-click → **Open** trick.
+
+### "First-run setup could not finish" after Open Anyway
+
+**Open Anyway** permits *this one launch*; it does not clear the quarantine
+flag. While that flag is set, macOS keeps running the app from a throwaway
+read-only copy under `/private/var/folders/…/AppTranslocation/…` — and only the
+`.app` is copied there, so the checkout it needs is missing and no `.venv` can
+be written. The app now detects this and names the real cause instead of
+blaming the network.
+
+Clear the quarantine rather than only permitting the launch: run
+`Fix-Gatekeeper.command`, or the `xattr -dr` command above, or move the folder
+somewhere else in Finder. Moving it defeats translocation on its own, which is
+why dragging the folder out of Downloads (or the Trash) is usually quickest.
+
+Genuine setup failures — no internet on the first run, or Node.js missing —
+write their output to `$TMPDIR/prii-moneysweep-setup.log`, and the failure
+message names that file.

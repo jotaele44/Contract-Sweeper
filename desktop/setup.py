@@ -69,8 +69,6 @@ def ensure_hub_sibling() -> None:
 
 def setup_python() -> None:
     ensure_hub_sibling()
-    if sys.version_info < MIN_PYTHON:
-        raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
     if not venv_python().exists():
         print(f"Creating virtual environment at {VENV_DIR} …")
         venv.EnvBuilder(with_pip=True, clear=False).create(VENV_DIR)
@@ -116,6 +114,13 @@ def main() -> None:
         if "--ensure" not in args:
             print("Setup already complete (use --force to redo).")
         return
+    # Only the bootstrap interpreter has to satisfy this; a finished install runs
+    # from .venv and is let through above, so losing python3.10+ from PATH later
+    # does not strand a working app. Checked before setup_python() because macOS
+    # ships 3.9 with the Command Line Tools, and cloning the hub sibling first
+    # would bury the one line that says what is actually wrong.
+    if sys.version_info < MIN_PYTHON:
+        raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
     setup_python()
     setup_frontend()
     MARKER.write_text("ok\n", encoding="utf-8")
