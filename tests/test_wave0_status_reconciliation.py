@@ -17,7 +17,7 @@ def test_current_status_matches_authoritative_readiness() -> None:
     status = _read("reports/current_status.json")
     readiness = _read("reports/materialization_readiness.json")
     registry = status["source_registry_current"]
-    assert registry["total_sources"] == readiness["total_sources"] == 151
+    assert registry["total_sources"] == readiness["total_sources"] == 154
     assert (
         registry["source_ids_sha256"] == readiness["source_count_provenance"]["source_ids_sha256"]
     )
