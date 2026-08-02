@@ -1,12 +1,8 @@
 name: Source update — quarterly
 
-# Registry-driven source update controller, quarterly cadence. Self-hosted
-# long-running sources are excluded here; run them via source-update-dispatch on
-# a durable/self-hosted runner. GitHub cron is UTC; Puerto Rico is UTC-4 (no DST).
-
 on:
   schedule:
-    - cron: "31 10 1 1,4,7,10 *" # quarter opening, 10:31 UTC = 06:31 AST
+    - cron: "31 10 1 1,4,7,10 *"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -29,27 +25,23 @@ jobs:
     name: Quarterly cadence
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.13"
           cache: pip
-
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           pip install -r requirements.txt
-
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Validate policy
         run: python3 scripts/update_sources.py validate-policy
-
       - name: Strict preflight
         run: python3 run_all.py --only-setup --strict-preflight
-
-      - name: Run quarterly cadence (github-hosted; excludes self-hosted long-running)
+      - name: Run quarterly cadence
         env:
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
           EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
@@ -66,14 +58,12 @@ jobs:
           args=(run --cadence quarterly --continue-on-error)
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           python3 scripts/update_sources.py "${args[@]}" --json
-
       - name: Freshness report
         if: ${{ always() }}
         run: python3 scripts/update_sources.py freshness --json || true
-
-      - name: Upload reports + outputs (never committed)
+      - name: Upload reports and outputs
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: source-update-quarterly
           path: |
