@@ -7,7 +7,8 @@
 # These targets shell out to the interpreter on PATH; activate your venv first.
 
 PYTHON ?= python
-PIP    ?= pip
+PIP    ?= python -m pip
+PYTHON_BASELINE ?= 3.11
 
 .DEFAULT_GOAL := help
 
@@ -31,7 +32,7 @@ format:  ## ruff format — rewrite files in place
 format-check:  ## ruff format --check (gating; the CI counterpart)
 	ruff format --check .
 
-type:  ## mypy over the configured scope (pinned 2.1.0; gating in mypy.yml)
+type:  ## mypy over the configured scope (gating in mypy.yml)
 	$(PYTHON) -m mypy
 
 test:  ## Full pytest suite with the coverage floor from pytest.ini
@@ -43,11 +44,11 @@ test-fast:  ## pytest without coverage instrumentation (quick inner loop)
 cov:  ## pytest with a terminal coverage report
 	$(PYTHON) -m pytest --cov=scripts --cov=moneysweep --cov-report=term-missing
 
-lock:  ## Recompile requirements.lock from requirements.in (deterministic, via uv)
-	uv pip compile requirements.in --universal --python-version 3.13 -o requirements.lock
+lock:  ## Recompile requirements.lock from requirements.in for the local baseline
+	uv pip compile requirements.in --universal --python-version $(PYTHON_BASELINE) -o requirements.lock
 
 lock-check:  ## Fail if requirements.lock is stale vs requirements.in (CI: lockfile.yml)
-	uv pip compile requirements.in --universal --python-version 3.13 -o - \
+	uv pip compile requirements.in --universal --python-version $(PYTHON_BASELINE) -o - \
 		| diff -u requirements.lock - \
 		&& echo "requirements.lock is up to date"
 

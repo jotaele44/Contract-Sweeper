@@ -9,8 +9,6 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Supersede older runs of this workflow on the same ref: a newer push
-# makes the in-flight result irrelevant, so cancel it and free the runner.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -61,12 +59,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
           cache: pip
 
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
+          # CI-only sibling checkout. Local development uses the canonical
+          # PRII workspace bootstrap and a private repository .venv.
           if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           python -m pip install -r requirements.txt
 
@@ -93,15 +92,6 @@ jobs:
       - name: Validate Canonical Entity Relationship Model v1 (bootstrap mode)
         run: python -m moneysweep.validation.canonical_v1_schema --root . --allow-failed
 
-  # Frontend gate. The dashboard package has shipped with a `lint` script, an eslint
-  # config and a committed package-lock.json, but no CI job ran any of them —
-  # the only workflow that built it was desktop-build.yml, which is tag- and
-  # path-triggered and does not fire on a frontend-only PR. So a lint regression
-  # or a broken build could merge unnoticed.
-  #
-  # Gates `lint` and `build`, matching skywatcher-pr and thehub-pr. `typecheck`
-  # is deliberately not added here: this package has never had a JS gate, and
-  # turning on two at once risks a red build over pre-existing findings.
   frontend:
     runs-on: ubuntu-latest
     defaults:
@@ -118,5 +108,11 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Lint
         run: npm run lint
+      # `test` is the vitest suite (src/**/*.test.{js,jsx}), which is distinct
+      # from `test:pilot` — the node --test suite in dashboard/tests/ that
+      # verify:pilot runs. vitest's include glob deliberately excludes it, so
+      # the two never collect each other's files.
+      - name: Tests
+        run: npm run test
       - name: Build
         run: npm run build

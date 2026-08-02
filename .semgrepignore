@@ -1,0 +1,23 @@
+# Dependency, cache, build, and generated paths
+.git/
+.github/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+*.egg-info/
+node_modules/
+coverage/
+htmlcov/
+archive/
+artifacts/
+exports/
+output/
+outputs/
+data/raw/
+data/cache/
+evidence/

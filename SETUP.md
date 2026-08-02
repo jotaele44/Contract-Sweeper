@@ -1,194 +1,187 @@
 # Setup Guide — moneysweep-pr
 
-**Tested on:** Python 3.10+ · Ubuntu/Debian · macOS  
-**Estimated setup time:** 5 minutes (no data download required for tests)
+**Local federation baseline:** Python 3.11  
+**Supported systems:** macOS and Ubuntu/Debian
 
-> Baseline is **Python 3.10** (ruff/mypy target `py310`; the lockfile is compiled
-> for 3.10; CI tests 3.10–3.12). Use **Python 3.11** locally (see `.python-version`)
-> for the recommended dev interpreter — newer interpreters (3.14+) can produce
-> false test failures in R4.8 backfill tests due to dict-ordering changes.
+MoneySweep is one producer in the PRII federation. A final long-lived clone must be created as an immediate sibling of `thehub-pr` through the certified TheHub workspace procedure. The standalone clone instructions below are for isolated repository development only.
 
----
+## Python policy
 
-## 1. Clone
+The following surfaces must remain aligned:
+
+- `.python-version`: `3.11`
+- `pyproject.toml` mypy target: `3.11`
+- `pyproject.toml` Ruff target: `py311`
+- gating Python workflows: `3.11`
+- `Makefile` lock compiler baseline: `3.11`
+- `requirements.lock` generation provenance: `--python-version 3.11`
+
+Do not use one virtual environment for the entire federation. Every repository owns a private `.venv`.
+
+## 1. Repository placement
+
+Canonical federation topology:
+
+```text
+PRII_ROOT/
+├── thehub-pr/
+├── moneysweep-pr/
+├── spiderweb-pr/
+├── skywatcher-pr/
+├── centinelas-pr/
+├── aguayluz-pr/
+└── ovnis-pr/
+```
+
+`moneysweep-pr` depends on shared packages under the sibling checkout:
+
+```text
+../thehub-pr/packages/prii_maintenance
+../thehub-pr/packages/prii_export_utils
+```
+
+Do not nest MoneySweep inside TheHub or another producer.
+
+For isolated development only:
 
 ```bash
 git clone https://github.com/jotaele44/moneysweep-pr.git
 cd moneysweep-pr
 ```
 
-No special credentials are needed to clone — the repository is public.
-
----
-
-## 2. Install Dependencies
+## 2. Create the private environment
 
 ```bash
-pip install -r requirements.txt
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
 ```
 
-`requirements.txt` carries the loose minimums below (it is kept identical to
-`requirements.in`). For a **reproducible, fully-pinned** environment matching CI,
-install from the compiled lockfile instead:
+The interpreter should report Python 3.11:
 
 ```bash
-pip install -r requirements.lock     # exact pins, regenerated via `make lock`
+python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
 ```
 
-To add the lint/type/test tooling (ruff, mypy, pytest-cov, pre-commit) that the
-quality gates need, use the dev set — or the Makefile, which wraps the same
-commands CI runs (`make install-dev`, then `make check`):
+Local setup must not use `pip` or `uv pip install --system` outside `.venv`.
+
+## 3. Install dependencies
+
+For exact reproducibility after the Python 3.11 lockfile gate is green:
 
 ```bash
-pip install -r requirements-dev.txt  # or: make install-dev
+python -m pip install -r requirements.lock
 ```
 
-Core runtime dependencies (all available via pip, no compiled extensions required):
+For the looser development ranges:
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| pandas | ≥2.0.0 | DataFrame processing |
-| requests | ≥2.34.2 | HTTP downloads |
-| lxml | ≥6.1.1 | XML/HTML parsing |
-| pytest | ≥9.1.1 | Test runner |
-| pytest-cov | ≥7.1.0 | Coverage instrumentation |
-| rapidfuzz | ≥3.14.5 | Fuzzy entity matching |
-| python-dotenv | ≥1.2.2 | `.env` loading |
-| pyarrow | ≥24.0.0 | Parquet I/O |
-| PyYAML | ≥6.0.3 | Registry files |
-| networkx | ≥3.6.1 (py≥3.11) | Graph analysis |
-| pdfplumber | ≥0.11.10 | ACT/ACUDEN PDF extraction |
-| openpyxl | ≥3.1.0 | SBA disaster-loan workbook importer |
-| prii-maintenance | git (pinned SHA) | Shared federation maintenance core (from `thehub-pr`) |
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+```
 
----
+The Makefile assumes `.venv` is active and routes installs through `python -m pip`.
 
-## 3. Configure API Keys (Optional for Tests)
+## 4. Configure optional credentials
 
 ```bash
 cp .env.example .env
-# Edit .env and fill in your keys
 ```
 
-Tests do **not** require real API keys. Keys are only needed to run live data downloads.  
-See `.env.example` for which keys are required vs. optional.  
-See `docs/SECRET_HANDLING_POLICY.md` for key storage rules.
+Tests do not require real API keys. Credentials are needed only for explicitly authorized live data acquisition. Follow `docs/SECRET_HANDLING_POLICY.md`; never commit `.env` or key material.
 
----
-
-## 4. Run Tests
+## 5. Run the local quality bar
 
 ```bash
-python3 -m pytest tests/ -q
+make check
 ```
 
-The full suite runs fully offline with no API keys required. A small number of
-tests are skipped on a clean clone (they need live network access or large data
-files). The last recorded full baseline is in `README.md` (**2018 passed,
-6 skipped, 0 failed**) — treat that as the single source of truth rather than
-re-copying a count here.
-
----
-
-## 5. Directory Structure for Data (Optional)
-
-The `data/` directory is gitignored but its structure is tracked via `.gitkeep` files. To initialize:
+Equivalent commands:
 
 ```bash
-python3 scripts/setup_directories.py
+python -m compileall moneysweep scripts tests
+python -m pytest
+python -m mypy
+ruff check .
+ruff format --check .
 ```
 
-This creates all required subdirectories without downloading any data.
+## 6. Verify lockfile provenance
 
----
-
-## 6. Verify Configuration
+The lockfile is generated with the same Python baseline as the workspace:
 
 ```bash
-python3 -c "from scripts.config import *; print('Config OK')"
+make lock-check
 ```
 
----
-
-## 7. Manual-Source Drops (Operator-Gated Sources)
-
-Five required sources are operator-supplied (portals are JS-gated, credentialed,
-or export-only). See `docs/MANUAL_SOURCE_OPERATIONS.md` for what to export, the
-drop directories, update cadence, and the `source_freshness` staleness gate.
-
-## 8. Run the Full Pipeline (Requires Source Data)
-
-The production pipeline is currently **paused** pending delivery of 21 missing source files.  
-See `STATUS.md` and `reports/gap_analysis_report.csv` before running.
+To regenerate deliberately:
 
 ```bash
-# Do NOT run this until sources are delivered and unfreeze conditions are met:
-python3 run_all.py
+make lock
 ```
 
----
+The lockfile drift workflow recompiles with Python 3.11 and fails when the committed output differs. Do not edit the lockfile manually.
 
-## 9. Run the Diagnostic Dashboard (Optional)
-
-The `dashboard/` React app is a **diagnostic-only** surface over the frozen
-`data/canonical_v1/*.csv`, served by the thin FastAPI read layer in
-`server/backend/main.py`. (The supported product surface is the hub app in
-`thehub-pr`; see the ADR note in `README.md`.) There are two ways to run it.
-
-**Dev mode** (two processes, hot reload):
+## 7. Initialize optional data directories
 
 ```bash
-# terminal 1 — API on :8000
+python scripts/setup_directories.py
+```
+
+This creates required local directories without downloading data.
+
+## 8. Manual-source drops
+
+Operator-supplied sources are documented in `docs/MANUAL_SOURCE_OPERATIONS.md`. Preserve the source-freshness, receipt, provenance, and no-raw-upload controls.
+
+## 9. Production pipeline boundary
+
+Before running the full pipeline, inspect `STATUS.md`, the production-status gate, and the current source-gap report.
+
+```bash
+python scripts/run_production_status_gate.py
+```
+
+Do not run `python run_all.py` unless the repository’s explicit unfreeze and source-readiness conditions are satisfied. A valid local environment does not authorize production execution.
+
+## 10. Diagnostic dashboard
+
+The dashboard is a diagnostic surface. The supported federation product surface is TheHub.
+
+Development mode:
+
+```bash
 uvicorn server.backend.main:app --reload --port 8000
-
-# terminal 2 — Vite dev server on :5173 (proxies to the API above)
-cd dashboard && npm install && npm run dev
 ```
 
-Open <http://localhost:5173>. If your frontend runs on a different origin, set
-`MONEYSWEEP_CORS_ORIGINS` (comma-separated) for the API, e.g.
-`MONEYSWEEP_CORS_ORIGINS=http://localhost:3000 uvicorn server.backend.main:app --port 8000`.
-
-**Desktop mode** (one process, native window — the blessed one-click path):
+In another process:
 
 ```bash
-# double-click PRII-MONEYSWEEP.command (macOS) / .bat (Windows) / .sh (Linux),
-# or run the launcher directly:
-python desktop/launch.py           # opens a pywebview window (falls back to browser)
-python desktop/launch.py --browser # force the default browser
-python desktop/launch.py --smoke   # CI health-check-and-exit
+cd dashboard
+npm ci --no-audit --no-fund
+npm run dev
 ```
 
-**Standalone offline export** (single `file://`-openable HTML with data baked in):
-
-```bash
-cd dashboard && npm run build:export   # runs scripts/gen_dashboard_snapshot.py, then builds
-# open dashboard/export-standalone/index.html directly
-```
-
-The `snapshot` step requires the Python deps from step 2 (it drives the FastAPI
-app in-process to embed the current canonical data).
-
----
+Desktop and packaged-app procedures are governed separately by the shared `prii_desktop` runtime and its coordinated PR sequence.
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| `ModuleNotFoundError: No module named 'scripts'` | Run from the repo root, not a subdirectory |
-| `ImportError: No module named 'pandas'` | Run `pip install -r requirements.txt` |
-| Tests fail with `FileNotFoundError` | Run `python3 scripts/setup_directories.py` first |
-| API key errors during downloads | Copy `.env.example` to `.env` and fill in keys |
+| Problem | Resolution |
+|---|---|
+| Python is not 3.11 | Recreate `.venv` with `python3.11 -m venv .venv` |
+| Shared package cannot resolve | Verify `thehub-pr` is an immediate sibling and contains both shared package directories |
+| `pip` writes outside the repository | Deactivate the global environment, activate `.venv`, and use `python -m pip` |
+| Lockfile drift fails | Run `make lock` under Python 3.11 and review the complete diff |
+| Tests need absent local directories | Run `python scripts/setup_directories.py` |
+| Live-source command requests credentials | Stop unless the specific live execution has been authorized |
 
----
+## Key entry points
 
-## Key Entry Points
-
-| Script | Purpose |
-|--------|---------|
-| `run_all.py` | Full pipeline orchestrator |
-| `scripts/config.py` | Central configuration (read first) |
-| `scripts/build_unified_master.py` | Core ETL — builds the awards master |
-| `scripts/auto_download.py` | Automated bulk downloader |
-| `scripts/generate_report.py` | Report generation |
-| `scripts/run_production_status_gate.py` | Check current production readiness |
+| Path | Purpose |
+|---|---|
+| `run_all.py` | Full pipeline orchestrator; production-gated |
+| `scripts/config.py` | Central configuration |
+| `scripts/build_unified_master.py` | Core ETL |
+| `scripts/run_production_status_gate.py` | Production-readiness check |
+| `federation.json` | Producer commands and readiness declaration |
+| `Makefile` | Local quality and lockfile commands |
