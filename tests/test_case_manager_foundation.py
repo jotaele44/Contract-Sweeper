@@ -309,3 +309,47 @@ def test_fixture_is_read_only_and_not_promoted():
     fixture = json.loads(fixture_path.read_text())
     assert fixture["fixture_status"] == "read_only_pending_review"
     assert fixture["canonical_promotion"] is False
+
+
+def test_contradiction_rejects_duplicate_claim_ids():
+    case_id = deterministic_id("case", "x")
+    claim_id = deterministic_id("claim", "a")
+    bundle = {
+        "case": _case(case_id),
+        "canonical_evidence_ids": (),
+        "case_evidence": (),
+        "claims": (_claim(case_id, claim_id),),
+        "claim_evidence": (),
+        "contradictions": (
+            Contradiction(
+                contradiction_id=deterministic_id("contradiction", claim_id, claim_id),
+                case_id=case_id,
+                claim_ids=(claim_id, claim_id),
+                contradiction_type="temporal",
+                severity="high",
+            ),
+        ),
+        "findings": (),
+        "audit_events": (),
+    }
+    with pytest.raises(ValidationError):
+        validate_case_bundle(bundle)
+
+
+def test_patterned_schema_fields_declare_string_type():
+    schema = json.loads(Path("schemas/case_manager_v1/case_manager.schema.json").read_text())
+
+    def walk(node):
+        if isinstance(node, dict):
+            if "pattern" in node:
+                declared = node.get("type")
+                assert declared == "string" or (
+                    isinstance(declared, list) and "string" in declared
+                ), f"patterned field must declare a string type, got {declared!r}"
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(schema)

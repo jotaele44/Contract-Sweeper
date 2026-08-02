@@ -47,8 +47,8 @@ def validate_case_bundle(bundle: dict) -> None:
         if link.claim_id not in claim_ids or link.evidence_id not in evidence_ids:
             raise ValidationError("claim evidence reference is unresolved")
     for contradiction in bundle.get("contradictions", ()):
-        if contradiction.case_id != case_id or len(contradiction.claim_ids) < 2:
-            raise ValidationError("contradiction must retain at least two claims")
+        if contradiction.case_id != case_id or len(set(contradiction.claim_ids)) < 2:
+            raise ValidationError("contradiction must retain at least two distinct claims")
         if not set(contradiction.claim_ids).issubset(claim_ids):
             raise ValidationError("contradiction references unknown claims")
         if contradiction.status == "resolved" and not contradiction.resolution_rationale:
