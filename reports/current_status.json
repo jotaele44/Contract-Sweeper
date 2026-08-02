@@ -12,7 +12,7 @@
   "source_registry_current": {
     "total_sources": 154,
     "source_ids_sha256": "6c335e631164209ce444e1b5d2019808295eeeba0824f477deb48710e90c9352",
-    "required_sources": 14,
+    "required_sources": 16,
     "override_policy": "Existing source IDs only; source_id and required are immutable."
   },
   "materialization_readiness_truth": {
