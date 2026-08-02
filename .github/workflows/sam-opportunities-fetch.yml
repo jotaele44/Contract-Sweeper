@@ -1,12 +1,5 @@
 name: SAM Opportunities fetch
 
-# One-click refresh of the pre-award federal solicitations / bid-notice feed
-# (sam_opportunities). Manual-only by design — like highergov-fetch.yml, this runs
-# on workflow_dispatch with a double confirmation and never on a schedule (the repo
-# keeps live/egress fetches operator-triggered). Output is uploaded as an artifact,
-# never committed (data/** is gitignored). Bid response windows are short, so this
-# gives a fast ad-hoc refresh without waiting on the full materialize-sources run.
-
 on:
   workflow_dispatch:
     inputs:
@@ -28,9 +21,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Serialise runs on the same ref without cancelling. This workflow can
-# publish, write data, or hand off to another repo, and killing it
-# mid-flight risks leaving that work half-done.
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -38,29 +29,21 @@ concurrency:
 jobs:
   fetch_sam_opportunities:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: '3.13'
           cache: pip
-
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           pip install -r requirements.txt
-
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Fetch SAM.gov opportunities
         id: fetch
-        # Both confirm gates stay declarative — `github.event.inputs` is valid in
-        # an `if:`. Only the key presence check moves into the shell: `secrets`
-        # is not available to `if:` at all, and hoisting the key to a job-level
-        # `env:` to work around that would expose a live API credential to every
-        # other step, including `pip install`, which runs arbitrary package code.
         if: ${{ startsWith(github.event.inputs.confirm, 'yes') && startsWith(github.event.inputs.confirm_secondary, 'fetch') }}
         env:
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
@@ -72,11 +55,9 @@ jobs:
           echo "fetched=true" >> "$GITHUB_OUTPUT"
           echo "Starting SAM.gov opportunities fetch..."
           python3 scripts/download_sam_opportunities.py --force --days "${{ github.event.inputs.days }}"
-
       - name: Upload SAM opportunities artifact
-        # Gated on the fetch having actually run, so no secret is needed here.
         if: ${{ steps.fetch.outputs.fetched == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: sam-opportunities
           path: data/staging/processed/pr_sam_opportunities.csv
