@@ -1,16 +1,8 @@
 name: Source update — drop scan
 
-# Daily hash scan of declared operator dropzones for file_drop / on_drop sources.
-#
-# LIMITATION: a GitHub-hosted runner only sees files that are committed to the
-# repository or otherwise mounted into the checkout. It cannot observe an
-# operator's uncommitted local filesystem — this scan is a committed-drop audit,
-# not a live local-dropzone watcher. Run `scan-drops` locally to see local drops.
-# GitHub cron is UTC; Puerto Rico is UTC-4 (no DST).
-
 on:
   schedule:
-    - cron: "53 10 * * *" # daily 10:53 UTC = 06:53 AST
+    - cron: "53 10 * * *"
   workflow_dispatch:
 
 permissions:
@@ -25,29 +17,25 @@ jobs:
     name: Scan committed dropzones
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.13"
           cache: pip
-
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           pip install -r requirements.txt
-
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Validate policy
         run: python3 scripts/update_sources.py validate-policy
-
-      - name: Scan drops (read-only; no state change)
+      - name: Scan drops
         run: python3 scripts/update_sources.py scan-drops --json | tee reports/source_update_drop_scan.json
-
       - name: Upload drop-scan report
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: source-update-drop-scan
           path: reports/source_update_drop_scan.json
