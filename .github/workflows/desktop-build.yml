@@ -118,11 +118,23 @@ jobs:
       # Fail rather than skip: an accidental tag should say why it stopped, not
       # look green having published nothing. shell: python because this job runs
       # on the windows runner too.
-      - name: Refuse to publish while the pipeline is paused
+      #
+      # Allowlist, not denylist. Only PRODUCTION_VALIDATED publishes; every other
+      # value — including a missing key, a typo, and PARTIAL_PRODUCTION — stops
+      # here. PARTIAL_PRODUCTION is the case that makes this matter: it is
+      # produced legitimately when the WARN gates fail (absent bond actor layer,
+      # parent UEI coverage under 0.90) and its own status message is "major
+      # layers still require validation", so it is not a release-ready state.
+      # Values are defined in moneysweep/validation/production_status.py; a
+      # rename there makes this gate refuse to publish rather than wrongly
+      # publish, and tests/test_desktop_release_gate.py keeps the two in step.
+      - name: Refuse to publish unless the pipeline is production-validated
         if: startsWith(github.ref, 'refs/tags/desktop-v')
         shell: python
         run: |
           import json, pathlib, sys
+
+          RELEASE_READY = "PRODUCTION_VALIDATED"
 
           status = json.loads(
               pathlib.Path("data/exports/production_status.json").read_text(
@@ -130,12 +142,12 @@ jobs:
               )
           )
           state = status.get("production_status")
-          if state == "NON_PRODUCTION_DIAGNOSTIC":
+          if state != RELEASE_READY:
               print(
-                  "::error::Refusing to publish a release: production_status is "
-                  "NON_PRODUCTION_DIAGNOSTIC. The preconditions for lifting that "
-                  "are in docs/RESUMPTION_CHECKLIST.md. Builds remain available "
-                  "as workflow artifacts, which need no tag."
+                  f"::error::Refusing to publish a release: production_status is "
+                  f"{state!r}, and only {RELEASE_READY!r} may publish. The "
+                  f"preconditions are in docs/RESUMPTION_CHECKLIST.md. Builds "
+                  f"remain available as workflow artifacts, which need no tag."
               )
               sys.exit(1)
           print(f"production_status={state!r}; release publishing allowed")
