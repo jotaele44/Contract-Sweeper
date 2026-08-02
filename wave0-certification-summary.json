@@ -1,0 +1,23 @@
+{
+  "audit_sha": "1dc726893a3a15879fe828aeeeb46ddd8807c870",
+  "fully_materialized": 67,
+  "intermediate_rows": 120737,
+  "materialized_any_data": 64,
+  "not_materialized": 73,
+  "orphan_file_count": 6,
+  "orphan_rows": 212930,
+  "partially_materialized": 11,
+  "probe_ran": false,
+  "processed_csv_files": 120,
+  "registry_accounted_rows": 849898,
+  "registry_digest": "7830358c254767bc9db34ae5230b41f815ffaea9aa0c3abe4dfdebfe36b2f2d0",
+  "registry_digest_parity": true,
+  "required_fully_materialized": 10,
+  "required_sources": 14,
+  "status_count_parity": true,
+  "targeted_coverage_gate": "NOT_APPLICABLE",
+  "targeted_status_tests": "5_PASSED",
+  "total_local_rows": 858090,
+  "total_rows_on_disk": 1183565,
+  "total_sources": 151
+}

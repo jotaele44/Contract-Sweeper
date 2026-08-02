@@ -1,0 +1,23 @@
+ D data/staging/processed/.gitkeep
+ D data/staging/processed/alerts/alert_briefs/PROJECT_ALERT_BRIEF_TEMPLATE.md
+ D data/staging/processed/dominance_summary.json
+ D data/staging/processed/execution/execution_chain_master.csv
+ D data/staging/processed/graph/entity_edges.csv
+ D data/staging/processed/graph/network.graphml
+ D data/staging/processed/graph/network_summary.json
+ D data/staging/processed/graph/top_nodes.csv
+ D data/staging/processed/pr_all_awards_summary.json
+ D data/staging/processed/pr_power_network_summary.json
+ D data/staging/processed/pr_prime_sub_summary.json
+ D data/staging/processed/risk/entity_risk_scores.csv
+ D data/staging/processed/risk/municipality_risk_scores.csv
+ D data/staging/processed/risk/project_risk_scores.csv
+ D data/staging/processed/risk/risk_signals_master.csv
+ M reports/materialization_coverage_audit.csv
+ M reports/materialization_coverage_audit.json
+ M reports/materialization_coverage_audit_files.csv
+?? wave0-audit-summary.txt
+?? wave0-audit-worktree-status.txt
+?? wave0-certification-summary.json
+?? wave0-output-sha256.txt
+?? wave0-status-tests.txt

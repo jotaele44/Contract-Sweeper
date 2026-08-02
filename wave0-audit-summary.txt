@@ -1,0 +1,16 @@
+{
+  "committed_ci_fully_materialized": 10,
+  "local_fully_materialized": 67,
+  "local_partially_materialized": 11,
+  "local_sources_with_any_data": 64,
+  "total_sources": 151,
+  "registry_accounted_local_rows": 858090,
+  "total_rows_on_disk": 1183565,
+  "orphan_rows_not_in_registry": 212930,
+  "orphan_file_count": 6,
+  "probe_ran": false,
+  "outputs": [
+    "/Users/jotaele/Developer/moneysweep-wave0-audit-v2/reports/materialization_coverage_audit.json",
+    "/Users/jotaele/Developer/moneysweep-wave0-audit-v2/reports/materialization_coverage_audit.csv"
+  ]
+}
