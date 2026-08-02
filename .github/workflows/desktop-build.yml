@@ -32,8 +32,60 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      PRII_TOOLING_REF: f2b81769924689b4d959554928810b1d7b7ef3d6
+      PRII_FORBIDDEN_SIBLING: thehub-pr
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Enforce isolated-checkout policy
+        shell: bash
+        run: |
+          test ! -e "$GITHUB_WORKSPACE/../$PRII_FORBIDDEN_SIBLING"
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path(".")
+          needles = (
+              "../" + "thehub-pr",
+              "ensure_" + "hub_sibling",
+              "HUB_" + "CLONE_URL",
+              "HUB_" + "SIBLING",
+              "REPO_ROOT.parent / " + '"thehub-pr"',
+          )
+          violations = []
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              rel = path.as_posix()
+              if rel.startswith((".git/", ".venv/", "node_modules/", "dist/", "build/")):
+                  continue
+              executable = rel.startswith((".github/workflows/", "desktop/", "scripts/", "tools/"))
+              executable = executable or path.name.startswith("requirements")
+              executable = executable or path.name in {"pyproject.toml", "Makefile"}
+              if not executable:
+                  continue
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for needle in needles:
+                  if needle in text:
+                      violations.append(f"{rel}: {needle}")
+          if violations:
+              raise SystemExit("mandatory sibling coupling found:\n" + "\n".join(violations))
+          PY
+
+      - name: Fetch pinned federation tooling outside workspace
+        shell: bash
+        run: |
+          tooling_root="$RUNNER_TEMP/prii-thehub-tooling"
+          rm -rf "$tooling_root"
+          git clone --filter=blob:none --no-checkout https://github.com/jotaele44/thehub-pr.git "$tooling_root"
+          git -C "$tooling_root" checkout --detach "$PRII_TOOLING_REF"
+          test "$(git -C "$tooling_root" rev-parse HEAD)" = "$PRII_TOOLING_REF"
+          echo "PRII_TOOLING_ROOT=$tooling_root" >> "$GITHUB_ENV"
+          test ! -e "$GITHUB_WORKSPACE/../$PRII_FORBIDDEN_SIBLING"
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
@@ -55,10 +107,10 @@ jobs:
       - name: Install Python dependencies
         shell: bash
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
+          test ! -e "$GITHUB_WORKSPACE/../$PRII_FORBIDDEN_SIBLING"
           python -m pip install --upgrade pip
           pip install -r server/backend/requirements.txt -r requirements-desktop.txt pyinstaller
+          test ! -e "$GITHUB_WORKSPACE/../$PRII_FORBIDDEN_SIBLING"
 
       - name: Freeze console build (for smoke test)
         env:
