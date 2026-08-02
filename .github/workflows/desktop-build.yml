@@ -107,6 +107,39 @@ jobs:
             dist-desktop/PRII-MONEYSWEEP-*.zip
             dist-desktop/PRII-MONEYSWEEP-*.dmg
 
+      # A desktop-v* tag is the one route in this repo that publishes a public
+      # GitHub Release (the step below creates it if absent), and until now it
+      # consulted nothing. Every other guardrail — production-status-gate.yml,
+      # release-tag.yml — is scoped to pushes and PRs, so a tag walked straight
+      # past all of them. release-tag.yml records why that matters: this project
+      # "has not cut a software release yet", and only the federation contract
+      # is tagged. Publishing a desktop bundle while the pipeline is paused
+      # would ship an accountability tool backed by the diagnostic dataset.
+      # Fail rather than skip: an accidental tag should say why it stopped, not
+      # look green having published nothing. shell: python because this job runs
+      # on the windows runner too.
+      - name: Refuse to publish while the pipeline is paused
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: python
+        run: |
+          import json, pathlib, sys
+
+          status = json.loads(
+              pathlib.Path("data/exports/production_status.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          state = status.get("production_status")
+          if state == "NON_PRODUCTION_DIAGNOSTIC":
+              print(
+                  "::error::Refusing to publish a release: production_status is "
+                  "NON_PRODUCTION_DIAGNOSTIC. The preconditions for lifting that "
+                  "are in docs/RESUMPTION_CHECKLIST.md. Builds remain available "
+                  "as workflow artifacts, which need no tag."
+              )
+              sys.exit(1)
+          print(f"production_status={state!r}; release publishing allowed")
+
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/desktop-v')
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
