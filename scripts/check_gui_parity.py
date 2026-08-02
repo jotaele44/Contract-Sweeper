@@ -413,6 +413,9 @@ def _discover_frontend(
 def discover_candidates(
     repo_root: Path, manifest: dict[str, Any]
 ) -> list[dict[str, Any]]:
+    # Resolve once so relative_to() sees the same form as the resolved paths
+    # _iter_files produces (macOS tempdirs alias /var -> /private/var).
+    repo_root = repo_root.resolve()
     discovery = manifest.get("discovery", {})
     records = [
         *_discover_python(repo_root, discovery),
