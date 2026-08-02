@@ -20,25 +20,15 @@ on:
       - 'tests/fixtures/pr_intake_router_sample.jsonl'
       - 'tests/fixtures/pr_news_incoming_sample.jsonl'
       - '.github/workflows/pr-intake-router.yml'
-  # No path filter on pull_request: router-tests is a *required* status check
-  # on main, so it must report on every PR. A path-filtered required check
-  # never reports on PRs that don't touch these paths, permanently blocking
-  # the merge ("N of M required status checks are expected"). The push trigger
-  # stays path-filtered since push runs don't gate PR merges.
   pull_request:
   workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Least privilege: this workflow only reads the repo (and uploads artifacts,
-# which uses the runtime token, not GITHUB_TOKEN). Widen deliberately if a
-# step ever needs to write back.
+
 permissions:
   contents: read
 
-# Serialise runs on the same ref without cancelling. This workflow can
-# publish, write data, or hand off to another repo, and killing it
-# mid-flight risks leaving that work half-done.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -50,43 +40,31 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ['3.13']
-
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           pip install -r requirements.txt
-
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Run targeted router and producer tests
-        # --no-cov: this job runs a small, targeted subset, so the repo-wide
-        # --cov-fail-under floor in pytest.ini does not apply here (the full
-        # coverage gate lives in tests.yml). Without this the subset reports
-        # ~0% total coverage and fails the inherited floor.
         run: python -m pytest tests/test_pr_intake_router.py tests/test_route_pr_intake_cli.py tests/test_pr_intake_router_hook.py tests/test_produce_pr_news_raw_intake.py tests/test_pr_news_router_pipeline.py -v --no-cov
-
       - name: Run router export command
         run: python run_pr_intake_router.py --input tests/fixtures/pr_intake_router_sample.jsonl --out-dir data/exports/pr_intake_router --fail-on-validation-errors
-
       - name: Run PR News producer-to-router handoff
         run: python run_pr_news_router_pipeline.py --incoming tests/fixtures/pr_news_incoming_sample.jsonl --raw-output data/intake/pr_news/raw_items_latest.jsonl --manifest data/intake/pr_news/raw_items_latest_manifest.json --export-dir data/exports/pr_intake_router --fail-on-validation-errors
-
       - name: Show routing summary
         run: cat data/exports/pr_intake_router/routing_summary.json
-
       - name: Show export verification
         run: cat data/exports/pr_intake_router/export_verification.json
-
       - name: Upload router exports
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pr-intake-router-exports-py${{ matrix.python-version }}
           path: data/exports/pr_intake_router/
