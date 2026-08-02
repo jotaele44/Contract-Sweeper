@@ -60,7 +60,56 @@ def validate_case_bundle(bundle: dict) -> None:
             raise ValidationError("finding confidence must be between 0 and 1")
         if finding.status == "accepted" and not finding.contradiction_reviewed:
             raise ValidationError("accepted finding requires contradiction review")
+    for entity in bundle.get("case_entities", ()):
+        if entity.case_id != case_id:
+            raise ValidationError("case entities must reference this case")
+    for case_event in bundle.get("case_events", ()):
+        if case_event.case_id != case_id:
+            raise ValidationError("case events must reference this case")
+        if not set(case_event.source_evidence_ids).issubset(evidence_ids):
+            raise ValidationError("case event evidence reference is unresolved")
+        if not 0 <= case_event.certainty <= 1:
+            raise ValidationError("case event certainty must be between 0 and 1")
+    for lead in bundle.get("leads", ()):
+        if lead.case_id != case_id:
+            raise ValidationError("leads must reference this case")
+        if not set(lead.closure_evidence_ids).issubset(evidence_ids):
+            raise ValidationError("lead closure evidence reference is unresolved")
+    snapshot_ids = {item.case_snapshot_id for item in bundle.get("snapshots", ())}
+    for snapshot in bundle.get("snapshots", ()):
+        if snapshot.case_id != case_id:
+            raise ValidationError("snapshots must reference this case")
+        if not set(snapshot.evidence_ids).issubset(evidence_ids):
+            raise ValidationError("snapshot evidence reference is unresolved")
+        if (
+            snapshot.supersedes_snapshot_id is not None
+            and snapshot.supersedes_snapshot_id not in snapshot_ids
+        ):
+            raise ValidationError("snapshot supersedes an unknown snapshot")
     for event in bundle.get("audit_events", ()):
         if event.case_id != case_id:
             raise ValidationError("audit events must reference this case")
     validate_append_only_events(bundle.get("audit_events", ()))
+    _validate_deterministic_ids(bundle)
+
+
+_ID_SPECS = (
+    ("case_evidence", "case_evidence_id", "case_evidence"),
+    ("claims", "claim_id", "claim"),
+    ("claim_evidence", "claim_evidence_id", "claim_evidence"),
+    ("case_entities", "case_entity_id", "case_entity"),
+    ("case_events", "case_event_id", "case_event"),
+    ("contradictions", "contradiction_id", "contradiction"),
+    ("leads", "lead_id", "lead"),
+    ("findings", "finding_id", "finding"),
+    ("snapshots", "case_snapshot_id", "case_snapshot"),
+    ("audit_events", "audit_event_id", "audit_event"),
+)
+
+
+def _validate_deterministic_ids(bundle: dict) -> None:
+    """Every case-scoped record must carry a deterministic primary ID."""
+    for key, attr, kind in _ID_SPECS:
+        for record in bundle.get(key, ()):
+            if not is_deterministic_id(getattr(record, attr), kind):
+                raise ValidationError(f"{key} record has a non-deterministic {attr}")
