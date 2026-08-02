@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 import requests
 
-from scripts.config import PROCESSED_DIR, PROJECT_ROOT
+from scripts.config import PROCESSED_DIR
 
 OUT_PATH = PROCESSED_DIR / "pr_fsrs_subawards.csv"
 SUBAWARD_MASTER = PROCESSED_DIR / "pr_subawards_master.csv"
@@ -126,8 +126,10 @@ def _fetch_via_usaspending(session: requests.Session) -> pd.DataFrame:
     return pd.DataFrame(rows)[FSRS_COLUMNS]
 
 
-def _derive_from_subaward_master(subaward_master: Path = SUBAWARD_MASTER) -> pd.DataFrame | None:
+def _derive_from_subaward_master(subaward_master: Path | None = None) -> pd.DataFrame | None:
     """Derive pr_fsrs_subawards.csv from the existing usaspending subaward master."""
+    if subaward_master is None:
+        subaward_master = SUBAWARD_MASTER
     if not subaward_master.exists() or subaward_master.stat().st_size == 0:
         return None
     try:
@@ -158,10 +160,15 @@ def _derive_from_subaward_master(subaward_master: Path = SUBAWARD_MASTER) -> pd.
 
 
 def run(root: Path | None = None, force: bool = False) -> dict:
-    root = Path(root) if root is not None else PROJECT_ROOT
-    processed_dir = root / "data" / "staging" / "processed"
-    out_path = processed_dir / "pr_fsrs_subawards.csv"
-    subaward_master = processed_dir / "pr_subawards_master.csv"
+    if root is None:
+        # Late-bind the module constants so tests patching OUT_PATH /
+        # SUBAWARD_MASTER keep working for default-root callers.
+        out_path = OUT_PATH
+        subaward_master = SUBAWARD_MASTER
+    else:
+        processed_dir = Path(root) / "data" / "staging" / "processed"
+        out_path = processed_dir / "pr_fsrs_subawards.csv"
+        subaward_master = processed_dir / "pr_subawards_master.csv"
     if out_path.exists() and not force:
         try:
             df = pd.read_csv(out_path)
