@@ -161,9 +161,7 @@ def fetch_cycle(
                     "committee_name": item.get("committee_name", ""),
                     "candidate_id": item.get("candidate_id", ""),
                     "candidate_name": item.get("candidate_name", ""),
-                    "support_oppose_indicator": item.get(
-                        "support_oppose_indicator", ""
-                    ),
+                    "support_oppose_indicator": item.get("support_oppose_indicator", ""),
                     "expenditure_amount": item.get("expenditure_amount", ""),
                     "expenditure_date": item.get("expenditure_date", ""),
                     "office": item.get("office", ""),
@@ -185,10 +183,7 @@ def fetch_cycle(
 def run(root: Path, resume: bool) -> dict[str, Any]:
     logger = setup_logging("download_fec_schedule_e_resumable")
     output = root / "data/staging/processed/pr_fec_independent_expenditures.csv"
-    manifest_path = (
-        root
-        / "data/manifests/campaign_finance/fec_schedule_e_acquisition.json"
-    )
+    manifest_path = root / "data/manifests/campaign_finance/fec_schedule_e_acquisition.json"
     output.parent.mkdir(parents=True, exist_ok=True)
 
     cycles = list(range(START_CYCLE, current_cycle() + 1, 2))
@@ -233,11 +228,7 @@ def run(root: Path, resume: bool) -> dict[str, Any]:
                 )
                 continue
             cycle_rows, pages = fetch_cycle(session, cycle, logger)
-            retained = (
-                frame[frame["cycle"].astype(str) != str(cycle)]
-                if not frame.empty
-                else frame
-            )
+            retained = frame[frame["cycle"].astype(str) != str(cycle)] if not frame.empty else frame
             frame = pd.concat(
                 [retained, pd.DataFrame(cycle_rows, columns=COLUMNS)],
                 ignore_index=True,
