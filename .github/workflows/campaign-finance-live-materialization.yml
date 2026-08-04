@@ -80,12 +80,48 @@ jobs:
           import pandas as pd
           path = "data/staging/processed/pr_fec_disbursements.csv"
           rows = len(pd.read_csv(path, low_memory=False))
-          if rows <= 0:
-              raise SystemExit("Schedule B checkpoint is empty")
+          if rows != 3495:
+              raise SystemExit(f"Schedule B checkpoint row mismatch: {rows} != 3495")
           print(f"Restored Schedule B rows: {rows}")
           PY
 
-      - name: Fetch live FEC Schedule E with cycle checkpoints
+      - name: Restore latest Schedule E page checkpoint
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          artifacts_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=campaign-finance-live-materialization&per_page=100"
+          artifact_id="$(
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              "$artifacts_url" \
+            | jq -r '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].id // empty'
+          )"
+          if [[ -z "$artifact_id" ]]; then
+            echo "No prior Schedule E checkpoint artifact found; starting from page 1."
+            exit 0
+          fi
+          mkdir -p /tmp/schedule-e-checkpoint
+          curl --fail --location --retry 5 --retry-all-errors \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" \
+            --output /tmp/schedule-e-checkpoint.zip
+          unzip -q /tmp/schedule-e-checkpoint.zip -d /tmp/schedule-e-checkpoint
+          if [[ -d /tmp/schedule-e-checkpoint/data/checkpoints/campaign_finance/fec_schedule_e ]]; then
+            mkdir -p data/checkpoints/campaign_finance
+            cp -R /tmp/schedule-e-checkpoint/data/checkpoints/campaign_finance/fec_schedule_e \
+              data/checkpoints/campaign_finance/
+          fi
+          if [[ -f /tmp/schedule-e-checkpoint/data/manifests/campaign_finance/fec_schedule_e_acquisition.json ]]; then
+            mkdir -p data/manifests/campaign_finance
+            cp /tmp/schedule-e-checkpoint/data/manifests/campaign_finance/fec_schedule_e_acquisition.json \
+              data/manifests/campaign_finance/
+          fi
+
+      - name: Fetch live FEC Schedule E with page checkpoints
         shell: bash
         run: |
           set -o pipefail
@@ -111,6 +147,7 @@ jobs:
           retention-days: 14
           path: |
             reports/campaign_finance/
+            data/checkpoints/campaign_finance/fec_schedule_e/
             data/manifests/campaign_finance/
             data/staging/processed/pr_fec_contributions.csv
             data/staging/processed/pr_fec_committees.csv
