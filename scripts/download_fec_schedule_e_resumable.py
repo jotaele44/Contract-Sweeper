@@ -11,9 +11,13 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 import time
 from datetime import date, datetime, timezone
 from pathlib import Path
+from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pandas as pd
 import requests
@@ -51,7 +55,7 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def write_json(path: Path, payload: dict) -> None:
+def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -66,7 +70,9 @@ def load_frame(path: Path) -> pd.DataFrame:
     return frame[COLUMNS]
 
 
-def request_json(session: requests.Session, params: dict, logger) -> dict:
+def request_json(
+    session: requests.Session, params: dict[str, object], logger: Any
+) -> dict[str, Any]:
     delay = 5.0
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
@@ -77,12 +83,19 @@ def request_json(session: requests.Session, params: dict, logger) -> dict:
             )
             if response.status_code == 429:
                 retry_after = response.headers.get("Retry-After")
-                wait = float(retry_after) if retry_after and retry_after.isdigit() else max(60.0, delay)
+                wait = (
+                    float(retry_after)
+                    if retry_after and retry_after.isdigit()
+                    else max(60.0, delay)
+                )
                 logger.warning("Rate limited; retrying in %.1fs", wait)
                 time.sleep(wait)
                 continue
             response.raise_for_status()
-            return response.json()
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise RuntimeError("Schedule E response was not a JSON object")
+            return payload
         except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
             if attempt == MAX_ATTEMPTS:
                 raise RuntimeError(
@@ -100,8 +113,10 @@ def request_json(session: requests.Session, params: dict, logger) -> dict:
     raise RuntimeError("unreachable retry state")
 
 
-def fetch_cycle(session: requests.Session, cycle: int, logger) -> tuple[list[dict], int]:
-    rows: list[dict] = []
+def fetch_cycle(
+    session: requests.Session, cycle: int, logger: Any
+) -> tuple[list[dict[str, object]], int]:
+    rows: list[dict[str, object]] = []
     page = 1
     pages = 1
     while page <= pages:
@@ -119,8 +134,15 @@ def fetch_cycle(session: requests.Session, cycle: int, logger) -> tuple[list[dic
         )
         results = data.get("results", [])
         pagination = data.get("pagination", {})
+        if not isinstance(results, list):
+            raise RuntimeError("Schedule E results field was not a list")
+        if not isinstance(pagination, dict):
+            raise RuntimeError("Schedule E pagination field was not an object")
         pages = int(pagination.get("pages", 1) or 1)
-        for item in results:
+        for raw_item in results:
+            if not isinstance(raw_item, dict):
+                continue
+            item: dict[str, Any] = raw_item
             rows.append(
                 {
                     "cycle": cycle,
@@ -142,7 +164,7 @@ def fetch_cycle(session: requests.Session, cycle: int, logger) -> tuple[list[dic
     return rows, pages
 
 
-def run(root: Path, resume: bool) -> dict:
+def run(root: Path, resume: bool) -> dict[str, Any]:
     logger = setup_logging("download_fec_schedule_e_resumable")
     output = root / "data/staging/processed/pr_fec_independent_expenditures.csv"
     manifest_path = root / "data/manifests/campaign_finance/fec_schedule_e_acquisition.json"
@@ -151,15 +173,20 @@ def run(root: Path, resume: bool) -> dict:
     cycles = list(range(START_CYCLE, current_cycle() + 1, 2))
     frame = load_frame(output) if resume else pd.DataFrame(columns=COLUMNS)
     completed = sorted(
-        {int(value) for value in frame.get("cycle", pd.Series(dtype=str)).dropna() if str(value).isdigit()}
+        {
+            int(value)
+            for value in frame.get("cycle", pd.Series(dtype=str)).dropna()
+            if str(value).isdigit()
+        }
     )
-    manifest = {
+    cycle_pages: dict[str, int] = {}
+    manifest: dict[str, Any] = {
         "manifest_type": "fec_schedule_e_acquisition",
         "status": "running",
         "started_at": utc_now(),
         "planned_cycles": cycles,
         "completed_cycles": completed,
-        "cycle_pages": {},
+        "cycle_pages": cycle_pages,
         "rows": int(len(frame)),
         "resume": resume,
     }
@@ -182,16 +209,23 @@ def run(root: Path, resume: bool) -> dict:
                 logger.info("Schedule E cycle %s already checkpointed; skipping", cycle)
                 continue
             cycle_rows, pages = fetch_cycle(session, cycle, logger)
-            retained = frame[frame["cycle"].astype(str) != str(cycle)] if not frame.empty else frame
-            frame = pd.concat([retained, pd.DataFrame(cycle_rows, columns=COLUMNS)], ignore_index=True)
+            retained = (
+                frame[frame["cycle"].astype(str) != str(cycle)]
+                if not frame.empty
+                else frame
+            )
+            frame = pd.concat(
+                [retained, pd.DataFrame(cycle_rows, columns=COLUMNS)], ignore_index=True
+            )
             frame = frame[COLUMNS].drop_duplicates()
             frame.to_csv(output, index=False, encoding="utf-8")
             completed.append(cycle)
             completed = sorted(set(completed))
+            cycle_pages[str(cycle)] = pages
             manifest.update(
                 {
                     "completed_cycles": completed,
-                    "cycle_pages": {**manifest["cycle_pages"], str(cycle): pages},
+                    "cycle_pages": cycle_pages,
                     "rows": int(len(frame)),
                     "last_checkpoint_at": utc_now(),
                 }
