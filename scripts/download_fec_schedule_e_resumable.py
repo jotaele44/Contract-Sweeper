@@ -71,7 +71,9 @@ def load_frame(path: Path) -> pd.DataFrame:
 
 
 def request_json(
-    session: requests.Session, params: dict[str, object], logger: Any
+    session: requests.Session,
+    params: dict[str, str | int],
+    logger: Any,
 ) -> dict[str, Any]:
     delay = 5.0
     for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -114,7 +116,9 @@ def request_json(
 
 
 def fetch_cycle(
-    session: requests.Session, cycle: int, logger: Any
+    session: requests.Session,
+    cycle: int,
+    logger: Any,
 ) -> tuple[list[dict[str, object]], int]:
     rows: list[dict[str, object]] = []
     page = 1
@@ -215,7 +219,8 @@ def run(root: Path, resume: bool) -> dict[str, Any]:
                 else frame
             )
             frame = pd.concat(
-                [retained, pd.DataFrame(cycle_rows, columns=COLUMNS)], ignore_index=True
+                [retained, pd.DataFrame(cycle_rows, columns=COLUMNS)],
+                ignore_index=True,
             )
             frame = frame[COLUMNS].drop_duplicates()
             frame.to_csv(output, index=False, encoding="utf-8")
@@ -231,7 +236,11 @@ def run(root: Path, resume: bool) -> dict[str, Any]:
                 }
             )
             write_json(manifest_path, manifest)
-            logger.info("Schedule E cycle %s checkpointed with %s rows", cycle, len(cycle_rows))
+            logger.info(
+                "Schedule E cycle %s checkpointed with %s rows",
+                cycle,
+                len(cycle_rows),
+            )
     finally:
         session.close()
 
