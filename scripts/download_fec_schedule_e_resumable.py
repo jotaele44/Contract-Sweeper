@@ -57,7 +57,10 @@ def utc_now() -> str:
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def load_frame(path: Path) -> pd.DataFrame:
@@ -98,7 +101,11 @@ def request_json(
             if not isinstance(payload, dict):
                 raise RuntimeError("Schedule E response was not a JSON object")
             return payload
-        except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
+        except (
+            requests.Timeout,
+            requests.ConnectionError,
+            requests.HTTPError,
+        ) as exc:
             if attempt == MAX_ATTEMPTS:
                 raise RuntimeError(
                     f"Schedule E request failed after {MAX_ATTEMPTS} attempts: {exc}"
@@ -154,7 +161,9 @@ def fetch_cycle(
                     "committee_name": item.get("committee_name", ""),
                     "candidate_id": item.get("candidate_id", ""),
                     "candidate_name": item.get("candidate_name", ""),
-                    "support_oppose_indicator": item.get("support_oppose_indicator", ""),
+                    "support_oppose_indicator": item.get(
+                        "support_oppose_indicator", ""
+                    ),
                     "expenditure_amount": item.get("expenditure_amount", ""),
                     "expenditure_date": item.get("expenditure_date", ""),
                     "office": item.get("office", ""),
@@ -163,7 +172,12 @@ def fetch_cycle(
                     "category_code_full": item.get("category_code_full", ""),
                 }
             )
-        logger.info("Schedule E cycle %s: completed page %s/%s", cycle, page, pages)
+        logger.info(
+            "Schedule E cycle %s: completed page %s/%s",
+            cycle,
+            page,
+            pages,
+        )
         page += 1
     return rows, pages
 
@@ -171,7 +185,10 @@ def fetch_cycle(
 def run(root: Path, resume: bool) -> dict[str, Any]:
     logger = setup_logging("download_fec_schedule_e_resumable")
     output = root / "data/staging/processed/pr_fec_independent_expenditures.csv"
-    manifest_path = root / "data/manifests/campaign_finance/fec_schedule_e_acquisition.json"
+    manifest_path = (
+        root
+        / "data/manifests/campaign_finance/fec_schedule_e_acquisition.json"
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
 
     cycles = list(range(START_CYCLE, current_cycle() + 1, 2))
@@ -210,7 +227,10 @@ def run(root: Path, resume: bool) -> dict[str, Any]:
     try:
         for cycle in cycles:
             if resume and cycle in completed:
-                logger.info("Schedule E cycle %s already checkpointed; skipping", cycle)
+                logger.info(
+                    "Schedule E cycle %s already checkpointed; skipping",
+                    cycle,
+                )
                 continue
             cycle_rows, pages = fetch_cycle(session, cycle, logger)
             retained = (
