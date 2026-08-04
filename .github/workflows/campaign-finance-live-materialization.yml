@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/campaign-finance-live-materialization.yml"
       - "scripts/download_fec_committees.py"
+      - "scripts/download_fec_schedule_e_resumable.py"
       - "scripts/download_oce.py"
       - "scripts/gen_dashboard_snapshot.py"
       - "scripts/materialize_campaign_finance.py"
@@ -18,6 +19,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -30,6 +32,7 @@ jobs:
     timeout-minutes: 360
     env:
       FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+      SCHEDULE_B_ARTIFACT_ID: "8830412540"
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -56,31 +59,38 @@ jobs:
           grep -vE '^[[:space:]]*-e[[:space:]]' requirements.txt > /tmp/campaign-finance-requirements.txt
           python -m pip install -r /tmp/campaign-finance-requirements.txt
 
-      - name: Fetch live FEC committee master and Schedule B
+      - name: Restore certified Schedule B checkpoint
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/schedule-b-checkpoint
+          curl --fail --location --retry 5 --retry-all-errors \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SCHEDULE_B_ARTIFACT_ID}/zip" \
+            --output /tmp/schedule-b-checkpoint.zip
+          unzip -q /tmp/schedule-b-checkpoint.zip -d /tmp/schedule-b-checkpoint
+          cp -R /tmp/schedule-b-checkpoint/data .
+          cp -R /tmp/schedule-b-checkpoint/reports .
+          test -s data/staging/processed/pr_fec_committees.csv
+          test -s data/staging/processed/pr_fec_disbursements.csv
+          python - <<'PY'
+          import pandas as pd
+          path = "data/staging/processed/pr_fec_disbursements.csv"
+          rows = len(pd.read_csv(path, low_memory=False))
+          if rows <= 0:
+              raise SystemExit("Schedule B checkpoint is empty")
+          print(f"Restored Schedule B rows: {rows}")
+          PY
+
+      - name: Fetch live FEC Schedule E with cycle checkpoints
         shell: bash
         run: |
           set -o pipefail
           mkdir -p reports/campaign_finance
-          python scripts/download_fec_committees.py --force --skip-expenditures \
-            2>&1 | tee reports/campaign_finance/fec_schedule_b.txt
-
-      - name: Retain Schedule B checkpoint
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: campaign-finance-schedule-b-checkpoint
-          if-no-files-found: error
-          retention-days: 14
-          path: |
-            reports/campaign_finance/fec_schedule_b.txt
-            data/manifests/campaign_finance/fec_outflows_acquisition.json
-            data/staging/processed/pr_fec_committees.csv
-            data/staging/processed/pr_fec_disbursements.csv
-
-      - name: Fetch live FEC Schedule E
-        shell: bash
-        run: |
-          set -o pipefail
-          python scripts/download_fec_committees.py --skip-disbursements \
+          python scripts/download_fec_schedule_e_resumable.py --resume \
             2>&1 | tee reports/campaign_finance/fec_schedule_e.txt
 
       - name: Run strict campaign-finance materialization
