@@ -28,8 +28,7 @@ def run_git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
 
 def is_allowed_path(path: str, allowed_paths: list[str]) -> bool:
     return any(
-        path == allowed
-        or (allowed.endswith("/") and path.startswith(allowed))
+        path == allowed or (allowed.endswith("/") and path.startswith(allowed))
         for allowed in allowed_paths
     )
 
@@ -82,9 +81,7 @@ def validate(root: Path) -> dict[str, Any]:
 
     legacy_entries = legacy.get("entries", [])
     repository_capability_ids = set(binding["capability_ids"])
-    legacy_capability_ids = {
-        entry["capability_id"] for entry in legacy_entries
-    }
+    legacy_capability_ids = {entry["capability_id"] for entry in legacy_entries}
     if legacy_capability_ids != repository_capability_ids:
         errors.append("legacy parity mismatch")
 
@@ -117,10 +114,7 @@ def validate(root: Path) -> dict[str, Any]:
     if (root / ".git").exists():
         base_commit = binding["pinned_base_commit"]
         shallow_result = run_git(root, "rev-parse", "--is-shallow-repository")
-        is_shallow = (
-            shallow_result.returncode == 0
-            and shallow_result.stdout.strip() == "true"
-        )
+        is_shallow = shallow_result.returncode == 0 and shallow_result.stdout.strip() == "true"
         base_object = run_git(
             root,
             "cat-file",
@@ -153,9 +147,7 @@ def validate(root: Path) -> dict[str, Any]:
             if diff.returncode != 0:
                 errors.append("git diff failed")
             else:
-                changed_paths = [
-                    path for path in diff.stdout.splitlines() if path
-                ]
+                changed_paths = [path for path in diff.stdout.splitlines() if path]
                 allowed_paths = manifest["allowed_change_paths"]
                 for changed_path in changed_paths:
                     if not is_allowed_path(changed_path, allowed_paths):
@@ -164,13 +156,8 @@ def validate(root: Path) -> dict[str, Any]:
                 for legacy_surface in binding["legacy_surfaces"]:
                     legacy_prefix = legacy_surface.rstrip("/") + "/"
                     for changed_path in changed_paths:
-                        if changed_path == legacy_surface or changed_path.startswith(
-                            legacy_prefix
-                        ):
-                            errors.append(
-                                "legacy surface was modified: "
-                                f"{legacy_surface}"
-                            )
+                        if changed_path == legacy_surface or changed_path.startswith(legacy_prefix):
+                            errors.append(f"legacy surface was modified: {legacy_surface}")
 
             checks.extend(
                 [
