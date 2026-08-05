@@ -116,39 +116,69 @@ def validate(root: Path) -> dict[str, Any]:
 
     if (root / ".git").exists():
         base_commit = binding["pinned_base_commit"]
-        ancestry = run_git(root, "merge-base", "--is-ancestor", base_commit, "HEAD")
-        if ancestry.returncode != 0:
-            errors.append("pinned base is not an ancestor of HEAD")
-
-        diff = run_git(root, "diff", "--name-only", f"{base_commit}..HEAD")
-        if diff.returncode != 0:
-            errors.append("git diff failed")
-        else:
-            changed_paths = [
-                path for path in diff.stdout.splitlines() if path
-            ]
-            allowed_paths = manifest["allowed_change_paths"]
-            for changed_path in changed_paths:
-                if not is_allowed_path(changed_path, allowed_paths):
-                    errors.append(f"out-of-scope change: {changed_path}")
-
-            for legacy_surface in binding["legacy_surfaces"]:
-                legacy_prefix = legacy_surface.rstrip("/") + "/"
-                for changed_path in changed_paths:
-                    if changed_path == legacy_surface or changed_path.startswith(
-                        legacy_prefix
-                    ):
-                        errors.append(
-                            f"legacy surface was modified: {legacy_surface}"
-                        )
-
-        checks.extend(
-            [
-                "exact_base_ancestry",
-                "change_scope",
-                "legacy_non_modification",
-            ]
+        shallow_result = run_git(root, "rev-parse", "--is-shallow-repository")
+        is_shallow = (
+            shallow_result.returncode == 0
+            and shallow_result.stdout.strip() == "true"
         )
+        base_object = run_git(
+            root,
+            "cat-file",
+            "-e",
+            f"{base_commit}^{{commit}}",
+        )
+
+        if base_object.returncode != 0:
+            if is_shallow:
+                checks.append("git_history_deferred_shallow_checkout")
+            else:
+                errors.append("pinned base commit object is unavailable")
+        else:
+            ancestry = run_git(
+                root,
+                "merge-base",
+                "--is-ancestor",
+                base_commit,
+                "HEAD",
+            )
+            if ancestry.returncode != 0:
+                errors.append("pinned base is not an ancestor of HEAD")
+
+            diff = run_git(
+                root,
+                "diff",
+                "--name-only",
+                f"{base_commit}..HEAD",
+            )
+            if diff.returncode != 0:
+                errors.append("git diff failed")
+            else:
+                changed_paths = [
+                    path for path in diff.stdout.splitlines() if path
+                ]
+                allowed_paths = manifest["allowed_change_paths"]
+                for changed_path in changed_paths:
+                    if not is_allowed_path(changed_path, allowed_paths):
+                        errors.append(f"out-of-scope change: {changed_path}")
+
+                for legacy_surface in binding["legacy_surfaces"]:
+                    legacy_prefix = legacy_surface.rstrip("/") + "/"
+                    for changed_path in changed_paths:
+                        if changed_path == legacy_surface or changed_path.startswith(
+                            legacy_prefix
+                        ):
+                            errors.append(
+                                "legacy surface was modified: "
+                                f"{legacy_surface}"
+                            )
+
+            checks.extend(
+                [
+                    "exact_base_ancestry",
+                    "change_scope",
+                    "legacy_non_modification",
+                ]
+            )
 
     return {
         "schema_version": "1.0",
