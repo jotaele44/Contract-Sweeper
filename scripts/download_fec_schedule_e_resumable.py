@@ -146,9 +146,7 @@ def normalize_rows(results: list[Any], cycle: int) -> list[dict[str, Any]]:
                 "committee_name": raw.get("committee_name", ""),
                 "candidate_id": raw.get("candidate_id", ""),
                 "candidate_name": raw.get("candidate_name", ""),
-                "support_oppose_indicator": raw.get(
-                    "support_oppose_indicator", ""
-                ),
+                "support_oppose_indicator": raw.get("support_oppose_indicator", ""),
                 "expenditure_amount": raw.get("expenditure_amount", ""),
                 "expenditure_date": raw.get("expenditure_date", ""),
                 "office": raw.get("office", ""),
@@ -168,19 +166,14 @@ def valid_checkpoint(path: Path, receipt: dict[str, Any]) -> bool:
     return (
         path.exists()
         and receipt.get("sha256") == sha256_file(path)
-        and int(receipt.get("rows", -1))
-        == len(pd.read_csv(path, dtype=str, low_memory=False))
+        and int(receipt.get("rows", -1)) == len(pd.read_csv(path, dtype=str, low_memory=False))
     )
 
 
 def assemble_output(checkpoint_dir: Path, output: Path) -> pd.DataFrame:
     page_files = sorted(checkpoint_dir.glob("cycle=*/batch=*/page=*.csv"))
     frames = [pd.read_csv(path, dtype=str, low_memory=False) for path in page_files]
-    frame = (
-        pd.concat(frames, ignore_index=True)
-        if frames
-        else pd.DataFrame(columns=COLUMNS)
-    )
+    frame = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=COLUMNS)
     for column in COLUMNS:
         if column not in frame.columns:
             frame[column] = ""
@@ -302,8 +295,7 @@ def run(root: Path, resume: bool) -> dict[str, Any]:
                             "next_page": page + 1,
                             "checkpoint_pages": len(manifest["page_receipts"]),
                             "checkpoint_rows": sum(
-                                int(item["rows"])
-                                for item in manifest["page_receipts"].values()
+                                int(item["rows"]) for item in manifest["page_receipts"].values()
                             ),
                         }
                     )
