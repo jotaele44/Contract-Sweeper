@@ -52,7 +52,7 @@ jobs:
           PILOT_REPORT_PATH: ${{ runner.temp }}/moneysweep-pilot-evidence/visual-check-report.json
         run: timeout --signal=TERM 420s npm run test:visual
       - name: Upload visual verification evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: moneysweep-federation-design-pilot-evidence
           path: ${{ runner.temp }}/moneysweep-pilot-evidence
