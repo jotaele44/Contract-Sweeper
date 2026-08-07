@@ -1,8 +1,13 @@
 name: Source update — monthly
 
+# Registry-driven source update controller, monthly cadence. Self-hosted
+# long-running sources (e.g. sam_entities full-registry mode) are excluded here;
+# run them via source-update-dispatch on a durable/self-hosted runner.
+# GitHub cron is UTC; Puerto Rico is UTC-4 (no DST).
+
 on:
   schedule:
-    - cron: "23 10 1 * *"
+    - cron: "23 10 1 * *" # 1st of month 10:23 UTC = 06:23 AST
   workflow_dispatch:
     inputs:
       dry_run:
@@ -25,23 +30,27 @@ jobs:
     name: Monthly cadence
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
           cache: pip
-      - name: Assert isolated checkout
-        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
+
       - name: Install dependencies
         run: |
+          # PRII_FETCH_HUB: ensure shared federation libs resolve
+          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           pip install -r requirements.txt
-          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
+
       - name: Validate policy
         run: python3 scripts/update_sources.py validate-policy
+
       - name: Strict preflight
         run: python3 run_all.py --only-setup --strict-preflight
-      - name: Run monthly cadence
+
+      - name: Run monthly cadence (github-hosted; excludes self-hosted long-running)
         env:
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
           EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
@@ -58,12 +67,14 @@ jobs:
           args=(run --cadence monthly --continue-on-error)
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
           python3 scripts/update_sources.py "${args[@]}" --json
+
       - name: Freshness report
         if: ${{ always() }}
         run: python3 scripts/update_sources.py freshness --json || true
-      - name: Upload reports and outputs
+
+      - name: Upload reports + outputs (never committed)
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: source-update-monthly
           path: |

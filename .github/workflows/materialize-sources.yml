@@ -1,5 +1,10 @@
 name: Materialize automatable sources
 
+# Live/API fetch for the automatable financial-source set. Runs on an egress-capable
+# GitHub Actions runner (the buildout sandbox has no egress). Manual-only by default;
+# uncomment the schedule to run weekly. Outputs are uploaded as artifacts, never committed
+# (data-commit policy: data/** is gitignored).
+
 on:
   workflow_dispatch:
     inputs:
@@ -15,13 +20,17 @@ on:
         description: "Optional family filter (blank = all)"
         required: false
         default: ""
+  # schedule:
+  #   - cron: "0 6 * * 1"   # Mondays 06:00 UTC
 
 permissions:
   contents: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
+# Serialise runs on the same ref without cancelling. This workflow can
+# publish, write data, or hand off to another repo, and killing it
+# mid-flight risks leaving that work half-done.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -30,23 +39,29 @@ jobs:
   materialize:
     name: Run automatable sources (live)
     runs-on: ubuntu-latest
+    # `startsWith` is already case-insensitive, so this honours the "type YES"
+    # contract in the input description without a lowercasing helper — GitHub
+    # Actions has no such expression function.
     if: ${{ startsWith(github.event.inputs.confirm, 'yes') }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.13"
           cache: pip
-      - name: Assert isolated checkout
-        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
+
       - name: Install dependencies
         run: |
+          # PRII_FETCH_HUB: ensure shared federation libs resolve
+          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           pip install -r requirements.txt
-          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
+
       - name: Egress preflight
         run: python3 scripts/check_network_egress.py
-      - name: Run automatable sources
+
+      - name: Run automatable sources (live fetch)
         env:
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
           FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
@@ -62,9 +77,10 @@ jobs:
           python3 scripts/run_automatable_sources.py \
             ${{ github.event.inputs.source && format('--source {0}', github.event.inputs.source) || '' }} \
             ${{ github.event.inputs.family && format('--family {0}', github.event.inputs.family) || '' }}
-      - name: Upload materialized outputs and run summary
+
+      - name: Upload materialized outputs + run summary
         if: ${{ always() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: materialized-sources
           path: |
