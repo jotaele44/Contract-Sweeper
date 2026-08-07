@@ -263,11 +263,23 @@ def run(root: Path | None = None, *, strict: bool = False) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--strict", action="store_true", help="Exit non-zero on any blocking gate")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Retained for compatibility; blocking-gate failure is the default exit behavior",
+    )
+    parser.add_argument(
+        "--report-only",
+        action="store_true",
+        help="Write the report but exit 0 even on blocking failures (explicit advisory mode)",
+    )
     args = parser.parse_args()
     report = run(strict=args.strict)
     print(json.dumps(report, indent=2, ensure_ascii=False))
-    return 0 if report["ok"] or not args.strict else 1
+    # Fail closed by default: the source controller registers this script as
+    # the materialization gate with no arguments, so a blocking failure must
+    # not be recordable as a successful source update.
+    return 0 if report["ok"] or args.report_only else 1
 
 
 if __name__ == "__main__":

@@ -382,7 +382,6 @@ def run(
             dtype=str,
             low_memory=False,
         )
-        committees = committee_frame.to_dict("records")
     else:
         logger.info("Phase 1: fetching PR-linked FEC committees")
         session = _session(api_key)

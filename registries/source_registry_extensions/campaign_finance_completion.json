@@ -9,8 +9,7 @@
       "source_url": "https://data.oce.pr.gov/resource/kdwd-nb6g.json",
       "producer_script": "scripts/download_oce.py",
       "expected_outputs": [
-        "data/staging/processed/pr_oce_donations.csv",
-        "data/staging/processed/pr_oce_reports.csv"
+        "data/staging/processed/pr_oce_donations.csv"
       ],
       "update_cadence": "monthly",
       "validation_threshold": {
@@ -30,7 +29,7 @@
         "data/staging/processed/pr_campaign_finance_recipient_resolution.csv",
         "data/staging/processed/pr_campaign_finance_edges.csv"
       ],
-      "update_cadence": "after_source_refresh",
+      "update_cadence": "ad_hoc",
       "validation_threshold": {
         "min_rows": 1
       },
@@ -45,7 +44,7 @@
       "expected_outputs": [
         "data/manifests/campaign_finance/campaign_finance_validation.json"
       ],
-      "update_cadence": "after_source_refresh",
+      "update_cadence": "ad_hoc",
       "validation_threshold": {
         "min_rows": 1
       },

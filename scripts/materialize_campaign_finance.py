@@ -101,7 +101,16 @@ def run(
 
     validation = validate_campaign_finance_materialization.run(root=root, strict=strict)
     results["validation"] = validation
-    results["status"] = "OK" if validation["ok"] else "INCOMPLETE"
+    # A stale-but-valid file on disk must not mask a failed ladder step: any
+    # recorded step ERROR blocks the overall result alongside file validation.
+    step_errors = sorted(
+        name
+        for name, value in results.items()
+        if isinstance(value, dict) and value.get("status") == "ERROR"
+    )
+    if step_errors:
+        results["step_errors"] = step_errors
+    results["status"] = "OK" if validation["ok"] and not step_errors else "INCOMPLETE"
 
     out_dir = root / "data" / "manifests" / "campaign_finance"
     out_dir.mkdir(parents=True, exist_ok=True)

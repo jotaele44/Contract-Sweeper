@@ -124,7 +124,17 @@ def _group_entities(records, *, kind: str) -> pd.DataFrame:
     output = []
     id_field = f"fec_{kind}_id"
     entity_field = f"{kind}_entity_id"
-    for normalized, group in frame.groupby("normalized_name", sort=True):
+    # Authoritative identity first: records carrying a FEC ID group by that ID
+    # (name variants collapse into aliases; distinct IDs sharing a name stay
+    # distinct). Only ID-less records fall back to normalized-name identity.
+    frame["_group_key"] = [
+        f"id:{fid}" if fid else f"name:{norm}"
+        for fid, norm in zip(
+            frame[id_field].map(lambda v: str(v).strip()), frame["normalized_name"]
+        )
+    ]
+    for _, group in frame.groupby("_group_key", sort=True):
+        normalized = _first(group["normalized_name"])
         fec_id = _first(group[id_field])
         sources = sorted(set(group["source"]))
         confidence = (
