@@ -36,7 +36,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install pinned validation dependencies
-        run: python -m pip install PyYAML==6.0.3 pytest==9.0.2
+        run: python -m pip install PyYAML==6.0.3 pytest==9.0.2 pytest-cov==7.0.0
       - name: Validate workflow structure and safety invariants
         run: python scripts/validate_github_workflows.py
       - name: Exercise all three network-free preflight decisions
