@@ -51,4 +51,4 @@ jobs:
             --workflow sam-opportunities-fetch --mode preflight --confirm no \
             --confirm-secondary no --days 365
       - name: Run focused regression tests
-        run: python -m pytest -q tests/test_live_fetch_dispatch.py tests/test_workflow_static_validation.py
+        run: python -m pytest -q -o addopts='' tests/test_live_fetch_dispatch.py tests/test_workflow_static_validation.py
