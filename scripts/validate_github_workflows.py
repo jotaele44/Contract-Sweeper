@@ -35,8 +35,7 @@ def _walk(node: Any, path: tuple[str, ...] = ()):
 
 def _expression_has_unsupported_helper(text: str) -> bool:
     return any(
-        UNSUPPORTED_FUNCTIONS.search(expression)
-        for expression in EXPRESSION_BLOCKS.findall(text)
+        UNSUPPORTED_FUNCTIONS.search(expression) for expression in EXPRESSION_BLOCKS.findall(text)
     )
 
 
