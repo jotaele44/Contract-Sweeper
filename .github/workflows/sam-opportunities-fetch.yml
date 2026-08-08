@@ -3,16 +3,22 @@ name: SAM Opportunities fetch
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: "preflight validates only; fetch permits download after exact confirmations"
+        required: true
+        type: choice
+        options: [preflight, fetch]
+        default: preflight
       confirm:
-        description: "Type 'YES' (case-insensitive) to confirm fetch"
-        required: true
-        default: "no"
+        description: "Live fetch only: type YES exactly"
+        required: false
+        default: ""
       confirm_secondary:
-        description: "Type 'FETCH' (case-insensitive) to allow actual downloads"
-        required: true
-        default: "no"
+        description: "Live fetch only: type FETCH exactly"
+        required: false
+        default: ""
       days:
-        description: "Lookback window in days (default 365; >365 is split into API-legal windows)"
+        description: "Lookback window in days (1-3650; default 365)"
         required: false
         default: "365"
 
@@ -30,35 +36,108 @@ jobs:
   fetch_sam_opportunities:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.13'
-          cache: pip
-      - name: Assert isolated checkout
-        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
-      - name: Install dependencies
+          python-version: "3.13"
+
+      - name: Validate fail-closed dispatch
+        id: validate_dispatch
+        shell: bash
+        env:
+          MODE: ${{ inputs.mode }}
+          CONFIRM: ${{ inputs.confirm }}
+          CONFIRM_SECONDARY: ${{ inputs.confirm_secondary }}
+          DAYS: ${{ inputs.days }}
         run: |
-          pip install -r requirements.txt
-          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
-      - name: Fetch SAM.gov opportunities
-        id: fetch
-        if: ${{ startsWith(github.event.inputs.confirm, 'yes') && startsWith(github.event.inputs.confirm_secondary, 'fetch') }}
+          set -euo pipefail
+          python scripts/validate_live_fetch_dispatch.py \
+            --workflow sam-opportunities-fetch \
+            --mode "$MODE" \
+            --confirm "$CONFIRM" \
+            --confirm-secondary "$CONFIRM_SECONDARY" \
+            --days "$DAYS"
+          python -m py_compile scripts/download_sam_opportunities.py
+          if [[ "$MODE" == "fetch" ]]; then
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify SAM credential for live fetch
+        if: ${{ steps.validate_dispatch.outputs.authorized == 'true' }}
         env:
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+        shell: bash
         run: |
-          if [ -z "$SAM_API_KEY" ]; then
-            echo "SAM_API_KEY not set — skipping fetch."
-            exit 0
-          fi
-          echo "fetched=true" >> "$GITHUB_OUTPUT"
-          echo "Starting SAM.gov opportunities fetch..."
-          python3 scripts/download_sam_opportunities.py --force --days "${{ github.event.inputs.days }}"
+          set -euo pipefail
+          test -n "$SAM_API_KEY" || { echo "SAM_API_KEY is required" >&2; exit 2; }
+
+      - name: Install dependencies for live fetch
+        if: ${{ steps.validate_dispatch.outputs.authorized == 'true' }}
+        run: |
+          set -euo pipefail
+          test ! -e "../thehub-pr" || {
+            echo "isolated checkout violated: ../thehub-pr exists before install" >&2
+            exit 1
+          }
+          pip install -r requirements.txt
+          test ! -e "../thehub-pr" || {
+            echo "mandatory sibling checkout detected after install" >&2
+            exit 1
+          }
+
+      - name: Fetch SAM.gov opportunities
+        if: ${{ steps.validate_dispatch.outputs.authorized == 'true' }}
+        env:
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+          DAYS: ${{ inputs.days }}
+        run: python scripts/download_sam_opportunities.py --force --days "$DAYS"
+
       - name: Upload SAM opportunities artifact
-        if: ${{ steps.fetch.outputs.fetched == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: ${{ always() && steps.validate_dispatch.outputs.authorized == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: sam-opportunities
+          name: sam-opportunities-${{ github.run_id }}
           path: data/staging/processed/pr_sam_opportunities.csv
           if-no-files-found: ignore
+
+      - name: Write redacted dispatch receipt
+        if: ${{ always() }}
+        env:
+          AUTHORIZED: ${{ steps.validate_dispatch.outputs.authorized }}
+          MODE: ${{ inputs.mode }}
+          DAYS: ${{ inputs.days }}
+        run: |
+          mkdir -p dispatch-receipt
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          raw = os.environ.get("DAYS", "")
+          days = None
+          if raw.isascii() and raw.isdigit() and len(raw) <= 4:
+              value = int(raw, 10)
+              if 1 <= value <= 3650:
+                  days = value
+          authorized = os.environ.get("AUTHORIZED") == "true"
+          Path("dispatch-receipt/sam-opportunities-fetch.json").write_text(
+              json.dumps({
+                  "schemaVersion": "1.0.0",
+                  "workflow": "sam-opportunities-fetch",
+                  "mode": os.environ.get("MODE", "unknown"),
+                  "authorized": authorized,
+                  "liveFetchAuthorized": authorized,
+                  "days": days,
+              }, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload dispatch receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sam-opportunities-fetch-dispatch-receipt-${{ github.run_id }}
+          path: dispatch-receipt/sam-opportunities-fetch.json
+          if-no-files-found: error
