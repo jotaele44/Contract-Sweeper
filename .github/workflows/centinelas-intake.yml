@@ -1,15 +1,5 @@
 name: Centinelas intake
 
-# Event-driven export hop 1 (receiver): fires when centinelas-pr emits a
-# `centinelas-signal` repository_dispatch. Materializes the signal into intake/,
-# runs the existing ingest producer to build the pre-official located-finance
-# candidate streams, and uploads them as an artifact.
-#
-# Data policy: intake/ and exports/ are gitignored — those stay artifacts. The
-# committed federation package (data/exports/canonical_v1_federation/) is NOT
-# gitignored, so the candidate is materialized into it (as a funding_awards row)
-# and committed, then the Hub is notified to re-aggregate the committed packages.
-
 on:
   repository_dispatch:
     types: [centinelas-signal]
@@ -17,9 +7,6 @@ on:
 permissions:
   contents: write
 
-# Serialise runs on the same ref without cancelling. This workflow can
-# publish, write data, or hand off to another repo, and killing it
-# mid-flight risks leaving that work half-done.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -28,13 +15,12 @@ jobs:
   intake:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
         with:
           python-version: "3.13"
           cache: pip
-
-      - name: Materialize Centinelas drop into intake/
+      - name: Materialize Centinelas drop into intake
         env:
           SIGNAL: ${{ toJSON(github.event.client_payload.signal) }}
           ITEM_ID: ${{ github.event.client_payload.item_id }}
@@ -44,25 +30,16 @@ jobs:
           printf '%s' "$SIGNAL" > "intake/${ITEM_ID}.json"
           echo "Wrote intake/${ITEM_ID}.json"
           cat "intake/${ITEM_ID}.json"
-
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           pip install -r requirements.txt
-
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Ingest Centinelas signals
         run: python3 scripts/ingest_centinelas_signals.py
-
-      # Materialize the candidate into the committed canonical package as a
-      # funding_awards row (federation_export folds in
-      # exports/centinelas_intake/funding_awards.jsonl when present).
       - name: Regenerate federation package
         run: python3 scripts/federation_export.py --mode test
-
-      # Commit the refreshed package so the Hub's git-pull sees the new candidate.
-      # Best-effort: if main is branch-protected, the push is skipped and the
-      # package is still delivered as an artifact below (operator can apply it).
       - name: Commit refreshed federation package
         id: commit
         run: |
@@ -77,25 +54,20 @@ jobs:
             if git push origin "HEAD:${{ github.ref_name }}"; then
               echo "pushed=true" >> "$GITHUB_OUTPUT"
             else
-              echo "push failed (branch protection?) — package delivered as artifact instead"
+              echo "push failed — package delivered as artifact instead"
               echo "pushed=false" >> "$GITHUB_OUTPUT"
             fi
           fi
-
-      - name: Upload candidate streams + federation package
+      - name: Upload candidate streams and federation package
         if: ${{ always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: centinelas-intake-candidates
           path: |
             exports/centinelas_intake
             data/exports/canonical_v1_federation
           if-no-files-found: ignore
-
-      # Hop 2 trigger: notify the Hub only when the refreshed package was actually
-      # pushed — otherwise the Hub would re-aggregate stale git state and miss the
-      # candidate (which is only in the uploaded artifact). No push => no dispatch.
-      - name: Notify Hub (moneysweep-export repository_dispatch)
+      - name: Notify Hub
         if: ${{ success() && steps.commit.outputs.pushed == 'true' }}
         env:
           FEDERATION_DISPATCH_TOKEN: ${{ secrets.FEDERATION_DISPATCH_TOKEN }}
