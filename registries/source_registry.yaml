@@ -605,6 +605,58 @@ sources:
   validation_threshold:
     min_rows: 1
   update_cadence: quarterly
+- source_id: act_transition_ppp
+  family: infrastructure
+  required: false
+  authentication: none
+  endpoint_url: https://www.act.pr.gov/
+  producer_script: scripts/parse_act_transition_ppp.py
+  expected_outputs:
+  - data/staging/processed/pr_ppp_concession_contracts.csv
+  schema_version: r5_v1
+  validation_threshold:
+    min_rows: 1
+  update_cadence: one_time
+  notes: P3 concession contracts extracted from the committed ACT/ACUDEN transition
+    report workbook (data/raw/act_transition/reextraction_2026-07/). Source document
+    is already in-repo, so this needs no operator drop. Selection is by controlled
+    concessionaire name list, not keyword search.
+- source_id: prasa_completed_projects_ppp
+  family: infrastructure
+  required: false
+  authentication: manual_export
+  endpoint_url: https://www.acueductospr.com/
+  producer_script: scripts/parse_aaa_ports_pdf.py
+  expected_outputs:
+  - data/staging/processed/pr_ports_airports_contracts.csv
+  schema_version: r5_v1
+  validation_threshold:
+    min_rows: 1
+  manual_drop_dir: data/raw/documents/
+  update_cadence: yearly
+  materialization_blocked: true
+  blocking_reason: completed_projects_AAA.pdf is not in the repository; the parser and
+    gate exist but no row can be promoted until an operator drops the file.
+  notes: PRASA completed-projects PDF. Parser exists (scripts/parse_aaa_ports_pdf.py)
+    and degrades to an empty result while the source file is absent.
+- source_id: prasa_consulting_engineer_ppp
+  family: infrastructure
+  required: false
+  authentication: manual_export
+  endpoint_url: https://emma.msrb.org/
+  producer_script: scripts/parse_aaa_ports_pdf.py
+  expected_outputs:
+  - data/staging/processed/pr_ports_airports_contracts.csv
+  schema_version: r5_v1
+  validation_threshold:
+    min_rows: 1
+  manual_drop_dir: data/raw/documents/
+  update_cadence: yearly
+  materialization_blocked: true
+  blocking_reason: FY2024 CER_Final.pdf is not in the repository; the parser and gate
+    exist but no row can be promoted until an operator drops the file.
+  notes: PRASA FY2024 Consulting Engineer report, a disclosed source for capital and
+    concession programme status.
 - source_id: pr_pensions
   family: territorial
   required: false

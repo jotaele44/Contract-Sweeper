@@ -1,0 +1,20 @@
+{
+  "concessionaires": {
+    "Autopistas Metropolitanas de Puerto Rico": {
+      "contracts": 22,
+      "project_hint": "PR-22 and PR-5 toll road concession",
+      "total_value": 2398309500.0
+    },
+    "Autopistas de Puerto Rico y Compa\u00f1\u00eda": {
+      "contracts": 3,
+      "project_hint": "Teodoro Moscoso Bridge toll concession",
+      "total_value": 979208.0
+    }
+  },
+  "generated_at": "2026-08-09T21:40:08.592689+00:00",
+  "producer_script": "scripts/parse_act_transition_ppp.py",
+  "row_count": 25,
+  "source_inputs": [
+    "data/raw/act_transition/reextraction_2026-07/contratos_vigentes_complete_extraction.xlsx"
+  ]
+}

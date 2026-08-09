@@ -17,7 +17,7 @@ def test_current_status_matches_authoritative_readiness() -> None:
     status = _read("reports/current_status.json")
     readiness = _read("reports/materialization_readiness.json")
     registry = status["source_registry_current"]
-    assert registry["total_sources"] == readiness["total_sources"] == 151
+    assert registry["total_sources"] == readiness["total_sources"] == 154
     assert (
         registry["source_ids_sha256"] == readiness["source_count_provenance"]["source_ids_sha256"]
     )
@@ -45,11 +45,18 @@ def test_status_records_current_base_and_last_certified_head() -> None:
 def test_coverage_uses_current_certified_operator_denominator() -> None:
     coverage = _read("reports/current_status.json")["materialization_coverage"]
     snapshot = coverage["local_operator_snapshot"]
+    # The operator corpus was measured against a 151-source registry. Three PPP
+    # sources were registered afterwards, so the audit is stale relative to the
+    # live registry: its own denominator is unchanged and its counts stay valid
+    # for that denominator, but the two are no longer comparable. Re-measuring
+    # needs an operator machine — this checkout has no such corpus, so the
+    # snapshot must not be regenerated here.
     assert coverage["evidence_registry_total"] == 151
-    assert coverage["current_registry_total"] == 151
-    assert coverage["denominator_comparable"] is True
+    assert coverage["current_registry_total"] == 154
+    assert coverage["denominator_comparable"] is False
+    assert coverage["denominator_drift_note"]
     assert coverage["probe_ran"] is False
-    assert coverage["registry_digest_parity"] is True
+    assert coverage["registry_digest_parity"] is False
     assert coverage["status_count_parity"] is True
     assert snapshot["fully_materialized"] == 67
     assert snapshot["partially_materialized"] == 11
