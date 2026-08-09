@@ -40,7 +40,7 @@
     ]
   },
   "hub_callable_commands": {
-    "setup": "[ -d ../thehub-pr ] || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; python3 run_all.py --only-setup",
+    "setup": "python3 run_all.py --only-setup",
     "strict_preflight": "python3 run_all.py --only-setup --strict-preflight",
     "full_pipeline": "python3 run_all.py --strict-preflight",
     "materialization_matrix": "python3 scripts/build_source_recovery_matrix.py",
