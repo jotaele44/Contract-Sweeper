@@ -77,11 +77,16 @@ jobs:
       - name: Install dependencies for live fetch
         if: ${{ steps.validate_dispatch.outputs.authorized == 'true' }}
         run: |
-          if [ ! -d ../thehub-pr ]; then
-            git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || \
-              git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
-          fi
+          set -euo pipefail
+          test ! -e "../thehub-pr" || {
+            echo "isolated checkout violated: ../thehub-pr exists before install" >&2
+            exit 1
+          }
           pip install -r requirements.txt
+          test ! -e "../thehub-pr" || {
+            echo "mandatory sibling checkout detected after install" >&2
+            exit 1
+          }
 
       - name: Fetch SAM.gov opportunities
         if: ${{ steps.validate_dispatch.outputs.authorized == 'true' }}
