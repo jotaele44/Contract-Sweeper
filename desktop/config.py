@@ -1,7 +1,7 @@
 """Desktop-wrapper configuration for this repo.
 
-The desktop/ folder is a shared PRII federation template; only this file
-differs between repos.
+The desktop/ folder is a shared federation template; only this file differs
+between repos.
 """
 
 from __future__ import annotations
@@ -10,8 +10,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# Window title of the desktop app.
-APP_TITLE = "MoneySweep — PRII Public Money Monitor"
+# User-facing window title of the desktop app.
+APP_TITLE = "MoneySweep"
 
 # Dotted import path of the FastAPI application object.
 APP_IMPORT = "server.backend.main:app"
