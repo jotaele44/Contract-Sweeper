@@ -1,21 +1,13 @@
 name: Campaign Finance Live Materialization
 
+# Operator-dispatched only. This job performs a live FEC/OCE acquisition and
+# restores a *certified* Schedule A output from a retained Actions artifact.
+# Both preconditions — live API credentials and an unexpired certified artifact
+# — exist only when an operator deliberately runs a re-acquisition, so a
+# pull_request trigger could never do anything but fail closed on every PR that
+# happened to touch these paths. Dispatch it from the Actions tab when
+# re-acquiring; the fail-closed gates then certify that run.
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/campaign-finance-live-materialization.yml"
-      - "scripts/download_fec_committees.py"
-      - "scripts/download_fec_schedule_e_resumable.py"
-      - "scripts/download_oce.py"
-      - "scripts/gen_dashboard_snapshot.py"
-      - "scripts/materialize_campaign_finance.py"
-      - "scripts/validate_campaign_finance_materialization.py"
-      - "scripts/build_campaign_finance_entities.py"
-      - "reports/completeness_matrix.csv"
-      - "reports/completeness_matrix.json"
-      - "skills/**"
   workflow_dispatch:
 
 permissions:
