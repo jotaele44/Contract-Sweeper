@@ -16,7 +16,7 @@ would assert that an ordinary road-repair contract is a public-private
 partnership.
 
 Input:  data/raw/act_transition/reextraction_2026-07/contratos_vigentes_complete_extraction.xlsx
-Output: data/staging/processed/pr_ppp_concession_contracts.csv
+Output: data/reference/pr_ppp_concession_contracts.csv
         reports/act_transition_ppp_extract.json
 
 Usage:
@@ -43,7 +43,7 @@ SOURCE_XLSX = (
     "data/raw/act_transition/reextraction_2026-07/contratos_vigentes_complete_extraction.xlsx"
 )
 SHEET = "Combined_Canonical"
-OUT = "data/staging/processed/pr_ppp_concession_contracts.csv"
+OUT = "data/reference/pr_ppp_concession_contracts.csv"
 REPORT_OUT = "reports/act_transition_ppp_extract.json"
 
 # Known Puerto Rico P3 concessionaires, keyed by the normalized contractor name

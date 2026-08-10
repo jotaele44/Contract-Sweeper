@@ -5,14 +5,22 @@ Two source surfaces, read in order:
 1. ``data/reference/pr_infrastructure_projects.csv`` — the committed reference
    seed of well-documented public PR infrastructure programs and P3 concessions,
    whose ``lead_entity`` is the **public agency** that owns the asset.
-2. ``data/staging/processed/pr_p3_contracts.csv`` — the P3 Authority / AAFAF
-   acquisition surface produced by ``scripts/download_p3.py``, whose lead is the
-   **concessionaire** operating under the agreement. Every row from here is
-   ``project_type=ppp`` by construction.
+2. ``data/reference/pr_p3_concessions.csv`` — promoted P3 Authority / AAFAF
+   concessions, whose lead is the **concessionaire** operating under the
+   agreement. Every row from here is ``project_type=ppp`` by construction.
 
-The second surface used to be a dead end: ``download_p3.py`` wrote it and nothing
-read it, so scraped and seeded concessions never met. Reading both here is what
-makes "every known PPP" a single canonical table rather than two half-lists.
+The second surface used to be a dead end: ``download_p3.py`` wrote a staging CSV
+and nothing read it, so scraped and seeded concessions never met. Reading both
+here is what makes "every known PPP" a single canonical table rather than two
+half-lists.
+
+Note the second input is the *promoted reference* file, not the scraper's raw
+staging output. ``data/staging/processed/`` is gitignored, so an ingester reading
+it would build a canonical table that cannot be reproduced from a clean checkout
+— the committed projects.csv would not match what CI regenerates. Promotion
+(``download_p3.py --promote``) is therefore a deliberate reviewed step, which is
+also what the repo's "manual sources stay staged until the gates pass" rule
+already asks for.
 
 Each project's ``lead_entity`` resolves to an existing canonical entity (and
 optional ``municipality`` to an existing municipality node) via the shared
@@ -51,12 +59,12 @@ from scripts.build_evidence import Evidence, make_evidence, merge_evidence
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PROJECTS_SOURCE = "data/reference/pr_infrastructure_projects.csv"
-P3_SOURCE = "data/staging/processed/pr_p3_contracts.csv"
+P3_SOURCE = "data/reference/pr_p3_concessions.csv"
 PROJECTS_OUT = "data/canonical_v1/projects.csv"
 EVIDENCE_OUT = "data/canonical_v1/evidence.csv"
 MANIFEST_OUT = "data/manifests/canonical_v1/projects.json"
 SOURCE_NAME = "PR Infrastructure Projects (reference seed)"
-P3_SOURCE_NAME = "PR P3 Authority / AAFAF concessions (download_p3)"
+P3_SOURCE_NAME = "PR P3 Authority / AAFAF concessions (promoted)"
 
 VALID_TYPES = {"infrastructure", "recovery", "ppp", "real_estate", "other"}
 VALID_EXTENTS = {"site", "corridor", "islandwide", "unknown"}

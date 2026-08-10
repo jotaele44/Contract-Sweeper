@@ -12,8 +12,10 @@ the reasoning behind them.
 four places that never referenced each other:
 
 - `data/canonical_v1/projects.csv` — the canonical project table.
-- `data/staging/processed/pr_p3_contracts.csv` — written by
-  `scripts/download_p3.py`, **read by nothing** until this registry landed.
+- `data/reference/pr_p3_concessions.csv` — promoted P3 concessions. The raw
+  scrape lands in gitignored `data/staging/processed/pr_p3_contracts.csv`, which
+  was **read by nothing** until this registry landed; `--promote` copies it here,
+  and only this committed file feeds the canonical table.
 - the ACT/ACUDEN transition workbook under `data/raw/act_transition/` — real
   concession contracts nobody had extracted.
 - `registries/source_registry.yaml` — the acquisition surfaces.
@@ -110,7 +112,7 @@ not been confirmed with aguayluz-pr, and that confirmation is a follow-up.
 ## Regenerating
 
 ```bash
-python3 scripts/download_p3.py --force          # refresh the acquisition surface
+python3 scripts/download_p3.py --force --promote  # refresh + promote the surface
 python3 scripts/parse_act_transition_ppp.py     # concession contracts from the workbook
 python3 scripts/ingest_projects.py              # promote to canonical_v1
 python3 scripts/build_edges.py                  # LOCATED_IN edges follow projects

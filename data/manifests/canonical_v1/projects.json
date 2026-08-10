@@ -3,7 +3,7 @@
   "producer_phase": "CANONICAL_V1_PROJECTS_INGEST",
   "source_inputs": [
     "data/reference/pr_infrastructure_projects.csv",
-    "data/staging/processed/pr_p3_contracts.csv"
+    "data/reference/pr_p3_concessions.csv"
   ],
   "row_count": 7,
   "project_type_counts": {
@@ -20,22 +20,22 @@
   "skipped_count": 3,
   "skipped": [
     {
-      "source": "data/staging/processed/pr_p3_contracts.csv",
+      "source": "data/reference/pr_p3_concessions.csv",
       "row": "row 3",
       "reason": "duplicate of already-ingested project 'HTA-PPP-2011'"
     },
     {
-      "source": "data/staging/processed/pr_p3_contracts.csv",
+      "source": "data/reference/pr_p3_concessions.csv",
       "row": "row 5",
       "reason": "duplicate of already-ingested project 'PREPA-TD-OMA-2020'"
     },
     {
-      "source": "data/staging/processed/pr_p3_contracts.csv",
+      "source": "data/reference/pr_p3_concessions.csv",
       "row": "row 6",
       "reason": "duplicate of already-ingested project 'PREPA-GEN-OMA-2023'"
     }
   ],
   "evidence_rows_added": 7,
-  "evidence_table_rows": 241,
-  "generated_at": "2026-08-09T21:20:30.718975+00:00"
+  "evidence_table_rows": 243,
+  "generated_at": "2026-08-10T04:06:04.898522+00:00"
 }

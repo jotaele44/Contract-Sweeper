@@ -16,9 +16,9 @@
     "not_acquired": 49
   },
   "by_materialization_status": {
-    "fully_materialized": 12,
-    "not_materialized": 140,
-    "partially_materialized": 2
+    "fully_materialized": 10,
+    "not_materialized": 141,
+    "partially_materialized": 3
   },
   "by_coverage_status": {
     "below_contract": 3,
@@ -31,12 +31,12 @@
     "not_evaluated": 2
   },
   "by_certification_status": {
-    "provisional": 12,
-    "uncertified": 142
+    "provisional": 10,
+    "uncertified": 144
   },
   "by_materiality_label": {
-    "empty": 141,
-    "seed": 3,
+    "empty": 142,
+    "seed": 2,
     "substantial": 8,
     "validated_complete": 2
   },

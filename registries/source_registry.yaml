@@ -612,7 +612,7 @@ sources:
   endpoint_url: https://www.act.pr.gov/
   producer_script: scripts/parse_act_transition_ppp.py
   expected_outputs:
-  - data/staging/processed/pr_ppp_concession_contracts.csv
+  - data/reference/pr_ppp_concession_contracts.csv
   schema_version: r5_v1
   validation_threshold:
     min_rows: 1

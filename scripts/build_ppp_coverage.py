@@ -33,15 +33,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PROJECTS = "data/canonical_v1/projects.csv"
-P3_STAGING = "data/staging/processed/pr_p3_contracts.csv"
-CONCESSION_CONTRACTS = "data/staging/processed/pr_ppp_concession_contracts.csv"
+P3_REFERENCE = "data/reference/pr_p3_concessions.csv"
+CONCESSION_CONTRACTS = "data/reference/pr_ppp_concession_contracts.csv"
 OUT = "reports/ppp_coverage.json"
 
 # Concessions known to exist in Puerto Rico, independent of whether this repo has
 # ingested them yet. This is the denominator: a concession absent from every
 # committed table still belongs here, listed as not covered, because a coverage
 # report that only counts what was already ingested cannot show a gap.
-KNOWN_CONCESSIONS = [
+KNOWN_CONCESSIONS: list[dict[str, Any]] = [
     {
         "concession": "PREPA transmission and distribution operation",
         "operator": "LUMA Energy",
@@ -101,7 +101,7 @@ def _norm(value: str) -> str:
 def build_report(root: Path | None = None) -> dict[str, Any]:
     root = Path(root or REPO_ROOT)
     projects = _read_csv(root / PROJECTS)
-    staging = _read_csv(root / P3_STAGING)
+    promoted = _read_csv(root / P3_REFERENCE)
     contracts = _read_csv(root / CONCESSION_CONTRACTS)
 
     ppp_projects = [p for p in projects if p.get("project_type") == "ppp"]
@@ -142,7 +142,7 @@ def build_report(root: Path | None = None) -> dict[str, Any]:
                 **known,
                 "canonical": bool(matched),
                 "canonical_project_ids": sorted(p["project_id"] for p in matched),
-                "in_p3_staging": any(_mentions(s.get("concessionaire_name", "")) for s in staging),
+                "in_p3_reference": any(_mentions(s.get("concessionaire_name", "")) for s in promoted),
                 "contract_rows": len(op_contracts),
                 "contract_value_documented": round(contract_value, 2),
                 # Only a site-extent concession can resolve to a point. The rest
@@ -158,7 +158,7 @@ def build_report(root: Path | None = None) -> dict[str, Any]:
     locatable = [e for e in entries if e["locatable"]]
     return {
         "producer_script": "scripts/build_ppp_coverage.py",
-        "source_inputs": [PROJECTS, P3_STAGING, CONCESSION_CONTRACTS],
+        "source_inputs": [PROJECTS, P3_REFERENCE, CONCESSION_CONTRACTS],
         "known_concessions": len(entries),
         "canonical_concessions": len(covered),
         "concessions_with_documented_contracts": sum(1 for e in entries if e["contract_rows"]),

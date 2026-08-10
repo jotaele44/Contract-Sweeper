@@ -11,7 +11,7 @@
       "total_value": 979208.0
     }
   },
-  "generated_at": "2026-08-09T21:40:08.592689+00:00",
+  "generated_at": "2026-08-10T04:05:57.012351+00:00",
   "producer_script": "scripts/parse_act_transition_ppp.py",
   "row_count": 25,
   "source_inputs": [

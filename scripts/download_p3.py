@@ -17,10 +17,16 @@ Sources tried in order:
   3. USASpending known P3 recipients with PR place of performance
 
 Output:
-  data/staging/processed/pr_p3_contracts.csv
+  data/staging/processed/pr_p3_contracts.csv   (raw scrape, gitignored)
+  data/reference/pr_p3_concessions.csv         (promoted, committed; --promote)
+
+The raw output is gitignored working data. scripts/ingest_projects.py reads the
+*promoted* file instead, so the canonical projects table stays reproducible from
+a clean checkout — promotion is a deliberate reviewed step rather than whatever
+the last local scrape happened to produce.
 
 Usage:
-  python3 scripts/download_p3.py [--force]
+  python3 scripts/download_p3.py [--force] [--promote]
 """
 
 from __future__ import annotations
@@ -40,6 +46,7 @@ from scripts.config import PROJECT_ROOT, setup_logging
 
 P3_BASE = "https://p3.pr.gov"
 AAFAF_P3_URL = "https://www.aafaf.pr.gov/p3/"
+REFERENCE_OUT = "data/reference/pr_p3_concessions.csv"
 
 PAGE_SLEEP = 0.5
 MAX_RETRIES = 3
@@ -400,12 +407,40 @@ def run(root: Path | None = None, force: bool = False) -> dict:
     return {"rows": len(df), "path": str(out_path), "status": "OK"}
 
 
+def promote(root: Path | None = None) -> dict:
+    """Copy the raw scrape into the committed reference file ingest_projects reads.
+
+    Deliberately separate from run(): a scrape is a candidate, and only a
+    reviewed promotion makes it an input to the canonical table.
+    """
+    root = Path(root or PROJECT_ROOT)
+    src = root / "data" / "staging" / "processed" / "pr_p3_contracts.csv"
+    dest = root / REFERENCE_OUT
+    if not src.exists():
+        return {"rows": 0, "path": str(dest), "status": "NO_SOURCE"}
+    df = pd.read_csv(src, dtype=str, low_memory=False).fillna("")
+    for col in P3_COLUMNS:
+        if col not in df.columns:
+            df[col] = ""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    df[P3_COLUMNS].to_csv(dest, index=False, encoding="utf-8")
+    return {"rows": len(df), "path": str(dest), "status": "PROMOTED"}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Download PR P3 Authority contract data")
     parser.add_argument("--force", action="store_true", help="Re-download even if cached")
+    parser.add_argument(
+        "--promote",
+        action="store_true",
+        help=f"Copy the scrape into {REFERENCE_OUT} (the committed file ingest_projects reads)",
+    )
     args = parser.parse_args()
     result = run(force=args.force)
     print(f"\nP3 contracts: {result['rows']:,} rows — {result['status']}")
+    if args.promote:
+        promoted = promote()
+        print(f"Promoted to {REFERENCE_OUT}: {promoted['rows']:,} rows — {promoted['status']}")
     return 0
 
 
