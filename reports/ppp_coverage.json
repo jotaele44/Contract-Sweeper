@@ -129,7 +129,7 @@
   ],
   "concessions_federating_a_location": 1,
   "concessions_with_documented_contracts": 2,
-  "generated_at": "2026-08-10T04:06:05.048493+00:00",
+  "generated_at": "2026-08-10T04:14:04.525709+00:00",
   "known_concessions": 6,
   "locatable_concessions": 2,
   "producer_script": "scripts/build_ppp_coverage.py",

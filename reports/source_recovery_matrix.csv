@@ -35,7 +35,7 @@ slfrf,False,federal,quarterly,none,,schedule,False,api_adapter,True,True,,True,T
 snap_nap,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_snap_nap.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 usace_civil_works,False,federal,quarterly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_usace_civil.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 usaspending_prime,True,federal,weekly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/build_unified_master.py,2,1,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
-usaspending_subawards,True,federal,weekly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_subawards.py,2,1,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
+usaspending_subawards,True,federal,weekly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_subawards.py,2,2,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 usda_grants,False,federal,quarterly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_usda.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 va_benefits,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_va.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
 wic,False,federal,yearly,none,,schedule,False,api_adapter,True,True,,True,True,scripts/download_wic.py,1,0,1,,Materialize via `python -m moneysweep.query --source <id>` (set key if gated).
