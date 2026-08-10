@@ -126,9 +126,7 @@ def _read_p3_records(root: Path) -> list[dict[str, str]]:
                 {
                     "project_name": name,
                     "project_number": (rec.get("project_id") or "").strip(),
-                    "canonical_project_number": (
-                        rec.get("canonical_project_number") or ""
-                    ).strip(),
+                    "canonical_project_number": (rec.get("canonical_project_number") or "").strip(),
                     "project_type": "ppp",
                     "lead_entity": concessionaire,
                     "municipality": (rec.get("municipality") or "").strip(),
@@ -140,9 +138,7 @@ def _read_p3_records(root: Path) -> list[dict[str, str]]:
                     "end_date": "",
                     "source_type": "web",
                     # Seed rows are hand-verified; portal/AAFAF rows are scraped.
-                    "extraction_method": (
-                        "manual" if source_doc == "known_p3_seed" else "scrape"
-                    ),
+                    "extraction_method": ("manual" if source_doc == "known_p3_seed" else "scrape"),
                     "claim": (
                         f"{name} is operated by {concessionaire} under a Puerto Rico "
                         f"public-private partnership agreement."
@@ -222,7 +218,11 @@ def build_rows(root: Path | None = None) -> dict[str, Any]:
         muni_id = resolve(resolver, "Municipality", muni) if muni else ""
         if muni and not muni_id:
             skipped.append(
-                {"source": source_path, "row": row_ref, "reason": f"unresolved municipality {muni!r}"}
+                {
+                    "source": source_path,
+                    "row": row_ref,
+                    "reason": f"unresolved municipality {muni!r}",
+                }
             )
             continue
 

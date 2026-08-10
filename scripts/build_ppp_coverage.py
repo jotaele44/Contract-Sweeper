@@ -122,11 +122,11 @@ def build_report(root: Path | None = None) -> dict[str, Any]:
             return any(k in norm for k in keys)
 
         matched = [
-            p for p in ppp_projects if _mentions(p.get("notes", "")) or _mentions(p.get("project_name", ""))
+            p
+            for p in ppp_projects
+            if _mentions(p.get("notes", "")) or _mentions(p.get("project_name", ""))
         ]
-        op_contracts = [
-            c for key in keys for c in contracts_by_operator.get(key, [])
-        ]
+        op_contracts = [c for key in keys for c in contracts_by_operator.get(key, [])]
         contract_value = sum(
             float(c["contract_value"]) for c in op_contracts if c.get("contract_value")
         )
@@ -142,9 +142,7 @@ def build_report(root: Path | None = None) -> dict[str, Any]:
                 **known,
                 "canonical": bool(matched),
                 "canonical_project_ids": sorted(p["project_id"] for p in matched),
-                "in_p3_staging": any(
-                    _mentions(s.get("concessionaire_name", "")) for s in staging
-                ),
+                "in_p3_staging": any(_mentions(s.get("concessionaire_name", "")) for s in staging),
                 "contract_rows": len(op_contracts),
                 "contract_value_documented": round(contract_value, 2),
                 # Only a site-extent concession can resolve to a point. The rest

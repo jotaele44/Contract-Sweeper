@@ -36,9 +36,7 @@ def test_metropistas_name_variants_collapse(rows):
         if r["concessionaire"] == "Autopistas Metropolitanas de Puerto Rico"
     }
     assert len(variants) > 1, "expected the report's punctuation variants"
-    metro = [
-        r for r in rows if r["concessionaire"] == "Autopistas Metropolitanas de Puerto Rico"
-    ]
+    metro = [r for r in rows if r["concessionaire"] == "Autopistas Metropolitanas de Puerto Rico"]
     assert len({r["concessionaire"] for r in metro}) == 1
 
 

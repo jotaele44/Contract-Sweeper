@@ -40,8 +40,7 @@ from scripts._contract_dropzone import CONTRACT_COLUMNS, _normalize_name
 from scripts.config import PROJECT_ROOT, setup_logging
 
 SOURCE_XLSX = (
-    "data/raw/act_transition/reextraction_2026-07/"
-    "contratos_vigentes_complete_extraction.xlsx"
+    "data/raw/act_transition/reextraction_2026-07/contratos_vigentes_complete_extraction.xlsx"
 )
 SHEET = "Combined_Canonical"
 OUT = "data/staging/processed/pr_ppp_concession_contracts.csv"
