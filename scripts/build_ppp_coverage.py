@@ -142,7 +142,9 @@ def build_report(root: Path | None = None) -> dict[str, Any]:
                 **known,
                 "canonical": bool(matched),
                 "canonical_project_ids": sorted(p["project_id"] for p in matched),
-                "in_p3_reference": any(_mentions(s.get("concessionaire_name", "")) for s in promoted),
+                "in_p3_reference": any(
+                    _mentions(s.get("concessionaire_name", "")) for s in promoted
+                ),
                 "contract_rows": len(op_contracts),
                 "contract_value_documented": round(contract_value, 2),
                 # Only a site-extent concession can resolve to a point. The rest
