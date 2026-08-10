@@ -107,6 +107,46 @@ def _lineage(source_csv: str) -> dict[str, Any]:
     }
 
 
+# How much to trust a municipality that came from a node's municipality_id. It
+# is a real curated attribution, not a guess — but it names an administrative
+# unit, not a surveyed point, and a spatial producer that later resolves actual
+# geometry should outrank it.
+_MUNICIPALITY_ATTRIBUTION_CONFIDENCE = 0.7
+
+# Extents whose municipality describes the administrative seat rather than where
+# the asset physically is. An island-wide grid concession is not "in" San Juan
+# because its operator is headquartered there, so the municipality is withheld
+# from the federated row rather than shipped as if it were a location.
+_NON_SITE_EXTENTS = {"islandwide", "corridor"}
+
+
+def _node_location(
+    row: dict[str, Any], source_csv: str, muni_names: dict[str, str]
+) -> dict[str, Any] | None:
+    """Municipality-only location for a promoted node, or None.
+
+    Coordinates are deliberately not produced here. moneysweep-pr resolves
+    municipalities but carries no centroids, and synthesising one would both
+    invent precision the source never had and duplicate the geometry authority
+    that belongs to the spatial producer. Consumers that only need a
+    municipality (thehub-pr's correlate_observations) can already join on this;
+    consumers that need a point wait for spiderweb-pr to supply it.
+    """
+    muni_id = (row.get("municipality_id") or "").strip()
+    if not muni_id:
+        return None
+    name = muni_names.get(muni_id)
+    if not name:
+        return None
+    if (row.get("spatial_extent") or "").strip() in _NON_SITE_EXTENTS:
+        return None
+    return {
+        "municipality": name,
+        "attribution_source": f"{source_csv}#municipality_id",
+        "attribution_confidence": _MUNICIPALITY_ATTRIBUTION_CONFIDENCE,
+    }
+
+
 def _norm_conf(value: str | None) -> float:
     if value is None:
         return 0.0
@@ -162,25 +202,27 @@ def build_streams(root: Path | None = None, now: str | None = None) -> dict[str,
         ev_id: str,
         conf: str | None,
         source_csv: str,
+        location: dict[str, Any] | None = None,
     ) -> None:
         eid = fed_entity_id(cid)
         node_to_ent[cid] = eid
-        entities.append(
-            {
-                "entity_id": eid,
-                "source_id": evidence_to_src.get(ev_id, fed_source_id(ev_id)),
-                "name": name,
-                "normalized_name": normalized or name.upper(),
-                "entity_type": etype,
-                "jurisdiction": jurisdiction or "PR",
-                "external_ids": {"canonical_v1_id": cid},
-                "confidence": _norm_conf(conf),
-                "lineage": _lineage(source_csv),
-                "synthetic": False,
-                "created_at": now,
-                "extracted_at": now,
-            }
-        )
+        row = {
+            "entity_id": eid,
+            "source_id": evidence_to_src.get(ev_id, fed_source_id(ev_id)),
+            "name": name,
+            "normalized_name": normalized or name.upper(),
+            "entity_type": etype,
+            "jurisdiction": jurisdiction or "PR",
+            "external_ids": {"canonical_v1_id": cid},
+            "confidence": _norm_conf(conf),
+            "lineage": _lineage(source_csv),
+            "synthetic": False,
+            "created_at": now,
+        }
+        row["extracted_at"] = now
+        if location:
+            row["location"] = location
+        entities.append(row)
 
     for ent in tables.get("entities", []):
         cid = (ent.get("entity_id") or "").strip()
@@ -212,6 +254,14 @@ def build_streams(root: Path | None = None, now: str | None = None) -> dict[str,
         )
 
     # --- PR B: promote non-entity canonical_v1 nodes to federation entities ---
+    # municipality_id -> display name, so a node that names its municipality can
+    # carry it across the federation boundary instead of dropping it.
+    muni_names = {
+        (m.get("municipality_id") or "").strip(): (m.get("name") or "").strip()
+        for m in tables.get("municipalities", [])
+        if (m.get("municipality_id") or "").strip()
+    }
+
     for table_key, id_col, name_col, etype, source_csv in _NODE_TABLES:
         for row in tables.get(table_key, []):
             cid = (row.get(id_col) or "").strip()
@@ -241,6 +291,7 @@ def build_streams(root: Path | None = None, now: str | None = None) -> dict[str,
                 (row.get("evidence_id") or "").strip(),
                 row.get("confidence"),
                 source_csv,
+                location=_node_location(row, source_csv, muni_names),
             )
 
     # --- relationships from edges with entity endpoints ---
