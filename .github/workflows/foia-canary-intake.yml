@@ -31,7 +31,7 @@ jobs:
           if finding["extraction_confidence"] < 0.70:
               assert decision["disposition"] != "export"
           PY
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.client_payload.canary_branch }}
       - name: Persist namespaced receipt only
