@@ -30,7 +30,10 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements-dev.txt
-      - run: pytest -q tests/test_pr_assistance_denominator.py
+      # The repository's global pytest configuration enforces whole-repo coverage.
+      # This narrow contract gate validates only this lane; the normal Tests
+      # workflow remains authoritative for repository-wide coverage.
+      - run: pytest -q --no-cov tests/test_pr_assistance_denominator.py
       - run: ruff check scripts/download_pr_assistance_denominator.py tests/test_pr_assistance_denominator.py
       - run: ruff format --check scripts/download_pr_assistance_denominator.py tests/test_pr_assistance_denominator.py
 
