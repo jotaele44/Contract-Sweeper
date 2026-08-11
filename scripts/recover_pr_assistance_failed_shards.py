@@ -54,12 +54,17 @@ def _iso(value: date) -> str:
 
 def _dates(fy: int) -> tuple[date, date]:
     window = _window(fy)
-    return date.fromisoformat(window["start_date"]), date.fromisoformat(window["end_date"])
+    return date.fromisoformat(window["start_date"]), date.fromisoformat(
+        window["end_date"]
+    )
 
 
 def _payload_for_range(fy: int, nexus: str, start: date, end: date) -> dict:
     payload = copy.deepcopy(_payload(fy, nexus))
-    payload["filters"]["date_range"] = {"start_date": _iso(start), "end_date": _iso(end)}
+    payload["filters"]["date_range"] = {
+        "start_date": _iso(start),
+        "end_date": _iso(end),
+    }
     return payload
 
 
@@ -97,7 +102,9 @@ def _wait_for_job(session: requests.Session, job: dict) -> tuple[str, dict]:
     last_status: dict | None = None
     while time.monotonic() < deadline:
         try:
-            response = session.get(BULK_STATUS_URL, params={"file_name": file_name}, timeout=30)
+            response = session.get(
+                BULK_STATUS_URL, params={"file_name": file_name}, timeout=30
+            )
             if response.status_code == 404 and time.monotonic() < registration_deadline:
                 time.sleep(POLL_SECONDS)
                 continue
@@ -256,7 +263,9 @@ def recover_shard(fy: int, nexus: str, output_dir: Path) -> dict:
     except Exception as exc:
         result["error"] = f"{type(exc).__name__}: {exc}"
 
-    receipt_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    receipt_path.write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     if result["status"] != "complete":
         raise RuntimeError(str(result.get("error", "recovery shard failed")))
     return result
