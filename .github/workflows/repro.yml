@@ -1,9 +1,5 @@
 name: Top-form reproducibility
 
-# Regenerates every top-form reference producer in a clean checkout and fails if
-# any committed artifact would change — i.e. the producers are the single source
-# of truth and the checked-in outputs are reproducible from them.
-
 on:
   pull_request:
   push:
@@ -13,8 +9,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Supersede older runs of this workflow on the same ref: a newer push
-# makes the in-flight result irrelevant, so cancel it and free the runner.
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -23,23 +18,20 @@ jobs:
   reproduce-top-form-outputs:
     name: Regenerate top-form outputs and assert no diff
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Set up Python
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.13"
           cache: pip
-
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           python -m pip install -r requirements.txt
-
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Regenerate entity-master family
         run: |
           python scripts/build_entity_master.py
@@ -48,39 +40,31 @@ jobs:
           python scripts/build_entity_aliases.py
           python scripts/build_entity_parent_map.py
           python scripts/build_entity_resolution_review_queue.py
-
       - name: Regenerate influence / debt_fiscal layers
         run: |
           python scripts/build_influence_edges.py
           python scripts/build_debt_instruments.py
           python scripts/build_creditor_mapping.py
           python scripts/build_fiscal_control_events.py
-
       - name: Regenerate foia layer
         run: |
           python scripts/build_foia_tracker.py
           python scripts/build_foia_yield_tracking.py
           python scripts/build_foia_letters.py
-
       - name: Regenerate gis layer
         run: |
           python scripts/build_municipality_crosswalk.py
           python scripts/build_geo_reason_codes.py
           python scripts/build_hq_bias_reference.py
           python scripts/build_gis_layer_manifest.py
-
       - name: Regenerate graph export
         run: python scripts/build_graph_export.py
-
       - name: Regenerate dashboard layer
         run: |
           python scripts/build_source_drilldown.py
           python scripts/build_analyst_reports_manifest.py
           python scripts/build_dashboard_explorer.py
-
-      - name: Assert the substantive outputs are reproducible
-        # Manifests carry a generated_at timestamp (provenance, not data), so they
-        # are excluded; the schemas, reference CSVs, and exports must be identical.
+      - name: Assert substantive outputs are reproducible
         run: |
           if ! git diff --exit-code -- ':!data/manifests'; then
             echo "::error::A top-form producer output drifted from its committed artifact."

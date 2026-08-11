@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview",
+    "test:gui-parity": "playwright test -c gui-parity.playwright.config.mjs",
     "test:pilot": "node --test tests/federation-pilot.test.mjs",
     "verify:federation-design": "node scripts/verify-federation-design-package.mjs",
     "verify:pilot": "npm run verify:federation-design && npm run test:pilot && npm run lint && npm run build",
