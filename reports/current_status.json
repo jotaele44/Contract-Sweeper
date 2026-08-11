@@ -10,18 +10,18 @@
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "pause_lock_active": true,
   "source_registry_current": {
-    "total_sources": 151,
-    "source_ids_sha256": "7830358c254767bc9db34ae5230b41f815ffaea9aa0c3abe4dfdebfe36b2f2d0",
+    "total_sources": 154,
+    "source_ids_sha256": "31b9bf7c255896f10ab80df357d4cb25e2823663e12c574d26f15cedcf352a19",
     "required_sources": 14,
     "override_policy": "Existing source IDs only; source_id and required are immutable."
   },
   "materialization_readiness_truth": {
-    "total_sources": 151,
-    "automatable_total": 104,
-    "automatable_ready": 104,
-    "queued_excluded_total": 47,
+    "total_sources": 154,
+    "automatable_total": 105,
+    "automatable_ready": 105,
+    "queued_excluded_total": 49,
     "queued_excluded": {
-      "manual_export": 40,
+      "manual_export": 42,
       "scraper_needed": 2,
       "deferred_stub": 2,
       "semantic_duplicate": 3,
@@ -30,11 +30,11 @@
   },
   "materialization_coverage": {
     "evidence_registry_total": 151,
-    "current_registry_total": 151,
-    "denominator_comparable": true,
+    "current_registry_total": 154,
+    "denominator_comparable": false,
     "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION",
     "probe_ran": false,
-    "registry_digest_parity": true,
+    "registry_digest_parity": false,
     "status_count_parity": true,
     "local_operator_snapshot": {
       "fully_materialized": 67,
@@ -48,7 +48,8 @@
       "pipeline_intermediate_rows": 120737,
       "unadjudicated_orphan_rows": 0,
       "unresolved_lineage_rows_within_derived_outputs": 104280
-    }
+    },
+    "denominator_drift_note": "Three PPP sources (act_transition_ppp, prasa_completed_projects_ppp, prasa_consulting_engineer_ppp) were registered after the certified operator corpus was measured. The 67/151 snapshot below is unchanged and still valid for its own denominator; it must be re-measured on an operator machine before it can be compared against the 154-source registry."
   },
   "wave0_ci_certification": {
     "status_reconciliation_pr": {

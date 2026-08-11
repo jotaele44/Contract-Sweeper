@@ -1,0 +1,13 @@
+financial_materiality: 0.16
+infrastructure_criticality: 0.14
+federal_state_overlap: 0.10
+amendment_density: 0.08
+ownership_complexity: 0.08
+successor_complexity: 0.08
+subcontract_opacity: 0.08
+source_gap_severity: 0.07
+network_centrality: 0.06
+litigation_signal: 0.05
+lobbying_signal: 0.04
+recency: 0.03
+staleness: 0.03
