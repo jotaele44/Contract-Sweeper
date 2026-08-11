@@ -64,7 +64,7 @@ jobs:
       - run: pip install pandas requests
       - name: Recover failed native USAspending shard
         run: >-
-          python scripts/recover_pr_assistance_failed_shards.py
+          python -m scripts.recover_pr_assistance_failed_shards
           --fy ${{ matrix.fy }}
           --nexus ${{ matrix.nexus }}
           --output-dir artifact
