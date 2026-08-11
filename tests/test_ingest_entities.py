@@ -29,9 +29,12 @@ def test_seed_has_core_institutions(built):
         "University of Puerto Rico",
         "Puerto Rico Ports Authority",
         "Puerto Rico Municipal Finance Agency",
+        # P3 concessionaires, so P3 projects resolve a lead entity
+        "Aerostar Airport Holdings",
+        "Veolia Water Puerto Rico",
     ]:
         assert required in names
-    assert len(rows) == 27
+    assert len(rows) == 29
     assert ie.check(rows) == []
 
 

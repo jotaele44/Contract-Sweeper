@@ -2,17 +2,40 @@
   "producer_script": "scripts/ingest_projects.py",
   "producer_phase": "CANONICAL_V1_PROJECTS_INGEST",
   "source_inputs": [
-    "data/reference/pr_infrastructure_projects.csv"
+    "data/reference/pr_infrastructure_projects.csv",
+    "data/reference/pr_p3_concessions.csv"
   ],
-  "row_count": 5,
+  "row_count": 7,
   "project_type_counts": {
-    "ppp": 3,
+    "ppp": 5,
     "recovery": 1,
     "infrastructure": 1
   },
-  "skipped_count": 0,
-  "skipped": [],
-  "evidence_rows_added": 5,
-  "evidence_table_rows": 207,
-  "generated_at": "2026-06-01T13:10:23.720999+00:00"
+  "spatial_extent_counts": {
+    "islandwide": 5,
+    "corridor": 1,
+    "site": 1
+  },
+  "rows_with_municipality": 6,
+  "skipped_count": 3,
+  "skipped": [
+    {
+      "source": "data/reference/pr_p3_concessions.csv",
+      "row": "row 3",
+      "reason": "duplicate of already-ingested project 'HTA-PPP-2011'"
+    },
+    {
+      "source": "data/reference/pr_p3_concessions.csv",
+      "row": "row 5",
+      "reason": "duplicate of already-ingested project 'PREPA-TD-OMA-2020'"
+    },
+    {
+      "source": "data/reference/pr_p3_concessions.csv",
+      "row": "row 6",
+      "reason": "duplicate of already-ingested project 'PREPA-GEN-OMA-2023'"
+    }
+  ],
+  "evidence_rows_added": 7,
+  "evidence_table_rows": 243,
+  "generated_at": "2026-08-10T04:06:04.898522+00:00"
 }
