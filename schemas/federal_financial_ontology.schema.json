@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep-pr/schemas/federal_financial_ontology.schema.json",
+  "title": "MoneySweep Federal Financial Ontology Object",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "object_kind",
+    "record_id",
+    "source_assertion_id"
+  ],
+  "properties": {
+    "object_kind": {
+      "enum": [
+        "program",
+        "award",
+        "award_action",
+        "subaward",
+        "entity",
+        "account",
+        "project",
+        "financial_flow",
+        "identifier",
+        "program_pr_nexus",
+        "coverage_audit"
+      ]
+    },
+    "record_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_assertion_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "program_id": {
+      "type": ["string", "null"]
+    },
+    "award_id": {
+      "type": ["string", "null"]
+    },
+    "award_action_id": {
+      "type": ["string", "null"]
+    },
+    "subaward_id": {
+      "type": ["string", "null"]
+    },
+    "entity_id": {
+      "type": ["string", "null"]
+    },
+    "account_id": {
+      "type": ["string", "null"]
+    },
+    "project_id": {
+      "type": ["string", "null"]
+    },
+    "flow_id": {
+      "type": ["string", "null"]
+    },
+    "identifier_scheme": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "federal_assistance_id",
+        "fain",
+        "uri",
+        "usaspending_unique_award_key",
+        "generated_unique_award_id",
+        "piid",
+        "parent_award_id",
+        "uei",
+        "legacy_duns",
+        "subaward_number",
+        "modification_number",
+        "treasury_account_symbol",
+        "federal_account_code",
+        "program_activity_code",
+        "defc"
+      ]
+    },
+    "identifier_value": {
+      "type": ["string", "null"]
+    },
+    "identifier_scope": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "program",
+        "assistance_award",
+        "award",
+        "procurement_award",
+        "procurement_parent_award",
+        "entity",
+        "subaward",
+        "award_action",
+        "account",
+        "account_program_activity",
+        "funding_authority_tag"
+      ]
+    },
+    "valid_from": {
+      "type": ["string", "null"],
+      "format": "date"
+    },
+    "valid_to": {
+      "type": ["string", "null"],
+      "format": "date"
+    },
+    "instrument_family": {
+      "type": ["string", "null"]
+    },
+    "native_award_type_code": {
+      "type": ["string", "null"]
+    },
+    "pr_nexus_state": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "confirmed_pr_activity",
+        "pr_eligible_no_activity_recovered",
+        "not_pr_applicable",
+        "historical",
+        "unresolved",
+        "requires_award_level_test"
+      ]
+    },
+    "flow_type": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "obligation",
+        "deobligation",
+        "outlay",
+        "disbursement",
+        "cost_share",
+        "matching",
+        "repayment",
+        "loan_subsidy_cost",
+        "transfer",
+        "reimbursement",
+        "non_award_account_spending",
+        "revenue",
+        "other"
+      ]
+    },
+    "amount": {
+      "type": ["number", "null"]
+    },
+    "currency": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Z]{3}$"
+    },
+    "confidence": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1
+    }
+  },
+  "$comment": "Semantic gates outside JSON Schema enforce object-kind-specific required fields and prevent identifier-scope conflation."
+}
