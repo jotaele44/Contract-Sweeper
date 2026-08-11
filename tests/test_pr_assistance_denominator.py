@@ -105,7 +105,9 @@ def test_aggregate_deduplicates_hard_award_keys_and_classifies_full_program_deno
     pop["moneysweep_pr_nexus_evidence"] = "pop"
     recipient.to_csv(raw / "pr_assistance_recipient_fy2026.csv", index=False)
     pop.to_csv(raw / "pr_assistance_pop_fy2026.csv", index=False)
-    _write_receipt(raw / "pr_assistance_recipient_fy2026.receipt.json", fy=2026, nexus="recipient", rows=1)
+    _write_receipt(
+        raw / "pr_assistance_recipient_fy2026.receipt.json", fy=2026, nexus="recipient", rows=1
+    )
     _write_receipt(raw / "pr_assistance_pop_fy2026.receipt.json", fy=2026, nexus="pop", rows=1)
 
     out = tmp_path / "out"
