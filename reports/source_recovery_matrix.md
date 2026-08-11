@@ -1,16 +1,16 @@
 # Source Materialization Readiness
 
-Total sources: **151**
-Automatable: **104** (ready: **104**, need API key at run time: 12)
-Queued / excluded: **47**
+Total sources: **154**
+Automatable: **105** (ready: **105**, need API key at run time: 12)
+Queued / excluded: **49**
 
 ## Path types
 
 | path_type | automatable | count | recommended_action |
 | --- | --- | --- | --- |
-| `api_producer` | True | 63 | Run producer under strict preflight; public API path, set key if gated. |
+| `api_producer` | True | 64 | Run producer under strict preflight; public API path, set key if gated. |
 | `api_adapter` | True | 41 | Materialize via `python -m moneysweep.query --source <id>` (set key if gated). |
-| `manual_export` | False | 40 | Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook. |
+| `manual_export` | False | 42 | Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook. |
 | `semantic_duplicate` | False | 3 | No action; covered by sibling source. |
 | `deferred_stub` | False | 2 | Intentionally unimplemented; remains not_materialized by design. |
 | `scraper_needed` | False | 2 | Queued: needs a scraping adapter for the PR-gov HTML/PDF surface. |
@@ -61,9 +61,10 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `wic`
 - `wioa`
 
-## api_producer (63)
+## api_producer (64)
 
 - `aafaf`
+- `act_transition_ppp`
 - `asg_emergency_purchases`
 - `asg_suppliers`
 - `census_gov_finances`
@@ -132,7 +133,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `nara_catalog_aws_open_data`
 - `nara_nextgen_catalog_v3`
 
-## manual_export (40)
+## manual_export (42)
 
 - `act_toll_revenue`
 - `act_tolls_concession`
@@ -166,6 +167,8 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `prasa_cer`
 - `prasa_cip`
 - `prasa_completed_projects`
+- `prasa_completed_projects_ppp`
+- `prasa_consulting_engineer_ppp`
 - `prasa_rate_revenue`
 - `prepa_luma_rate_revenue`
 - `prpha_housing_subsidy`
