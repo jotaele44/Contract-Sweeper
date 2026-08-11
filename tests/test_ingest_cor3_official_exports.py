@@ -75,3 +75,26 @@ def test_deduplicate_projects_keeps_highest_version_not_first_or_last() -> None:
     assert len(deduped) == 1
     assert deduped.iloc[0]["total_approved"] == "500"
     assert list(deduped.columns) == OUTPUT_COLUMNS
+
+
+def test_deduplicate_projects_keeps_missing_project_ids_as_unkeyed_rows() -> None:
+    rows = []
+    for applicant, approved in [("Municipio A", "100"), ("Municipio B", "200")]:
+        row = {column: "" for column in OUTPUT_COLUMNS}
+        row.update(
+            {
+                "project_id": float("nan"),
+                "applicant_name": applicant,
+                "applicant_normalized": applicant.upper(),
+                "total_approved": approved,
+                "total_disbursed": "0",
+                "_source_version": "1",
+            }
+        )
+        rows.append(row)
+
+    deduped, removed = _deduplicate_projects(pd.DataFrame(rows))
+
+    assert removed == 0
+    assert len(deduped) == 2
+    assert set(deduped["applicant_name"]) == {"Municipio A", "Municipio B"}

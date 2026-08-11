@@ -51,7 +51,7 @@ def _stage_inputs(found: Sequence[Mapping[str, Any]], repo_root: Path) -> list[d
     return staged
 
 
-def _run_repo_stages(repo_root: Path, output_dir: Path) -> list[dict[str, Any]]:
+def _run_repo_stages(workspace_root: Path, output_dir: Path) -> list[dict[str, Any]]:
     stages: list[dict[str, Any]] = []
     try:
         from scripts.ingest_cor3 import run as ingest_cor3
@@ -64,15 +64,15 @@ def _run_repo_stages(repo_root: Path, output_dir: Path) -> list[dict[str, Any]]:
             }
         )
     else:
-        result = ingest_cor3(root=repo_root, force=True)
-        output = repo_root / "data/staging/processed/pr_cor3_projects.csv"
+        result = ingest_cor3(root=workspace_root, force=True)
+        output = workspace_root / "data/staging/processed/pr_cor3_projects.csv"
         stages.append(
             {
                 "stage": "cor3_ingest",
                 "status": result.get("status", "UNKNOWN"),
                 "rows": result.get("rows", 0),
                 "output": (
-                    _file_info(output, output.relative_to(repo_root).as_posix())
+                    _file_info(output, output.relative_to(workspace_root).as_posix())
                     if output.exists()
                     else None
                 ),
@@ -98,8 +98,8 @@ def _run_repo_stages(repo_root: Path, output_dir: Path) -> list[dict[str, Any]]:
         )
     else:
         report = compare(
-            repo_root / "data/staging/processed/entity_master.csv",
-            repo_root / "data/staging/processed/pr_entity_profiles.csv",
+            workspace_root / "data/staging/processed/entity_master.csv",
+            workspace_root / "data/staging/processed/pr_entity_profiles.csv",
         )
         _write_json(output_dir / "entity_product_comparison.json", report)
         stages.append(
@@ -171,6 +171,29 @@ def _finalize(temp_dir: Path, final_dir: Path) -> str:
     return "CREATED"
 
 
+def _existing_generated_at(final_dir: Path) -> str | None:
+    receipt = final_dir / "run_receipt.json"
+    if not receipt.exists():
+        return None
+    try:
+        value = json.loads(receipt.read_text(encoding="utf-8")).get("generated_at")
+    except (OSError, json.JSONDecodeError):
+        return None
+    return str(value) if value else None
+
+
+def _empty_required_inputs(found: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    empty = []
+    for row in found:
+        if not row.get("required_for_run"):
+            continue
+        size = int(row.get("size_bytes") or 0)
+        row_count = row.get("row_count")
+        if size == 0 or row_count == 0:
+            empty.append(dict(row))
+    return empty
+
+
 def _find_input(found: Sequence[Mapping[str, Any]], logical_name: str) -> Path | None:
     for row in found:
         if row["logical_name"] == logical_name:
@@ -188,6 +211,11 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
     if config.strict_inputs and required_missing:
         names = ", ".join(str(row["logical_name"]) for row in required_missing)
         raise OfflineBaselineViolation(f"missing required local inputs: {names}")
+    if config.strict_inputs:
+        required_empty = _empty_required_inputs(found)
+        if required_empty:
+            names = ", ".join(str(row["logical_name"]) for row in required_empty)
+            raise OfflineBaselineViolation(f"empty required local inputs: {names}")
 
     digest = _input_digest(found, config.git_sha)
     run_id = f"offline-baseline-{digest[:16]}"
@@ -196,7 +224,11 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
     if temp_dir.exists():
         shutil.rmtree(temp_dir)
     temp_dir.mkdir(parents=True)
-    generated_at = config.generated_at or datetime.now(timezone.utc).isoformat()
+    generated_at = (
+        config.generated_at
+        or _existing_generated_at(final_dir)
+        or datetime.now(timezone.utc).isoformat()
+    )
 
     public_inputs = []
     for row in found:
@@ -223,8 +255,9 @@ def run_offline_baseline(config: BaselineConfig) -> dict[str, Any]:
     staged: list[dict[str, Any]] = []
     with block_network():
         if repo_root is not None:
-            staged = _stage_inputs(found, repo_root)
-            stages = _run_repo_stages(repo_root, temp_dir)
+            workspace_root = temp_dir / "repo_workspace"
+            staged = _stage_inputs(found, workspace_root)
+            stages = _run_repo_stages(workspace_root, temp_dir)
         else:
             stages = [
                 {

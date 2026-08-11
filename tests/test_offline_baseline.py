@@ -80,6 +80,90 @@ def test_baseline_is_deterministic_and_fail_closed(tmp_path: Path) -> None:
     assert receipt["network_access_authorized"] is False
 
 
+def test_default_baseline_rerun_reuses_existing_timestamp(tmp_path: Path) -> None:
+    inputs = tmp_path / "inputs"
+    outputs = tmp_path / "outputs"
+    inputs.mkdir()
+    (inputs / "cor3_official_projects_export.xlsx").write_bytes(b"local-workbook")
+    _write_csv(
+        inputs / "entity_master(2).csv",
+        ["entity_key", "award_count"],
+        [{"entity_key": "alpha", "award_count": "1"}],
+    )
+    _write_csv(
+        inputs / "pr_entity_profiles.csv",
+        ["normalized_name", "award_count"],
+        [{"normalized_name": "alpha", "award_count": "1"}],
+    )
+
+    config = BaselineConfig(input_dir=inputs, output_root=outputs, git_sha="abc123")
+    first = run_offline_baseline(config)
+    second = run_offline_baseline(config)
+
+    assert first["run_id"] == second["run_id"]
+    assert second["immutable_status"] == "EXISTING_IDENTICAL"
+
+
+def test_strict_inputs_reject_empty_required_files(tmp_path: Path) -> None:
+    inputs = tmp_path / "inputs"
+    outputs = tmp_path / "outputs"
+    inputs.mkdir()
+    (inputs / "cor3_official_projects_export.xlsx").write_bytes(b"local-workbook")
+    _write_csv(inputs / "entity_master(2).csv", ["entity_key"], [])
+    _write_csv(inputs / "pr_entity_profiles.csv", ["normalized_name"], [{"normalized_name": "x"}])
+
+    with pytest.raises(OfflineBaselineViolation, match="empty required local inputs"):
+        run_offline_baseline(
+            BaselineConfig(
+                input_dir=inputs,
+                output_root=outputs,
+                git_sha="abc123",
+                strict_inputs=True,
+            )
+        )
+
+
+def test_repo_root_runs_stage_into_isolated_workspace(tmp_path: Path, monkeypatch) -> None:
+    from moneysweep.orchestrator import _offline_baseline_runner as runner
+
+    inputs = tmp_path / "inputs"
+    outputs = tmp_path / "outputs"
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    existing = repo / "data" / "staging" / "processed" / "entity_master.csv"
+    _write_csv(existing, ["entity_key"], [{"entity_key": "existing"}])
+    inputs.mkdir()
+    (inputs / "cor3_official_projects_export.xlsx").write_bytes(b"local-workbook")
+    _write_csv(inputs / "entity_master(2).csv", ["entity_key"], [{"entity_key": "staged"}])
+    _write_csv(
+        inputs / "pr_entity_profiles.csv", ["normalized_name"], [{"normalized_name": "staged"}]
+    )
+
+    seen_workspace: dict[str, Path] = {}
+
+    def fake_run_repo_stages(workspace_root: Path, _output_dir: Path) -> list[dict[str, str]]:
+        seen_workspace["root"] = workspace_root
+        assert (workspace_root / "data/staging/processed/entity_master.csv").read_text(
+            encoding="utf-8"
+        ) != existing.read_text(encoding="utf-8")
+        return [{"stage": "stub", "status": "OK"}]
+
+    monkeypatch.setattr(runner, "_run_repo_stages", fake_run_repo_stages)
+    monkeypatch.setattr(
+        runner,
+        "source_coverage",
+        lambda *_args, **_kwargs: {"required_fully_materialized": 10},
+    )
+
+    run_offline_baseline(
+        BaselineConfig(input_dir=inputs, output_root=outputs, repo_root=repo, git_sha="abc123")
+    )
+
+    assert seen_workspace["root"] != repo
+    with existing.open(encoding="utf-8") as handle:
+        assert next(csv.DictReader(handle))["entity_key"] == "existing"
+
+
 def test_absolute_operator_paths_are_not_written_to_manifest(tmp_path: Path) -> None:
     inputs = tmp_path / "operator" / "nested"
     outputs = tmp_path / "outputs"

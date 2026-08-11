@@ -287,7 +287,8 @@ def _deduplicate_projects(combined: pd.DataFrame) -> tuple[pd.DataFrame, int]:
         work.get("_source_version", ""), errors="coerce"
     ).fillna(-1)
 
-    has_id = work["project_id"].astype(str).str.strip().ne("")
+    project_ids = work["project_id"].fillna("").astype(str).str.strip()
+    has_id = project_ids.ne("") & ~project_ids.str.casefold().isin({"nan", "none", "nat"})
     with_id = work[has_id].sort_values(
         ["project_id", "_source_version_numeric", "_input_order"],
         kind="stable",
