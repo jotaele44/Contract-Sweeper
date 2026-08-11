@@ -16,10 +16,57 @@ def built():
 @pytest.mark.integration
 def test_seed_projects_resolve_lead_entities(built):
     rows = built["project_rows"]
-    assert len(rows) == 5
-    assert built["skipped"] == []
     assert ip.check(rows) == []
     assert {r["project_type"] for r in rows} == {"ppp", "recovery", "infrastructure"}
+    # Both surfaces contribute: the agency-led reference seed and the
+    # concessionaire-led P3 export.
+    assert len(rows) > 5
+    # Every skip is an explained duplicate, never an unresolved reference.
+    assert all("duplicate of" in s["reason"] for s in built["skipped"]), built["skipped"]
+
+
+@pytest.mark.integration
+def test_p3_surface_contributes_projects_the_seed_lacks(built):
+    """The P3 export is no longer a dead-end file — its rows reach canonical."""
+    names = {r["project_name"] for r in built["project_rows"]}
+    assert "Luis Muñoz Marín Airport" in names
+    assert "PRASA O&M Agreement" in names
+
+
+@pytest.mark.integration
+def test_same_concession_not_duplicated_across_surfaces(built):
+    """LUMA/Genera/Metropistas appear in both surfaces under different names.
+
+    project_id() keys off the lead entity, which differs between the agency-led
+    seed and the concessionaire-led export, so only the explicit
+    canonical_project_number crosswalk catches these.
+    """
+    rows = built["project_rows"]
+    assert sum(1 for r in rows if "LUMA" in r["project_name"]) == 1
+    assert sum(1 for r in rows if "Genera" in r["project_name"]) == 1
+    assert sum(1 for r in rows if "PR-22" in r["project_name"]) == 1
+
+
+@pytest.mark.integration
+def test_site_extent_projects_carry_a_municipality(built):
+    """A 'site' project claims one physical location, so it must name it.
+
+    This is what gives the spatial producer something to geolocate; island-wide
+    and corridor projects deliberately have no single point.
+    """
+    sited = [r for r in built["project_rows"] if r["spatial_extent"] == "site"]
+    assert sited, "expected at least one site-extent project"
+    for row in sited:
+        assert row["municipality_id"], row
+    # LMM is in Carolina, not San Juan, despite the common name.
+    lmm = next(r for r in built["project_rows"] if "Muñoz Marín" in r["project_name"])
+    assert lmm["municipality_id"] == "muni_pr_carolina"
+
+
+@pytest.mark.unit
+def test_spatial_extent_values_are_controlled(built):
+    for row in built["project_rows"]:
+        assert row["spatial_extent"] in ip.VALID_EXTENTS, row
 
 
 @pytest.mark.integration

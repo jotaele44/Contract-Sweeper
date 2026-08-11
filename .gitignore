@@ -111,6 +111,15 @@ data/**
 # Within allowed subtrees, still keep out enrichment outputs (may contain PII)
 data/staging/processed/enrichment/**
 
+# Contract Forensics V3 persistent memory. The engine writes a generated DuckDB
+# database, parquet exports, and an extracted-text cache under data/forensics/;
+# the deny-all data/** above already keeps those artifacts out of git. Re-include
+# only the directory placeholders so the folders survive a fresh clone.
+!data/forensics/
+!data/forensics/.gitkeep
+!data/forensics/parquet/
+!data/forensics/parquet/.gitkeep
+
 # Re-block heavyweight follow_the_money acquisition (must come AFTER the
 # follow_the_money allowlist above so this specific file wins).
 data/raw/follow_the_money/funding_flows_sf133.csv
@@ -133,6 +142,9 @@ reports/source_update_runs.local.jsonl
 reports/source_update_failures.local.jsonl
 reports/source_update_consumed.local.json
 reports/source_update_tmp/
+
+# Contract Forensics V3 runtime reports (seed/pipeline/candidate outputs) — never committed
+reports/forensics/
 
 # Desktop wrapper (see desktop/README.md)
 dashboard/node_modules/

@@ -1,0 +1,141 @@
+{
+  "blocked_sources": [
+    {
+      "blocking_reason": "completed_projects_AAA.pdf is not in the repository",
+      "source_id": "prasa_completed_projects_ppp"
+    },
+    {
+      "blocking_reason": "FY2024 CER_Final.pdf is not in the repository",
+      "source_id": "prasa_consulting_engineer_ppp"
+    }
+  ],
+  "canonical_concessions": 5,
+  "canonical_ppp_project_rows": 5,
+  "concessions": [
+    {
+      "aliases": [
+        "LUMA"
+      ],
+      "canonical": true,
+      "canonical_project_ids": [
+        "project_puerto_rico_electric_power_authority_prepa_td_oma_2020"
+      ],
+      "concession": "PREPA transmission and distribution operation",
+      "contract_rows": 0,
+      "contract_value_documented": 0,
+      "federates_location": false,
+      "has_municipality": true,
+      "in_p3_reference": true,
+      "locatable": false,
+      "operator": "LUMA Energy",
+      "sector": "energy",
+      "spatial_extent": "islandwide"
+    },
+    {
+      "aliases": [
+        "Genera"
+      ],
+      "canonical": true,
+      "canonical_project_ids": [
+        "project_puerto_rico_electric_power_authority_prepa_gen_oma_2023"
+      ],
+      "concession": "PREPA generation operation",
+      "contract_rows": 0,
+      "contract_value_documented": 0,
+      "federates_location": false,
+      "has_municipality": true,
+      "in_p3_reference": true,
+      "locatable": false,
+      "operator": "Genera PR",
+      "sector": "energy",
+      "spatial_extent": "islandwide"
+    },
+    {
+      "aliases": [
+        "Metropistas"
+      ],
+      "canonical": true,
+      "canonical_project_ids": [
+        "project_puerto_rico_highways_and_transportation_authority_hta_ppp_2011"
+      ],
+      "concession": "PR-22 and PR-5 toll road concession",
+      "contract_rows": 22,
+      "contract_value_documented": 2398309500.0,
+      "federates_location": false,
+      "has_municipality": true,
+      "in_p3_reference": true,
+      "locatable": false,
+      "operator": "Autopistas Metropolitanas de Puerto Rico",
+      "sector": "transport",
+      "spatial_extent": "corridor"
+    },
+    {
+      "aliases": [
+        "Aerostar",
+        "Luis Mu\u00f1oz Mar\u00edn"
+      ],
+      "canonical": true,
+      "canonical_project_ids": [
+        "project_aerostar_airport_holdings_llc_p3_001"
+      ],
+      "concession": "Luis Mu\u00f1oz Mar\u00edn Airport concession",
+      "contract_rows": 0,
+      "contract_value_documented": 0,
+      "federates_location": true,
+      "has_municipality": true,
+      "in_p3_reference": true,
+      "locatable": true,
+      "operator": "Aerostar Airport Holdings",
+      "sector": "transport",
+      "spatial_extent": "site"
+    },
+    {
+      "aliases": [
+        "Teodoro Moscoso"
+      ],
+      "canonical": false,
+      "canonical_project_ids": [],
+      "concession": "Teodoro Moscoso Bridge toll concession",
+      "contract_rows": 3,
+      "contract_value_documented": 979208.0,
+      "federates_location": false,
+      "has_municipality": false,
+      "in_p3_reference": false,
+      "locatable": true,
+      "operator": "Autopistas de Puerto Rico y Compa\u00f1\u00eda",
+      "sector": "transport",
+      "spatial_extent": "site"
+    },
+    {
+      "aliases": [
+        "Veolia",
+        "PRASA O&M"
+      ],
+      "canonical": true,
+      "canonical_project_ids": [
+        "project_veolia_water_puerto_rico_p3_003"
+      ],
+      "concession": "PRASA operation and maintenance agreement",
+      "contract_rows": 0,
+      "contract_value_documented": 0,
+      "federates_location": false,
+      "has_municipality": false,
+      "in_p3_reference": true,
+      "locatable": false,
+      "operator": "Veolia Water Puerto Rico",
+      "sector": "water",
+      "spatial_extent": "islandwide"
+    }
+  ],
+  "concessions_federating_a_location": 1,
+  "concessions_with_documented_contracts": 2,
+  "generated_at": "2026-08-10T04:14:04.525709+00:00",
+  "known_concessions": 6,
+  "locatable_concessions": 2,
+  "producer_script": "scripts/build_ppp_coverage.py",
+  "source_inputs": [
+    "data/canonical_v1/projects.csv",
+    "data/reference/pr_p3_concessions.csv",
+    "data/reference/pr_ppp_concession_contracts.csv"
+  ]
+}

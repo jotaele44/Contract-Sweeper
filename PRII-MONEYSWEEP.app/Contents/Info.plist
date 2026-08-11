@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>MoneySweep — PRII</string>
+	<string>MoneySweep</string>
 	<key>CFBundleExecutable</key>
 	<string>PRII-MONEYSWEEP</string>
 	<key>CFBundleIconFile</key>
@@ -11,7 +11,7 @@
 	<key>CFBundleIdentifier</key>
 	<string>pr.prii.moneysweep.launcher</string>
 	<key>CFBundleName</key>
-	<string>MoneySweep — PRII</string>
+	<string>MoneySweep</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
