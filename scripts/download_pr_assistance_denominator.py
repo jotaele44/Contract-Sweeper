@@ -131,9 +131,7 @@ def _submit_and_wait(session: requests.Session, payload: dict) -> str:
         raise RuntimeError(f"USAspending bulk job missing file_name: {job}")
     deadline = time.time() + POLL_TIMEOUT_SECONDS
     while time.time() < deadline:
-        status_response = session.get(
-            BULK_STATUS_URL, params={"file_name": file_name}, timeout=30
-        )
+        status_response = session.get(BULK_STATUS_URL, params={"file_name": file_name}, timeout=30)
         status_response.raise_for_status()
         status = status_response.json()
         if status.get("status") == "finished":
@@ -261,7 +259,9 @@ def aggregate(
     programs = _load_sam_financial_programs(sam_path, expected_sam_sha)
     expected_programs = int(snapshot["denominator"]["financial_program_rows"])
     if len(programs) != expected_programs:
-        raise RuntimeError(f"SAM financial denominator mismatch: {len(programs)} != {expected_programs}")
+        raise RuntimeError(
+            f"SAM financial denominator mismatch: {len(programs)} != {expected_programs}"
+        )
 
     receipts = []
     frames: list[pd.DataFrame] = []
@@ -269,7 +269,9 @@ def aggregate(
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         receipts.append(receipt)
     expected_shards = 2 * (end_fy - start_fy + 1)
-    shard_keys = {(int(r["fiscal_year"]), str(r["nexus"])) for r in receipts if r.get("status") == "complete"}
+    shard_keys = {
+        (int(r["fiscal_year"]), str(r["nexus"])) for r in receipts if r.get("status") == "complete"
+    }
     if len(shard_keys) != expected_shards:
         raise RuntimeError(f"incomplete shard denominator: {len(shard_keys)} != {expected_shards}")
 
@@ -369,7 +371,9 @@ def aggregate(
         ],
     }
     coverage["fain_backfill_blockers"] = [x for x in coverage["fain_backfill_blockers"] if x]
-    coverage_path.write_text(json.dumps(coverage, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    coverage_path.write_text(
+        json.dumps(coverage, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return coverage
 
 
