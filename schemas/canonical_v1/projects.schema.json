@@ -18,6 +18,11 @@
     "status": {"type": "string"},
     "start_date": {"type": "string"},
     "end_date": {"type": "string"},
+    "spatial_extent": {
+      "type": "string",
+      "description": "How much of Puerto Rico the project physically covers, which decides what geometry a spatial producer can resolve for it. 'site' names one location and requires municipality_id; 'corridor' spans municipalities along a route; 'islandwide' is a territory-wide system with no single point; 'unknown' is not yet determined. Empty means the source surface does not carry the concept.",
+      "enum": ["site", "corridor", "islandwide", "unknown", ""]
+    },
     "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
     "evidence_id": {"type": "string", "pattern": "^evidence_[A-Za-z0-9_]+$"},
     "review_status": {"type": "string", "enum": ["accepted", "pending", "rejected"]},

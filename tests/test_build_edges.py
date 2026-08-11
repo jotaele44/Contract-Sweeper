@@ -19,10 +19,11 @@ def test_builds_all_seeded_edge_types():
     for e in built["edge_rows"]:
         by_type[e["edge_type"]] = by_type.get(e["edge_type"], 0) + 1
     assert built["skipped"] == []
-    # 10 entity->muni + 5 project->muni LOCATED_IN
-    # LOCATED_IN: 10 entity->muni + 5 project->muni + 4 property->muni
+    # LOCATED_IN: 10 entity->muni + 6 project->muni + 4 property->muni.
+    # The 6th project->muni edge is Luis Muñoz Marín Airport -> Carolina, from
+    # the P3 acquisition surface that ingest_projects.py now reads.
     assert by_type == {
-        "LOCATED_IN": 19,
+        "LOCATED_IN": 20,
         "HOLDS_ROLE_IN": 7,
         "HOLDS_DEBT": 20,
         "ADVISES": 5,
@@ -31,7 +32,7 @@ def test_builds_all_seeded_edge_types():
         "RECEIVES_CONTRACT": 3,
         "LOBBIES_FOR": 3,
     }
-    assert len(built["edge_rows"]) == 64
+    assert len(built["edge_rows"]) == 65
 
 
 @pytest.mark.integration
@@ -127,7 +128,12 @@ def test_project_located_in_edges():
         for e in built["edge_rows"]
         if e["edge_type"] == "LOCATED_IN" and e["source_node_type"] == "Project"
     ]
-    assert len(proj_edges) == len(tables["projects"])
+    # One edge per project that actually names a municipality. Island-wide
+    # concessions (the PRASA O&M agreement, for one) genuinely have no single
+    # municipality, so they carry no LOCATED_IN edge rather than a fabricated
+    # one pointing at the operator's headquarters.
+    located = [r for r in tables["projects"] if r["municipality_id"]]
+    assert len(proj_edges) == len(located)
     for e in proj_edges:
         assert e["source_node_id"] in project_ids
         assert e["target_node_id"] in muni_ids
