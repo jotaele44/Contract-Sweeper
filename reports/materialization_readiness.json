@@ -1,8 +1,8 @@
 {
   "schema_version": "r5_readiness_v1",
-  "total_sources": 151,
-  "automatable_total": 104,
-  "automatable_ready": 104,
+  "total_sources": 154,
+  "automatable_total": 105,
+  "automatable_ready": 105,
   "automatable_not_ready": [],
   "automatable_needs_key_count": 12,
   "automatable_required_keys": [
@@ -17,17 +17,17 @@
     "SAM_API_KEY"
   ],
   "queued_excluded": {
-    "manual_export": 40,
+    "manual_export": 42,
     "scraper_needed": 2,
     "deferred_stub": 2,
     "semantic_duplicate": 3,
     "broken_producer": 0
   },
-  "queued_excluded_total": 47,
+  "queued_excluded_total": 49,
   "source_count_provenance": {
     "computed_from_live_registry": true,
     "registry_schema_version": "r5_source_registry_v1",
-    "source_ids_sha256": "7830358c254767bc9db34ae5230b41f815ffaea9aa0c3abe4dfdebfe36b2f2d0",
+    "source_ids_sha256": "31b9bf7c255896f10ab80df357d4cb25e2823663e12c574d26f15cedcf352a19",
     "historical_counts_are_non_authoritative": true
   },
   "outputs": [

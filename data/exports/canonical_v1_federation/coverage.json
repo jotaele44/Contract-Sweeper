@@ -1,16 +1,16 @@
 {
   "edges_federated_pct": 100.0,
   "gate": "NON_PRODUCTION_DIAGNOSTIC",
-  "generated_at": "2026-06-07T01:08:53.877935+00:00",
+  "generated_at": "2026-08-09T00:00:00+00:00",
   "not_yet_federated_count": 0,
   "producer": "moneysweep-pr",
   "source_feeds": {
-    "canonical_v1_evidence": 232,
+    "canonical_v1_evidence": 241,
     "federal_publications": 4248
   },
   "stream_counts": {
-    "entities": 200,
-    "relationships": 64,
-    "sources": 4480
+    "entities": 205,
+    "relationships": 65,
+    "sources": 4489
   }
 }

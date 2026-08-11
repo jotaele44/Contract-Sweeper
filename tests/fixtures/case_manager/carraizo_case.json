@@ -1,0 +1,31 @@
+{
+  "fixture_status": "read_only_pending_review",
+  "canonical_promotion": false,
+  "case_assignment_key": "FEMA:4339:PW:8535",
+  "case": {
+    "case_id": "case_786c0a47ea4c97e2354b7847",
+    "title": "FEMA PW 8535 — Carraízo Reservoir Dredging",
+    "case_type": "project_oversight",
+    "status": "open",
+    "scope": "Consolidate quarterly progress, obligations, expenditures, schedule, permits, payment requests and contradiction candidates.",
+    "priority": "normal",
+    "owner": null,
+    "visibility": "internal"
+  },
+  "source_facts": {
+    "applicant": "Puerto Rico Aqueduct and Sewer Authority",
+    "disaster_number": "4339",
+    "pw_number": "8535",
+    "project_name": "FAASt Carraizo Reservoir Dredging",
+    "observed_quarters": ["2025 Q2", "2025 Q3", "2025 Q4", "2026 Q1", "2026 Q2"],
+    "reported_total_obligation_usd": ["98527409.39", "102275333.33"],
+    "reported_progress_percent": [45, 45, 55, 60, 70],
+    "projected_completion_dates": ["2025-10-08", "2026-03-06", "2027-09-20"]
+  },
+  "candidate_contradictions": [
+    "portal_conflictive_value_warning",
+    "completion_date_changed_while_no_delay_circumstance_declared",
+    "spend_progress_divergence"
+  ],
+  "review_note": "Candidates are structural review signals, not findings of misconduct. Source evidence IDs must be supplied by canonical_v1 before bundle validation."
+}
