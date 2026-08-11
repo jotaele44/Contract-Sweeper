@@ -67,9 +67,12 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # prasa_completed_projects_ppp and prasa_consulting_engineer_ppp are
     # manual_export and blocked on files that are not in the repository
     # (+2 total_sources, +2 queued_excluded_total).
-    assert snapshot["total_sources"] == 154
-    assert snapshot["automatable_total"] == 105
-    assert snapshot["automatable_ready"] == 105
+    # campaign-finance completion adds one live OCE source plus two derived
+    # campaign-finance producers, all automatable after upstream refreshes
+    # (+3 total_sources, +3 automatable_total/ready).
+    assert snapshot["total_sources"] == 157
+    assert snapshot["automatable_total"] == 108
+    assert snapshot["automatable_ready"] == 108
     assert snapshot["queued_excluded_total"] == 49
     assert snapshot["automatable_not_ready"] == []
 

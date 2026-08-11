@@ -26,15 +26,15 @@
     "main_identical_to_merge_commit": true
   },
   "source_registry_current": {
-    "total_sources": 154,
-    "source_ids_sha256": "31b9bf7c255896f10ab80df357d4cb25e2823663e12c574d26f15cedcf352a19",
-    "required_sources": 14,
+    "total_sources": 157,
+    "source_ids_sha256": "0f310cc6bb8b1941b38ef6c70dfedad15976cf8c3e22214c8301516525639e7b",
+    "required_sources": 16,
     "override_policy": "Existing source IDs only; source_id and required are immutable."
   },
   "materialization_readiness_truth": {
-    "total_sources": 154,
-    "automatable_total": 105,
-    "automatable_ready": 105,
+    "total_sources": 157,
+    "automatable_total": 108,
+    "automatable_ready": 108,
     "queued_excluded_total": 49,
     "queued_excluded": {
       "manual_export": 42,
@@ -46,7 +46,7 @@
   },
   "materialization_coverage": {
     "evidence_registry_total": 151,
-    "current_registry_total": 154,
+    "current_registry_total": 157,
     "denominator_comparable": false,
     "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_COMPLETE_DERIVED_LINEAGE",
     "probe_ran": false,
@@ -67,7 +67,7 @@
       "unadjudicated_orphan_rows": 0,
       "unresolved_lineage_rows_within_derived_outputs": 0
     },
-    "denominator_drift_note": "Three PPP sources (act_transition_ppp, prasa_completed_projects_ppp, prasa_consulting_engineer_ppp) were registered after the certified operator corpus was measured. The 67/151 snapshot below is unchanged and still valid for its own denominator; it must be re-measured on an operator machine before it can be compared against the 154-source registry."
+    "denominator_drift_note": "Six sources were registered after the certified operator corpus was measured: three PPP sources (act_transition_ppp, prasa_completed_projects_ppp, prasa_consulting_engineer_ppp) and three campaign-finance completion sources. The 67/151 snapshot below is unchanged and still valid for its own denominator; it must be re-measured on an operator machine before it can be compared against the 157-source registry."
   },
   "wave0_ci_certification": {
     "merged_reconciliation_pr": {

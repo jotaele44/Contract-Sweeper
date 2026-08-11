@@ -59,6 +59,11 @@ REQUIRED_DAG: dict[str, list[str]] = {
     # reference tables the join does not consume yet, so listing them here would
     # make the join wait on inputs it never opens.
     "roadwatch_corridor_join": ["dtop_centerline_lrs", "stip_tip_projects"],
+    # Campaign-finance derived layers rebuild whenever their upstream feeds
+    # refresh; the registry's cadence strings alone carry no dependency
+    # semantics, so the DAG is declared here.
+    "campaign_finance_entities": ["fec", "fec_committees", "oce_socrata_live"],
+    "campaign_finance_materialization_gate": ["campaign_finance_entities"],
 }
 
 # Soft analytical links documented as downstream consumers, NOT blocking DAG

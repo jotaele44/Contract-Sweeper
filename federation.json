@@ -16,9 +16,9 @@
   "pause_lock_required": true,
   "source_truth": {
     "source_of_truth_file": "reports/materialization_readiness.json",
-    "total_sources": 154,
-    "automatable_total": 105,
-    "automatable_ready": 105,
+    "total_sources": 157,
+    "automatable_total": 108,
+    "automatable_ready": 108,
     "queued_excluded_total": 49,
     "queued_excluded": {
       "manual_export": 42,
@@ -26,18 +26,7 @@
       "deferred_stub": 2,
       "semantic_duplicate": 3,
       "broken_producer": 0
-    },
-    "runtime_required_keys": [
-      "CENSUS_API_KEY",
-      "EIA_API_KEY",
-      "FAC_API_KEY",
-      "FEC_API_KEY",
-      "FINANCIALDATA_API_KEY",
-      "FRED_API_KEY",
-      "HIGHERGOV_API_KEY",
-      "OPENSTATES_API_KEY",
-      "SAM_API_KEY"
-    ]
+    }
   },
   "hub_callable_commands": {
     "setup": "python3 run_all.py --only-setup",

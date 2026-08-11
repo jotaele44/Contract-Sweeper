@@ -1,0 +1,270 @@
+name: Campaign Finance Live Materialization
+
+# Operator-dispatched only. This job performs a live FEC/OCE acquisition and
+# restores a *certified* Schedule A output from a retained Actions artifact.
+# Both preconditions — live API credentials and an unexpired certified artifact
+# — exist only when an operator deliberately runs a re-acquisition, so a
+# pull_request trigger could never do anything but fail closed on every PR that
+# happened to touch these paths. Dispatch it from the Actions tab when
+# re-acquiring; the fail-closed gates then certify that run.
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: campaign-finance-live-materialization-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+      SCHEDULE_B_ARTIFACT_ID: "8830412540"
+      FEC_CONTRIBUTIONS_ROWS: "15260"
+      FEC_CONTRIBUTIONS_SHA256: "35c18e9ac66f7b6a9286624a1ff84a7d64e775cbb96db7aa149f60b042c45464"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Verify FEC credential is configured
+        shell: bash
+        run: |
+          if [[ -z "${FEC_API_KEY:-}" ]]; then
+            echo "::error::Repository Actions secret FEC_API_KEY is not configured."
+            exit 1
+          fi
+          echo "::add-mask::$FEC_API_KEY"
+
+      - name: Install campaign-finance dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          grep -vE '^[[:space:]]*-e[[:space:]]' requirements.txt > /tmp/campaign-finance-requirements.txt
+          python -m pip install -r /tmp/campaign-finance-requirements.txt
+
+      - name: Restore certified Schedule A contributions by hash
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/fec-contribution-search data/staging/processed
+          artifacts_json=/tmp/fec-contribution-artifacts.json
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=campaign-finance-live-materialization&per_page=100" \
+            > "$artifacts_json"
+          found=0
+          while read -r artifact_id; do
+            rm -rf /tmp/fec-contribution-search/candidate
+            mkdir -p /tmp/fec-contribution-search/candidate
+            if ! curl --fail --location --retry 3 --retry-all-errors \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" \
+              --output /tmp/fec-contribution-search/candidate.zip; then
+              continue
+            fi
+            if ! unzip -q /tmp/fec-contribution-search/candidate.zip \
+              -d /tmp/fec-contribution-search/candidate; then
+              continue
+            fi
+            candidate=/tmp/fec-contribution-search/candidate/data/staging/processed/pr_fec_contributions.csv
+            if [[ ! -s "$candidate" ]]; then
+              continue
+            fi
+            candidate_sha="$(sha256sum "$candidate" | awk '{print $1}')"
+            candidate_rows="$(python - "$candidate" <<'PY'
+          import pandas as pd
+          import sys
+          print(len(pd.read_csv(sys.argv[1], low_memory=False)))
+          PY
+            )"
+            if [[ "$candidate_sha" == "$FEC_CONTRIBUTIONS_SHA256" && "$candidate_rows" == "$FEC_CONTRIBUTIONS_ROWS" ]]; then
+              cp "$candidate" data/staging/processed/pr_fec_contributions.csv
+              echo "Restored certified Schedule A from artifact ${artifact_id}: ${candidate_rows} rows"
+              found=1
+              break
+            fi
+          done < <(jq -r '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[].id' "$artifacts_json")
+          if [[ "$found" != 1 ]]; then
+            echo "::error::No retained campaign-finance artifact contained the certified Schedule A output."
+            exit 1
+          fi
+
+      - name: Restore certified Schedule B checkpoint
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/schedule-b-checkpoint
+          curl --fail --location --retry 5 --retry-all-errors \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${SCHEDULE_B_ARTIFACT_ID}/zip" \
+            --output /tmp/schedule-b-checkpoint.zip
+          unzip -q /tmp/schedule-b-checkpoint.zip -d /tmp/schedule-b-checkpoint
+          cp -R /tmp/schedule-b-checkpoint/data .
+          cp -R /tmp/schedule-b-checkpoint/reports .
+          test -s data/staging/processed/pr_fec_committees.csv
+          test -s data/staging/processed/pr_fec_disbursements.csv
+          python - <<'PY'
+          import pandas as pd
+          path = "data/staging/processed/pr_fec_disbursements.csv"
+          rows = len(pd.read_csv(path, low_memory=False))
+          if rows != 3495:
+              raise SystemExit(f"Schedule B checkpoint row mismatch: {rows} != 3495")
+          print(f"Restored Schedule B rows: {rows}")
+          PY
+
+      - name: Restore latest Schedule E page checkpoint
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          artifacts_url="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=campaign-finance-live-materialization&per_page=100"
+          artifact_id="$(
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer ${GH_TOKEN}" \
+              --header "Accept: application/vnd.github+json" \
+              "$artifacts_url" \
+            | jq -r '[.artifacts[] | select(.expired == false)] | sort_by(.created_at) | reverse | .[0].id // empty'
+          )"
+          if [[ -z "$artifact_id" ]]; then
+            echo "No prior Schedule E checkpoint artifact found; starting from page 1."
+            exit 0
+          fi
+          mkdir -p /tmp/schedule-e-checkpoint
+          curl --fail --location --retry 5 --retry-all-errors \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${artifact_id}/zip" \
+            --output /tmp/schedule-e-checkpoint.zip
+          unzip -q /tmp/schedule-e-checkpoint.zip -d /tmp/schedule-e-checkpoint
+          if [[ -d /tmp/schedule-e-checkpoint/data/checkpoints/campaign_finance/fec_schedule_e ]]; then
+            mkdir -p data/checkpoints/campaign_finance
+            cp -R /tmp/schedule-e-checkpoint/data/checkpoints/campaign_finance/fec_schedule_e \
+              data/checkpoints/campaign_finance/
+          fi
+          if [[ -f /tmp/schedule-e-checkpoint/data/manifests/campaign_finance/fec_schedule_e_acquisition.json ]]; then
+            mkdir -p data/manifests/campaign_finance
+            cp /tmp/schedule-e-checkpoint/data/manifests/campaign_finance/fec_schedule_e_acquisition.json \
+              data/manifests/campaign_finance/
+          fi
+
+      - name: Fetch live FEC Schedule E with page checkpoints
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p reports/campaign_finance
+          python scripts/download_fec_schedule_e_resumable.py --resume \
+            2>&1 | tee reports/campaign_finance/fec_schedule_e.txt
+
+      - name: Reconcile combined FEC outflow acquisition manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          manifest_dir = Path("data/manifests/campaign_finance")
+          outflow_path = manifest_dir / "fec_outflows_acquisition.json"
+          schedule_e_path = manifest_dir / "fec_schedule_e_acquisition.json"
+          schedule_b_path = Path("data/staging/processed/pr_fec_disbursements.csv")
+          schedule_e_csv = Path("data/staging/processed/pr_fec_independent_expenditures.csv")
+
+          outflow = json.loads(outflow_path.read_text(encoding="utf-8"))
+          schedule_e = json.loads(schedule_e_path.read_text(encoding="utf-8"))
+          planned_cycles = schedule_e.get("planned_cycles", [])
+          completed_cycles = schedule_e.get("completed_cycles", [])
+          receipts = schedule_e.get("page_receipts", {})
+          if schedule_e.get("status") != "complete":
+              raise SystemExit("Schedule E manifest is not complete")
+          if schedule_e.get("query_scope") != "certified_pr_committee_ids":
+              raise SystemExit("Schedule E query scope is not certified_pr_committee_ids")
+          if len(planned_cycles) != 14 or completed_cycles != planned_cycles:
+              raise SystemExit("Schedule E cycle accounting is incomplete")
+          if len(receipts) != 252:
+              raise SystemExit(f"Schedule E page receipt mismatch: {len(receipts)} != 252")
+          for key, receipt in receipts.items():
+              if not receipt.get("sha256") or int(receipt.get("rows", -1)) < 0:
+                  raise SystemExit(f"Invalid Schedule E receipt: {key}")
+          output_sha = hashlib.sha256(schedule_e_csv.read_bytes()).hexdigest()
+          if output_sha != schedule_e.get("output_sha256"):
+              raise SystemExit("Schedule E output SHA256 mismatch")
+
+          schedule_b = outflow.get("schedule_b", {})
+          schedule_b.update(
+              {
+                  "rows": 3495,
+                  "skipped": False,
+                  "output_sha256": hashlib.sha256(schedule_b_path.read_bytes()).hexdigest(),
+              }
+          )
+          outflow.update(
+              {
+                  "status": "complete",
+                  "schedule_b": schedule_b,
+                  "schedule_e": {
+                      "skipped": False,
+                      "query_scope": schedule_e["query_scope"],
+                      "planned_cycles": len(planned_cycles),
+                      "completed_cycles": len(completed_cycles),
+                      "planned_batches_per_cycle": schedule_e["planned_batches_per_cycle"],
+                      "page_receipts": len(receipts),
+                      "rows": schedule_e["rows"],
+                      "output_sha256": output_sha,
+                      "schema_columns": schedule_e["schema_columns"],
+                  },
+              }
+          )
+          outflow_path.write_text(json.dumps(outflow, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+          print(json.dumps(outflow, sort_keys=True))
+          PY
+
+      - name: Run strict campaign-finance materialization
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/materialize_campaign_finance.py \
+            --live-oce \
+            --strict \
+            2>&1 | tee reports/campaign_finance/live_materialization.txt
+
+      - name: Upload campaign-finance evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: campaign-finance-live-materialization
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            reports/campaign_finance/
+            data/checkpoints/campaign_finance/fec_schedule_e/
+            data/manifests/campaign_finance/
+            data/staging/processed/pr_fec_contributions.csv
+            data/staging/processed/pr_fec_committees.csv
+            data/staging/processed/pr_fec_disbursements.csv
+            data/staging/processed/pr_fec_independent_expenditures.csv
+            data/staging/processed/pr_oce_donations.csv
+            data/staging/processed/pr_oce_reports.csv
+            data/staging/processed/pr_campaign_finance_candidates.csv
+            data/staging/processed/pr_campaign_finance_committees.csv
+            data/staging/processed/pr_campaign_finance_recipient_resolution.csv
+            data/staging/processed/pr_campaign_finance_edges.csv

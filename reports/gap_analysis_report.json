@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-08-10T04:13:42.201521+00:00",
+  "generated_at": "2026-08-11T23:24:50.247536+00:00",
   "schema_version": "r5_v1",
   "completeness_schema_version": "gap_closure_v1",
-  "total_sources": 154,
-  "required_sources": 14,
+  "total_sources": 157,
+  "required_sources": 16,
   "fully_materialized": 11,
   "partially_materialized": 2,
-  "not_materialized": 5,
-  "optional_not_materialized": 136,
-  "coverage_rate": 0.0714,
-  "required_coverage_rate": 0.6429,
+  "not_materialized": 7,
+  "optional_not_materialized": 137,
+  "coverage_rate": 0.0701,
+  "required_coverage_rate": 0.5625,
   "contracted_sources": 22,
   "certification_counts": {
     "provisional": 11,
-    "uncertified": 143
+    "uncertified": 146
   },
   "materiality_counts": {
-    "empty": 142,
+    "empty": 145,
     "seed": 2,
     "substantial": 8,
     "validated_complete": 2

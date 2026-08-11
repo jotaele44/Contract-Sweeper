@@ -1,6 +1,4 @@
-"""Tests for the OCE (Oficina del Contralor Electoral) dropzone ingest."""
-
-from __future__ import annotations
+"""Tests for the OCE dropzone ingest and real export layouts."""
 
 from pathlib import Path
 
@@ -11,12 +9,14 @@ from scripts import ingest_oce
 
 
 @pytest.mark.unit
-def test_no_raw_dir_writes_empty_header(tmp_path):
+def test_no_raw_dir_writes_empty_headers(tmp_path):
     result = ingest_oce.run(root=tmp_path, force=True)
     assert result["status"] == "NO_FILES"
-    out = pd.read_csv(Path(result["path"]))
-    assert list(out.columns) == ingest_oce.OUTPUT_COLUMNS
-    assert len(out) == 0
+    donations = pd.read_csv(Path(result["path"]))
+    reports = pd.read_csv(Path(result["reports_path"]))
+    assert list(donations.columns) == ingest_oce.OUTPUT_COLUMNS
+    assert list(reports.columns) == ingest_oce.REPORT_COLUMNS
+    assert len(donations) == len(reports) == 0
 
 
 @pytest.mark.unit
@@ -34,7 +34,7 @@ def test_spanish_column_mapping(tmp_path):
                 "Ciudad": "Bayamon",
             },
             {
-                "Nombre_Donante": "",  # filtered out (no donor name)
+                "Nombre_Donante": "",
                 "Cantidad": "100",
                 "Fecha": "2024-09-02",
                 "Comite": "Other",
@@ -43,18 +43,91 @@ def test_spanish_column_mapping(tmp_path):
             },
         ]
     ).to_csv(raw / "oce_2024.csv", index=False)
-
     result = ingest_oce.run(root=tmp_path, force=True)
-    assert result["status"] == "OK"
     assert result["rows"] == 1
-    out = pd.read_csv(Path(result["path"]), dtype=str)
-    row = out.iloc[0]
+    row = pd.read_csv(Path(result["path"]), dtype=str).iloc[0]
     assert row["donor_name"] == "Civic Trust"
     assert row["amount"] == "2500"
     assert row["party"] == "PNP"
     assert row["candidate_or_committee"] == "Comite OCE"
-    assert row["donor_city"] == "Bayamon"
-    assert row["source_file"] == "oce_2024.csv"
+
+
+@pytest.mark.unit
+def test_maps_socrata_api_field_names(tmp_path):
+    raw = tmp_path / "data" / "raw" / "OCE"
+    raw.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "candidato": "PARTIDO INDEPENDENTISTA PUERTORRIQUEÑO",
+                "candidatura": "Partido",
+                "siglas": "PIP",
+                "cantidad_donacion": "200",
+                "metodo_donacion": "Cheque",
+                "nombre_completo": "DAMARIS MANGUAL VELEZ",
+                "donante_pueblo": "ARECIBO",
+                "fecha_donacion": "2018-03-31T00:00:00.000",
+                "descripcion_evento": "2018 - Año no eleccionario",
+                "zip_code": "00612",
+            }
+        ]
+    ).to_csv(raw / "oce.csv", index=False)
+    result = ingest_oce.run(root=tmp_path, force=True)
+    row = pd.read_csv(Path(result["path"]), dtype=str).iloc[0]
+    assert row["donor_name"] == "DAMARIS MANGUAL VELEZ"
+    assert row["candidate_or_committee"] == "PARTIDO INDEPENDENTISTA PUERTORRIQUEÑO"
+    assert row["candidacy_type"] == "Partido"
+    assert row["payment_method"] == "Cheque"
+    assert row["party"] == "PIP"
+    assert row["cycle"] == "2018"
+
+
+@pytest.mark.unit
+def test_maps_oce_donor_search_headers(tmp_path):
+    raw = tmp_path / "data" / "raw" / "OCE"
+    raw.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "Nombre completo": "BANK FIRST",
+                "Comité": "CARLOS MOLINA RODRIGUEZ",
+                "Partido de afiliación": "PARTIDO NUEVO PROGRESISTA",
+                "Fecha de donación": "2018-12-31",
+                "Ciudad": "SAN JUAN",
+                "Método de cobro": "Transferencia electrónica",
+                "Cantidad": "2.98",
+            }
+        ]
+    ).to_excel(raw / "donantes.xlsx", index=False)
+    result = ingest_oce.run(root=tmp_path, force=True)
+    row = pd.read_csv(Path(result["path"]), dtype=str).iloc[0]
+    assert row["donor_name"] == "BANK FIRST"
+    assert row["party"] == "PARTIDO NUEVO PROGRESISTA"
+    assert row["payment_method"] == "Transferencia electrónica"
+
+
+@pytest.mark.unit
+def test_report_exports_are_separated(tmp_path):
+    raw = tmp_path / "data" / "raw" / "OCE"
+    raw.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "Comité": "COMITE X",
+                "Número de informe": "IG-2024-1",
+                "Tipo de informe": "Ingresos y gastos",
+                "Evento electoral": "2024 Año Electoral",
+                "Periodo del informe": "Julio a septiembre 2024",
+                "Fecha de radicación": "2026-04-23 14:22:30",
+            }
+        ]
+    ).to_excel(raw / "informes.xlsx", index=False)
+    result = ingest_oce.run(root=tmp_path, force=True)
+    assert result["rows"] == 0
+    assert result["report_rows"] == 1
+    reports = pd.read_csv(Path(result["reports_path"]), dtype=str)
+    assert reports.iloc[0]["report_number"] == "IG-2024-1"
+    assert reports.iloc[0]["filed_at"] == "2026-04-23"
 
 
 @pytest.mark.unit

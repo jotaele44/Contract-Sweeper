@@ -1,20 +1,7 @@
-"""
-Ingest PR State Election Commission (CEE/CEEPUR) donation data.
+"""Ingest Puerto Rico CEE/CEEPUR campaign-donation exports.
 
-Place one or more CSV files exported from:
-  https://www.ceepur.org/
-
-into  data/raw/Donaciones/
-
-The CEE website produces a CSV with Spanish-language column headers. The mapper
-is flexible to handle different export formats across election cycles.
-
-Output:
-  data/staging/processed/pr_donaciones.csv
-
-Usage:
-  python3 scripts/ingest_donaciones.py
-  python3 scripts/ingest_donaciones.py --force
+Accepts CSV and Excel exports in ``data/raw/Donaciones/`` and normalizes the
+historical and recent donor-search layouts into one canonical table.
 """
 
 from __future__ import annotations
@@ -27,7 +14,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pandas as pd
 
+from scripts.campaign_finance_common import (
+    clean_amount_series,
+    clean_date_series,
+    derive_cycle,
+    iter_tabular_frames,
+    text_series,
+)
 from scripts.config import PROJECT_ROOT, setup_logging
+
+
+def _map_col(df: pd.DataFrame, candidates: list[str]):
+    """Backward-compatible column lookup used by the original test contract."""
+    from scripts.campaign_finance_common import find_column
+
+    return find_column(df, candidates)
+
 
 RAW_DIR_NAME = "data/raw/Donaciones"
 
@@ -51,17 +53,8 @@ OUTPUT_COLUMNS = [
     "source_file",
 ]
 
-# Column name candidates for each output field (tried in order, first match wins)
 COL_MAP = {
-    "cycle": [
-        "ciclo",
-        "cycle",
-        "año_eleccion",
-        "ano_eleccion",
-        "election_year",
-        "año electoral",
-        "anio_electoral",
-    ],
+    "cycle": ["ciclo", "cycle", "año_eleccion", "ano_eleccion", "election_year", "año electoral"],
     "donor_name": [
         "nombre_donante",
         "nombre donante",
@@ -69,15 +62,10 @@ COL_MAP = {
         "donor_name",
         "nombre_contribuyente",
         "contribuyente",
+        "nombre completo",
         "nombre",
     ],
-    "donor_city": [
-        "ciudad_donante",
-        "ciudad",
-        "city",
-        "donor_city",
-        "municipio",
-    ],
+    "donor_city": ["ciudad_donante", "ciudad", "city", "donor_city", "municipio", "pueblo"],
     "donor_zip_code": [
         "zip_donante",
         "zip",
@@ -86,19 +74,14 @@ COL_MAP = {
         "postal_code",
         "donor_zip",
     ],
-    "donor_employer": [
-        "patrono",
-        "empleador",
-        "employer",
-        "donor_employer",
-        "empleo",
-    ],
+    "donor_employer": ["patrono", "empleador", "employer", "donor_employer", "empleo"],
     "donor_occupation": [
         "ocupacion",
         "ocupación",
         "occupation",
         "donor_occupation",
         "profesion",
+        "profesión",
     ],
     "amount": [
         "cantidad",
@@ -112,6 +95,8 @@ COL_MAP = {
     "contribution_date": [
         "fecha_donacion",
         "fecha donacion",
+        "fecha de donación",
+        "fecha de donacion",
         "fecha",
         "date",
         "contribution_date",
@@ -121,6 +106,7 @@ COL_MAP = {
         "candidato_comite",
         "candidato",
         "comite",
+        "comité",
         "candidate",
         "committee",
         "candidato_o_comite",
@@ -130,83 +116,61 @@ COL_MAP = {
         "partido",
         "party",
         "partido_politico",
+        "partido político",
+        "partido de afiliación",
+        "partido de afiliacion",
         "siglas",
     ],
-    "office_sought": [
-        "cargo",
-        "puesto",
-        "office",
-        "office_sought",
-        "posicion",
-    ],
+    "office_sought": ["cargo", "puesto", "office", "office_sought", "posicion", "posición"],
     "election_type": [
         "tipo_eleccion",
         "tipo eleccion",
         "election_type",
         "tipo",
         "eleccion",
+        "elección",
     ],
-    "report_type": [
-        "tipo_informe",
-        "informe",
-        "report_type",
-        "report",
-        "tipo_reporte",
-    ],
-    "candidacy_type": [
-        "candidatura",
-        "candidacy_type",
-        "tipo_candidatura",
-    ],
+    "report_type": ["tipo_informe", "informe", "report_type", "report", "tipo_reporte"],
+    "candidacy_type": ["candidatura", "candidacy_type", "tipo_candidatura"],
     "payment_method": [
         "metodo",
         "método",
         "payment_method",
         "metodo_pago",
+        "método de cobro",
+        "metodo de cobro",
     ],
-    "event_name": [
-        "evento",
-        "event",
-        "event_name",
-    ],
+    "event_name": ["evento", "event", "event_name", "evento electoral"],
 }
 
 
-def _map_col(df: pd.DataFrame, candidates: list[str]):
-    df_lower = {c.lower().strip(): c for c in df.columns}
-    for cand in candidates:
-        actual = df_lower.get(cand.lower().strip())
-        if actual is not None:
-            return actual
-    return None
-
-
 def _parse_df(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
-    out = {}
-    for target, candidates in COL_MAP.items():
-        src_col = _map_col(df, candidates)
-        out[target] = df[src_col].astype(str).str.strip() if src_col is not None else ""
-
+    out = {target: text_series(df, candidates) for target, candidates in COL_MAP.items()}
     out_df = pd.DataFrame(out)
     out_df["source_file"] = source_file
-
+    out_df["amount"] = clean_amount_series(out_df["amount"])
+    out_df["contribution_date"] = clean_date_series(out_df["contribution_date"])
+    missing_cycle = out_df["cycle"].eq("")
+    out_df.loc[missing_cycle, "cycle"] = [
+        derive_cycle(event, date)
+        for event, date in zip(
+            out_df.loc[missing_cycle, "event_name"],
+            out_df.loc[missing_cycle, "contribution_date"],
+        )
+    ]
     for col in OUTPUT_COLUMNS:
         if col not in out_df.columns:
             out_df[col] = ""
-
-    # Filter out rows with no donor name
-    out_df = out_df[out_df["donor_name"].str.strip() != ""]
+    donor = out_df["donor_name"].fillna("").astype(str).str.strip()
+    out_df = out_df[(donor != "") & (donor.str.lower() != "nan")]
     return out_df[OUTPUT_COLUMNS]
 
 
 def run(root: Path | None = None, force: bool = False) -> dict:
-    if root is None:
-        root = PROJECT_ROOT
-    root = Path(root)
+    root = Path(root) if root is not None else PROJECT_ROOT
     raw_dir = root / RAW_DIR_NAME
     out_path = root / "data" / "staging" / "processed" / "pr_donaciones.csv"
     out_path.parent.mkdir(parents=True, exist_ok=True)
-
     logger = setup_logging("ingest_donaciones")
 
     if not force and out_path.exists():
@@ -215,57 +179,62 @@ def run(root: Path | None = None, force: bool = False) -> dict:
             logger.info(f"  Cached — {len(existing):,} rows in {out_path.name}")
             return {"rows": len(existing), "path": str(out_path), "status": "CACHED"}
 
-    if not raw_dir.exists():
-        logger.info(f"  No Donaciones raw dir at {raw_dir} — skipping ingest")
-        pd.DataFrame(columns=OUTPUT_COLUMNS).to_csv(out_path, index=False, encoding="utf-8")
-        return {"rows": 0, "path": str(out_path), "status": "NO_FILES"}
-
-    csv_files = sorted(
-        f
-        for f in raw_dir.iterdir()
-        if f.suffix.lower() in (".csv", ".xlsx", ".xls") and not f.name.startswith("~")
+    files = (
+        []
+        if not raw_dir.exists()
+        else sorted(
+            f
+            for f in raw_dir.iterdir()
+            if f.suffix.lower() in {".csv", ".xlsx", ".xls"} and not f.name.startswith("~")
+        )
     )
-    if not csv_files:
-        logger.info(f"  No files in {raw_dir} — skipping ingest")
+    if not files:
         pd.DataFrame(columns=OUTPUT_COLUMNS).to_csv(out_path, index=False, encoding="utf-8")
         return {"rows": 0, "path": str(out_path), "status": "NO_FILES"}
 
-    logger.info(f"  Found {len(csv_files)} CEE export file(s) in {raw_dir}")
-    frames = []
-    for f in csv_files:
-        logger.info(f"  Reading {f.name}...")
+    frames: list[pd.DataFrame] = []
+    file_rows: dict[str, int] = {}
+    for path in files:
+        logger.info(f"  Reading {path.name}...")
+        count = 0
         try:
-            if f.suffix.lower() == ".csv":
-                df = pd.read_csv(f, dtype=str, low_memory=False, encoding="utf-8")
-            else:
-                df = pd.read_excel(f, dtype=str)
-            parsed = _parse_df(df, f.name)
-            logger.info(f"    → {len(parsed):,} rows after mapping")
-            frames.append(parsed)
-        except Exception as e:
-            logger.warning(f"  Could not parse {f.name}: {e}")
+            for frame in iter_tabular_frames(path):
+                parsed = _parse_df(frame, path.name)
+                count += len(parsed)
+                frames.append(parsed)
+            file_rows[path.name] = count
+            logger.info(f"    → {count:,} donation rows after mapping")
+        except Exception as exc:
+            logger.warning(f"  Could not parse {path.name}: {exc}")
 
     if not frames:
-        logger.warning("  No parseable CEE export files found")
         pd.DataFrame(columns=OUTPUT_COLUMNS).to_csv(out_path, index=False, encoding="utf-8")
-        return {"rows": 0, "path": str(out_path), "status": "EMPTY"}
+        return {"rows": 0, "path": str(out_path), "status": "EMPTY", "files": file_rows}
 
-    combined = pd.concat(frames, ignore_index=True).drop_duplicates()
+    combined = pd.concat(frames, ignore_index=True)
+    before = len(combined)
+    combined = combined.drop_duplicates(
+        subset=["donor_name", "candidate_or_committee", "contribution_date", "amount", "party"],
+        keep="first",
+    )
     combined.to_csv(out_path, index=False, encoding="utf-8")
-    logger.info(f"  Written: {out_path.name} ({len(combined):,} rows)")
-    return {"rows": len(combined), "path": str(out_path), "status": "OK"}
+    return {
+        "rows": len(combined),
+        "deduplicated_rows": before - len(combined),
+        "path": str(out_path),
+        "status": "OK" if len(combined) else "EMPTY",
+        "files": file_rows,
+    }
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Ingest CEE/CEEPUR donation CSV exports from data/raw/Donaciones/"
-    )
-    parser.add_argument("--force", action="store_true", help="Re-ingest even if output exists")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
     result = run(force=args.force)
-    print(f"\nDonaciones ingest: {result['rows']:,} rows — {result['status']}")
-    return 0
+    print(f"\nCEE donations: {result['rows']:,} rows — {result['status']}")
+    return 0 if result["status"] not in {"EMPTY"} else 1
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

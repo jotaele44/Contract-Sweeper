@@ -1,18 +1,13 @@
 // REST client for the moneysweep-pr FastAPI backend.
 // Backend: server/backend/main.py  (uvicorn server.backend.main:app --port 8000)
-// Reads the frozen canonical_v1 CSVs. award amounts are frequently null.
 import snapshot from './snapshot.json' // {} in normal builds; populated for VITE_OFFLINE exports
 export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 
-// Offline export build: resolve from an embedded data snapshot instead of fetching.
-// (A file:// page cannot fetch at all, so standalone exports bake the data in.)
 const OFFLINE = import.meta.env.VITE_OFFLINE === '1'
 
-// Fetch JSON, THROWING on any failure so react-query surfaces isError/retry.
-// Offline builds resolve from the embedded snapshot instead of the network.
 async function fetchJSON(path, offlineFallback = null) {
   if (OFFLINE) {
-    const key = path.split('?')[0] // server-side filters degrade to the unfiltered snapshot
+    const key = path.split('?')[0]
     return key in snapshot ? snapshot[key] : offlineFallback
   }
   const res = await fetch(`${API_BASE}${path}`, { signal: AbortSignal.timeout(8000) })
@@ -25,8 +20,6 @@ const qs = (params) => {
   return p.length ? '?' + new URLSearchParams(p).toString() : ''
 }
 
-// Health is polled and drives the up/down indicator, so it stays soft: a failed
-// probe means "down", not a thrown query.
 export const getHealth = async () => {
   try {
     return await fetchJSON('/health', { status: 'down', rows: {} })
@@ -39,3 +32,14 @@ export const getEntities = (f = {}) => fetchJSON(`/entities${qs(f)}`, [])
 export const getEdges = (f = {}) => fetchJSON(`/edges${qs(f)}`, [])
 export const getMunicipalities = () => fetchJSON('/municipalities', [])
 export const getStats = () => fetchJSON('/stats', null)
+
+export const getCampaignFinanceSummary = () => fetchJSON('/campaign-finance/summary', {
+  sources: [], totalContributionRows: 0, totalContributionAmount: 0,
+  totalFederalOutflowRows: 0, derived: {},
+})
+export const getCampaignFinanceContributions = (f = {}) =>
+  fetchJSON(`/campaign-finance/contributions${qs(f)}`, { rows: [], total: 0, limit: f.limit ?? 500, offset: f.offset ?? 0 })
+export const getCampaignFinanceEntities = (f = {}) =>
+  fetchJSON(`/campaign-finance/entities${qs(f)}`, [])
+export const getCampaignFinanceReports = (f = {}) =>
+  fetchJSON(`/campaign-finance/reports${qs(f)}`, [])

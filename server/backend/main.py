@@ -41,7 +41,7 @@ EXPECTED = {
     "municipalities": ["municipality_id", "name", "region"],
 }
 
-app = FastAPI(title="moneysweep-pr API", version="0.1.0")
+app = FastAPI(title="moneysweep-pr API", version="0.2.0")
 
 # Dev CORS. Defaults to the Vite dev origins; override with a comma-separated
 # MONEYSWEEP_CORS_ORIGINS when the frontend runs on a different port/host.
@@ -273,3 +273,10 @@ def stats():
         "byServiceType": by_service,
         "byEntityType": ent_types,
     }
+
+
+# Campaign-finance is loaded lazily from staging outputs so the core dashboard
+# still boots when optional political-finance datasets are absent.
+from server.backend.campaign_finance import router as campaign_finance_router  # noqa: E402
+
+app.include_router(campaign_finance_router)

@@ -23,7 +23,7 @@ def test_overrides_preserve_source_denominator_and_required_count() -> None:
         len(json.loads(path.read_text(encoding="utf-8")).get("sources", []))
         for path in (ROOT / "registries/source_registry_extensions").glob("*.json")
     )
-    assert sum(source.get("required", False) for source in effective) == 14
+    assert sum(source.get("required", False) for source in effective) == 16
 
 
 def test_wave0_provenance_corrections_are_effective() -> None:

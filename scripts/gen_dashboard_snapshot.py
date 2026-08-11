@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Generate dashboard/src/lib/snapshot.json for the offline (VITE_OFFLINE) export.
-
-The standalone `file://` build cannot fetch, so `dashboard/src/lib/api.js` resolves
-each endpoint from an embedded snapshot keyed by request path (query string
-stripped). This script calls the backend's endpoint functions directly (they are
-plain functions returning JSON-safe data) and dumps those paths, so
-`npm run build:export` ships a dashboard with data baked in instead of empty
-fallbacks. Calling the functions directly avoids the FastAPI TestClient, which
-would pull in a test-only `httpx` dependency the runtime install doesn't declare.
-
-Usage (from repo root):
-    python scripts/gen_dashboard_snapshot.py
-"""
+"""Generate the offline dashboard snapshot using concrete route arguments."""
 
 from __future__ import annotations
 
@@ -21,12 +9,11 @@ from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
 if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))  # allow `import server...` regardless of CWD
+    sys.path.insert(0, str(_ROOT))
 
 from server.backend import main as backend  # noqa: E402
+from server.backend import campaign_finance as campaign  # noqa: E402
 
-# Map each snapshot key (the query-string-stripped path api.js looks up) to the
-# backend endpoint function that produces it. Defaults yield the unfiltered set.
 ENDPOINTS = {
     "/health": backend.health,
     "/contracts": backend.contracts,
@@ -34,6 +21,12 @@ ENDPOINTS = {
     "/edges": backend.edges,
     "/municipalities": backend.municipalities,
     "/stats": backend.stats,
+    "/campaign-finance/summary": campaign.campaign_finance_summary,
+    "/campaign-finance/contributions": lambda: campaign.campaign_finance_contributions(
+        limit=500, offset=0
+    ),
+    "/campaign-finance/entities": lambda: campaign.campaign_finance_entities(limit=1000),
+    "/campaign-finance/reports": lambda: campaign.campaign_finance_reports(limit=1000),
 }
 
 OUT = _ROOT / "dashboard" / "src" / "lib" / "snapshot.json"
@@ -42,7 +35,14 @@ OUT = _ROOT / "dashboard" / "src" / "lib" / "snapshot.json"
 def main() -> None:
     snapshot = {path: fn() for path, fn in ENDPOINTS.items()}
     OUT.write_text(json.dumps(snapshot, indent=2, ensure_ascii=False) + "\n")
-    counts = {p: (len(v) if isinstance(v, list) else 1) for p, v in snapshot.items()}
+    counts = {
+        path: len(value.get("rows", []))
+        if isinstance(value, dict) and "rows" in value
+        else len(value)
+        if isinstance(value, list)
+        else 1
+        for path, value in snapshot.items()
+    }
     print(f"wrote {OUT.relative_to(Path.cwd())}  {counts}")
 
 
