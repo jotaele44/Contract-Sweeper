@@ -19,7 +19,5 @@ networkx>=3.0; python_version < '3.11'
 pdfplumber>=0.11.10
 # SBA disaster-loan workbook importer
 openpyxl>=3.1.0
-# Shared maintenance core from thehub-pr, resolved via a local editable path
-# instead of a pinned commit SHA (edit-once, no per-repo bump). Requires
-# thehub-pr checked out as a sibling of this repo.
--e ../thehub-pr/packages/prii_maintenance
+# Shared maintenance core pinned to an immutable TheHub commit.
+prii-maintenance @ git+https://github.com/jotaele44/thehub-pr.git@f2b81769924689b4d959554928810b1d7b7ef3d6#subdirectory=packages/prii_maintenance

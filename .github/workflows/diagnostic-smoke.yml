@@ -1,12 +1,5 @@
 name: Diagnostic smoke
 
-# Dry-runs the run_all orchestration in its safe, no-network diagnostic mode
-# (`--only-setup --strict-preflight`): directory setup, instruction generation,
-# and the registry-driven structural preflight — no producers, no downloads, no
-# row construction. It catches integration breakage in the orchestrator import
-# graph / setup / preflight path BEFORE source delivery, so resuming ingestion
-# starts from a known-green orchestrator (Wave M, task 72).
-
 on: [push, pull_request]
 
 permissions:
@@ -14,8 +7,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Supersede older runs of this workflow on the same ref: a newer push
-# makes the in-flight result irrelevant, so cancel it and free the runner.
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,20 +16,18 @@ jobs:
   diagnostic-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.13"
           cache: pip
-
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           python -m pip install -r requirements.txt
-
-      - name: Dry-run run_all (setup + strict preflight, no producers)
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
+      - name: Dry-run run_all
         run: |
           python3 run_all.py --only-setup --strict-preflight
           echo "diagnostic smoke: run_all --only-setup --strict-preflight exited $?"
