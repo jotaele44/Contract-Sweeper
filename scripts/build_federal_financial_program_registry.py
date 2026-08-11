@@ -88,9 +88,10 @@ def build(source: Path, output: Path, coverage: Path, overrides: dict[str, dict]
     nexus_counts = {state: 0 for state in sorted(PR_NEXUS_STATES)}
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    with source.open("r", encoding="cp1252", newline="") as src, output.open(
-        "w", encoding="utf-8", newline=""
-    ) as dst:
+    with (
+        source.open("r", encoding="cp1252", newline="") as src,
+        output.open("w", encoding="utf-8", newline="") as dst,
+    ):
         reader = csv.DictReader(src)
         required = {
             "Program Title",
@@ -147,7 +148,9 @@ def build(source: Path, output: Path, coverage: Path, overrides: dict[str, dict]
         "pr_nexus_state_counts": nexus_counts,
         "pr_nexus_classified_rows": sum(nexus_counts.values()),
         "pr_nexus_classification_pct": (
-            100.0 if financial_rows == 0 else round(100.0 * sum(nexus_counts.values()) / financial_rows, 8)
+            100.0
+            if financial_rows == 0
+            else round(100.0 * sum(nexus_counts.values()) / financial_rows, 8)
         ),
         "global_fain_backfill_allowed": False,
     }
@@ -160,9 +163,21 @@ def build(source: Path, output: Path, coverage: Path, overrides: dict[str, dict]
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source", type=Path, default=Path("data/raw/sam/AssistanceListings_DataGov_PUBLIC_CURRENT.csv"))
-    parser.add_argument("--output", type=Path, default=Path("data/processed/federal_financial_program_registry.jsonl"))
-    parser.add_argument("--coverage", type=Path, default=Path("data/exports/federal_financial_program_coverage.json"))
+    parser.add_argument(
+        "--source",
+        type=Path,
+        default=Path("data/raw/sam/AssistanceListings_DataGov_PUBLIC_CURRENT.csv"),
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("data/processed/federal_financial_program_registry.jsonl"),
+    )
+    parser.add_argument(
+        "--coverage",
+        type=Path,
+        default=Path("data/exports/federal_financial_program_coverage.json"),
+    )
     parser.add_argument("--pr-nexus-overrides", type=Path)
     parser.add_argument("--download", action="store_true")
     args = parser.parse_args()
@@ -170,9 +185,13 @@ def main() -> int:
     if args.download:
         acquire(args.source)
     if not args.source.exists():
-        parser.error(f"source does not exist: {args.source}; pass --download to acquire the current SAM extract")
+        parser.error(
+            f"source does not exist: {args.source}; pass --download to acquire the current SAM extract"
+        )
 
-    summary = build(args.source, args.output, args.coverage, load_overrides(args.pr_nexus_overrides))
+    summary = build(
+        args.source, args.output, args.coverage, load_overrides(args.pr_nexus_overrides)
+    )
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
 
