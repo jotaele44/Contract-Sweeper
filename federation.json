@@ -15,12 +15,13 @@
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "pause_lock_required": true,
   "source_truth": {
-    "total_sources": 154,
-    "automatable_total": 107,
-    "automatable_ready": 107,
-    "queued_excluded_total": 47,
+    "source_of_truth_file": "reports/materialization_readiness.json",
+    "total_sources": 157,
+    "automatable_total": 108,
+    "automatable_ready": 108,
+    "queued_excluded_total": 49,
     "queued_excluded": {
-      "manual_export": 40,
+      "manual_export": 42,
       "scraper_needed": 2,
       "deferred_stub": 2,
       "semantic_duplicate": 3,
@@ -28,7 +29,7 @@
     }
   },
   "hub_callable_commands": {
-    "setup": "[ -d ../thehub-pr ] || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; python3 run_all.py --only-setup",
+    "setup": "python3 run_all.py --only-setup",
     "strict_preflight": "python3 run_all.py --only-setup --strict-preflight",
     "full_pipeline": "python3 run_all.py --strict-preflight",
     "materialization_matrix": "python3 scripts/build_source_recovery_matrix.py",

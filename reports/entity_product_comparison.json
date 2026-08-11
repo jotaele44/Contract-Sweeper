@@ -1,0 +1,98 @@
+{
+  "schema_version": "entity_product_comparison_v2",
+  "generated_at": "2026-07-31T00:31:58.365842+00:00",
+  "status": "COMPLETE",
+  "left": {
+    "path": "data/staging/processed/entity_master.csv",
+    "uploaded_name": "entity_master(2).csv",
+    "file_sha256": "9072a48e736ae72dd2d7eefa09fbe9d72520345837d9b84468f0b861d19176e0",
+    "schema": [
+      "entity_key",
+      "canonical_name",
+      "recipient_uei",
+      "total_obligated",
+      "award_count",
+      "source_datasets",
+      "awarding_agencies",
+      "first_award_date",
+      "last_award_date",
+      "fiscal_year_range"
+    ],
+    "schema_sha256": "cd1b999847f3196885ac21dd1dc866d1adde6d6bc3155e80d4f1d50588cc6f71",
+    "row_count": 104280,
+    "stable_key_column": "entity_key",
+    "nonblank_unique_keys": 104280,
+    "blank_key_rows": 0,
+    "duplicate_key_rows": 0,
+    "validation_error_count": 0
+  },
+  "right": {
+    "path": "operator-reconstructed/pr_entity_profiles.csv",
+    "source_uploaded_name": "pr_all_awards_master(2).csv",
+    "source_file_sha256": "b93fae6ac91b14021ce116f7cd286eff6988af7affe241aa356e521550c7223a",
+    "schema": [
+      "normalized_name",
+      "recipient_name",
+      "total_awards_obligated",
+      "award_count",
+      "award_datasets",
+      "fiscal_year_range",
+      "is_nonprofit",
+      "is_medicare_provider",
+      "is_fdic_bank"
+    ],
+    "schema_sha256": "55b6ec9133dd5f04d18ea8ecc6376b7074bd5fe1073eee4d35fa8c6b92d5a2d6",
+    "row_count": 104280,
+    "stable_key_column": "normalized_name",
+    "nonblank_unique_keys": 104280,
+    "blank_key_rows": 0,
+    "duplicate_key_rows": 0,
+    "validation_error_count": 0,
+    "generation_boundary": "Reconstructed with analyze_entity_profiles.py awards-spine normalization and aggregation. The actual pr_entity_profiles.csv and supplementary 990, CMS, and FDIC inputs were not supplied."
+  },
+  "schema_comparison": {
+    "identical_ordered_schema": false,
+    "shared_columns": [
+      "award_count",
+      "fiscal_year_range"
+    ],
+    "shared_column_count": 2
+  },
+  "stable_key_overlap": {
+    "left_unique": 104280,
+    "right_unique": 104280,
+    "intersection_unique": 104280,
+    "union_unique": 104280,
+    "overlap_rate_max_denominator": 1.0,
+    "jaccard_rate": 1.0
+  },
+  "shared_projection_row_overlap": {
+    "status": "COMPUTED",
+    "left_count": 104280,
+    "right_count": 104280,
+    "intersection_count": 104280,
+    "overlap_rate_max_denominator": 1.0
+  },
+  "duplicate_status": "OVERLAPPING_DERIVED_PRODUCTS",
+  "identical_file": false,
+  "semantic_duplicate": false,
+  "freshness_boundary": "Local uploaded files only; external-source freshness is not certified.",
+  "lineage_verification": {
+    "artifact": "data/staging/processed/entity_master.csv",
+    "producer": "scripts/build_unified_master.py",
+    "entity_key_set_matches_reconstructed_awards_spine": true,
+    "exact_match_fields": [
+      "canonical_name",
+      "award_count",
+      "source_datasets",
+      "awarding_agencies",
+      "first_award_date",
+      "last_award_date",
+      "fiscal_year_range"
+    ],
+    "recipient_uei_exact_matches": 104184,
+    "recipient_uei_total": 104280,
+    "total_obligated_within_1e-6_rows": 104273,
+    "total_rows": 104280
+  }
+}

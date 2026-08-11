@@ -1,34 +1,36 @@
 {
-  "schema_version": "moneysweep_required_source_evidence_v2",
+  "schema_version": "moneysweep_required_source_evidence_v3",
   "observed_at": "2026-07-30T01:14:00-04:00",
-  "reconciled_at": "2026-07-30T11:43:00-04:00",
-  "target_pr": 448,
-  "evidence_input_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
-  "last_certified_v0_8_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
+  "upload_adjudicated_at": "2026-07-30T20:33:33-04:00",
+  "target_pr": 452,
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "live_producer_execution": false,
   "credentialed_access_attempted": false,
   "data_promotion_performed": false,
+  "raw_operator_files_committed": false,
   "materialization_credit_changed": false,
   "required_fully_materialized": 10,
   "required_sources": 14,
+  "upload_receipt": "reports/WAVE0_REQUIRED_EXPORT_INGESTION_RECEIPT_2026-07-30.json",
   "sources": [
     {
       "source_id": "cor3",
-      "status": "PUBLIC_EXPORT_SURFACE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
+      "status": "SUPPLIED_DECLARED_OUTPUT_EMPTY_0_ROWS",
       "official_surface": "https://recovery.pr.gov/en/financial-analysis/financial-summary",
       "registry_producer": "scripts/download_cor3.py",
-      "registry_live_endpoint_status": "UNVERIFIED_BEST_EFFORT",
       "authorized_manual_ingest": "scripts/ingest_cor3.py",
       "manual_drop_dir": "data/raw/COR3/",
       "expected_output": "data/staging/processed/pr_cor3_projects.csv",
-      "freshness_status": "ACCESS_SURFACE_CURRENT_OUTPUT_NOT_CERTIFIED",
+      "uploaded_file": "pr_cor3_projects.csv",
+      "uploaded_sha256": "0c9eb91263e51edf80343e2d93ef4de37b770a3997b46604df344a6a784fabfa",
+      "uploaded_rows": 0,
+      "freshness_status": "NOT_CERTIFIED",
       "materialization_credit": false,
-      "blocker": "No official COR3 workbook bytes were available. The unverified endpoint downloader was not executed."
+      "blocker": "The supplied file is header-only. Official non-empty workbook rows are still required."
     },
     {
       "source_id": "hud_drgr_authorized",
-      "status": "AUTHORIZED_EXPORT_REQUIRED_NOT_PRESENT",
+      "status": "SUPPLIED_NORMALIZED_PARQUETS_EMPTY_REGISTRY_CSVS_ABSENT",
       "official_surface": "https://drgr.hud.gov/public/",
       "registry_producer": "scripts/ingest_hud_drgr_exports.py",
       "manual_drop_dir": "data/manual/hud_drgr/",
@@ -36,50 +38,71 @@
         "data/staging/processed/hud_drgr_activities.csv",
         "data/staging/processed/hud_drgr_projects.csv"
       ],
-      "normalized_outputs": [
-        "data/normalized/hud_drgr_activities.parquet",
-        "data/normalized/hud_drgr_projects.parquet",
-        "data/normalized/hud_drgr_drawdowns.parquet",
-        "data/normalized/hud_drgr_appropriations.parquet"
+      "uploaded_files": [
+        {
+          "name": "hud_drgr_projects.parquet",
+          "sha256": "998a3e4708421863bddad70a402af9da0f500bf6dd97386da63355409dd12134",
+          "rows": 0
+        },
+        {
+          "name": "hud_drgr_responsible_orgs_resolved.parquet",
+          "sha256": "ecaa80f0ae6f3b300975235f66bb926dcec4987fc3347fe5ef4aab4c56d01bd5",
+          "rows": 0
+        }
       ],
       "freshness_status": "NOT_CERTIFIED",
       "materialization_credit": false,
-      "blocker": "No authorized export was supplied; no login, MFA, credential use, or automated extraction was attempted."
+      "blocker": "Both supplied Parquets are empty and do not satisfy the canonical staging CSV contract. pr_hud_hcv.csv is not a DRGR export."
     },
     {
       "source_id": "pr_cabilderos",
-      "status": "PUBLIC_REGISTRY_VERIFIED_FULL_EXPORT_NOT_ACQUIRED",
+      "status": "SUPPLIED_DECLARED_OUTPUT_EMPTY_0_ROWS",
       "official_surface": "https://www.justicia.pr.gov/registro-de-cabilderos/",
       "official_custodian": "Puerto Rico Department of Justice",
       "repo_producer": "scripts/ingest_cabilderos.py",
       "manual_drop_dir": "data/raw/Cabilderos/",
       "expected_output": "data/staging/processed/pr_cabilderos.csv",
-      "freshness_status": "PUBLIC_LIST_OBSERVED_CURRENT_FULL_CORPUS_NOT_CERTIFIED",
+      "uploaded_file": "pr_cabilderos.csv",
+      "uploaded_sha256": "651ddac158fce009c60eeb757a8d153df38cab50d76c0245c8ddd93d7efda116",
+      "uploaded_rows": 0,
+      "freshness_status": "NOT_CERTIFIED",
       "materialization_credit": false,
-      "blocker": "No complete machine-readable official export bytes were available."
+      "blocker": "The supplied file is header-only. A current non-empty Justice registry export is still required."
     },
     {
       "source_id": "prasa",
-      "status": "OFFICIAL_CONTRACT_EXPORT_ROUTE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
+      "status": "SUPPLIED_DECLARED_OUTPUT_EMPTY_0_ROWS",
       "official_surface": "https://consultacontratos.ocpr.gov.pr/",
       "repo_producer": "scripts/ingest_prasa.py",
       "manual_drop_dir": "data/raw/PRASA/",
       "expected_output": "data/staging/processed/pr_prasa_contracts.csv",
-      "freshness_status": "ACCESS_ROUTE_CURRENT_OUTPUT_NOT_CERTIFIED",
+      "uploaded_file": "pr_prasa_contracts(1).csv",
+      "uploaded_sha256": "1ed890263aec8cb89d5701ac1b4ce5007ddab715e246e27a356ec62aa440b140",
+      "uploaded_rows": 0,
+      "freshness_status": "NOT_CERTIFIED",
       "materialization_credit": false,
-      "blocker": "No PRASA-filtered export was supplied. Export delivery remains an operator action."
+      "blocker": "The supplied file is header-only. Federal awards mentioning PRASA and PREPA contracts are not official PRASA contract exports."
     }
   ],
   "entity_product_comparison": {
     "script": "scripts/compare_entity_products.py",
     "schema_version": "entity_product_comparison_v2",
     "test": "tests/test_compare_entity_products.py",
-    "left": "data/staging/processed/entity_master.csv",
-    "right": "data/staging/processed/pr_entity_profiles.csv",
-    "status": "PENDING_OPERATOR_CORPUS_EXECUTION",
-    "reason": "The certified bundle contains audit summaries but not the two local CSV inputs.",
-    "command": "python3 scripts/compare_entity_products.py --output reports/entity_product_comparison.json",
-    "certification_boundary": "The generated comparison certifies local-file validity and overlap only; it does not certify upstream freshness."
+    "report": "reports/entity_product_comparison.json",
+    "status": "COMPLETE",
+    "duplicate_status": "OVERLAPPING_DERIVED_PRODUCTS",
+    "left_stable_key": "entity_key",
+    "right_stable_key": "normalized_name",
+    "intersection_unique": 104280,
+    "union_unique": 104280,
+    "stable_key_overlap_rate": 1.0,
+    "shared_projection_row_overlap_rate": 1.0,
+    "certification_boundary": "The right-side awards spine was reconstructed from the supplied awards master. The actual enriched pr_entity_profiles.csv and supplementary 990, CMS, and FDIC inputs were not supplied."
   },
-  "decision": "ACCESS_AND_PROVENANCE_EVIDENCE_CERTIFIED_MATERIALIZATION_AND_ENTITY_COMPARISON_PENDING_OPERATOR_INPUTS"
+  "derived_lineage": {
+    "artifact": "data/staging/processed/entity_master.csv",
+    "producer": "scripts/build_unified_master.py",
+    "status": "CONFIRMED"
+  },
+  "decision": "UPLOADS_ADJUDICATED_REQUIRED_MATERIALIZATION_UNCHANGED_ENTITY_COMPARISON_AND_LINEAGE_COMPLETE"
 }

@@ -1,0 +1,9 @@
+case_id: aes_pr
+minimum_expected_coverage: 0.50
+required_controls:
+  - no_name_only_merge
+  - time_aware_ownership
+  - agency_scoped_contract_key
+  - null_is_not_absence
+forbidden_attributions:
+  - unsupported_parent_performance

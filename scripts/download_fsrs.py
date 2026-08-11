@@ -126,12 +126,14 @@ def _fetch_via_usaspending(session: requests.Session) -> pd.DataFrame:
     return pd.DataFrame(rows)[FSRS_COLUMNS]
 
 
-def _derive_from_subaward_master() -> pd.DataFrame | None:
+def _derive_from_subaward_master(subaward_master: Path | None = None) -> pd.DataFrame | None:
     """Derive pr_fsrs_subawards.csv from the existing usaspending subaward master."""
-    if not SUBAWARD_MASTER.exists() or SUBAWARD_MASTER.stat().st_size == 0:
+    if subaward_master is None:
+        subaward_master = SUBAWARD_MASTER
+    if not subaward_master.exists() or subaward_master.stat().st_size == 0:
         return None
     try:
-        df = pd.read_csv(SUBAWARD_MASTER, low_memory=False)
+        df = pd.read_csv(subaward_master, low_memory=False)
         if df.empty:
             return None
         out = pd.DataFrame()
@@ -157,10 +159,19 @@ def _derive_from_subaward_master() -> pd.DataFrame | None:
         return None
 
 
-def run(force: bool = False) -> dict:
-    if OUT_PATH.exists() and not force:
+def run(root: Path | None = None, force: bool = False) -> dict:
+    if root is None:
+        # Late-bind the module constants so tests patching OUT_PATH /
+        # SUBAWARD_MASTER keep working for default-root callers.
+        out_path = OUT_PATH
+        subaward_master = SUBAWARD_MASTER
+    else:
+        processed_dir = Path(root) / "data" / "staging" / "processed"
+        out_path = processed_dir / "pr_fsrs_subawards.csv"
+        subaward_master = processed_dir / "pr_subawards_master.csv"
+    if out_path.exists() and not force:
         try:
-            df = pd.read_csv(OUT_PATH)
+            df = pd.read_csv(out_path)
             if not df.empty:
                 logger.info(
                     "pr_fsrs_subawards.csv already present (%d rows). Use --force to refresh.",
@@ -170,7 +181,7 @@ def run(force: bool = False) -> dict:
         except Exception:
             pass
 
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     session = requests.Session()
 
     # Strategy 1: USAspending API
@@ -178,7 +189,7 @@ def run(force: bool = False) -> dict:
     try:
         df = _fetch_via_usaspending(session)
         if not df.empty:
-            df.to_csv(OUT_PATH, index=False)
+            df.to_csv(out_path, index=False)
             logger.info("USAspending strategy: %d subaward rows written.", len(df))
             return {"rows": len(df), "status": "ok_usaspending_api"}
     except Exception as exc:
@@ -186,9 +197,9 @@ def run(force: bool = False) -> dict:
 
     # Strategy 2: derive from existing subaward master
     logger.info("Falling back to subaward master derivation…")
-    df = _derive_from_subaward_master()
+    df = _derive_from_subaward_master(subaward_master)
     if df is not None and not df.empty:
-        df.to_csv(OUT_PATH, index=False)
+        df.to_csv(out_path, index=False)
         logger.info("Subaward master strategy: %d rows written.", len(df))
         return {"rows": len(df), "status": "ok_derived_master"}
 
@@ -198,7 +209,7 @@ def run(force: bool = False) -> dict:
         "https://www.fsrs.gov/ → Search Subawards (PR) → Export CSV → "
         "place at data/staging/processed/pr_fsrs_subawards.csv"
     )
-    pd.DataFrame(columns=FSRS_COLUMNS).to_csv(OUT_PATH, index=False)
+    pd.DataFrame(columns=FSRS_COLUMNS).to_csv(out_path, index=False)
     return {"rows": 0, "status": "manual_required"}
 
 

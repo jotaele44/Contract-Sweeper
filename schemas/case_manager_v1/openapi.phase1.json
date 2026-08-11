@@ -1,0 +1,36 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MoneySweep Case Manager API",
+    "version": "0.12.0",
+    "description": "Command-oriented Case Manager service with append-only audit events and no canonical-evidence mutation."
+  },
+  "servers": [{"url": "http://localhost:8001"}],
+  "paths": {
+    "/cases": {
+      "get": {"operationId": "getCases", "responses": {"200": {"description": "Visible cases"}}},
+      "post": {"operationId": "createCase", "responses": {"201": {"description": "Case and audit event created atomically"}}}
+    },
+    "/cases/{case_id}": {
+      "get": {"operationId": "getCase", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"200": {"description": "Visible case"}, "404": {"description": "Not found or not visible"}}}
+    },
+    "/cases/{case_id}/{collection}": {
+      "get": {"operationId": "getCaseCollection", "parameters": [{"$ref": "#/components/parameters/CaseId"}, {"name": "collection", "in": "path", "required": true, "schema": {"type": "string", "enum": ["evidence", "claims", "contradictions", "events", "leads", "findings", "snapshots", "audit-events"]}}], "responses": {"200": {"description": "Visibility-filtered collection"}}}
+    },
+    "/cases/{case_id}/evidence-links": {"post": {"operationId": "linkEvidence", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"201": {"description": "Evidence link and audit event created atomically"}}}},
+    "/cases/{case_id}/claims": {"post": {"operationId": "createClaim", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"201": {"description": "Claim and audit event created atomically"}}}},
+    "/cases/{case_id}/claims/{claim_id}/evidence-relations": {"post": {"operationId": "linkClaimEvidence", "parameters": [{"$ref": "#/components/parameters/CaseId"}, {"name": "claim_id", "in": "path", "required": true, "schema": {"type": "string"}}], "responses": {"201": {"description": "Claim-evidence relation created"}}}},
+    "/cases/{case_id}/contradictions": {"post": {"operationId": "createContradiction", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"201": {"description": "Open contradiction created without automatic collapse"}}}},
+    "/cases/{case_id}/contradictions/{contradiction_id}/resolution": {"post": {"operationId": "resolveContradiction", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"200": {"description": "Explicit resolution recorded"}}}},
+    "/cases/{case_id}/leads": {"post": {"operationId": "createLead", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"201": {"description": "Lead created"}}}},
+    "/cases/{case_id}/leads/{lead_id}/closure": {"post": {"operationId": "closeLead", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"200": {"description": "Lead closed with canonical evidence"}}}},
+    "/cases/{case_id}/findings": {"post": {"operationId": "createFinding", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"201": {"description": "Draft finding created"}}}},
+    "/cases/{case_id}/findings/{finding_id}/acceptance": {"post": {"operationId": "acceptFinding", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"200": {"description": "Reviewed finding accepted"}}}},
+    "/cases/{case_id}/snapshots": {"post": {"operationId": "createSnapshot", "parameters": [{"$ref": "#/components/parameters/CaseId"}], "responses": {"201": {"description": "Immutable snapshot manifest recorded"}}}}
+  },
+  "components": {
+    "parameters": {
+      "CaseId": {"name": "case_id", "in": "path", "required": true, "schema": {"type": "string"}}
+    }
+  }
+}

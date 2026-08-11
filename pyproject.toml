@@ -43,6 +43,7 @@ select = ["E4", "E7", "E9", "F"]
 # Reordering would break the sys.path bootstrap, so the rule is suppressed here
 # rather than "fixed".
 "run_all.py" = ["E402"]
+"run_all_legacy.py" = ["E402"]
 "scripts/run_export.py" = ["E402"]
 "scripts/smoke_export.py" = ["E402"]
 "scripts/build_export_streams.py" = ["E402"]

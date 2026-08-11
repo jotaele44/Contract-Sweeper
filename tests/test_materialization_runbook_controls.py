@@ -61,10 +61,19 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # HTML scrapers over asg.pr.gov (scripts/scrape_asg_emergency_purchases.py and
     # scripts/scrape_asg_suppliers.py): +2 total_sources and
     # +2 automatable_total/automatable_ready.
-    assert snapshot["total_sources"] == 154
-    assert snapshot["automatable_total"] == 107
-    assert snapshot["automatable_ready"] == 107
-    assert snapshot["queued_excluded_total"] == 47
+    # act_transition_ppp extracts P3 concession contracts from the committed
+    # ACT/ACUDEN transition workbook, so it is automatable with no operator drop
+    # (+1 total_sources, +1 automatable_total/automatable_ready).
+    # prasa_completed_projects_ppp and prasa_consulting_engineer_ppp are
+    # manual_export and blocked on files that are not in the repository
+    # (+2 total_sources, +2 queued_excluded_total).
+    # campaign-finance completion adds one live OCE source plus two derived
+    # campaign-finance producers, all automatable after upstream refreshes
+    # (+3 total_sources, +3 automatable_total/ready).
+    assert snapshot["total_sources"] == 157
+    assert snapshot["automatable_total"] == 108
+    assert snapshot["automatable_ready"] == 108
+    assert snapshot["queued_excluded_total"] == 49
     assert snapshot["automatable_not_ready"] == []
 
 

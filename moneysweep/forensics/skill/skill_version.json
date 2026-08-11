@@ -1,0 +1,16 @@
+{
+  "name": "contract-forensics",
+  "version": "3.3.0-local-engine",
+  "promotion_mode": "manual",
+  "automatic_promotion": false,
+  "capabilities": [
+    "durable_network_failure_queue",
+    "federal_award_upsert",
+    "jacobs_seed_cluster",
+    "official_web_fallback_recovery",
+    "source_adapters",
+    "source_run_persistence",
+    "vieques_project_seed"
+  ],
+  "engine_status": "implemented_and_validated"
+}

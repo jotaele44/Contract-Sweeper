@@ -1,15 +1,5 @@
 name: Intake Delivery (manual)
 
-# moneysweep-pr finance-lane normalization — SCAFFOLDING, manual-only
-# (workflow_dispatch). Pipeline: PR-intake router -> finance-lane normalization ->
-# same-repo PR with the finance tables.
-#
-# Note: the former cross-repo delivery to spiderweb-pr was retired (2026-06) when
-# spiderweb-pr became a producer-only federation node and removed its
-# intake-normalize receiver. This workflow no longer delivers to other repos.
-# Not exercised by CI; the underlying logic lives in
-# scripts/build_moneysweep_finance_lane.py.
-
 on:
   workflow_dispatch:
     inputs:
@@ -24,9 +14,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-# Serialise runs on the same ref without cancelling. This workflow can
-# publish, write data, or hand off to another repo, and killing it
-# mid-flight risks leaving that work half-done.
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -37,22 +25,23 @@ jobs:
     env:
       RAW_PATH: ${{ inputs.raw_intake_path }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: "3.13"
           cache: pip
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           python -m pip install -r requirements.txt
+          test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Route raw intake
         run: python3 scripts/route_pr_intake.py --input "$RAW_PATH" --out-dir data/exports/pr_intake_router
       - name: Normalize moneysweep-pr finance lane
         run: python3 scripts/build_moneysweep_finance_lane.py --input data/exports/pr_intake_router --out .
       - name: Open same-repo PR with normalized finance tables
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: intake/finance-lane-update

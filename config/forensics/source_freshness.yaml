@@ -1,0 +1,9 @@
+default_freshness_hours: 168
+sources:
+  ocpr: 168
+  usaspending: 24
+  sam: 720
+  pr_corporations: 720
+  lobbying_pr: 168
+  lda_federal: 168
+  court_dockets: 168
