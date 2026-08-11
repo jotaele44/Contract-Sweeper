@@ -78,10 +78,7 @@ def test_identifier_scopes_are_not_conflated():
 
 
 def test_federal_assistance_id_is_temporal_and_keeps_legacy_aliases():
-    row = next(
-        x for x in _registry()["identifier_schemes"]
-        if x["id"] == "federal_assistance_id"
-    )
+    row = next(x for x in _registry()["identifier_schemes"] if x["id"] == "federal_assistance_id")
     assert row["temporal"] is True
     assert set(row["historical_aliases"]) == {"cfda_number", "aln"}
 
