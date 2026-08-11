@@ -1,14 +1,30 @@
 {
-  "schema_version": "moneysweep_current_status_v6",
-  "generated_at": "2026-07-30T11:43:00-04:00",
-  "base_sha": "bd337fb092eb639cdb24b490bc90a8b07e9e51c4",
-  "certified_input_head_sha": "53e0069ccf7ca7b7dfa65f62382681e0f61c552c",
-  "last_certified_v0_8_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
-  "current_head_authority": "GitHub PR #448 metadata and checks; this file intentionally does not self-pin the commit containing it.",
-  "active_vector": "REMEDIATE_MONEYSWEEP_PR448_RESIDUAL_CONFLICTS_v0_9_PREP",
-  "active_branch": "agent/moneysweep-wave0-status-reconciliation-v0-3",
+  "schema_version": "moneysweep_current_status_v8",
+  "generated_at": "2026-07-30T20:33:33-04:00",
+  "main_sha": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
+  "premerge_base_sha": "bd337fb092eb639cdb24b490bc90a8b07e9e51c4",
+  "certified_input_head_sha": "ab576462ded2f2e99c762161b7ec18de8cef73",
+  "current_head_authority": "GitHub PR #452 metadata and checks; main remains at PR #448 squash commit 9e911203a05cf8f2e99c762161b7ec18de8cef73.",
+  "active_vector": "SUPPLY_AND_INGEST_MONEYSWEEP_REQUIRED_EXPORTS_v0_3",
+  "active_branch": "agent/moneysweep-postmerge-status-pr448-v0-2",
+  "active_pr": 452,
   "production_status": "NON_PRODUCTION_DIAGNOSTIC",
   "pause_lock_active": true,
+  "merge_record": {
+    "pr_number": 448,
+    "state": "MERGED",
+    "draft": false,
+    "merge_authorized": true,
+    "merge_completed": true,
+    "merge_method": "squash",
+    "expected_head_sha": "ab576462ded2f2ca590002011861322c9ece2a32",
+    "merge_commit_sha": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
+    "merged_at": "2026-07-30T23:24:01Z",
+    "review_threads": 0,
+    "premerge_workflows": 17,
+    "premerge_workflows_successful": 17,
+    "main_identical_to_merge_commit": true
+  },
   "source_registry_current": {
     "total_sources": 154,
     "source_ids_sha256": "31b9bf7c255896f10ab80df357d4cb25e2823663e12c574d26f15cedcf352a19",
@@ -32,10 +48,12 @@
     "evidence_registry_total": 151,
     "current_registry_total": 154,
     "denominator_comparable": false,
-    "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_OWNERSHIP_ADJUDICATION",
+    "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_COMPLETE_DERIVED_LINEAGE",
     "probe_ran": false,
     "registry_digest_parity": false,
     "status_count_parity": true,
+    "full_audit_rerun": false,
+    "full_audit_rerun_reason": "The supplied upload set is not a complete processed corpus and all four required-source products contain zero positive rows.",
     "local_operator_snapshot": {
       "fully_materialized": 67,
       "partially_materialized": 11,
@@ -47,17 +65,26 @@
       "adjudicated_derived_output_rows": 212930,
       "pipeline_intermediate_rows": 120737,
       "unadjudicated_orphan_rows": 0,
-      "unresolved_lineage_rows_within_derived_outputs": 104280
+      "unresolved_lineage_rows_within_derived_outputs": 0
     },
     "denominator_drift_note": "Three PPP sources (act_transition_ppp, prasa_completed_projects_ppp, prasa_consulting_engineer_ppp) were registered after the certified operator corpus was measured. The 67/151 snapshot below is unchanged and still valid for its own denominator; it must be re-measured on an operator machine before it can be compared against the 154-source registry."
   },
   "wave0_ci_certification": {
-    "status_reconciliation_pr": {
+    "merged_reconciliation_pr": {
       "number": 448,
-      "last_certified_head_sha": "b1f088c98c8175298b856a5df8215c77fa933877",
-      "triggered_workflows": 16,
-      "status": "GREEN",
-      "includes_path_specific_skills_validation": true,
+      "state": "MERGED",
+      "final_certified_head_sha": "ab576462ded2f2ca590002011861322c9ece2a32",
+      "merge_commit_sha": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
+      "triggered_workflows": 17,
+      "successful_workflows": 17,
+      "status": "GREEN"
+    },
+    "postmerge_status_pr": {
+      "number": 452,
+      "state": "OPEN_DRAFT",
+      "input_head_sha": "d1d0dcb24c03760c3e67f83297f2de22d09cf3ea",
+      "input_workflows": 15,
+      "input_successful_workflows": 15,
       "current_head_ci": "AUTHORITATIVE_IN_GITHUB_PR_CHECKS"
     },
     "workflow_repair_pr": 444,
@@ -70,56 +97,56 @@
     "hosted_live_jobs_skipped": true
   },
   "required_source_evidence": {
-    "report": "reports/WAVE0_REQUIRED_SOURCE_EVIDENCE_2026-07-30.json",
-    "required_fully_materialized": 10,
+    "access_report": "reports/WAVE0_REQUIRED_SOURCE_EVIDENCE_2026-07-30.json",
+    "upload_receipt": "reports/WAVE0_REQUIRED_EXPORT_INGESTION_RECEIPT_2026-07-30.json",
+    "required_fully_materialized_before": 10,
+    "required_fully_materialized_after": 10,
     "required_sources": 14,
     "materialization_credit_changed": false,
     "sources": {
-      "cor3": "PUBLIC_EXPORT_SURFACE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED",
-      "hud_drgr_authorized": "AUTHORIZED_EXPORT_REQUIRED_NOT_PRESENT",
-      "pr_cabilderos": "PUBLIC_REGISTRY_VERIFIED_FULL_EXPORT_NOT_ACQUIRED",
-      "prasa": "OFFICIAL_CONTRACT_EXPORT_ROUTE_VERIFIED_INPUT_BYTES_NOT_ACQUIRED"
-    }
-  },
-  "contract_repairs": {
-    "hud_drgr_authorized": {
-      "registry_outputs": [
-        "data/staging/processed/hud_drgr_activities.csv",
-        "data/staging/processed/hud_drgr_projects.csv"
-      ],
-      "normalized_outputs": [
-        "data/normalized/hud_drgr_activities.parquet",
-        "data/normalized/hud_drgr_projects.parquet",
-        "data/normalized/hud_drgr_drawdowns.parquet",
-        "data/normalized/hud_drgr_appropriations.parquet"
-      ],
-      "status": "PRODUCER_AND_REGISTRY_CONTRACT_ALIGNED"
+      "cor3": "SUPPLIED_DECLARED_OUTPUT_EMPTY_0_ROWS",
+      "hud_drgr_authorized": "SUPPLIED_NORMALIZED_PARQUETS_EMPTY_0_ROWS_REGISTRY_CSVS_ABSENT",
+      "pr_cabilderos": "SUPPLIED_DECLARED_OUTPUT_EMPTY_0_ROWS",
+      "prasa": "SUPPLIED_DECLARED_OUTPUT_EMPTY_0_ROWS"
     },
-    "cor3": {
-      "registry_producer": "scripts/download_cor3.py",
-      "authorized_manual_ingest": "scripts/ingest_cor3.py",
-      "status": "LIVE_ENDPOINT_UNVERIFIED_MANUAL_EXPORT_PATH_DOCUMENTED"
-    },
-    "pr_cabilderos": {
-      "official_custodian": "Puerto Rico Department of Justice",
-      "status": "EXPLICIT_PROVENANCE_OVERRIDE_APPLIED"
+    "non_substitutable_inputs": {
+      "pr_hud_hcv.csv": "NOT_A_HUD_DRGR_EXPORT",
+      "pr_contracts_master(4).csv": "FEDERAL_AWARD_RECORDS_NOT_AN_OFFICIAL_PRASA_CONTRACT_EXPORT",
+      "pr_prepa_contracts(1).csv": "PREPA_NOT_PRASA"
     }
   },
   "entity_product_comparison": {
     "script": "scripts/compare_entity_products.py",
+    "report": "reports/entity_product_comparison.json",
     "schema_version": "entity_product_comparison_v2",
-    "status": "PENDING_OPERATOR_CORPUS_EXECUTION",
-    "input_files_present_in_certification_bundle": false,
-    "validation_policy": "Malformed, empty, or missing inputs fail closed; blank preferred keys fall back to populated recognized keys; no-shared-column projection is not computable rather than 100% overlap."
+    "status": "COMPLETE",
+    "duplicate_status": "OVERLAPPING_DERIVED_PRODUCTS",
+    "left_stable_key": "entity_key",
+    "right_stable_key": "normalized_name",
+    "left_unique_keys": 104280,
+    "right_unique_keys": 104280,
+    "intersection_unique": 104280,
+    "union_unique": 104280,
+    "stable_key_overlap_rate": 1.0,
+    "jaccard_rate": 1.0,
+    "shared_projection_columns": [
+      "award_count",
+      "fiscal_year_range"
+    ],
+    "shared_projection_row_overlap_rate": 1.0,
+    "identical_file": false,
+    "semantic_duplicate": false,
+    "actual_enriched_profile_supplied": false,
+    "comparison_boundary": "The pr_entity_profiles awards spine was reconstructed from the uploaded 453,352-row awards master. Supplementary 990, CMS, and FDIC inputs were absent."
   },
   "derived_output_lineage": {
     "adjudication_report": "reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json",
-    "confirmed_files": 5,
-    "unresolved_files": 1,
-    "unresolved_file": "data/staging/processed/entity_master.csv",
-    "unresolved_rows": 104280,
-    "candidate_producer": "scripts/build_entity_master.py",
-    "candidate_output_conflict": "Candidate producer declares data/reference/entity_master.csv, not the staging artifact.",
+    "confirmed_files": 6,
+    "unresolved_files": 0,
+    "unresolved_rows": 0,
+    "entity_master_file": "data/staging/processed/entity_master.csv",
+    "entity_master_producer": "scripts/build_unified_master.py",
+    "entity_master_producer_status": "CONFIRMED",
     "source_materialization_credit": false
   },
   "historical_status_evidence": {
@@ -128,36 +155,44 @@
     "classification": "HISTORICAL_144_SOURCE_NONCERTIFICATION"
   },
   "issue_reconciliation": {
-    "issue_271": "OPEN_WAVE0_CONTROL_PLANE_AND_LOCAL_CORPUS_CERTIFIED",
+    "issue_271": "OPEN_REQUIRED_SOURCE_ROWS_AND_EXTERNAL_EVIDENCE_GATES",
     "issue_258": "CLOSED_COMPLETED_2026_06_16",
     "issue_87": "CLOSED_SUPERSEDED_2026_07_28",
-    "status_reconciliation_pr": 448,
+    "merged_status_reconciliation_pr": 448,
+    "merged_status_reconciliation_commit": "9e911203a05cf8f2e99c762161b7ec18de8cef73",
+    "postmerge_status_pr": 452,
     "superseded_status_pr": 447
   },
   "completed_in_wave0": [
-    "PR #448 was synchronized to base bd337fb092eb639cdb24b490bc90a8b07e9e51c4 through a non-force two-parent commit.",
-    "The last v0.8 head b1f088c98c8175298b856a5df8215c77fa933877 passed all 16 triggered workflows.",
+    "PR #448 passed 17 of 17 triggered workflows and was squash-merged into main.",
+    "PR #452 input head d1d0dcb24c03760c3e67f83297f2de22d09cf3ea passed 15 of 15 triggered workflows.",
     "The 151-source offline operator corpus passed digest and status-count parity.",
-    "Six positive-row non-registry files were assigned to the derived-output bucket with exact row arithmetic and zero unadjudicated orphan rows.",
-    "Five derived-output producers are confirmed; the staging lineage for entity_master.csv remains explicitly unresolved.",
-    "Required-source access routes were documented without live producer execution, credential automation, materialization credit, or data promotion."
+    "All six derived-output producers are now confirmed; entity_master.csv is produced by scripts/build_unified_master.py.",
+    "The entity comparator now recognizes entity_key and reports 104,280 of 104,280 stable keys in common.",
+    "Required-source uploads were adjudicated without awarding credit because every declared required product remained zero-row."
   ],
   "open_work": [
-    "Supply and validate COR3, authorized HUD DRGR, official cabilderos, and PRASA export bytes.",
-    "Run entity_product_comparison_v2 against the two local 104,280-row products.",
-    "Resolve the producing or copy step for data/staging/processed/entity_master.csv.",
-    "Regenerate the 151-source materialization audit after valid source ingestion.",
+    "Supply non-empty COR3, authorized HUD DRGR, Department of Justice cabilderos, and PRASA export rows.",
+    "Run the entity comparison against the actual enriched pr_entity_profiles.csv when that file and supplementary inputs are supplied.",
+    "Regenerate the complete 151-source materialization audit after valid source ingestion.",
     "Certify source freshness and authoritative-universe completeness.",
     "Complete PR2.5/PR2.6 reconciliation before PR3 deduplication.",
     "Validate production export and downstream federation consumers."
   ],
   "preservation": {
-    "pr_draft": true,
-    "merge_authorized": false,
-    "auto_merge_authorized": false,
+    "pr_448_draft": false,
+    "pr_448_merge_authorized": true,
+    "pr_448_merge_completed": true,
+    "pr_452_draft": true,
+    "pr_452_merge_authorized": false,
+    "auto_merge_used": false,
+    "direct_main_write_authorized": false,
     "live_fetch_authorized": false,
+    "credential_automation_authorized": false,
     "data_promotion_authorized": false,
+    "production_activation_authorized": false,
     "force_push_authorized": false,
-    "history_rewrite_authorized": false
+    "history_rewrite_authorized": false,
+    "raw_operator_files_committed": false
   }
 }

@@ -52,6 +52,41 @@ def test_different_products_with_same_entities_are_overlapping(tmp_path: Path) -
     assert report["stable_key_overlap"]["overlap_rate_max_denominator"] == 1.0
 
 
+def test_staging_entity_key_precedes_display_name(tmp_path: Path) -> None:
+    left = tmp_path / "entity_master.csv"
+    right = tmp_path / "pr_entity_profiles.csv"
+    _write_csv(
+        left,
+        ["entity_key", "canonical_name", "award_count"],
+        [
+            {
+                "entity_key": "ACME",
+                "canonical_name": "Acme Holdings, LLC",
+                "award_count": "4",
+            },
+            {
+                "entity_key": "BETA",
+                "canonical_name": "Beta Corporation",
+                "award_count": "2",
+            },
+        ],
+    )
+    _write_csv(
+        right,
+        ["normalized_name", "recipient_name", "award_count"],
+        [
+            {"normalized_name": "ACME", "recipient_name": "Acme", "award_count": "4"},
+            {"normalized_name": "BETA", "recipient_name": "Beta", "award_count": "2"},
+        ],
+    )
+    report = compare(left, right)
+    assert report["left"]["stable_key_column"] == "entity_key"
+    assert report["right"]["stable_key_column"] == "normalized_name"
+    assert report["stable_key_overlap"]["intersection_unique"] == 2
+    assert report["stable_key_overlap"]["overlap_rate_max_denominator"] == 1.0
+    assert report["duplicate_status"] == "OVERLAPPING_DERIVED_PRODUCTS"
+
+
 def test_same_schema_and_rows_in_different_order_are_semantic_duplicate(tmp_path: Path) -> None:
     columns = ["normalized_name", "award_count"]
     rows = [

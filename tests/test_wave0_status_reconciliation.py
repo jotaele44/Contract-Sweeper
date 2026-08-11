@@ -8,6 +8,10 @@ import pytest
 pytestmark = pytest.mark.unit
 ROOT = Path(__file__).resolve().parents[1]
 
+# This file mirrors long immutable status identifiers and generated-schema keys.
+# Keep its assertion layout stable while Ruff linting and pytest remain active.
+# fmt: off
+
 
 def _read(path: str) -> dict:
     return json.loads((ROOT / path).read_text(encoding="utf-8"))
@@ -19,7 +23,8 @@ def test_current_status_matches_authoritative_readiness() -> None:
     registry = status["source_registry_current"]
     assert registry["total_sources"] == readiness["total_sources"] == 154
     assert (
-        registry["source_ids_sha256"] == readiness["source_count_provenance"]["source_ids_sha256"]
+        registry["source_ids_sha256"]
+        == readiness["source_count_provenance"]["source_ids_sha256"]
     )
     for key in (
         "total_sources",
@@ -31,18 +36,27 @@ def test_current_status_matches_authoritative_readiness() -> None:
         assert status["materialization_readiness_truth"][key] == readiness[key]
 
 
-def test_status_records_current_base_and_last_certified_head() -> None:
+def test_status_records_pr448_postmerge_and_pr452_draft_state() -> None:
     status = _read("reports/current_status.json")
-    assert status["schema_version"] == "moneysweep_current_status_v6"
-    assert status["base_sha"] == "bd337fb092eb639cdb24b490bc90a8b07e9e51c4"
-    certification = status["wave0_ci_certification"]["status_reconciliation_pr"]
-    assert certification["last_certified_head_sha"] == "b1f088c98c8175298b856a5df8215c77fa933877"
-    assert certification["triggered_workflows"] == 16
-    assert certification["status"] == "GREEN"
-    assert status["current_head_authority"].startswith("GitHub PR #448")
+    assert status["schema_version"] == "moneysweep_current_status_v8"
+    assert status["main_sha"] == "9e911203a05cf8f2e99c762161b7ec18de8cef73"
+    assert status["active_pr"] == 452
+    merge = status["merge_record"]
+    assert merge["pr_number"] == 448
+    assert merge["state"] == "MERGED"
+    assert merge["draft"] is False
+    assert merge["merge_authorized"] is True
+    assert merge["merge_completed"] is True
+    assert merge["premerge_workflows"] == 17
+    assert merge["premerge_workflows_successful"] == 17
+    postmerge = status["wave0_ci_certification"]["postmerge_status_pr"]
+    assert postmerge["number"] == 452
+    assert postmerge["state"] == "OPEN_DRAFT"
+    assert postmerge["input_workflows"] == 15
+    assert postmerge["input_successful_workflows"] == 15
 
 
-def test_coverage_uses_current_certified_operator_denominator() -> None:
+def test_coverage_preserves_certified_denominator_without_false_credit() -> None:
     coverage = _read("reports/current_status.json")["materialization_coverage"]
     snapshot = coverage["local_operator_snapshot"]
     # The operator corpus was measured against a 151-source registry. Three PPP
@@ -58,34 +72,77 @@ def test_coverage_uses_current_certified_operator_denominator() -> None:
     assert coverage["probe_ran"] is False
     assert coverage["registry_digest_parity"] is False
     assert coverage["status_count_parity"] is True
+    assert coverage["full_audit_rerun"] is False
     assert snapshot["fully_materialized"] == 67
     assert snapshot["partially_materialized"] == 11
     assert snapshot["not_materialized"] == 73
     assert snapshot["required_fully_materialized"] == 10
     assert snapshot["required_sources"] == 14
     assert snapshot["unadjudicated_orphan_rows"] == 0
-    assert snapshot["unresolved_lineage_rows_within_derived_outputs"] == 104280
+    assert snapshot["unresolved_lineage_rows_within_derived_outputs"] == 0
 
 
-def test_gap_and_output_ownership_adjudication_is_honest() -> None:
+def test_required_upload_receipt_awards_no_empty_source_credit() -> None:
+    receipt = _read("reports/WAVE0_REQUIRED_EXPORT_INGESTION_RECEIPT_2026-07-30.json")
+    required = receipt["required_source_result"]
+    for source_id in ("cor3", "hud_drgr_authorized", "pr_cabilderos", "prasa"):
+        assert required[source_id]["positive_rows"] == 0
+        assert required[source_id]["materialization_credit"] is False
+    assert required["required_fully_materialized_before"] == 10
+    assert required["required_fully_materialized_after"] == 10
+    assert receipt["execution_boundary"]["raw_files_committed"] is False
+    assert receipt["full_151_source_audit"]["status"] == "NOT_RERUN_PARTIAL_UPLOAD_SET"
+
+
+def test_entity_comparison_uses_actual_staging_key_and_is_complete() -> None:
+    report = _read("reports/entity_product_comparison.json")
+    assert report["status"] == "COMPLETE"
+    assert report["left"]["stable_key_column"] == "entity_key"
+    assert report["right"]["stable_key_column"] == "normalized_name"
+    assert report["left"]["row_count"] == 104280
+    assert report["right"]["row_count"] == 104280
+    assert report["stable_key_overlap"]["intersection_unique"] == 104280
+    assert report["stable_key_overlap"]["union_unique"] == 104280
+    assert report["stable_key_overlap"]["overlap_rate_max_denominator"] == 1.0
+    assert report["stable_key_overlap"]["jaccard_rate"] == 1.0
+    assert report["duplicate_status"] == "OVERLAPPING_DERIVED_PRODUCTS"
+    assert report["identical_file"] is False
+    assert report["semantic_duplicate"] is False
+
+
+def test_gap_and_output_ownership_adjudication_has_complete_lineage() -> None:
     adjudication = _read("reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json")
-    required = {row["source_id"]: row for row in adjudication["required_source_adjudication"]}
-    assert set(required) == {"cor3", "hud_drgr_authorized", "pr_cabilderos", "prasa"}
+    required = {
+        row["source_id"]: row
+        for row in adjudication["required_source_adjudication"]
+    }
+    assert set(required) == {
+        "cor3",
+        "hud_drgr_authorized",
+        "pr_cabilderos",
+        "prasa",
+    }
     assert all(row["materialization_credit"] is False for row in required.values())
-    assert required["hud_drgr_authorized"]["expected_outputs"] == [
-        "data/staging/processed/hud_drgr_activities.csv",
-        "data/staging/processed/hud_drgr_projects.csv",
-    ]
-    derived = {row["file"]: row for row in adjudication["derived_output_adjudication"]}
+    derived = {
+        row["file"]: row
+        for row in adjudication["derived_output_adjudication"]
+    }
     assert sum(row["rows"] for row in derived.values()) == 212930
-    assert all(row["source_materialization_credit"] is False for row in derived.values())
-    assert derived["entity_master.csv"]["producer"] is None
-    assert derived["entity_master.csv"]["producer_status"] == "UNRESOLVED_STAGING_LINEAGE"
-    assert sum(row["producer_status"] == "CONFIRMED" for row in derived.values()) == 5
+    assert all(
+        row["source_materialization_credit"] is False
+        for row in derived.values()
+    )
+    assert derived["entity_master.csv"]["producer"] == "scripts/build_unified_master.py"
+    assert derived["entity_master.csv"]["producer_status"] == "CONFIRMED"
+    assert sum(row["producer_status"] == "CONFIRMED" for row in derived.values()) == 6
+    assert adjudication["row_accounting"]["unresolved_lineage_rows_within_derived_outputs"] == 0
+    assert adjudication["boundaries"]["all_derived_output_lineage_certified"] is True
 
 
 def test_adjudicated_row_buckets_have_exact_parity_without_double_counting() -> None:
-    rows = _read("reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json")["row_accounting"]
+    rows = _read("reports/WAVE0_REQUIRED_GAP_AND_ORPHAN_ADJUDICATION.json")[
+        "row_accounting"
+    ]
     assert rows["registry_declared_rows"] == 849898
     assert rows["derived_output_rows"] == 212930
     assert rows["intermediate_rows"] == 120737
@@ -108,20 +165,37 @@ def test_status_preserves_historical_blob_reference() -> None:
     assert evidence["blob_sha"] == "b175df73deb6ecf5bbf0d0040b89ca75f5d1e10c"
 
 
-def test_normalized_roadmap_has_no_stale_orphan_claim() -> None:
-    text = (ROOT / "docs/ROAD_TO_100_NORMALIZED.md").read_text(encoding="utf-8")
-    assert "151" in text
-    assert "104/104" in text
-    assert "67/151" in text
-    assert "10/14" in text
-    assert "Unadjudicated orphan rows | 0" in text
-    assert "unresolved lineage" in text.lower()
-    assert "34ef3b9352493d0b6ba4eb821d7ea544bec0933b" not in text
+def test_roadmaps_record_entity_result_without_opening_production() -> None:
+    detailed = (ROOT / "docs/ROAD_TO_100.md").read_text(encoding="utf-8")
+    normalized = (ROOT / "docs/ROAD_TO_100_NORMALIZED.md").read_text(
+        encoding="utf-8"
+    )
+    for text in (detailed, normalized):
+        compact = text.replace(" ", "")
+        assert "#452" in text
+        assert "10/14" in compact
+        assert "104,280" in text
+        assert "OVERLAPPING_DERIVED_PRODUCTS" in text
+        assert "NON_PRODUCTION_DIAGNOSTIC" in text
+        assert "Unadjudicated orphan rows | 0" in text
+        assert "Derived rows with unresolved lineage | 0" in text
 
 
-def test_issue_reconciliation_records_closed_supersession() -> None:
-    reconciliation = _read("reports/current_status.json")["issue_reconciliation"]
-    assert reconciliation["issue_258"].startswith("CLOSED_COMPLETED")
-    assert reconciliation["issue_87"].startswith("CLOSED_SUPERSEDED")
-    assert reconciliation["status_reconciliation_pr"] == 448
-    assert reconciliation["superseded_status_pr"] == 447
+def test_preservation_flags_remain_fail_closed() -> None:
+    preservation = _read("reports/current_status.json")["preservation"]
+    assert preservation["pr_448_draft"] is False
+    assert preservation["pr_448_merge_authorized"] is True
+    assert preservation["pr_448_merge_completed"] is True
+    assert preservation["pr_452_draft"] is True
+    assert preservation["pr_452_merge_authorized"] is False
+    assert preservation["direct_main_write_authorized"] is False
+    assert preservation["live_fetch_authorized"] is False
+    assert preservation["credential_automation_authorized"] is False
+    assert preservation["data_promotion_authorized"] is False
+    assert preservation["production_activation_authorized"] is False
+    assert preservation["force_push_authorized"] is False
+    assert preservation["history_rewrite_authorized"] is False
+    assert preservation["raw_operator_files_committed"] is False
+
+
+# fmt: on

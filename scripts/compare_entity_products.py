@@ -26,6 +26,7 @@ SCHEMA_VERSION = "entity_product_comparison_v2"
 
 KEY_CANDIDATES = (
     "normalized_name",
+    "entity_key",
     "canonical_name",
     "recipient_name_normalized",
     "recipient_name",

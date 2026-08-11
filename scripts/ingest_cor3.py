@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -43,6 +44,7 @@ OUTPUT_COLUMNS = [
     "status",
     "last_updated",
 ]
+_INTERNAL_COLUMNS = ["_source_version"]
 
 COL_MAP = {
     "project_id": [
@@ -59,6 +61,11 @@ COL_MAP = {
         "Contract Number",
         "Contract No",
         "Contract #",
+        "Número del PW",
+        "Número de Proyecto",
+        "Número del proyecto",
+        "ID de la Propiedad",
+        "# ID RFP",
     ],
     "applicant_name": [
         "Applicant",
@@ -73,6 +80,11 @@ COL_MAP = {
         "Awardee",
         "Organization",
         "Entity Name",
+        "Nombre del Solicitante",
+        "Nombre del solicitante",
+        "Nombre de solicitante",
+        "Solicitante",
+        "Subrecipiente",
     ],
     "program": [
         "Program",
@@ -84,6 +96,10 @@ COL_MAP = {
         "Funding Program",
         "Program Name",
         "Source of Funds",
+        "Programa",
+        "Nombre del Desastre",
+        "Nombre de desastre",
+        "Desastre",
     ],
     "category": [
         "Category",
@@ -96,6 +112,10 @@ COL_MAP = {
         "Type",
         "Category Name",
         "Procurement Category",
+        "Categoría",
+        "Tipo de Proyecto",
+        "Tipo de documento",
+        "Servicio",
     ],
     "municipality": [
         "Municipality",
@@ -118,6 +138,13 @@ COL_MAP = {
         "Total Eligible",
         "Authorized Amount",
         "Budget",
+        "Cantidad Obligada",
+        "Obligado",
+        "Costo del Proyecto",
+        "Costo de proyecto",
+        "Cantidad autorizada",
+        "Costo Aproximado",
+        "Asignado",
     ],
     "total_disbursed": [
         "Total Disbursed",
@@ -130,8 +157,17 @@ COL_MAP = {
         "Amount Drawn",
         "Total Drawn",
         "Disbursements",
+        "Cantidad Desembolsada",
+        "Desembolsado",
+        "Cantidad desembolsada",
     ],
-    "status": ["Status", "Project Status", "Estado", "Current Status"],
+    "status": [
+        "Status",
+        "Project Status",
+        "Estado",
+        "Current Status",
+        "Estatus",
+    ],
     "last_updated": [
         "Last Updated",
         "Date",
@@ -140,8 +176,15 @@ COL_MAP = {
         "As of Date",
         "Data Date",
         "Date Updated",
+        "Fecha de Última Actualización",
+        "Última fecha de pago",
+        "Fecha de pago",
+        "Fecha de publicación",
+        "Fecha de Creación del Proyecto",
     ],
 }
+
+_VERSION_COLUMNS = ["Version", "Versión", "Versión del PW"]
 
 _STRIP_RE = re.compile(r"[^\w\s]")
 _SPACE_RE = re.compile(r"\s+")
@@ -159,10 +202,17 @@ def _normalize_name(name: str) -> str:
     return " ".join(tokens)
 
 
-def _map_col(df: pd.DataFrame, candidates: list) -> str | None:
-    df_lower = {c.lower().strip(): c for c in df.columns}
-    for cand in candidates:
-        actual = df_lower.get(cand.lower().strip())
+def _normalize_header(value: object) -> str:
+    """Normalize whitespace, case, and accents for bilingual COR3 exports."""
+    text = unicodedata.normalize("NFKD", str(value))
+    text = "".join(char for char in text if not unicodedata.combining(char))
+    return _SPACE_RE.sub(" ", text).strip().lower()
+
+
+def _map_col(df: pd.DataFrame, candidates: list[str]) -> str | None:
+    df_normalized = {_normalize_header(column): column for column in df.columns}
+    for candidate in candidates:
+        actual = df_normalized.get(_normalize_header(candidate))
         if actual is not None:
             return actual
     return None
@@ -176,27 +226,37 @@ def _to_numeric(series: pd.Series) -> pd.Series:
 
 
 def _parse_sheet(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
-    """Map one sheet to OUTPUT_COLUMNS. Returns empty DataFrame if no useful columns found."""
-    out = {}
-    matched = 0
+    """Map one sheet to the normalized COR3 project contract."""
+    out: dict[str, pd.Series | str] = {}
+    mapped_columns: dict[str, str | None] = {}
     for target, candidates in COL_MAP.items():
         src_col = _map_col(df, candidates)
+        mapped_columns[target] = src_col
         if src_col is not None:
             out[target] = df[src_col].astype(str).str.strip()
-            matched += 1
         else:
             out[target] = ""
 
-    # Need at least applicant + one amount column to be useful
-    if matched < 2:
-        return pd.DataFrame(columns=OUTPUT_COLUMNS)
+    # A useful project row needs an applicant and either a stable identifier
+    # or a financial amount. This excludes summary-only sheets while retaining
+    # PA, HMGP, project-formulation, disbursement, and procurement records.
+    has_applicant = mapped_columns["applicant_name"] is not None
+    has_identifier_or_amount = any(
+        mapped_columns[name] is not None
+        for name in ("project_id", "total_approved", "total_disbursed")
+    )
+    if not has_applicant or not has_identifier_or_amount:
+        return pd.DataFrame(columns=OUTPUT_COLUMNS + _INTERNAL_COLUMNS)
 
     out_df = pd.DataFrame(out)
 
-    # Normalize entity name
+    version_col = _map_col(df, _VERSION_COLUMNS)
+    out_df["_source_version"] = (
+        df[version_col].astype(str).str.strip() if version_col is not None else ""
+    )
+
     out_df["applicant_normalized"] = out_df["applicant_name"].apply(_normalize_name)
 
-    # Compute disbursement rate
     approved = _to_numeric(out_df["total_approved"])
     disbursed = _to_numeric(out_df["total_disbursed"])
     out_df["total_approved"] = approved.fillna(0).astype(str)
@@ -204,7 +264,6 @@ def _parse_sheet(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
     rate = (disbursed / approved.replace(0, pd.NA)).round(4)
     out_df["disbursement_rate"] = rate.astype(str)
 
-    # Drop rows where all key fields are blank/zero
     key_cols = ["project_id", "applicant_name", "total_approved"]
     mask = (
         out_df[key_cols]
@@ -213,11 +272,38 @@ def _parse_sheet(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
     )
     out_df = out_df[~mask]
 
-    for col in OUTPUT_COLUMNS:
+    for col in OUTPUT_COLUMNS + _INTERNAL_COLUMNS:
         if col not in out_df.columns:
             out_df[col] = ""
 
-    return out_df[OUTPUT_COLUMNS]
+    return out_df[OUTPUT_COLUMNS + _INTERNAL_COLUMNS]
+
+
+def _deduplicate_projects(combined: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Keep the highest numeric COR3 version for each populated project ID."""
+    work = combined.copy()
+    work["_input_order"] = range(len(work))
+    work["_source_version_numeric"] = pd.to_numeric(
+        work.get("_source_version", ""), errors="coerce"
+    ).fillna(-1)
+
+    project_ids = work["project_id"].fillna("").astype(str).str.strip()
+    has_id = project_ids.ne("") & ~project_ids.str.casefold().isin({"nan", "none", "nat"})
+    with_id = work[has_id].sort_values(
+        ["project_id", "_source_version_numeric", "_input_order"],
+        kind="stable",
+    )
+    with_id = with_id.drop_duplicates(subset=["project_id"], keep="last")
+    no_id = work[~has_id]
+
+    deduped = pd.concat([with_id, no_id], ignore_index=True)
+    deduped = deduped.sort_values("_input_order", kind="stable")
+    removed = len(work) - len(deduped)
+    deduped = deduped.drop(
+        columns=["_source_version", "_source_version_numeric", "_input_order"],
+        errors="ignore",
+    )
+    return deduped[OUTPUT_COLUMNS].reset_index(drop=True), removed
 
 
 def run(root: Path | None = None, force: bool = False) -> dict:
@@ -271,16 +357,9 @@ def run(root: Path | None = None, force: bool = False) -> dict:
         return {"rows": 0, "path": str(out_path), "status": "EMPTY"}
 
     combined = pd.concat(frames, ignore_index=True)
-
-    # Deduplicate on project_id where non-empty
-    before = len(combined)
-    has_id = combined["project_id"].str.strip().ne("")
-    deduped_with_id = combined[has_id].drop_duplicates(subset=["project_id"], keep="first")
-    no_id = combined[~has_id]
-    combined = pd.concat([deduped_with_id, no_id], ignore_index=True)
-    removed = before - len(combined)
+    combined, removed = _deduplicate_projects(combined)
     if removed:
-        logger.info(f"  Removed {removed:,} duplicate project_id rows")
+        logger.info(f"  Removed {removed:,} duplicate project-version rows")
 
     combined.to_csv(out_path, index=False, encoding="utf-8")
     logger.info(f"  Written: {out_path.name} ({len(combined):,} rows)")
