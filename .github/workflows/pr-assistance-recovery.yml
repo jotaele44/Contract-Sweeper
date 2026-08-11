@@ -7,6 +7,10 @@ on:
     paths:
       - "scripts/recover_pr_assistance_failed_shards.py"
       - ".github/workflows/pr-assistance-recovery.yml"
+  pull_request:
+    paths:
+      - "scripts/recover_pr_assistance_failed_shards.py"
+      - ".github/workflows/pr-assistance-recovery.yml"
   workflow_dispatch:
 
 permissions:
