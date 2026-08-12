@@ -2,7 +2,11 @@
 
 Creates a private .venv, installs the backend + desktop requirements, and
 builds the frontend for same-origin serving (empty VITE_API_BASE). Idempotent:
-re-runs are skipped via a marker file unless --force is given.
+re-runs are skipped via a marker file unless --force is given. The marker
+records a fingerprint of the inputs that setup consumes (requirement files,
+frontend lockfile, extra pip specs/build env), so editing any of those
+invalidates the marker and triggers a real re-run instead of silently
+skipping with stale dependencies.
 
 Usage:
   python desktop/setup.py            run setup (skips when already complete)
@@ -12,6 +16,7 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
 import os
 import shutil
 import subprocess
@@ -40,8 +45,36 @@ def run(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = No
     subprocess.run(cmd, cwd=cwd, env=env, check=True)
 
 
+def _fingerprint_inputs() -> list[Path]:
+    """Files whose content changes require setup to redo its work."""
+    inputs = list(REQUIREMENT_FILES)
+    lock = FRONTEND_DIR / "package-lock.json"
+    inputs.append(lock if lock.exists() else FRONTEND_DIR / "package.json")
+    return inputs
+
+
+def fingerprint() -> str:
+    """Hash the setup inputs (requirement files, frontend lockfile, extra pip
+    specs/build env) so a marker from before an edit to any of them is
+    recognized as stale rather than treated as still complete."""
+    digest = hashlib.sha256()
+    for path in _fingerprint_inputs():
+        digest.update(path.name.encode("utf-8"))
+        if path.exists():
+            digest.update(path.read_bytes())
+        else:
+            digest.update(b"<missing>")
+    extra = list(getattr(config, "EXTRA_PIP_SPECS", []))
+    digest.update(repr(extra).encode("utf-8"))
+    extra_env = dict(getattr(config, "EXTRA_BUILD_ENV", {}))
+    digest.update(repr(sorted(extra_env.items())).encode("utf-8"))
+    return digest.hexdigest()
+
+
 def is_complete() -> bool:
-    return MARKER.exists() and venv_python().exists() and (DIST_DIR / "index.html").exists()
+    if not (MARKER.exists() and venv_python().exists() and (DIST_DIR / "index.html").exists()):
+        return False
+    return MARKER.read_text(encoding="utf-8").strip() == fingerprint()
 
 
 def setup_python() -> None:
@@ -96,7 +129,7 @@ def main() -> None:
         raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
     setup_python()
     setup_frontend()
-    MARKER.write_text("ok\n", encoding="utf-8")
+    MARKER.write_text(fingerprint() + "\n", encoding="utf-8")
     print("Desktop setup complete.")
 
 
