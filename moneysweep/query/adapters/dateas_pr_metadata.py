@@ -10,9 +10,7 @@ from ..types import ManualOnlyError, Query
 from .base import SourceAdapter
 
 
-REGISTRY_RELATIVE_PATH = Path(
-    "registries/source_registry_extensions/dateas_pr_metadata_v0_1.yaml"
-)
+REGISTRY_RELATIVE_PATH = Path("registries/source_registry_extensions/dateas_pr_metadata_v0_1.yaml")
 
 
 class DateasPRMetadataOnlyAdapter(SourceAdapter):
