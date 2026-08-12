@@ -56,11 +56,7 @@ def _source_scoped_environment(
     allowed_credential_name: str | None,
 ) -> Iterator[None]:
     """Temporarily hide all unrelated registry-declared provider credentials."""
-    saved = {
-        name: os.environ[name]
-        for name in all_credential_names
-        if name in os.environ
-    }
+    saved = {name: os.environ[name] for name in all_credential_names if name in os.environ}
     try:
         for name in all_credential_names:
             if name != allowed_credential_name:
@@ -163,13 +159,9 @@ def run(
     summary["status"] = "OK"
     summary["ok_count"] = sum(1 for r in ran if r["status"] in ("OK", "CACHED"))
     summary["error_count"] = sum(
-        1
-        for r in ran
-        if r["status"] in ("ERROR", "IMPORT_ERROR", "NO_ENTRYPOINT")
+        1 for r in ran if r["status"] in ("ERROR", "IMPORT_ERROR", "NO_ENTRYPOINT")
     )
-    summary["license_blocked_count"] = sum(
-        1 for r in ran if r["status"] == "LICENSE_GATE_BLOCKED"
-    )
+    summary["license_blocked_count"] = sum(1 for r in ran if r["status"] == "LICENSE_GATE_BLOCKED")
     base._write_summary(root, summary)
     return summary
 
