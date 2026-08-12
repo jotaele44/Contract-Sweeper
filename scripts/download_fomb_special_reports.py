@@ -4,6 +4,7 @@ This is a narrow companion to scripts/download_fomb.py. It preserves the raw
 HTML response and emits one row per downloadable report link so the special
 investigative/report collection remains independently auditable.
 """
+
 from __future__ import annotations
 
 import csv
@@ -13,26 +14,40 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from moneysweep.runtime.base_downloader import build_session
 from scripts.config import PROJECT_ROOT, setup_logging
-from scripts.download_fomb import HTTP, _canonical_url, _extract_links, _looks_like_document, _publication_date
+from scripts.download_fomb import (
+    HTTP,
+    _canonical_url,
+    _extract_links,
+    _looks_like_document,
+    _publication_date,
+)
 
 SOURCE_URL = "https://oversightboard.pr.gov/reports/"
 OUT_REL = "data/staging/processed/pr_fomb_special_reports.csv"
 RAW_HTML_REL = "data/raw/FOMB/discovery/special_reports.html"
 RAW_HEADERS_REL = "data/raw/FOMB/discovery/special_reports.headers.json"
-COLUMNS = ["report_id", "title_raw", "publication_date", "source_url", "download_url", "retrieved_at"]
+COLUMNS = [
+    "report_id",
+    "title_raw",
+    "publication_date",
+    "source_url",
+    "download_url",
+    "retrieved_at",
+]
 
 
 def run(root: Path | str | None = None):
     root = Path(root) if root is not None else PROJECT_ROOT
     logger = setup_logging("download_fomb_special_reports")
     session = build_session(HTTP.user_agent)
-    retrieved_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    retrieved_at = (
+        datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    )
     response = session.get(SOURCE_URL, timeout=HTTP.timeout)
     response.raise_for_status()
     session.close()
@@ -72,7 +87,9 @@ def run(root: Path | str | None = None):
             }
         )
     unique = {row["report_id"]: row for row in rows}
-    rows = sorted(unique.values(), key=lambda r: (r["publication_date"], r["title_raw"], r["download_url"]))
+    rows = sorted(
+        unique.values(), key=lambda r: (r["publication_date"], r["title_raw"], r["download_url"])
+    )
     out = root / OUT_REL
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", newline="", encoding="utf-8") as fh:

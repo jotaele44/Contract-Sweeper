@@ -4,13 +4,20 @@ import csv
 import json
 from pathlib import Path
 
-import pytest
 
 from scripts import download_fomb as fomb
 
 
 class DummyResponse:
-    def __init__(self, *, text="", content=None, status_code=200, headers=None, url="https://oversightboard.pr.gov/"):
+    def __init__(
+        self,
+        *,
+        text="",
+        content=None,
+        status_code=200,
+        headers=None,
+        url="https://oversightboard.pr.gov/",
+    ):
         self.text = text
         self.content = content if content is not None else text.encode("utf-8")
         self.status_code = status_code
@@ -37,13 +44,21 @@ class DummySession:
             length = int((params or {}).get("length", 500))
             rows = self.ajax_rows[start : start + length]
             return DummyResponse(
-                text=json.dumps({"data": rows, "recordsTotal": len(self.ajax_rows), "recordsFiltered": len(self.ajax_rows)}),
+                text=json.dumps(
+                    {
+                        "data": rows,
+                        "recordsTotal": len(self.ajax_rows),
+                        "recordsFiltered": len(self.ajax_rows),
+                    }
+                ),
                 headers={"Content-Type": "application/json"},
                 url=url,
             )
         if url in self.docs:
             payload, content_type = self.docs[url]
-            return DummyResponse(content=payload, text="", headers={"Content-Type": content_type}, url=url)
+            return DummyResponse(
+                content=payload, text="", headers={"Content-Type": content_type}, url=url
+            )
         return DummyResponse(text=self.pages.get(url, "<html></html>"), url=url)
 
     def post(self, url, data=None, timeout=None):
@@ -55,13 +70,20 @@ class DummySession:
 
 def _page(*links: tuple[str, str], ajax=False):
     anchors = "".join(f'<a href="{href}">{text}</a>' for href, text in links)
-    script = '<script>const table = {ajax: "https://example.invalid/contracts.json"};</script>' if ajax else ""
+    script = (
+        '<script>const table = {ajax: "https://example.invalid/contracts.json"};</script>'
+        if ajax
+        else ""
+    )
     return f"<html><body>{anchors}{script}</body></html>"
 
 
 def test_link_extraction_and_document_classification():
     html = _page(
-        ("https://docs.oversightboard.pr.gov/example.pdf", "FOMB - Fiscal Plan for PRASA - Certified as of June 11, 2024"),
+        (
+            "https://docs.oversightboard.pr.gov/example.pdf",
+            "FOMB - Fiscal Plan for PRASA - Certified as of June 11, 2024",
+        ),
         ("/about-us/", "About Us"),
     )
     links = fomb._extract_links(html, "https://oversightboard.pr.gov/fiscal-plans/")
@@ -75,14 +97,19 @@ def test_link_extraction_and_document_classification():
 
 
 def test_contract_ajax_normalization_and_stable_id():
-    session = DummySession({}, ajax_rows=[{
-        "Entity": "Puerto Rico Aqueduct and Sewer Authority",
-        "Counterpart": "Accenture Puerto Rico, LLC (2026-000123)",
-        "Amount": "$1,250,000.00",
-        "Status": "Approved",
-        "Completed": "2026-01-21",
-        "Document": '<a href="https://docs.oversightboard.pr.gov/review.pdf">Download</a>',
-    }])
+    session = DummySession(
+        {},
+        ajax_rows=[
+            {
+                "Entity": "Puerto Rico Aqueduct and Sewer Authority",
+                "Counterpart": "Accenture Puerto Rico, LLC (2026-000123)",
+                "Amount": "$1,250,000.00",
+                "Status": "Approved",
+                "Completed": "2026-01-21",
+                "Document": '<a href="https://docs.oversightboard.pr.gov/review.pdf">Download</a>',
+            }
+        ],
+    )
     html = _page(ajax=True)
     rows, ajax_url = fomb._enumerate_contract_reviews(
         session,
@@ -130,21 +157,27 @@ def test_crosswalk_is_nondestructive_and_flags_conflicts(tmp_path: Path):
     target.mkdir(parents=True)
     ocpr = target / "pr_ocpr_contracts.csv"
     with ocpr.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=["contract_number", "agency", "contractor_name", "contract_amount"])
+        writer = csv.DictWriter(
+            fh, fieldnames=["contract_number", "agency", "contractor_name", "contract_amount"]
+        )
         writer.writeheader()
-        writer.writerow({
-            "contract_number": "2026-000123",
-            "agency": "Puerto Rico Aqueduct and Sewer Authority",
-            "contractor_name": "Accenture Puerto Rico LLC",
-            "contract_amount": "1250000.00",
-        })
-    reviews = [{
-        "fomb_review_id": "abc",
-        "contract_number_candidate": "2026-000123",
-        "government_entity_raw": "Puerto Rico Aqueduct and Sewer Authority",
-        "counterparty_raw": "Accenture Puerto Rico LLC",
-        "amount_numeric": 1_250_000.0,
-    }]
+        writer.writerow(
+            {
+                "contract_number": "2026-000123",
+                "agency": "Puerto Rico Aqueduct and Sewer Authority",
+                "contractor_name": "Accenture Puerto Rico LLC",
+                "contract_amount": "1250000.00",
+            }
+        )
+    reviews = [
+        {
+            "fomb_review_id": "abc",
+            "contract_number_candidate": "2026-000123",
+            "government_entity_raw": "Puerto Rico Aqueduct and Sewer Authority",
+            "counterparty_raw": "Accenture Puerto Rico LLC",
+            "amount_numeric": 1_250_000.0,
+        }
+    ]
     rows = fomb._build_crosswalk(tmp_path, reviews)
     assert len(rows) == 1
     assert rows[0]["local_source"] == "ocpr_contracts"

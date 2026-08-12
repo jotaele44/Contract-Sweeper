@@ -10,6 +10,7 @@ Key invariants:
 - interrupted document runs resume from a persisted pending-document queue;
 - a failed contract-review refresh preserves the last valid normalized output.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -75,24 +76,57 @@ HTTP = HttpConfig(
 )
 
 DOCUMENT_COLUMNS = [
-    "document_id", "collection", "title_raw", "document_type_raw",
-    "publication_date", "source_url", "download_url", "retrieved_at",
-    "http_status", "content_type", "byte_size", "sha256",
-    "duplicate_content_group", "local_path",
+    "document_id",
+    "collection",
+    "title_raw",
+    "document_type_raw",
+    "publication_date",
+    "source_url",
+    "download_url",
+    "retrieved_at",
+    "http_status",
+    "content_type",
+    "byte_size",
+    "sha256",
+    "duplicate_content_group",
+    "local_path",
 ]
 CONTRACT_COLUMNS = [
-    "fomb_review_id", "government_entity_raw", "counterparty_raw", "amount_raw",
-    "amount_numeric", "currency", "status_raw", "completed_date",
-    "review_document_url", "contract_number_candidate", "source_url", "retrieved_at",
+    "fomb_review_id",
+    "government_entity_raw",
+    "counterparty_raw",
+    "amount_raw",
+    "amount_numeric",
+    "currency",
+    "status_raw",
+    "completed_date",
+    "review_document_url",
+    "contract_number_candidate",
+    "source_url",
+    "retrieved_at",
 ]
 VERSION_COLUMNS = [
-    "document_id", "collection", "covered_entity", "fiscal_year", "document_class",
-    "version_label", "publication_date", "supersedes_document_id", "source_url",
+    "document_id",
+    "collection",
+    "covered_entity",
+    "fiscal_year",
+    "document_class",
+    "version_label",
+    "publication_date",
+    "supersedes_document_id",
+    "source_url",
 ]
 CROSSWALK_COLUMNS = [
-    "fomb_review_id", "local_source", "local_record_id", "match_basis",
-    "match_confidence", "amount_delta", "date_delta_days", "entity_conflict",
-    "counterparty_conflict", "status_conflict",
+    "fomb_review_id",
+    "local_source",
+    "local_record_id",
+    "match_basis",
+    "match_confidence",
+    "amount_delta",
+    "date_delta_days",
+    "entity_conflict",
+    "counterparty_conflict",
+    "status_conflict",
 ]
 
 _DATE_RE = re.compile(r"\b(20\d{2})[-_/](0?[1-9]|1[0-2])[-_/]([0-2]?\d|3[01])\b")
@@ -104,7 +138,10 @@ _AJAX_URL_PATTERNS = [
     re.compile(r"ajax\s*:\s*['\"]([^'\"]+)['\"]", re.I),
     re.compile(r"sAjaxSource\s*:\s*['\"]([^'\"]+)['\"]", re.I),
     re.compile(r"(?:ajaxUrl|ajax_url|dataUrl|data_url)\s*[:=]\s*['\"]([^'\"]+)['\"]", re.I),
-    re.compile(r"['\"]url['\"]\s*:\s*['\"]([^'\"]*(?:admin-ajax|wp-json|contract|document)[^'\"]*)['\"]", re.I),
+    re.compile(
+        r"['\"]url['\"]\s*:\s*['\"]([^'\"]*(?:admin-ajax|wp-json|contract|document)[^'\"]*)['\"]",
+        re.I,
+    ),
 ]
 _ACTION_RE = re.compile(r"['\"]?action['\"]?\s*[:=]\s*['\"]([^'\"]+)['\"]", re.I)
 
@@ -239,9 +276,15 @@ def _extract_links(page_html: str, page_url: str) -> list[Link]:
 
 def _looks_like_document(url: str, text: str) -> bool:
     lower = url.lower()
-    if any(lower.endswith(ext) or f"{ext}?" in lower for ext in (".pdf", ".xlsx", ".xls", ".csv", ".doc", ".docx")):
+    if any(
+        lower.endswith(ext) or f"{ext}?" in lower
+        for ext in (".pdf", ".xlsx", ".xls", ".csv", ".doc", ".docx")
+    ):
         return True
-    if any(host in lower for host in ("docs.oversightboard.pr.gov", "drive.google.com", "docs.google.com")):
+    if any(
+        host in lower
+        for host in ("docs.oversightboard.pr.gov", "drive.google.com", "docs.google.com")
+    ):
         return True
     return "download" in _norm(text) and urlparse(url).netloc not in {"", urlparse(BASE_URL).netloc}
 
@@ -250,7 +293,9 @@ def _document_title(link: Link) -> str:
     anchor = " ".join((link.text or "").split())
     context = " ".join((link.context or "").split())
     if context and _norm(anchor) in {"download", "view", "view pdf", "read pdf", "read more"}:
-        cleaned = re.sub(r"\b(download|view pdf|view|read pdf|read more)\b", " ", context, flags=re.I)
+        cleaned = re.sub(
+            r"\b(download|view pdf|view|read pdf|read more)\b", " ", context, flags=re.I
+        )
         cleaned = " ".join(cleaned.split())
         if cleaned:
             return cleaned
@@ -298,7 +343,9 @@ def _classify_title(title: str, collection: str) -> tuple[str, str, str, str]:
         doc_class = "debt"
     else:
         doc_class = collection
-    version = "revised" if "revised" in n or "amended" in n else "certified" if "certified" in n else ""
+    version = (
+        "revised" if "revised" in n or "amended" in n else "certified" if "certified" in n else ""
+    )
     return entity, fiscal_year, doc_class, version
 
 
@@ -314,10 +361,16 @@ def _discover_ajax_config(page_html: str, page_url: str) -> AjaxConfig | None:
         url = urljoin(page_url, candidate)
         extra: dict[str, str] = {}
         if "admin-ajax" in url:
-            actions = [a for a in _ACTION_RE.findall(decoded) if "contract" in a.lower() or "document" in a.lower()]
+            actions = [
+                a
+                for a in _ACTION_RE.findall(decoded)
+                if "contract" in a.lower() or "document" in a.lower()
+            ]
             if len(set(actions)) == 1:
                 extra["action"] = actions[0]
-        method = "POST" if re.search(r"(?:type|method)\s*:\s*['\"]POST['\"]", decoded, re.I) else "GET"
+        method = (
+            "POST" if re.search(r"(?:type|method)\s*:\s*['\"]POST['\"]", decoded, re.I) else "GET"
+        )
         return AjaxConfig(url=url, method=method, extra_params=extra)
     return None
 
@@ -335,7 +388,11 @@ def _json_rows(payload: Any) -> tuple[list[Any], int | None]:
     for key in ("data", "rows", "results", "aaData"):
         rows = payload.get(key)
         if isinstance(rows, list):
-            total = payload.get("recordsFiltered") or payload.get("recordsTotal") or payload.get("total")
+            total = (
+                payload.get("recordsFiltered")
+                or payload.get("recordsTotal")
+                or payload.get("total")
+            )
             try:
                 total = int(total) if total is not None else None
             except (TypeError, ValueError):
@@ -355,7 +412,14 @@ def _row_value(row: Any, *keys: str) -> str:
             if value not in (None, ""):
                 return str(value).strip()
     if isinstance(row, list):
-        positions = {"entity": 0, "counterpart": 1, "amount": 2, "status": 3, "completed": 4, "document": 5}
+        positions = {
+            "entity": 0,
+            "counterpart": 1,
+            "amount": 2,
+            "status": 3,
+            "completed": 4,
+            "document": 5,
+        }
         for key in keys:
             normalized_key = _norm(key).replace(" ", "")
             idx = positions.get(normalized_key)
@@ -376,7 +440,9 @@ def _document_href_from_value(value: str, page_url: str) -> str:
     return ""
 
 
-def _ajax_request(session: requests.Session, cfg: AjaxConfig, params: dict[str, Any]) -> requests.Response:
+def _ajax_request(
+    session: requests.Session, cfg: AjaxConfig, params: dict[str, Any]
+) -> requests.Response:
     payload = {**cfg.extra_params, **params}
     methods = [cfg.method.upper(), "POST" if cfg.method.upper() == "GET" else "GET"]
     last: requests.Response | None = None
@@ -392,7 +458,9 @@ def _ajax_request(session: requests.Session, cfg: AjaxConfig, params: dict[str, 
     return last
 
 
-def _enumerate_contract_reviews(session: requests.Session, page_html: str, page_url: str, retrieved_at: str, logger) -> tuple[list[dict[str, Any]], str | None]:
+def _enumerate_contract_reviews(
+    session: requests.Session, page_html: str, page_url: str, retrieved_at: str, logger
+) -> tuple[list[dict[str, Any]], str | None]:
     cfg = _discover_ajax_config(page_html, page_url)
     if not cfg:
         return [], None
@@ -417,22 +485,26 @@ def _enumerate_contract_reviews(session: requests.Session, page_html: str, page_
             completed = _row_value(raw, "completed", "completed date", "date")
             document_value = _row_value(raw, "document", "download", "url")
             review_document_url = _document_href_from_value(document_value, page_url)
-            stable = "|".join([_norm(entity), _norm(counterpart), amount_raw, completed, review_document_url])
+            stable = "|".join(
+                [_norm(entity), _norm(counterpart), amount_raw, completed, review_document_url]
+            )
             contract_m = _CONTRACT_RE.search(" ".join([counterpart, document_value]))
-            records.append({
-                "fomb_review_id": hashlib.sha256(stable.encode("utf-8")).hexdigest()[:24],
-                "government_entity_raw": entity,
-                "counterparty_raw": counterpart,
-                "amount_raw": amount_raw,
-                "amount_numeric": _parse_amount(amount_raw),
-                "currency": "USD" if amount_raw else "",
-                "status_raw": status,
-                "completed_date": _publication_date(completed),
-                "review_document_url": review_document_url,
-                "contract_number_candidate": contract_m.group(0).upper() if contract_m else "",
-                "source_url": page_url,
-                "retrieved_at": retrieved_at,
-            })
+            records.append(
+                {
+                    "fomb_review_id": hashlib.sha256(stable.encode("utf-8")).hexdigest()[:24],
+                    "government_entity_raw": entity,
+                    "counterparty_raw": counterpart,
+                    "amount_raw": amount_raw,
+                    "amount_numeric": _parse_amount(amount_raw),
+                    "currency": "USD" if amount_raw else "",
+                    "status_raw": status,
+                    "completed_date": _publication_date(completed),
+                    "review_document_url": review_document_url,
+                    "contract_number_candidate": contract_m.group(0).upper() if contract_m else "",
+                    "source_url": page_url,
+                    "retrieved_at": retrieved_at,
+                }
+            )
         start += len(rows)
         if len(rows) < length or (total is not None and start >= total):
             break
@@ -463,7 +535,9 @@ def _write_csv(path: Path, rows: Iterable[dict[str, Any]], columns: list[str]) -
             writer = csv.DictWriter(fh, fieldnames=columns, extrasaction="ignore")
             writer.writeheader()
             for row in rows:
-                writer.writerow({key: "" if row.get(key) is None else row.get(key) for key in columns})
+                writer.writerow(
+                    {key: "" if row.get(key) is None else row.get(key) for key in columns}
+                )
         os.replace(name, path)
     finally:
         if os.path.exists(name):
@@ -482,13 +556,25 @@ def _load_csv(path: Path) -> list[dict[str, str]]:
 
 def _load_checkpoint(path: Path) -> dict[str, Any]:
     if not path.exists():
-        return {"schema_version": "fomb_checkpoint_v1", "collections": {}, "documents": {}, "pending_document_ids": [], "contract_review": {}}
+        return {
+            "schema_version": "fomb_checkpoint_v1",
+            "collections": {},
+            "documents": {},
+            "pending_document_ids": [],
+            "contract_review": {},
+        }
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(data, dict):
             raise ValueError("checkpoint not an object")
     except (OSError, ValueError, json.JSONDecodeError):
-        return {"schema_version": "fomb_checkpoint_v1", "collections": {}, "documents": {}, "pending_document_ids": [], "contract_review": {}}
+        return {
+            "schema_version": "fomb_checkpoint_v1",
+            "collections": {},
+            "documents": {},
+            "pending_document_ids": [],
+            "contract_review": {},
+        }
     data.setdefault("schema_version", "fomb_checkpoint_v1")
     data.setdefault("collections", {})
     data.setdefault("documents", {})
@@ -524,17 +610,44 @@ def _build_crosswalk(root: Path, reviews: list[dict[str, Any]]) -> list[dict[str
     output: list[dict[str, Any]] = []
     for source_name, path in candidates:
         for local in _load_csv(path):
-            local_contract = str(local.get("contract_number") or local.get("contract_id") or "").strip()
-            local_entity = str(local.get("agency") or local.get("entity") or local.get("government_entity") or "")
-            local_counterparty = str(local.get("contractor_name") or local.get("contractor") or local.get("counterparty") or "")
+            local_contract = str(
+                local.get("contract_number") or local.get("contract_id") or ""
+            ).strip()
+            local_entity = str(
+                local.get("agency") or local.get("entity") or local.get("government_entity") or ""
+            )
+            local_counterparty = str(
+                local.get("contractor_name")
+                or local.get("contractor")
+                or local.get("counterparty")
+                or ""
+            )
             local_amount = _parse_amount(local.get("contract_amount") or local.get("amount"))
-            local_date = _publication_date(str(local.get("grant_date") or local.get("date_of_grant") or local.get("start_date") or ""))
+            local_date = _publication_date(
+                str(
+                    local.get("grant_date")
+                    or local.get("date_of_grant")
+                    or local.get("start_date")
+                    or ""
+                )
+            )
             for review in reviews:
                 basis: list[str] = []
                 score = 0.0
-                contract_exact = bool(review.get("contract_number_candidate") and local_contract and _norm(review["contract_number_candidate"]) == _norm(local_contract))
-                entity_exact = bool(_norm_entity(review.get("government_entity_raw")) and _norm_entity(review.get("government_entity_raw")) == _norm_entity(local_entity))
-                counterpart_exact = bool(_norm(review.get("counterparty_raw")) and _norm(review.get("counterparty_raw")) == _norm(local_counterparty))
+                contract_exact = bool(
+                    review.get("contract_number_candidate")
+                    and local_contract
+                    and _norm(review["contract_number_candidate"]) == _norm(local_contract)
+                )
+                entity_exact = bool(
+                    _norm_entity(review.get("government_entity_raw"))
+                    and _norm_entity(review.get("government_entity_raw"))
+                    == _norm_entity(local_entity)
+                )
+                counterpart_exact = bool(
+                    _norm(review.get("counterparty_raw"))
+                    and _norm(review.get("counterparty_raw")) == _norm(local_counterparty)
+                )
                 if contract_exact:
                     basis.append("contract_number")
                     score += 0.75
@@ -560,38 +673,68 @@ def _build_crosswalk(root: Path, reviews: list[dict[str, Any]]) -> list[dict[str
                 review_date = _date_obj(str(review.get("completed_date") or ""))
                 source_date = _date_obj(local_date)
                 date_delta = (review_date - source_date).days if review_date and source_date else ""
-                output.append({
-                    "fomb_review_id": review["fomb_review_id"],
-                    "local_source": source_name,
-                    "local_record_id": local_contract or hashlib.sha256(json.dumps(local, sort_keys=True).encode()).hexdigest()[:20],
-                    "match_basis": ";".join(basis),
-                    "match_confidence": min(round(score, 3), 1.0),
-                    "amount_delta": "" if amount_delta is None else amount_delta,
-                    "date_delta_days": date_delta,
-                    "entity_conflict": bool(local_entity and review.get("government_entity_raw") and not entity_exact),
-                    "counterparty_conflict": bool(local_counterparty and review.get("counterparty_raw") and not counterpart_exact),
-                    "status_conflict": False,
-                })
-    output.sort(key=lambda row: (-float(row["match_confidence"]), row["fomb_review_id"], row["local_source"], row["local_record_id"]))
+                output.append(
+                    {
+                        "fomb_review_id": review["fomb_review_id"],
+                        "local_source": source_name,
+                        "local_record_id": local_contract
+                        or hashlib.sha256(json.dumps(local, sort_keys=True).encode()).hexdigest()[
+                            :20
+                        ],
+                        "match_basis": ";".join(basis),
+                        "match_confidence": min(round(score, 3), 1.0),
+                        "amount_delta": "" if amount_delta is None else amount_delta,
+                        "date_delta_days": date_delta,
+                        "entity_conflict": bool(
+                            local_entity
+                            and review.get("government_entity_raw")
+                            and not entity_exact
+                        ),
+                        "counterparty_conflict": bool(
+                            local_counterparty
+                            and review.get("counterparty_raw")
+                            and not counterpart_exact
+                        ),
+                        "status_conflict": False,
+                    }
+                )
+    output.sort(
+        key=lambda row: (
+            -float(row["match_confidence"]),
+            row["fomb_review_id"],
+            row["local_source"],
+            row["local_record_id"],
+        )
+    )
     return output
 
 
 def _build_versions(documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     for doc in documents:
-        entity, fiscal_year, doc_class, version = _classify_title(doc.get("title_raw", ""), doc.get("collection", ""))
+        entity, fiscal_year, doc_class, version = _classify_title(
+            doc.get("title_raw", ""), doc.get("collection", "")
+        )
         if doc_class not in {"fiscal_plan", "budget", "budget_reapportionment"}:
             continue
-        rows.append({
-            "document_id": doc["document_id"], "collection": doc["collection"],
-            "covered_entity": entity, "fiscal_year": fiscal_year,
-            "document_class": doc_class, "version_label": version,
-            "publication_date": doc.get("publication_date", ""), "supersedes_document_id": "",
-            "source_url": doc.get("download_url") or doc.get("source_url"),
-        })
+        rows.append(
+            {
+                "document_id": doc["document_id"],
+                "collection": doc["collection"],
+                "covered_entity": entity,
+                "fiscal_year": fiscal_year,
+                "document_class": doc_class,
+                "version_label": version,
+                "publication_date": doc.get("publication_date", ""),
+                "supersedes_document_id": "",
+                "source_url": doc.get("download_url") or doc.get("source_url"),
+            }
+        )
     grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     for row in rows:
-        grouped.setdefault((row["covered_entity"], row["fiscal_year"], row["document_class"]), []).append(row)
+        grouped.setdefault(
+            (row["covered_entity"], row["fiscal_year"], row["document_class"]), []
+        ).append(row)
     for group in grouped.values():
         group.sort(key=lambda r: (r["publication_date"], r["document_id"]))
         previous = ""
@@ -599,7 +742,16 @@ def _build_versions(documents: list[dict[str, Any]]) -> list[dict[str, Any]]:
             if previous and row["version_label"] in {"revised", "certified"}:
                 row["supersedes_document_id"] = previous
             previous = row["document_id"]
-    return sorted(rows, key=lambda r: (r["covered_entity"], r["fiscal_year"], r["document_class"], r["publication_date"], r["document_id"]))
+    return sorted(
+        rows,
+        key=lambda r: (
+            r["covered_entity"],
+            r["fiscal_year"],
+            r["document_class"],
+            r["publication_date"],
+            r["document_id"],
+        ),
+    )
 
 
 def _extension_for(content_type: str, url: str) -> str:
@@ -607,7 +759,8 @@ def _extension_for(content_type: str, url: str) -> str:
     if suffix and len(suffix) <= 8:
         return suffix
     return {
-        "application/pdf": ".pdf", "text/csv": ".csv",
+        "application/pdf": ".pdf",
+        "text/csv": ".csv",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ".xlsx",
         "application/vnd.ms-excel": ".xls",
     }.get((content_type or "").split(";")[0].strip().lower(), ".bin")
@@ -628,12 +781,23 @@ def _merge_prior_document(doc: dict[str, Any], prior: dict[str, Any] | None, roo
     local = str(prior.get("local_path") or "")
     if local and not (root / local).exists():
         return
-    for key in ("http_status", "content_type", "byte_size", "sha256", "duplicate_content_group", "local_path"):
+    for key in (
+        "http_status",
+        "content_type",
+        "byte_size",
+        "sha256",
+        "duplicate_content_group",
+        "local_path",
+    ):
         if prior.get(key) not in (None, ""):
             doc[key] = prior[key]
 
 
-def run(root: Path | str | None = None, download_documents: bool = True, max_documents: int | None = None) -> dict[str, Any]:
+def run(
+    root: Path | str | None = None,
+    download_documents: bool = True,
+    max_documents: int | None = None,
+) -> dict[str, Any]:
     root = Path(root) if root is not None else PROJECT_ROOT
     logger = setup_logging("download_fomb")
     raw_root = root / RAW_ROOT_REL
@@ -676,16 +840,21 @@ def run(root: Path | str | None = None, download_documents: bool = True, max_doc
             checkpoint["collections"][collection] = {
                 "source_url": page_url,
                 "etag": response.headers.get("ETag") or cached.get("etag", ""),
-                "last_modified": response.headers.get("Last-Modified") or cached.get("last_modified", ""),
+                "last_modified": response.headers.get("Last-Modified")
+                or cached.get("last_modified", ""),
                 "sha256": _sha256_bytes(body),
                 "byte_size": len(body),
                 "last_checked_at": retrieved_at,
             }
             headers_payload = {
-                "source_url": page_url, "retrieved_at": retrieved_at,
+                "source_url": page_url,
+                "retrieved_at": retrieved_at,
                 "status_code": status_code,
-                "headers": {k: v for k, v in response.headers.items() if k.lower() not in {"set-cookie"}},
-                "sha256": _sha256_bytes(body), "byte_size": len(body),
+                "headers": {
+                    k: v for k, v in response.headers.items() if k.lower() not in {"set-cookie"}
+                },
+                "sha256": _sha256_bytes(body),
+                "byte_size": len(body),
             }
             _atomic_write_json(discovery_dir / f"{collection}.headers.json", headers_payload)
             _atomic_write_json(checkpoint_path, checkpoint)
@@ -701,48 +870,70 @@ def run(root: Path | str | None = None, download_documents: bool = True, max_doc
             stable = f"{collection}|{_canonical_url(link.href)}|{title}"
             document_id = hashlib.sha256(stable.encode("utf-8")).hexdigest()[:24]
             doc = {
-                "document_id": document_id, "collection": collection, "title_raw": title,
+                "document_id": document_id,
+                "collection": collection,
+                "title_raw": title,
                 "document_type_raw": _classify_title(title, collection)[2],
                 "publication_date": _publication_date(title or link.context),
-                "source_url": page_url, "download_url": link.href, "retrieved_at": retrieved_at,
-                "http_status": "", "content_type": "", "byte_size": "", "sha256": "",
-                "duplicate_content_group": "", "local_path": "",
+                "source_url": page_url,
+                "download_url": link.href,
+                "retrieved_at": retrieved_at,
+                "http_status": "",
+                "content_type": "",
+                "byte_size": "",
+                "sha256": "",
+                "duplicate_content_group": "",
+                "local_path": "",
             }
             _merge_prior_document(doc, prior_manifest.get(document_id), root)
             documents.append(doc)
 
         state: dict[str, Any] = {
-            "status": "OK", "source_url": page_url,
-            "http_status": status_code, "static_document_links": len(doc_links),
+            "status": "OK",
+            "source_url": page_url,
+            "http_status": status_code,
+            "static_document_links": len(doc_links),
         }
         cfg = _discover_ajax_config(page_html, page_url)
         if cfg:
             state["ajax_url"] = cfg.url
             state["ajax_method"] = cfg.method
         if collection == "contract_review":
-            contract_rows, ajax_url = _enumerate_contract_reviews(session, page_html, page_url, retrieved_at, logger)
+            contract_rows, ajax_url = _enumerate_contract_reviews(
+                session, page_html, page_url, retrieved_at, logger
+            )
             if contract_rows:
                 reviews.extend(contract_rows)
                 contract_refresh_ok = True
                 checkpoint["contract_review"] = {
-                    "ajax_url": ajax_url or "", "last_success_at": retrieved_at,
+                    "ajax_url": ajax_url or "",
+                    "last_success_at": retrieved_at,
                     "row_count": len(contract_rows),
                 }
                 _atomic_write_json(checkpoint_path, checkpoint)
             state["contract_rows"] = len(contract_rows)
             if not ajax_url:
                 state["status"] = "PARTIAL_DYNAMIC_ENDPOINT_UNDISCOVERED"
-                errors.append("contract_review: dynamic table endpoint not discovered; raw HTML preserved")
+                errors.append(
+                    "contract_review: dynamic table endpoint not discovered; raw HTML preserved"
+                )
             elif not contract_rows:
                 state["status"] = "PARTIAL_DYNAMIC_ENUMERATION_EMPTY"
-                errors.append("contract_review: dynamic endpoint discovered but no rows materialized; previous normalized output preserved")
+                errors.append(
+                    "contract_review: dynamic endpoint discovered but no rows materialized; previous normalized output preserved"
+                )
         elif collection in DYNAMIC_COLLECTIONS and not doc_links and not cfg:
             state["status"] = "PARTIAL_DYNAMIC_ENDPOINT_UNDISCOVERED"
-            errors.append(f"{collection}: dynamic table endpoint not discovered; raw HTML preserved")
+            errors.append(
+                f"{collection}: dynamic table endpoint not discovered; raw HTML preserved"
+            )
         collection_state[collection] = state
 
     unique_docs: dict[str, dict[str, Any]] = {doc["document_id"]: doc for doc in documents}
-    documents = sorted(unique_docs.values(), key=lambda d: (d["collection"], d["publication_date"], d["title_raw"], d["download_url"]))
+    documents = sorted(
+        unique_docs.values(),
+        key=lambda d: (d["collection"], d["publication_date"], d["title_raw"], d["download_url"]),
+    )
 
     # Resume interrupted queues first, then append newly discovered observations.
     pending_ids = [str(x) for x in checkpoint.get("pending_document_ids", [])]
@@ -760,18 +951,29 @@ def run(root: Path | str | None = None, download_documents: bool = True, max_doc
             cached = checkpoint["documents"].get(observed_url, {})
             req_headers = _conditional_headers(cached)
             try:
-                response = session.get(doc["download_url"], headers=req_headers, timeout=HTTP.timeout, allow_redirects=True)
+                response = session.get(
+                    doc["download_url"],
+                    headers=req_headers,
+                    timeout=HTTP.timeout,
+                    allow_redirects=True,
+                )
                 if response.status_code == 304:
                     local_path = str(cached.get("local_path") or "")
                     if not local_path or not (root / local_path).exists():
-                        response = session.get(doc["download_url"], timeout=HTTP.timeout, allow_redirects=True)
+                        response = session.get(
+                            doc["download_url"], timeout=HTTP.timeout, allow_redirects=True
+                        )
                     else:
-                        doc.update({
+                        not_modified_metadata: dict[str, Any] = {
                             "download_url": cached.get("resolved_url") or observed_url,
-                            "http_status": 304, "content_type": cached.get("content_type", ""),
-                            "byte_size": cached.get("byte_size", ""), "sha256": cached.get("sha256", ""),
-                            "duplicate_content_group": cached.get("sha256", ""), "local_path": local_path,
-                        })
+                            "http_status": 304,
+                            "content_type": cached.get("content_type", ""),
+                            "byte_size": cached.get("byte_size", ""),
+                            "sha256": cached.get("sha256", ""),
+                            "duplicate_content_group": cached.get("sha256", ""),
+                            "local_path": local_path,
+                        }
+                        doc.update(not_modified_metadata)
                 if response.status_code != 304:
                     response.raise_for_status()
                     payload = response.content
@@ -781,20 +983,30 @@ def run(root: Path | str | None = None, download_documents: bool = True, max_doc
                     local = content_dir / f"{sha}{ext}"
                     if not local.exists():
                         local.write_bytes(payload)
-                    doc.update({
-                        "download_url": _canonical_url(response.url), "http_status": response.status_code,
-                        "content_type": content_type, "byte_size": len(payload), "sha256": sha,
-                        "duplicate_content_group": sha, "local_path": str(local.relative_to(root)),
-                    })
+                    downloaded_metadata: dict[str, Any] = {
+                        "download_url": _canonical_url(response.url),
+                        "http_status": response.status_code,
+                        "content_type": content_type,
+                        "byte_size": len(payload),
+                        "sha256": sha,
+                        "duplicate_content_group": sha,
+                        "local_path": str(local.relative_to(root)),
+                    }
+                    doc.update(downloaded_metadata)
                 checkpoint["documents"][observed_url] = {
                     "resolved_url": doc["download_url"],
                     "etag": response.headers.get("ETag") or cached.get("etag", ""),
-                    "last_modified": response.headers.get("Last-Modified") or cached.get("last_modified", ""),
-                    "sha256": doc.get("sha256", ""), "local_path": doc.get("local_path", ""),
-                    "content_type": doc.get("content_type", ""), "byte_size": doc.get("byte_size", ""),
+                    "last_modified": response.headers.get("Last-Modified")
+                    or cached.get("last_modified", ""),
+                    "sha256": doc.get("sha256", ""),
+                    "local_path": doc.get("local_path", ""),
+                    "content_type": doc.get("content_type", ""),
+                    "byte_size": doc.get("byte_size", ""),
                     "last_checked_at": retrieved_at,
                 }
-                checkpoint["pending_document_ids"] = [x for x in checkpoint["pending_document_ids"] if x != doc["document_id"]]
+                checkpoint["pending_document_ids"] = [
+                    x for x in checkpoint["pending_document_ids"] if x != doc["document_id"]
+                ]
                 _atomic_write_json(checkpoint_path, checkpoint)
             except (requests.RequestException, OSError) as exc:
                 errors.append(f"document {doc['download_url']}: {exc}")
@@ -802,12 +1014,23 @@ def run(root: Path | str | None = None, download_documents: bool = True, max_doc
                 logger.info("Checked %s/%s FOMB documents", idx, len(documents_to_fetch))
 
     manifest_path = root / MANIFEST_REL
-    _atomic_write_text(manifest_path, "".join(json.dumps(doc, sort_keys=True, ensure_ascii=False) + "\n" for doc in documents))
+    _atomic_write_text(
+        manifest_path,
+        "".join(json.dumps(doc, sort_keys=True, ensure_ascii=False) + "\n" for doc in documents),
+    )
     _write_csv(root / DOCUMENTS_REL, documents, DOCUMENT_COLUMNS)
 
     if contract_refresh_ok:
         review_by_id = {row["fomb_review_id"]: row for row in reviews}
-        reviews = sorted(review_by_id.values(), key=lambda r: (r["completed_date"], r["government_entity_raw"], r["counterparty_raw"], r["fomb_review_id"]))
+        reviews = sorted(
+            review_by_id.values(),
+            key=lambda r: (
+                r["completed_date"],
+                r["government_entity_raw"],
+                r["counterparty_raw"],
+                r["fomb_review_id"],
+            ),
+        )
         _write_csv(root / CONTRACTS_REL, reviews, CONTRACT_COLUMNS)
     else:
         reviews = _load_csv(root / CONTRACTS_REL)
@@ -818,16 +1041,25 @@ def run(root: Path | str | None = None, download_documents: bool = True, max_doc
     _write_csv(root / CROSSWALK_REL, crosswalk, CROSSWALK_COLUMNS)
 
     state_path = raw_root / "collection_state.json"
-    _atomic_write_json(state_path, {
-        "retrieved_at": retrieved_at, "collections": collection_state, "errors": errors,
-        "checkpoint": {"pending_documents": len(checkpoint.get("pending_document_ids", []))},
-    })
+    _atomic_write_json(
+        state_path,
+        {
+            "retrieved_at": retrieved_at,
+            "collections": collection_state,
+            "errors": errors,
+            "checkpoint": {"pending_documents": len(checkpoint.get("pending_document_ids", []))},
+        },
+    )
     session.close()
     return {
-        "rows": len(documents), "documents": len(documents), "contract_reviews": len(reviews),
-        "versions": len(versions), "crosswalks": len(crosswalk),
+        "rows": len(documents),
+        "documents": len(documents),
+        "contract_reviews": len(reviews),
+        "versions": len(versions),
+        "crosswalks": len(crosswalk),
         "pending_documents": len(checkpoint.get("pending_document_ids", [])),
-        "path": str(root / DOCUMENTS_REL), "errors": errors,
+        "path": str(root / DOCUMENTS_REL),
+        "errors": errors,
         "status": "OK" if not errors else "PARTIAL",
     }
 
@@ -838,7 +1070,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-download-documents", action="store_true")
     parser.add_argument("--max-documents", type=int)
     args = parser.parse_args(argv)
-    result = run(root=args.root, download_documents=not args.no_download_documents, max_documents=args.max_documents)
+    result = run(
+        root=args.root,
+        download_documents=not args.no_download_documents,
+        max_documents=args.max_documents,
+    )
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result["documents"] > 0 else 1
 

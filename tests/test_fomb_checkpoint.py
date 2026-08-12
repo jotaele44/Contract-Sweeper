@@ -7,7 +7,15 @@ from scripts import download_fomb as fomb
 
 
 class DummyResponse:
-    def __init__(self, *, text="", content=None, status_code=200, headers=None, url="https://oversightboard.pr.gov/"):
+    def __init__(
+        self,
+        *,
+        text="",
+        content=None,
+        status_code=200,
+        headers=None,
+        url="https://oversightboard.pr.gov/",
+    ):
         self.text = text
         self.content = content if content is not None else text.encode("utf-8")
         self.status_code = status_code
@@ -107,26 +115,33 @@ def test_failed_contract_dynamic_refresh_preserves_previous_csv(tmp_path: Path, 
     with contracts.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fomb.CONTRACT_COLUMNS)
         writer.writeheader()
-        writer.writerow({
-            "fomb_review_id": "prior-review",
-            "government_entity_raw": "Puerto Rico Aqueduct and Sewer Authority",
-            "counterparty_raw": "Example Contractor LLC",
-            "amount_raw": "$100.00",
-            "amount_numeric": "100.0",
-            "currency": "USD",
-            "status_raw": "Approved",
-            "completed_date": "2025-01-01",
-            "review_document_url": "https://example.invalid/review.pdf",
-            "contract_number_candidate": "",
-            "source_url": "https://oversightboard.pr.gov/contract-review/",
-            "retrieved_at": "2025-01-01T00:00:00Z",
-        })
+        writer.writerow(
+            {
+                "fomb_review_id": "prior-review",
+                "government_entity_raw": "Puerto Rico Aqueduct and Sewer Authority",
+                "counterparty_raw": "Example Contractor LLC",
+                "amount_raw": "$100.00",
+                "amount_numeric": "100.0",
+                "currency": "USD",
+                "status_raw": "Approved",
+                "completed_date": "2025-01-01",
+                "review_document_url": "https://example.invalid/review.pdf",
+                "contract_number_candidate": "",
+                "source_url": "https://oversightboard.pr.gov/contract-review/",
+                "retrieved_at": "2025-01-01T00:00:00Z",
+            }
+        )
 
     class ShellSession:
         def get(self, url, params=None, headers=None, timeout=None, allow_redirects=True):
-            return DummyResponse(text="<html><table><tr><th>Entity</th><th>Counterpart</th></tr></table></html>", url=url)
+            return DummyResponse(
+                text="<html><table><tr><th>Entity</th><th>Counterpart</th></tr></table></html>",
+                url=url,
+            )
+
         def post(self, url, data=None, timeout=None):
             return self.get(url, params=data, timeout=timeout)
+
         def close(self):
             return None
 
