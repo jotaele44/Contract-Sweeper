@@ -10,7 +10,7 @@ version: "1.0"
 schema_version: "government_entity_registry_v1"
 
 government_entity_registry:
-  registry_version: "1.1.0"
+  registry_version: "1.0.0"
 
   # --- Governed schema manifest ---------------------------------------------
   # The government-entity schemas are internal/derived and version as a SET via
@@ -18,7 +18,7 @@ government_entity_registry:
   # Every schema listed here must exist; every government_entity_* schema on disk
   # must be listed here (gate SCHEMA_VALID; enforced by the schema-contract test).
   schema_manifest:
-    contract_version: "1.1.0"
+    contract_version: "1.0.0"
     governance: internal_derived
     schemas:
       - schemas/government_entities.schema.json
@@ -29,7 +29,6 @@ government_entity_registry:
       - schemas/government_entity_resolution_events.schema.json
       - schemas/government_entity_conflicts.schema.json
       - schemas/government_entity_coverage_audit.schema.json
-      - schemas/government_entity_change_events.schema.json
 
   # --- Canonical identifier policy ------------------------------------------
   canonical_id_policy:
@@ -74,7 +73,7 @@ government_entity_registry:
   # --- Source provenance requirements ---------------------------------------
   source_provenance_requirements:
     assertion_schema: schemas/government_entity_source_assertions.schema.json
-    required_for: [entity, name, identifier, relationship, change_event]
+    required_for: [entity, name, identifier, relationship]
     required_fields:
       - source_id
       - source_locator
@@ -83,8 +82,9 @@ government_entity_registry:
       - content_hash
       - verification_status
     description: >-
-      Every governed record must reference a source_assertion_id that resolves to
-      a source-assertion record (gate PROVENANCE_REQUIRED).
+      Every entity, name, identifier, and relationship must reference a
+      source_assertion_id that resolves to a source-assertion record (gate
+      PROVENANCE_REQUIRED).
 
   # --- Temporal validity rules ----------------------------------------------
   temporal_validity_rules:
@@ -161,11 +161,3 @@ government_entity_registry:
       description: The registry YAML and generated JSON are equivalent.
     - id: NAME_DERIVED_ID_NOT_USED_FOR_NEW_GOV_ENTITIES
       description: New government entity IDs are never derived from a name.
-    - id: CHANGE_EVENT_VALID
-      description: Organizational change events satisfy the governed event contract.
-    - id: PROPOSAL_NOT_BINDING
-      description: Proposal-only evidence cannot establish an effective organizational state.
-    - id: SUCCESSION_EVIDENCE_REQUIRED
-      description: Succession assertions require authoritative evidence.
-    - id: CHANGE_INVALIDATION_DERIVED
-      description: Material change events derive downstream recomputation scopes.
