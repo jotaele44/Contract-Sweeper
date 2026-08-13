@@ -33,10 +33,12 @@ export const getEdges = (f = {}) => fetchJSON(`/edges${qs(f)}`, [])
 export const getMunicipalities = () => fetchJSON('/municipalities', [])
 export const getStats = () => fetchJSON('/stats', null)
 export const getGovernmentChanges = (f = {}) => fetchJSON(`/government-changes${qs(f)}`, [])
+export const getGovernmentChangeCandidates = (f = {}) =>
+  fetchJSON(`/government-changes/candidates${qs(f)}`, [])
 export const getGovernmentChangeSummary = () => fetchJSON('/government-changes/summary', {
-  events: 0, alerts: 0, binding: 0,
+  events: 0, candidates: 0, alerts: 0, binding: 0,
   bySeverity: { S0: 0, S1: 0, S2: 0, S3: 0, S4: 0 },
-  ledgerPresent: false,
+  ledgerPresent: false, candidateLedgerPresent: false,
 })
 
 export const getCampaignFinanceSummary = () => fetchJSON('/campaign-finance/summary', {
