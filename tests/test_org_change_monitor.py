@@ -8,7 +8,7 @@ def sample(**updates):
         "event_type": "TRANSFER_OF_CONTRACTS",
         "effective_date": "2026-08-13",
         "status": "FUNCTIONS_PARTIALLY_TRANSFERRED",
-        "source_provenance": [{"source_id": "SRC_1", "evidence_type": "ENACTED_LAW_OR_CONSTITUTION"}],
+        "source_provenance": [{"source_assertion_id": "ASSERT_1", "evidence_type": "ENACTED_LAW_OR_CONSTITUTION"}],
         "confidence": 1.0,
         "certification_state": "PASS",
         "predecessor_entities": [],
