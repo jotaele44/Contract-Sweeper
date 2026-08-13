@@ -8,8 +8,8 @@ from fastapi import APIRouter, HTTPException
 from moneysweep.government_changes import ChangeEventError, evaluate_events
 
 ROOT = Path(__file__).resolve().parents[2]
-EVENTS_PATH = ROOT / "data" / "derived" / "government_entity_change_events.json"
-router = APIRouter(prefix="/government-changes", tags=["government-changes"])
+EVENTS_PATH = ROOT / "data" / "derived" / "government_organization_change_events.json"
+router = APIRouter(tags=["government-changes"])
 
 
 def _load_events() -> list[dict]:
@@ -22,8 +22,12 @@ def _load_events() -> list[dict]:
     return rows
 
 
-@router.get("")
-def list_changes(entity_id: str | None = None, severity: str | None = None, alerts_only: bool = False):
+@router.get("/government-changes")
+def list_changes(
+    entity_id: str | None = None,
+    severity: str | None = None,
+    alerts_only: bool = False,
+):
     try:
         rows = evaluate_events(_load_events())
     except (OSError, json.JSONDecodeError, ValueError, ChangeEventError) as exc:
@@ -31,13 +35,15 @@ def list_changes(entity_id: str | None = None, severity: str | None = None, aler
     if entity_id:
         rows = [row for row in rows if row.get("affected_entity_id") == entity_id]
     if severity:
-        rows = [row for row in rows if row["derived"]["severity"] == severity.upper()]
+        rows = [
+            row for row in rows if row["derived"]["severity"] == severity.upper()
+        ]
     if alerts_only:
         rows = [row for row in rows if row["derived"]["alert"]]
     return rows
 
 
-@router.get("/summary")
+@router.get("/government-changes/summary")
 def change_summary():
     rows = list_changes()
     counts = {f"S{i}": 0 for i in range(5)}
