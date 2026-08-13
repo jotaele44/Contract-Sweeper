@@ -1,0 +1,54 @@
+name: Government change branch autofix
+
+on:
+  push:
+    branches:
+      - feature/government-entity-change-monitor
+
+permissions:
+  contents: write
+
+jobs:
+  format-and-regenerate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feature/government-entity-change-monitor
+          fetch-depth: 1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.11'
+      - name: Install deterministic formatter dependencies
+        run: python -m pip install ruff==0.15.21 PyYAML==6.0.3
+      - name: Apply canonical deterministic transforms
+        run: |
+          python scripts/regenerate_registry_json.py
+          ruff format \
+            moneysweep/government_change_detection.py \
+            moneysweep/government_change_materialization.py \
+            moneysweep/government_changes.py \
+            moneysweep/update_controller/executor.py \
+            server/backend/government_changes.py \
+            tests/test_org_change_materialization.py \
+            tests/test_org_change_monitor.py
+      - name: Commit transformed bytes
+        run: |
+          if git diff --quiet; then
+            echo 'No deterministic fixes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            registries/government_entity_registry.json \
+            moneysweep/government_change_detection.py \
+            moneysweep/government_change_materialization.py \
+            moneysweep/government_changes.py \
+            moneysweep/update_controller/executor.py \
+            server/backend/government_changes.py \
+            tests/test_org_change_materialization.py \
+            tests/test_org_change_monitor.py
+          git commit -m 'style: apply canonical organization change transforms'
+          git push origin HEAD:feature/government-entity-change-monitor
