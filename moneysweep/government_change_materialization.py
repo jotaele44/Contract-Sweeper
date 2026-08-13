@@ -132,9 +132,7 @@ def materialize_validated_source_update(
         )
     outputs = binding.get("text_outputs")
     if not isinstance(outputs, list) or not outputs:
-        raise ChangeMaterializationError(
-            f"binding for {source_id} requires non-empty text_outputs"
-        )
+        raise ChangeMaterializationError(f"binding for {source_id} requires non-empty text_outputs")
 
     candidate_rel = Path(config.get("candidate_ledger") or DEFAULT_CANDIDATE_LEDGER)
     ledger_path = root / candidate_rel
@@ -152,12 +150,8 @@ def materialize_validated_source_update(
     if not isinstance(snapshots, list) or not isinstance(candidates, list):
         raise ChangeMaterializationError("candidate ledger arrays are malformed")
 
-    existing_snapshots = {
-        row.get("snapshot_id") for row in snapshots if isinstance(row, dict)
-    }
-    existing_candidates = {
-        row.get("candidate_id") for row in candidates if isinstance(row, dict)
-    }
+    existing_snapshots = {row.get("snapshot_id") for row in snapshots if isinstance(row, dict)}
+    existing_candidates = {row.get("candidate_id") for row in candidates if isinstance(row, dict)}
     added_candidates = 0
     added_snapshots = 0
 

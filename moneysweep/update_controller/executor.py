@@ -208,11 +208,7 @@ def run_source(
             status = ExecutionStatus.SUCCESS_WITH_CHANGE.value
             break
         status, _area, retryable = classify_failure(exit_code, captured)
-        if not (
-            retryable
-            and status in RETRYABLE_STATUSES
-            and attempt <= policy.max_retries
-        ):
+        if not (retryable and status in RETRYABLE_STATUSES and attempt <= policy.max_retries):
             break
 
     finished = _now()

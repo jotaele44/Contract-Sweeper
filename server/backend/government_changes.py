@@ -10,11 +10,7 @@ from moneysweep.government_changes import ChangeEventError, evaluate_events
 ROOT = Path(__file__).resolve().parents[2]
 EVENTS_PATH = ROOT / "data" / "derived" / "government_organization_change_events.json"
 CANDIDATES_PATH = (
-    ROOT
-    / "data"
-    / "staging"
-    / "processed"
-    / "government_organization_change_candidates.json"
+    ROOT / "data" / "staging" / "processed" / "government_organization_change_candidates.json"
 )
 router = APIRouter(tags=["government-changes"])
 
@@ -52,9 +48,7 @@ def list_changes(
     if entity_id:
         rows = [row for row in rows if row.get("affected_entity_id") == entity_id]
     if severity:
-        rows = [
-            row for row in rows if row["derived"]["severity"] == severity.upper()
-        ]
+        rows = [row for row in rows if row["derived"]["severity"] == severity.upper()]
     if alerts_only:
         rows = [row for row in rows if row["derived"]["alert"]]
     return rows

@@ -40,9 +40,7 @@ def test_material_transfer_requires_recompute_alert():
 
 
 def test_announcement_without_effective_date_is_not_binding():
-    result = evaluate_event(
-        sample(effective_date=None, announcement_date="2026-08-13")
-    )
+    result = evaluate_event(sample(effective_date=None, announcement_date="2026-08-13"))
     assert result.binding is False
     assert result.timeline_state == "FUNCTIONS_PARTIALLY_TRANSFERRED"
 
@@ -87,9 +85,7 @@ def test_bounded_detection_flags_english_and_spanish_without_promoting_identity(
     )
     assert {"DISSOLUTION", "TRANSFER_OF_FUNCTIONS"} <= candidate_types(rows)
     assert rows
-    assert all(
-        row["certification_state"] == "CANDIDATE_NOT_IDENTITY" for row in rows
-    )
+    assert all(row["certification_state"] == "CANDIDATE_NOT_IDENTITY" for row in rows)
     assert all(row["scope_claim"] == "BOUNDED_NOT_EXHAUSTIVE" for row in rows)
 
 

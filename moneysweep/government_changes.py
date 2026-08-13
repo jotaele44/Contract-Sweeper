@@ -87,9 +87,7 @@ SUCCESSION_BINDING_EVIDENCE = frozenset(
         "OFFICIAL_GOVERNMENT_REGISTER",
     }
 )
-LEGAL_BINDING_EVIDENCE = SUCCESSION_BINDING_EVIDENCE | frozenset(
-    {"APPROPRIATIONS_ACT"}
-)
+LEGAL_BINDING_EVIDENCE = SUCCESSION_BINDING_EVIDENCE | frozenset({"APPROPRIATIONS_ACT"})
 OPERATIONAL_BINDING_EVIDENCE = LEGAL_BINDING_EVIDENCE | frozenset(
     {
         "PROCUREMENT_OR_CONTRACT_TRANSFER_RECORD",
@@ -356,14 +354,10 @@ def _evidence_types(event: Mapping[str, Any]) -> set[str]:
             raise ChangeEventError("every source_provenance item must be an object")
         assertion_id = source.get("source_assertion_id")
         if not isinstance(assertion_id, str) or not assertion_id.strip():
-            raise ChangeEventError(
-                "every source_provenance item needs source_assertion_id"
-            )
+            raise ChangeEventError("every source_provenance item needs source_assertion_id")
         evidence_type = source.get("evidence_type")
         if evidence_type not in EVIDENCE_RANK:
-            raise ChangeEventError(
-                "every source_provenance item needs a recognized evidence_type"
-            )
+            raise ChangeEventError("every source_provenance item needs a recognized evidence_type")
         evidence.add(str(evidence_type))
     return evidence
 
@@ -395,9 +389,7 @@ def validate_event(event: Mapping[str, Any]) -> None:
     if event["status"] not in ENTITY_STATES:
         raise ChangeEventError(f"unsupported status: {event['status']}")
     if event["certification_state"] not in CERTIFICATION_STATES:
-        raise ChangeEventError(
-            f"unsupported certification_state: {event['certification_state']}"
-        )
+        raise ChangeEventError(f"unsupported certification_state: {event['certification_state']}")
     try:
         confidence = float(event["confidence"])
     except (TypeError, ValueError) as exc:
@@ -430,9 +422,7 @@ def validate_event(event: Mapping[str, Any]) -> None:
     instrument = _parse_date(event.get("instrument_date"), "instrument_date")
     effective = _parse_date(event.get("effective_date"), "effective_date")
     announcement = _parse_date(event.get("announcement_date"), "announcement_date")
-    implementation = _parse_date(
-        event.get("implementation_date"), "implementation_date"
-    )
+    implementation = _parse_date(event.get("implementation_date"), "implementation_date")
     if instrument and effective and effective < instrument:
         raise ChangeEventError("effective_date cannot precede instrument_date")
     if announcement and implementation and implementation < announcement:
@@ -449,17 +439,11 @@ def validate_event(event: Mapping[str, Any]) -> None:
         evidence_types.intersection(OPERATIONAL_BINDING_EVIDENCE)
     )
     if proposal_only and (
-        effective
-        or event["status"]
-        in {"DISSOLVED", "SUPERSEDED", "FUNCTIONS_FULLY_TRANSFERRED"}
+        effective or event["status"] in {"DISSOLVED", "SUPERSEDED", "FUNCTIONS_FULLY_TRANSFERRED"}
     ):
-        raise ChangeEventError(
-            "proposal-only evidence cannot establish an effective/binding state"
-        )
+        raise ChangeEventError("proposal-only evidence cannot establish an effective/binding state")
     if event["event_type"] == "RENAMING" and (predecessors or successors):
-        raise ChangeEventError(
-            "renaming cannot establish predecessor/successor identity"
-        )
+        raise ChangeEventError("renaming cannot establish predecessor/successor identity")
 
 
 def is_binding(event: Mapping[str, Any]) -> bool:
@@ -538,10 +522,7 @@ def evaluate_event(event: Mapping[str, Any]) -> Evaluation:
         reasons.append("ENTITY_HIERARCHY_RECOMPUTE")
     if event.get("predecessor_entities") or event.get("successor_entities"):
         reasons.append("SUCCESSION_RECOMPUTE")
-    if (
-        cardinality == "UNRESOLVED"
-        and event["event_type"] in STRUCTURAL_SUCCESSION_EVENTS
-    ):
+    if cardinality == "UNRESOLVED" and event["event_type"] in STRUCTURAL_SUCCESSION_EVENTS:
         reasons.append("SUCCESSION_CARDINALITY_UNRESOLVED")
     if not binding:
         reasons.append("NONBINDING_OR_NOT_YET_EFFECTIVE")
