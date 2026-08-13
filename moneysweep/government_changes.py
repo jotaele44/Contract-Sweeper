@@ -17,21 +17,48 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Iterable, Mapping
 
-EVENT_TYPES = frozenset({
-    "DISSOLUTION", "ABOLITION", "MERGER", "CONSOLIDATION", "SPLIT",
-    "REORGANIZATION", "RENAMING", "SUCCESSOR_CREATION", "PARENT_CHANGE",
-    "TRANSFER_OF_FUNCTIONS", "TRANSFER_OF_ASSETS", "TRANSFER_OF_LIABILITIES",
-    "TRANSFER_OF_PERSONNEL", "TRANSFER_OF_CONTRACTS", "TRANSFER_OF_APPROPRIATIONS",
-    "LOSS_OF_STATUTORY_POWER", "GAIN_OF_STATUTORY_POWER",
-    "PROCUREMENT_AUTHORITY_CHANGE", "BUDGET_AUTHORITY_CHANGE",
-    "REGULATORY_AUTHORITY_CHANGE", "ENFORCEMENT_AUTHORITY_CHANGE",
-    "LICENSING_AUTHORITY_CHANGE", "OVERSIGHT_CHANGE", "RECEIVERSHIP",
-    "FISCAL_CONTROL", "PRIVATIZATION", "PPP_TRANSFER", "CONCESSION",
-    "MUNICIPALIZATION", "CENTRALIZATION", "DECENTRALIZATION",
-    "TEMPORARY_EMERGENCY_AUTHORITY", "SUNSET_EXTENSION", "SUNSET_EXPIRATION",
-    "OPERATIONAL_SUSPENSION", "DEFUNDING", "MATERIAL_BUDGET_REDUCTION",
-    "MATERIAL_HEADCOUNT_REDUCTION",
-})
+EVENT_TYPES = frozenset(
+    {
+        "DISSOLUTION",
+        "ABOLITION",
+        "MERGER",
+        "CONSOLIDATION",
+        "SPLIT",
+        "REORGANIZATION",
+        "RENAMING",
+        "SUCCESSOR_CREATION",
+        "PARENT_CHANGE",
+        "TRANSFER_OF_FUNCTIONS",
+        "TRANSFER_OF_ASSETS",
+        "TRANSFER_OF_LIABILITIES",
+        "TRANSFER_OF_PERSONNEL",
+        "TRANSFER_OF_CONTRACTS",
+        "TRANSFER_OF_APPROPRIATIONS",
+        "LOSS_OF_STATUTORY_POWER",
+        "GAIN_OF_STATUTORY_POWER",
+        "PROCUREMENT_AUTHORITY_CHANGE",
+        "BUDGET_AUTHORITY_CHANGE",
+        "REGULATORY_AUTHORITY_CHANGE",
+        "ENFORCEMENT_AUTHORITY_CHANGE",
+        "LICENSING_AUTHORITY_CHANGE",
+        "OVERSIGHT_CHANGE",
+        "RECEIVERSHIP",
+        "FISCAL_CONTROL",
+        "PRIVATIZATION",
+        "PPP_TRANSFER",
+        "CONCESSION",
+        "MUNICIPALIZATION",
+        "CENTRALIZATION",
+        "DECENTRALIZATION",
+        "TEMPORARY_EMERGENCY_AUTHORITY",
+        "SUNSET_EXTENSION",
+        "SUNSET_EXPIRATION",
+        "OPERATIONAL_SUSPENSION",
+        "DEFUNDING",
+        "MATERIAL_BUDGET_REDUCTION",
+        "MATERIAL_HEADCOUNT_REDUCTION",
+    }
+)
 
 EVIDENCE_PRIORITY = (
     "ENACTED_LAW_OR_CONSTITUTION",
@@ -51,96 +78,236 @@ EVIDENCE_PRIORITY = (
 )
 EVIDENCE_RANK = {name: index for index, name in enumerate(EVIDENCE_PRIORITY)}
 
-# Evidence sufficient to establish a legal structural succession on its own.
-SUCCESSION_BINDING_EVIDENCE = frozenset({
-    "ENACTED_LAW_OR_CONSTITUTION",
-    "EXECUTIVE_ORDER_WITH_VALID_AUTHORITY",
-    "REGULATION",
-    "OFFICIAL_REORGANIZATION_PLAN",
-    "OFFICIAL_GOVERNMENT_REGISTER",
-})
-# Evidence that may establish an effective legal/administrative state.
-LEGAL_BINDING_EVIDENCE = SUCCESSION_BINDING_EVIDENCE | frozenset({"APPROPRIATIONS_ACT"})
-# Evidence that may establish an implemented operational transfer without
-# asserting legal succession between the participating entities.
-OPERATIONAL_BINDING_EVIDENCE = LEGAL_BINDING_EVIDENCE | frozenset({
-    "PROCUREMENT_OR_CONTRACT_TRANSFER_RECORD",
-    "OFFICIAL_ORGANIZATIONAL_CHART",
-})
+SUCCESSION_BINDING_EVIDENCE = frozenset(
+    {
+        "ENACTED_LAW_OR_CONSTITUTION",
+        "EXECUTIVE_ORDER_WITH_VALID_AUTHORITY",
+        "REGULATION",
+        "OFFICIAL_REORGANIZATION_PLAN",
+        "OFFICIAL_GOVERNMENT_REGISTER",
+    }
+)
+LEGAL_BINDING_EVIDENCE = SUCCESSION_BINDING_EVIDENCE | frozenset(
+    {"APPROPRIATIONS_ACT"}
+)
+OPERATIONAL_BINDING_EVIDENCE = LEGAL_BINDING_EVIDENCE | frozenset(
+    {
+        "PROCUREMENT_OR_CONTRACT_TRANSFER_RECORD",
+        "OFFICIAL_ORGANIZATIONAL_CHART",
+    }
+)
 PROPOSAL_EVIDENCE = frozenset({"LEGISLATIVE_PROPOSAL"})
 
-ENTITY_STATES = frozenset({
-    "ACTIVE", "ACTIVE_RESTRUCTURING_PENDING", "AUTHORITY_REDUCED",
-    "AUTHORITY_EXPANDED", "FUNCTIONS_PARTIALLY_TRANSFERRED",
-    "FUNCTIONS_FULLY_TRANSFERRED", "MERGER_PENDING", "SUCCESSOR_PENDING",
-    "DISSOLUTION_PENDING", "DISSOLVED", "SUPERSEDED",
-    "TEMPORARILY_SUSPENDED", "UNKNOWN",
-})
-CERTIFICATION_STATES = frozenset({
-    "PASS", "FAIL", "OPEN", "BLOCKED", "PROVISIONAL", "AUDIT_ONLY",
-    "NONCANONICAL", "CANDIDATE_NOT_IDENTITY", "UNRESOLVED", "SUPERSEDED",
-})
+ENTITY_STATES = frozenset(
+    {
+        "ACTIVE",
+        "ACTIVE_RESTRUCTURING_PENDING",
+        "AUTHORITY_REDUCED",
+        "AUTHORITY_EXPANDED",
+        "FUNCTIONS_PARTIALLY_TRANSFERRED",
+        "FUNCTIONS_FULLY_TRANSFERRED",
+        "MERGER_PENDING",
+        "SUCCESSOR_PENDING",
+        "DISSOLUTION_PENDING",
+        "DISSOLVED",
+        "SUPERSEDED",
+        "TEMPORARILY_SUSPENDED",
+        "UNKNOWN",
+    }
+)
+CERTIFICATION_STATES = frozenset(
+    {
+        "PASS",
+        "FAIL",
+        "OPEN",
+        "BLOCKED",
+        "PROVISIONAL",
+        "AUDIT_ONLY",
+        "NONCANONICAL",
+        "CANDIDATE_NOT_IDENTITY",
+        "UNRESOLVED",
+        "SUPERSEDED",
+    }
+)
 
-S4_EVENTS = frozenset({
-    "DISSOLUTION", "ABOLITION", "MERGER", "CONSOLIDATION", "SPLIT",
-    "SUCCESSOR_CREATION", "PRIVATIZATION", "PPP_TRANSFER",
-})
-S3_EVENTS = frozenset({
-    "TRANSFER_OF_FUNCTIONS", "TRANSFER_OF_ASSETS", "TRANSFER_OF_LIABILITIES",
-    "TRANSFER_OF_CONTRACTS", "TRANSFER_OF_APPROPRIATIONS",
-    "LOSS_OF_STATUTORY_POWER", "GAIN_OF_STATUTORY_POWER",
-    "PROCUREMENT_AUTHORITY_CHANGE", "BUDGET_AUTHORITY_CHANGE",
-    "REGULATORY_AUTHORITY_CHANGE", "ENFORCEMENT_AUTHORITY_CHANGE",
-    "LICENSING_AUTHORITY_CHANGE", "OVERSIGHT_CHANGE", "RECEIVERSHIP",
-    "FISCAL_CONTROL", "CONCESSION", "SUNSET_EXPIRATION", "DEFUNDING",
-})
-S2_EVENTS = frozenset({
-    "REORGANIZATION", "PARENT_CHANGE", "TRANSFER_OF_PERSONNEL",
-    "MUNICIPALIZATION", "CENTRALIZATION", "DECENTRALIZATION",
-    "TEMPORARY_EMERGENCY_AUTHORITY", "OPERATIONAL_SUSPENSION",
-    "MATERIAL_BUDGET_REDUCTION", "MATERIAL_HEADCOUNT_REDUCTION",
-})
+S4_EVENTS = frozenset(
+    {
+        "DISSOLUTION",
+        "ABOLITION",
+        "MERGER",
+        "CONSOLIDATION",
+        "SPLIT",
+        "SUCCESSOR_CREATION",
+        "PRIVATIZATION",
+        "PPP_TRANSFER",
+    }
+)
+S3_EVENTS = frozenset(
+    {
+        "TRANSFER_OF_FUNCTIONS",
+        "TRANSFER_OF_ASSETS",
+        "TRANSFER_OF_LIABILITIES",
+        "TRANSFER_OF_CONTRACTS",
+        "TRANSFER_OF_APPROPRIATIONS",
+        "LOSS_OF_STATUTORY_POWER",
+        "GAIN_OF_STATUTORY_POWER",
+        "PROCUREMENT_AUTHORITY_CHANGE",
+        "BUDGET_AUTHORITY_CHANGE",
+        "REGULATORY_AUTHORITY_CHANGE",
+        "ENFORCEMENT_AUTHORITY_CHANGE",
+        "LICENSING_AUTHORITY_CHANGE",
+        "OVERSIGHT_CHANGE",
+        "RECEIVERSHIP",
+        "FISCAL_CONTROL",
+        "CONCESSION",
+        "SUNSET_EXPIRATION",
+        "DEFUNDING",
+    }
+)
+S2_EVENTS = frozenset(
+    {
+        "REORGANIZATION",
+        "PARENT_CHANGE",
+        "TRANSFER_OF_PERSONNEL",
+        "MUNICIPALIZATION",
+        "CENTRALIZATION",
+        "DECENTRALIZATION",
+        "TEMPORARY_EMERGENCY_AUTHORITY",
+        "OPERATIONAL_SUSPENSION",
+        "MATERIAL_BUDGET_REDUCTION",
+        "MATERIAL_HEADCOUNT_REDUCTION",
+    }
+)
 S1_EVENTS = frozenset({"SUNSET_EXTENSION"})
 
-GRAPH_SCOPES = frozenset({
-    "ENTITY_GRAPH", "CONTRACT_GRAPH", "GRANT_GRAPH", "APPROPRIATION_GRAPH",
-    "CAMPAIGN_AND_LOBBYING_GRAPH", "PPP_GRAPH", "VENDOR_GRAPH",
-    "PERSONNEL_GRAPH", "PROPERTY_AND_ASSET_GRAPH", "REGULATORY_GRAPH",
-    "HISTORICAL_CONTINUITY_GRAPH",
-})
+GRAPH_SCOPES = frozenset(
+    {
+        "ENTITY_GRAPH",
+        "CONTRACT_GRAPH",
+        "GRANT_GRAPH",
+        "APPROPRIATION_GRAPH",
+        "CAMPAIGN_AND_LOBBYING_GRAPH",
+        "PPP_GRAPH",
+        "VENDOR_GRAPH",
+        "PERSONNEL_GRAPH",
+        "PROPERTY_AND_ASSET_GRAPH",
+        "REGULATORY_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    }
+)
 
 _EVENT_SCOPES = {
     "PARENT_CHANGE": {"ENTITY_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "TRANSFER_OF_CONTRACTS": {"ENTITY_GRAPH", "CONTRACT_GRAPH", "VENDOR_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "TRANSFER_OF_APPROPRIATIONS": {"ENTITY_GRAPH", "APPROPRIATION_GRAPH", "GRANT_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "TRANSFER_OF_ASSETS": {"ENTITY_GRAPH", "PROPERTY_AND_ASSET_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "TRANSFER_OF_PERSONNEL": {"ENTITY_GRAPH", "PERSONNEL_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "PROCUREMENT_AUTHORITY_CHANGE": {"ENTITY_GRAPH", "CONTRACT_GRAPH", "VENDOR_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "REGULATORY_AUTHORITY_CHANGE": {"ENTITY_GRAPH", "REGULATORY_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "ENFORCEMENT_AUTHORITY_CHANGE": {"ENTITY_GRAPH", "REGULATORY_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "LICENSING_AUTHORITY_CHANGE": {"ENTITY_GRAPH", "REGULATORY_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "BUDGET_AUTHORITY_CHANGE": {"ENTITY_GRAPH", "APPROPRIATION_GRAPH", "GRANT_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "PPP_TRANSFER": {"ENTITY_GRAPH", "CONTRACT_GRAPH", "PPP_GRAPH", "VENDOR_GRAPH", "PROPERTY_AND_ASSET_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
-    "PRIVATIZATION": {"ENTITY_GRAPH", "CONTRACT_GRAPH", "PPP_GRAPH", "VENDOR_GRAPH", "PERSONNEL_GRAPH", "PROPERTY_AND_ASSET_GRAPH", "REGULATORY_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
+    "TRANSFER_OF_CONTRACTS": {
+        "ENTITY_GRAPH",
+        "CONTRACT_GRAPH",
+        "VENDOR_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "TRANSFER_OF_APPROPRIATIONS": {
+        "ENTITY_GRAPH",
+        "APPROPRIATION_GRAPH",
+        "GRANT_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "TRANSFER_OF_ASSETS": {
+        "ENTITY_GRAPH",
+        "PROPERTY_AND_ASSET_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "TRANSFER_OF_PERSONNEL": {
+        "ENTITY_GRAPH",
+        "PERSONNEL_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "PROCUREMENT_AUTHORITY_CHANGE": {
+        "ENTITY_GRAPH",
+        "CONTRACT_GRAPH",
+        "VENDOR_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "REGULATORY_AUTHORITY_CHANGE": {
+        "ENTITY_GRAPH",
+        "REGULATORY_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "ENFORCEMENT_AUTHORITY_CHANGE": {
+        "ENTITY_GRAPH",
+        "REGULATORY_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "LICENSING_AUTHORITY_CHANGE": {
+        "ENTITY_GRAPH",
+        "REGULATORY_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "BUDGET_AUTHORITY_CHANGE": {
+        "ENTITY_GRAPH",
+        "APPROPRIATION_GRAPH",
+        "GRANT_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "PPP_TRANSFER": {
+        "ENTITY_GRAPH",
+        "CONTRACT_GRAPH",
+        "PPP_GRAPH",
+        "VENDOR_GRAPH",
+        "PROPERTY_AND_ASSET_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
+    "PRIVATIZATION": {
+        "ENTITY_GRAPH",
+        "CONTRACT_GRAPH",
+        "PPP_GRAPH",
+        "VENDOR_GRAPH",
+        "PERSONNEL_GRAPH",
+        "PROPERTY_AND_ASSET_GRAPH",
+        "REGULATORY_GRAPH",
+        "HISTORICAL_CONTINUITY_GRAPH",
+    },
 }
 EDGE_ALTERING_EVENTS = frozenset({"PARENT_CHANGE"})
 
-STRUCTURAL_SUCCESSION_EVENTS = frozenset({
-    "DISSOLUTION", "ABOLITION", "MERGER", "CONSOLIDATION", "SPLIT",
-    "SUCCESSOR_CREATION",
-})
-OPERATIONAL_TRANSFER_EVENTS = frozenset({
-    "TRANSFER_OF_FUNCTIONS", "TRANSFER_OF_ASSETS", "TRANSFER_OF_LIABILITIES",
-    "TRANSFER_OF_PERSONNEL", "TRANSFER_OF_CONTRACTS", "TRANSFER_OF_APPROPRIATIONS",
-    "PROCUREMENT_AUTHORITY_CHANGE", "BUDGET_AUTHORITY_CHANGE",
-    "REGULATORY_AUTHORITY_CHANGE", "ENFORCEMENT_AUTHORITY_CHANGE",
-    "LICENSING_AUTHORITY_CHANGE", "OVERSIGHT_CHANGE", "CONCESSION", "PPP_TRANSFER",
-})
+STRUCTURAL_SUCCESSION_EVENTS = frozenset(
+    {
+        "DISSOLUTION",
+        "ABOLITION",
+        "MERGER",
+        "CONSOLIDATION",
+        "SPLIT",
+        "SUCCESSOR_CREATION",
+    }
+)
+OPERATIONAL_TRANSFER_EVENTS = frozenset(
+    {
+        "TRANSFER_OF_FUNCTIONS",
+        "TRANSFER_OF_ASSETS",
+        "TRANSFER_OF_LIABILITIES",
+        "TRANSFER_OF_PERSONNEL",
+        "TRANSFER_OF_CONTRACTS",
+        "TRANSFER_OF_APPROPRIATIONS",
+        "PROCUREMENT_AUTHORITY_CHANGE",
+        "BUDGET_AUTHORITY_CHANGE",
+        "REGULATORY_AUTHORITY_CHANGE",
+        "ENFORCEMENT_AUTHORITY_CHANGE",
+        "LICENSING_AUTHORITY_CHANGE",
+        "OVERSIGHT_CHANGE",
+        "CONCESSION",
+        "PPP_TRANSFER",
+    }
+)
 
-REQUIRED_FIELDS = frozenset({
-    "change_event_id", "affected_entity_id", "event_type", "status",
-    "source_provenance", "confidence", "certification_state",
-})
+REQUIRED_FIELDS = frozenset(
+    {
+        "change_event_id",
+        "affected_entity_id",
+        "event_type",
+        "status",
+        "source_provenance",
+        "confidence",
+        "certification_state",
+    }
+)
 
 
 class ChangeEventError(ValueError):
@@ -180,17 +347,23 @@ def _parse_date(value: Any, field: str) -> date | None:
 def _evidence_types(event: Mapping[str, Any]) -> set[str]:
     sources = event.get("source_provenance")
     if not isinstance(sources, list) or not sources:
-        raise ChangeEventError("source_provenance must contain at least one source assertion reference")
+        raise ChangeEventError(
+            "source_provenance must contain at least one source assertion reference"
+        )
     evidence: set[str] = set()
     for source in sources:
         if not isinstance(source, Mapping):
             raise ChangeEventError("every source_provenance item must be an object")
         assertion_id = source.get("source_assertion_id")
         if not isinstance(assertion_id, str) or not assertion_id.strip():
-            raise ChangeEventError("every source_provenance item needs source_assertion_id")
+            raise ChangeEventError(
+                "every source_provenance item needs source_assertion_id"
+            )
         evidence_type = source.get("evidence_type")
         if evidence_type not in EVIDENCE_RANK:
-            raise ChangeEventError("every source_provenance item needs a recognized evidence_type")
+            raise ChangeEventError(
+                "every source_provenance item needs a recognized evidence_type"
+            )
         evidence.add(str(evidence_type))
     return evidence
 
@@ -222,7 +395,9 @@ def validate_event(event: Mapping[str, Any]) -> None:
     if event["status"] not in ENTITY_STATES:
         raise ChangeEventError(f"unsupported status: {event['status']}")
     if event["certification_state"] not in CERTIFICATION_STATES:
-        raise ChangeEventError(f"unsupported certification_state: {event['certification_state']}")
+        raise ChangeEventError(
+            f"unsupported certification_state: {event['certification_state']}"
+        )
     try:
         confidence = float(event["confidence"])
     except (TypeError, ValueError) as exc:
@@ -232,14 +407,22 @@ def validate_event(event: Mapping[str, Any]) -> None:
 
     predecessors = _as_list(event.get("predecessor_entities"))
     successors = _as_list(event.get("successor_entities"))
-    for values, field in ((predecessors, "predecessor_entities"), (successors, "successor_entities")):
+    for values, field in (
+        (predecessors, "predecessor_entities"),
+        (successors, "successor_entities"),
+    ):
         if len(values) != len(set(values)):
             raise ChangeEventError(f"{field} contains duplicates")
         if any(not isinstance(value, str) or not value.strip() for value in values):
             raise ChangeEventError(f"{field} must contain non-empty entity IDs")
     for field in (
-        "powers_before", "powers_after", "functions_transferred", "assets_transferred",
-        "liabilities_transferred", "appropriations_transferred", "contracts_transferred",
+        "powers_before",
+        "powers_after",
+        "functions_transferred",
+        "assets_transferred",
+        "liabilities_transferred",
+        "appropriations_transferred",
+        "contracts_transferred",
         "personnel_transferred",
     ):
         _as_list(event.get(field))
@@ -247,21 +430,36 @@ def validate_event(event: Mapping[str, Any]) -> None:
     instrument = _parse_date(event.get("instrument_date"), "instrument_date")
     effective = _parse_date(event.get("effective_date"), "effective_date")
     announcement = _parse_date(event.get("announcement_date"), "announcement_date")
-    implementation = _parse_date(event.get("implementation_date"), "implementation_date")
+    implementation = _parse_date(
+        event.get("implementation_date"), "implementation_date"
+    )
     if instrument and effective and effective < instrument:
         raise ChangeEventError("effective_date cannot precede instrument_date")
     if announcement and implementation and implementation < announcement:
         raise ChangeEventError("implementation_date cannot precede announcement_date")
 
     evidence_types = _evidence_types(event)
-    if predecessors or successors:
-        if not evidence_types.intersection(SUCCESSION_BINDING_EVIDENCE):
-            raise ChangeEventError("predecessor/successor binding requires authoritative succession evidence")
-    if evidence_types.intersection(PROPOSAL_EVIDENCE) and not evidence_types.intersection(OPERATIONAL_BINDING_EVIDENCE):
-        if effective or event["status"] in {"DISSOLVED", "SUPERSEDED", "FUNCTIONS_FULLY_TRANSFERRED"}:
-            raise ChangeEventError("proposal-only evidence cannot establish an effective/binding state")
+    if (predecessors or successors) and not evidence_types.intersection(
+        SUCCESSION_BINDING_EVIDENCE
+    ):
+        raise ChangeEventError(
+            "predecessor/successor binding requires authoritative succession evidence"
+        )
+    proposal_only = evidence_types.intersection(PROPOSAL_EVIDENCE) and not (
+        evidence_types.intersection(OPERATIONAL_BINDING_EVIDENCE)
+    )
+    if proposal_only and (
+        effective
+        or event["status"]
+        in {"DISSOLVED", "SUPERSEDED", "FUNCTIONS_FULLY_TRANSFERRED"}
+    ):
+        raise ChangeEventError(
+            "proposal-only evidence cannot establish an effective/binding state"
+        )
     if event["event_type"] == "RENAMING" and (predecessors or successors):
-        raise ChangeEventError("renaming cannot establish predecessor/successor identity")
+        raise ChangeEventError(
+            "renaming cannot establish predecessor/successor identity"
+        )
 
 
 def is_binding(event: Mapping[str, Any]) -> bool:
@@ -293,7 +491,12 @@ def invalidation_scopes(event: Mapping[str, Any]) -> tuple[str, ...]:
     if kind in S4_EVENTS or kind in {"TRANSFER_OF_FUNCTIONS", "FISCAL_CONTROL"}:
         scopes = set(GRAPH_SCOPES)
     else:
-        scopes = set(_EVENT_SCOPES.get(kind, {"ENTITY_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"}))
+        scopes = set(
+            _EVENT_SCOPES.get(
+                kind,
+                {"ENTITY_GRAPH", "HISTORICAL_CONTINUITY_GRAPH"},
+            )
+        )
     if event.get("contracts_transferred"):
         scopes.update({"CONTRACT_GRAPH", "VENDOR_GRAPH"})
     if event.get("appropriations_transferred"):
@@ -308,7 +511,8 @@ def invalidation_scopes(event: Mapping[str, Any]) -> tuple[str, ...]:
 def timeline_state(event: Mapping[str, Any]) -> str:
     """Return the event-carried state after enforcing pending/binding semantics."""
     state = event["status"]
-    if not is_binding(event) and state in {"DISSOLVED", "SUPERSEDED", "FUNCTIONS_FULLY_TRANSFERRED"}:
+    terminal = {"DISSOLVED", "SUPERSEDED", "FUNCTIONS_FULLY_TRANSFERRED"}
+    if not is_binding(event) and state in terminal:
         return "UNKNOWN"
     return state
 
@@ -322,13 +526,22 @@ def evaluate_event(event: Mapping[str, Any]) -> Evaluation:
     reasons: list[str] = []
     if severity in {"S3", "S4"}:
         reasons.append("MAJOR_OR_STRUCTURAL_CHANGE")
-    if any(s in scopes for s in ("CONTRACT_GRAPH", "APPROPRIATION_GRAPH", "PROPERTY_AND_ASSET_GRAPH", "REGULATORY_GRAPH")):
+    money_scopes = (
+        "CONTRACT_GRAPH",
+        "APPROPRIATION_GRAPH",
+        "PROPERTY_AND_ASSET_GRAPH",
+        "REGULATORY_GRAPH",
+    )
+    if any(scope in scopes for scope in money_scopes):
         reasons.append("MONEY_OR_CONTROL_EDGE_RECOMPUTE")
     if event["event_type"] in EDGE_ALTERING_EVENTS:
         reasons.append("ENTITY_HIERARCHY_RECOMPUTE")
     if event.get("predecessor_entities") or event.get("successor_entities"):
         reasons.append("SUCCESSION_RECOMPUTE")
-    if cardinality == "UNRESOLVED" and event["event_type"] in STRUCTURAL_SUCCESSION_EVENTS:
+    if (
+        cardinality == "UNRESOLVED"
+        and event["event_type"] in STRUCTURAL_SUCCESSION_EVENTS
+    ):
         reasons.append("SUCCESSION_CARDINALITY_UNRESOLVED")
     if not binding:
         reasons.append("NONBINDING_OR_NOT_YET_EFFECTIVE")
@@ -360,16 +573,24 @@ def evaluate_events(events: Iterable[Mapping[str, Any]]) -> list[dict[str, Any]]
             raise ChangeEventError(f"duplicate change_event_id: {event_id}")
         seen.add(event_id)
         result = evaluate_event(event)
-        rows.append({
-            **event,
-            "derived": {
-                "severity": result.severity,
-                "alert": result.alert,
-                "binding": result.binding,
-                "timeline_state": result.timeline_state,
-                "succession_cardinality": result.succession_cardinality,
-                "invalidation_scopes": list(result.invalidation_scopes),
-                "reasons": list(result.reasons),
-            },
-        })
-    return sorted(rows, key=lambda r: (r.get("effective_date") or "9999-12-31", r["change_event_id"]))
+        rows.append(
+            {
+                **event,
+                "derived": {
+                    "severity": result.severity,
+                    "alert": result.alert,
+                    "binding": result.binding,
+                    "timeline_state": result.timeline_state,
+                    "succession_cardinality": result.succession_cardinality,
+                    "invalidation_scopes": list(result.invalidation_scopes),
+                    "reasons": list(result.reasons),
+                },
+            }
+        )
+    return sorted(
+        rows,
+        key=lambda row: (
+            row.get("effective_date") or "9999-12-31",
+            row["change_event_id"],
+        ),
+    )
