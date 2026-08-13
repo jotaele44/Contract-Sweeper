@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Table, TableHeader, TableBody, TableRow, TableCell } from '@/components/ui/table'
 import QueryBoundary from '@/components/QueryBoundary'
+import GovernmentChangeCandidates from '@/components/GovernmentChangeCandidates'
 import { useGovernmentChanges, useGovernmentChangeSummary } from '@/lib/hooks'
 
 export default function GovernmentChanges() {
@@ -14,9 +15,11 @@ export default function GovernmentChanges() {
       <div className="ms-filter-bar flex flex-wrap items-center gap-3 p-2 text-xs text-muted-foreground">
         <span className="font-medium text-foreground">Government organization change monitor</span>
         <span>Events: {totals?.events ?? '—'}</span>
+        <span>Candidates: {totals?.candidates ?? '—'}</span>
         <span>Alerts: {totals?.alerts ?? '—'}</span>
         <span>Binding: {totals?.binding ?? '—'}</span>
-        {totals && !totals.ledgerPresent && <Badge variant="outline">ledger not materialized</Badge>}
+        {totals && !totals.ledgerPresent && <Badge variant="outline">event ledger not materialized</Badge>}
+        {totals && !totals.candidateLedgerPresent && <Badge variant="outline">candidate ledger not materialized</Badge>}
       </div>
       <div className="ms-scroll-region min-h-0 flex-1 overflow-auto">
         <QueryBoundary query={query} isEmpty={(data) => !data?.length} emptyLabel="No adjudicated government change events are materialized. Absence here is not evidence of no organizational change.">
@@ -47,6 +50,7 @@ export default function GovernmentChanges() {
             </TableBody>
           </Table>
         </QueryBoundary>
+        <GovernmentChangeCandidates />
       </div>
     </div>
   )
