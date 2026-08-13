@@ -1,62 +1,14 @@
-name: Government change GUI parity patch
+name: Government change branch autofix (retired)
 
 on:
-  push:
-    branches:
-      - feature/government-entity-change-monitor
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  patch-manifest:
-    if: github.actor != 'github-actions[bot]'
+  retired:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: feature/government-entity-change-monitor
-          fetch-depth: 1
-      - name: Patch exact GUI parity mappings
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          path = Path('.federation/gui-capabilities.json')
-          doc = json.loads(path.read_text(encoding='utf-8'))
-          gov = next(row for row in doc['capabilities'] if row['id'] == 'government-entity-change-monitor')
-          gov['frontend']['routes'] = ['/']
-          gov['frontend']['e2e_routes'] = ['/']
-          gov['candidate_ids'] = [
-              'python_symbol:moneysweep/government_change_detection.py:candidate_types',
-              'python_symbol:moneysweep/government_change_detection.py:detect_candidates',
-              'python_symbol:moneysweep/government_change_materialization.py:ChangeMaterializationError',
-              'python_symbol:moneysweep/government_change_materialization.py:load_monitor_config',
-              'python_symbol:moneysweep/government_change_materialization.py:materialize_event_ledger',
-              'python_symbol:moneysweep/government_change_materialization.py:materialize_validated_source_update',
-              'python_symbol:moneysweep/government_changes.py:ChangeEventError',
-              'python_symbol:moneysweep/government_changes.py:Evaluation',
-              'python_symbol:moneysweep/government_changes.py:derive_severity',
-              'python_symbol:moneysweep/government_changes.py:evaluate_event',
-              'python_symbol:moneysweep/government_changes.py:evaluate_events',
-              'python_symbol:moneysweep/government_changes.py:invalidation_scopes',
-              'python_symbol:moneysweep/government_changes.py:is_binding',
-              'python_symbol:moneysweep/government_changes.py:succession_cardinality',
-              'python_symbol:moneysweep/government_changes.py:timeline_state',
-              'python_symbol:moneysweep/government_changes.py:validate_event',
-              'python_symbol:server/backend/government_changes.py:change_summary',
-              'python_symbol:server/backend/government_changes.py:list_change_candidates',
-              'python_symbol:server/backend/government_changes.py:list_changes',
-          ]
-          path.write_text(json.dumps(doc, indent=2) + '\n', encoding='utf-8')
-          PY
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .federation/gui-capabilities.json
-          if git diff --cached --quiet; then
-            echo 'No parity patch required.'
-            exit 0
-          fi
-          git commit -m 'fix: map government change GUI parity capability'
-          git push origin HEAD:feature/government-entity-change-monitor
+      - name: Retired one-shot workflow
+        run: echo 'Retired after deterministic GUI parity reconciliation of PR #482.'
