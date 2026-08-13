@@ -16,9 +16,7 @@ from typing import Iterable
 DETECTOR_VERSION = "government_change_phrase_scan_v1"
 SCOPE_CLAIM = "BOUNDED_NOT_EXHAUSTIVE"
 PATTERN_CONFIG = (
-    Path(__file__).resolve().parents[1]
-    / "config"
-    / "government_organization_change_patterns.json"
+    Path(__file__).resolve().parents[1] / "config" / "government_organization_change_patterns.json"
 )
 
 
