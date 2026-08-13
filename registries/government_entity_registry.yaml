@@ -83,9 +83,8 @@ government_entity_registry:
       - content_hash
       - verification_status
     description: >-
-      Every entity, name, identifier, relationship, and organizational change
-      event must reference a source_assertion_id that resolves to a source-
-      assertion record (gate PROVENANCE_REQUIRED).
+      Every governed record must reference a source_assertion_id that resolves to
+      a source-assertion record (gate PROVENANCE_REQUIRED).
 
   # --- Temporal validity rules ----------------------------------------------
   temporal_validity_rules:
@@ -163,10 +162,10 @@ government_entity_registry:
     - id: NAME_DERIVED_ID_NOT_USED_FOR_NEW_GOV_ENTITIES
       description: New government entity IDs are never derived from a name.
     - id: CHANGE_EVENT_VALID
-      description: Organizational change events satisfy the governed event schema and semantic evaluator.
+      description: Organizational change events satisfy the governed event contract.
     - id: PROPOSAL_NOT_BINDING
-      description: Proposal-only evidence never establishes an effective organizational state.
+      description: Proposal-only evidence cannot establish an effective organizational state.
     - id: SUCCESSION_EVIDENCE_REQUIRED
-      description: Predecessor and successor assertions require authoritative succession evidence.
+      description: Succession assertions require authoritative evidence.
     - id: CHANGE_INVALIDATION_DERIVED
-      description: Material change events derive graph invalidation scopes instead of silently rewriting historical edges.
+      description: Material change events derive downstream recomputation scopes.
