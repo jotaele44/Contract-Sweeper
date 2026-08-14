@@ -1,0 +1,14 @@
+name: Government change branch autofix (retired)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  retired:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Retired one-shot workflow
+        run: echo 'Retired after deterministic GUI parity reconciliation of PR #482.'

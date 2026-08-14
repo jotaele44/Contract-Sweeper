@@ -72,7 +72,10 @@ def classify_failure(exit_code: int | None, output: str) -> tuple[str, str, bool
 def _preflight_ok(root: Path, registry_entry: dict[str, Any]) -> tuple[bool, str]:
     """Strict per-source preflight (importability/entrypoint) — no execution."""
     try:
-        from scripts.pipeline_preflight import STRUCTURAL_STATUSES, classify_source_readiness
+        from scripts.pipeline_preflight import (
+            STRUCTURAL_STATUSES,
+            classify_source_readiness,
+        )
 
         status = classify_source_readiness(root, registry_entry)["readiness_status"]
         return (status not in STRUCTURAL_STATUSES), status
@@ -102,7 +105,9 @@ def run_source(
     expected = list(registry_entry.get("expected_outputs") or [])
 
     def finish(
-        status: str, exit_code: int | None = None, failure: FailurePacket | None = None
+        status: str,
+        exit_code: int | None = None,
+        failure: FailurePacket | None = None,
     ) -> dict[str, Any]:
         row["last_attempt_at"] = _iso(now)
         row["last_status"] = status
@@ -124,6 +129,7 @@ def run_source(
             "status": status,
             "exit_code": exit_code,
             "failure_packet": failure.to_dict() if failure else None,
+            "government_change_monitor": row.get("government_change_monitor"),
         }
 
     # -- Non-executing gates first ------------------------------------------
@@ -199,7 +205,7 @@ def run_source(
             break
 
         if exit_code == 0:
-            status = ExecutionStatus.SUCCESS_WITH_CHANGE.value  # provisional; gated below
+            status = ExecutionStatus.SUCCESS_WITH_CHANGE.value
             break
         status, _area, retryable = classify_failure(exit_code, captured)
         if not (retryable and status in RETRYABLE_STATUSES and attempt <= policy.max_retries):
@@ -249,7 +255,7 @@ def run_source(
     atomic_ok = (not policy.atomic_output_required) or verify_atomic(root, expected)
     gate_status = gate["status"]
     passed = gate["passed"] and atomic_ok
-    record.status = gate_status if passed else gate_status
+    record.status = gate_status
     append_run(record.to_dict(), root)
 
     if not passed:
@@ -259,11 +265,13 @@ def run_source(
             source_id=sid,
             run_id=run_id,
             status=gate_status,
-            suspected_area="output_regression"
-            if gate_status == ExecutionStatus.OUTPUT_REGRESSION.value
-            else "output_missing"
-            if gate_status == ExecutionStatus.OUTPUT_MISSING.value
-            else "schema",
+            suspected_area=(
+                "output_regression"
+                if gate_status == ExecutionStatus.OUTPUT_REGRESSION.value
+                else "output_missing"
+                if gate_status == ExecutionStatus.OUTPUT_MISSING.value
+                else "schema"
+            ),
             retryable=False,
             last_40_lines=_tail(captured),
         )
@@ -280,17 +288,14 @@ def run_source(
         ExecutionStatus.SUCCESS_NO_CHANGE.value,
         ExecutionStatus.EMPTY_EXPECTED.value,
     ):
-        # last_materialized_at moves only on validated output (spec §12.8)
         row["last_materialized_at"] = _iso(finished)
     if gate_status == ExecutionStatus.SUCCESS_WITH_CHANGE.value:
         row["last_output_change_at"] = _iso(finished)
 
-    # next_due_at for scheduled sources
     interval = CADENCE_INTERVAL_HOURS.get((policy.cadence or "").lower())
     if policy.trigger_type == "schedule" and interval:
         row["next_due_at"] = _iso(finished + timedelta(hours=interval))
 
-    # record consumed dependency versions
     if policy.trigger_type == "dependency":
         consumed = row.setdefault("dependency_versions_consumed", {})
         for parent in policy.depends_on:
@@ -298,11 +303,37 @@ def run_source(
             if phash:
                 consumed[parent] = phash
 
-    # mark file drops consumed only after success
     if policy.trigger_type in ("file_drop", "on_drop"):
         for cand in scan_source(policy, root, consumed_path):
             if cand.is_new:
                 mark_consumed(sid, cand.sha256, root, consumed_path)
+
+    # Government organization-change discovery is a post-validation control
+    # plane. It cannot invalidate an otherwise valid source refresh, but any
+    # monitor failure is surfaced in source state/result instead of being silent.
+    if gate_status == ExecutionStatus.SUCCESS_WITH_CHANGE.value:
+        try:
+            from moneysweep.government_change_materialization import (
+                materialize_validated_source_update,
+            )
+
+            row["government_change_monitor"] = materialize_validated_source_update(
+                source_id=sid,
+                run_id=run_id,
+                output_hashes={k: v.sha256 for k, v in after.items()},
+                root=root,
+            )
+        except Exception as exc:  # noqa: BLE001
+            row["government_change_monitor"] = {
+                "status": "MONITOR_ERROR",
+                "error_type": type(exc).__name__,
+                "message": str(exc),
+            }
+    else:
+        row["government_change_monitor"] = {
+            "status": "NO_OUTPUT_CHANGE",
+            "source_id": sid,
+        }
 
     return finish(gate_status, exit_code)
 

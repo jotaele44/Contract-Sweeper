@@ -98,6 +98,78 @@
       }
     },
     {
+      "id": "government-entity-change-monitor",
+      "classification": "analysis",
+      "status": "active",
+      "requires_terminal": false,
+      "backend": {
+        "files": [
+          "moneysweep/government_change_detection.py",
+          "moneysweep/government_changes.py",
+          "server/backend/government_changes.py",
+          "server/backend/main.py",
+          "moneysweep/government_change_materialization.py",
+          "moneysweep/update_controller/executor.py"
+        ],
+        "endpoints": [
+          "GET /government-changes",
+          "GET /government-changes/candidates",
+          "GET /government-changes/summary"
+        ]
+      },
+      "frontend": {
+        "routes": [
+          "/"
+        ],
+        "e2e_routes": [
+          "/"
+        ],
+        "components": [
+          "dashboard/src/lib/api.js",
+          "dashboard/src/lib/hooks.js",
+          "dashboard/src/pages/Dashboard.jsx",
+          "dashboard/src/components/GovernmentChanges.jsx",
+          "dashboard/src/components/GovernmentChangeCandidates.jsx"
+        ],
+        "discoverability": [
+          "dashboard/src/pages/Dashboard.jsx"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_org_change_monitor.py",
+          "tests/test_org_change_materialization.py"
+        ],
+        "contract": [
+          "tests/test_gui_parity.py"
+        ],
+        "e2e": [
+          "dashboard/tests/org-change-monitor.spec.mjs"
+        ]
+      },
+      "candidate_ids": [
+        "python_symbol:moneysweep/government_change_detection.py:candidate_types",
+        "python_symbol:moneysweep/government_change_detection.py:detect_candidates",
+        "python_symbol:moneysweep/government_change_materialization.py:ChangeMaterializationError",
+        "python_symbol:moneysweep/government_change_materialization.py:load_monitor_config",
+        "python_symbol:moneysweep/government_change_materialization.py:materialize_event_ledger",
+        "python_symbol:moneysweep/government_change_materialization.py:materialize_validated_source_update",
+        "python_symbol:moneysweep/government_changes.py:ChangeEventError",
+        "python_symbol:moneysweep/government_changes.py:Evaluation",
+        "python_symbol:moneysweep/government_changes.py:derive_severity",
+        "python_symbol:moneysweep/government_changes.py:evaluate_event",
+        "python_symbol:moneysweep/government_changes.py:evaluate_events",
+        "python_symbol:moneysweep/government_changes.py:invalidation_scopes",
+        "python_symbol:moneysweep/government_changes.py:is_binding",
+        "python_symbol:moneysweep/government_changes.py:succession_cardinality",
+        "python_symbol:moneysweep/government_changes.py:timeline_state",
+        "python_symbol:moneysweep/government_changes.py:validate_event",
+        "python_symbol:server/backend/government_changes.py:change_summary",
+        "python_symbol:server/backend/government_changes.py:list_change_candidates",
+        "python_symbol:server/backend/government_changes.py:list_changes"
+      ]
+    },
+    {
       "id": "service-health",
       "classification": "internal",
       "status": "active",
