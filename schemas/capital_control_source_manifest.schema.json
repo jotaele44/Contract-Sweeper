@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep.pr/schemas/capital_control_source_manifest.schema.json",
+  "title": "Capital and Control Source Manifest",
+  "type": "object",
+  "required": [
+    "source_id",
+    "source_family",
+    "source_authority",
+    "retrieval_utc",
+    "source_url_or_locator",
+    "byte_status"
+  ],
+  "properties": {
+    "source_id": {"type": "string", "pattern": "^SRC_CAP_[A-Za-z0-9_.:-]+$"},
+    "source_family": {
+      "type": "string",
+      "enum": [
+        "REGULATORY_HOLDINGS",
+        "BENEFICIAL_OWNERSHIP",
+        "PROXY_OR_ANNUAL_REPORT",
+        "INSIDER_FILING",
+        "FUND_HOLDINGS",
+        "PENSION_DISCLOSURE",
+        "CORPORATE_REGISTRY",
+        "TRANSACTION_DOCUMENT",
+        "BANKRUPTCY_EXHIBIT",
+        "ACQUISITION_FILING",
+        "DEBT_OR_LIEN_RECORD",
+        "OTHER_AUTHORITATIVE",
+        "DISCOVERY_ONLY"
+      ]
+    },
+    "source_authority": {"type": "string", "minLength": 1},
+    "source_url_or_locator": {"type": "string", "minLength": 1},
+    "retrieval_utc": {"type": "string", "format": "date-time"},
+    "source_as_of_date": {"type": ["string", "null"], "format": "date"},
+    "refresh_date": {"type": ["string", "null"], "format": "date"},
+    "query_identity": {"type": ["string", "null"]},
+    "page_or_offset": {"type": ["string", "null"]},
+    "raw_bytes_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "raw_bytes_size": {"type": ["integer", "null"], "minimum": 0},
+    "schema_fingerprint": {"type": ["string", "null"]},
+    "record_count": {"type": ["integer", "null"], "minimum": 0},
+    "byte_status": {
+      "type": "string",
+      "enum": ["FROZEN", "REMOTE_ONLY", "UNAVAILABLE", "UNRESOLVED"]
+    },
+    "canonicality": {
+      "type": "string",
+      "enum": ["CANONICAL", "CORROBORATING", "DISCOVERY_ONLY", "NONCANONICAL", "UNRESOLVED"]
+    },
+    "notes": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"byte_status": {"const": "FROZEN"}},
+        "required": ["byte_status"]
+      },
+      "then": {"required": ["raw_bytes_sha256", "raw_bytes_size"]}
+    }
+  ],
+  "additionalProperties": true
+}
