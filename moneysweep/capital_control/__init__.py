@@ -9,7 +9,14 @@ from .deep_dive import (
 from .identity import IdentityCandidate, IdentityResolution, resolve_identity_candidates
 from .ingestion import IngestionResult, ingest
 from .models import HoldingObservation, InvestorIdentity, SourceManifest
-from .sec_acquisition import (
+from .source_adapter import (
+    SEC_SOURCE_DEFINITIONS,
+    CapitalSourceDefinition,
+    DenominatorResult,
+    FilingIndexRecord,
+    FrozenSEC13FAdapter,
+    RequestsSECTransport,
+    SEC13FFilingMetadata,
     SECAcquisitionError,
     SECFairAccessClient,
     SECFetchReceipt,
@@ -18,15 +25,6 @@ from .sec_acquisition import (
     SECTransport,
     SECTransportResponse,
     SECUserAgent,
-    RequestsSECTransport,
-)
-from .source_adapter import (
-    SEC_SOURCE_DEFINITIONS,
-    CapitalSourceDefinition,
-    DenominatorResult,
-    FilingIndexRecord,
-    FrozenSEC13FAdapter,
-    SEC13FFilingMetadata,
     SourceAdapter,
     assert_source_registry_invariants,
     build_filing_denominator,
