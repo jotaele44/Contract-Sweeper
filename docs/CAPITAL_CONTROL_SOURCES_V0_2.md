@@ -2,7 +2,7 @@
 
 ## Scope
 
-This stacked vector extends the certified v0.1 runtime core with an authoritative-source registry, filing-denominator classifier, and the first source-specific parser: SEC Form 13F information-table XML.
+This stacked vector extends the certified v0.1 runtime core with an authoritative-source registry, filing-denominator classifier, SEC fair-access acquisition/freezing controls, and the first source-specific parser: SEC Form 13F information-table XML.
 
 It does **not** claim universal capital-market source exhaustion. The initial authoritative SEC source universe is bounded to four filing families that materially support capital/control analysis: Form 13F, Schedule 13D/13G, Forms 3/4/5, and Form N-PORT.
 
@@ -24,6 +24,34 @@ Official reference points:
 - SEC EDGAR filing search: `https://www.sec.gov/edgar/search/`
 
 As observed on 2026-08-15, the SEC 13F bulk-data page identifies a published dataset history from July 2013 through May 2026 and describes quarterly updates. The SEC technical-specification index lists structured specifications for Form 13F, Schedule 13D/13G, Ownership Forms 3/4/5, and N-PORT. These web observations define discovery and implementation references; a reproducible denominator still requires freezing the actual enumerated source bytes/index rows.
+
+## SEC fair-access acquisition and freezing contract
+
+`SECFairAccessClient` provides the bounded network acquisition layer used before a source can be treated as a frozen manifestation. Acquisition is source transport, not evidence interpretation.
+
+Safeguards:
+
+- HTTPS is mandatory;
+- the request and final successful response URL must resolve to the explicit SEC host allowlist;
+- the caller must provide a non-empty application identifier and contact in the `User-Agent`;
+- CR/LF header injection is rejected;
+- the configured request rate must be positive and cannot exceed 10 requests per second; the default is 5 requests per second;
+- monotonic rate limiting is applied between requests;
+- retryable HTTP states are bounded to 403, 429, 500, 502, 503, and 504;
+- transport timeouts and request/network errors use bounded retry/backoff;
+- `Retry-After` supports both numeric seconds and HTTP-date syntax, including case-insensitive header names;
+- non-retryable HTTP failures fail immediately;
+- empty bodies fail closed;
+- unexpected content types fail closed;
+- optional expected byte-size and SHA-256 gates fail closed before persistence;
+- provenance receipts preserve request URL, final response URL, HTTP status, UTC retrieval time, attempt count, content type, `Content-Length`, `ETag`, `Last-Modified`, byte size, and SHA-256;
+- retrieval clocks must be explicitly UTC, not merely timezone-aware;
+- persistence uses a same-directory temporary file, flush + `fsync`, then atomic `os.replace`;
+- an existing destination with identical bytes is idempotently classified `EXISTING_MATCH`;
+- an existing destination with different bytes is never overwritten silently;
+- persisted bytes are re-read and verified against receipt byte size and SHA-256; a post-write mismatch removes the bad output and fails closed.
+
+The acquisition client does not certify that an index, filing, or source family is complete. It only certifies the byte manifestation actually fetched and frozen under the request identity recorded in the receipt.
 
 ## Denominator contract
 
@@ -70,7 +98,7 @@ The complete filing must later be downloaded/frozen as raw bytes and hashed befo
 
 ## Certification boundary
 
-This vector can certify source-registry contracts, denominator classification behavior, and 13F parsing semantics after CI passes. It cannot yet certify:
+This vector can certify source-registry contracts, fair-access acquisition/freezing behavior, denominator classification behavior, and 13F parsing semantics after CI passes. It cannot yet certify:
 
 - complete SEC filing denominators for any issuer, manager, or date range;
 - complete bytes of accession `0001193125-26-226661`;
