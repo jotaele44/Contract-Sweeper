@@ -154,9 +154,7 @@ def test_primary_and_information_table_must_share_filing_directory(
     tmp_path: Path,
 ) -> None:
     target = _target(
-        information_table_url=(
-            "https://www.sec.gov/Archives/edgar/data/123456/DIFFERENT/table.xml"
-        )
+        information_table_url=("https://www.sec.gov/Archives/edgar/data/123456/DIFFERENT/table.xml")
     )
     with pytest.raises(SECAcquisitionError, match="share one filing directory"):
         materialize_sec_13f(_client(target), target, tmp_path)
