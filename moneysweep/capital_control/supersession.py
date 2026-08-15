@@ -44,7 +44,9 @@ def apply_supersession(observations: Iterable[HoldingObservation]) -> Supersessi
     superseded_ids: set[str] = set()
     for row in rows:
         if row.amendment_status == "SUPERSEDED":
-            raise ValueError("source rows must express supersession from the replacement observation")
+            raise ValueError(
+                "source rows must express supersession from the replacement observation"
+            )
         if row.supersedes_observation_id:
             target = by_id.get(row.supersedes_observation_id)
             if target is None:
@@ -53,7 +55,10 @@ def apply_supersession(observations: Iterable[HoldingObservation]) -> Supersessi
                 raise ValueError("observation cannot supersede itself")
             if target.issuer_id != row.issuer_id or target.holder_id != row.holder_id:
                 raise ValueError("supersession cannot cross holder or issuer identity")
-            if target.security_id != row.security_id or target.security_class_raw != row.security_class_raw:
+            if (
+                target.security_id != row.security_id
+                or target.security_class_raw != row.security_class_raw
+            ):
                 raise ValueError("supersession cannot cross security identity")
             if target.position_class != row.position_class:
                 raise ValueError("supersession cannot cross position class")

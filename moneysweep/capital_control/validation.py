@@ -50,7 +50,9 @@ def validate_investor_identity(payload: Mapping[str, Any]) -> InvestorIdentity:
     if not item.source_id:
         raise ValidationError("source_id is required")
     if item.identity_status == "PASS" and item.binding_basis not in PASS_BINDING_BASES:
-        raise ValidationError("PASS identity requires binding evidence stronger than heuristic discovery")
+        raise ValidationError(
+            "PASS identity requires binding evidence stronger than heuristic discovery"
+        )
     if item.valid_from and item.valid_to and item.valid_to < item.valid_from:
         raise ValidationError("valid_to precedes valid_from")
     return item
@@ -80,7 +82,9 @@ def validate_holding_observation(payload: Mapping[str, Any]) -> HoldingObservati
         raise ValidationError("invalid identity_status")
     if not item.security_id and not item.security_class_raw:
         raise ValidationError("security_id or security_class_raw is required")
-    if item.currency is not None and (len(item.currency) != 3 or item.currency.upper() != item.currency):
+    if item.currency is not None and (
+        len(item.currency) != 3 or item.currency.upper() != item.currency
+    ):
         raise ValidationError("currency must be an uppercase ISO-style three-letter code")
     for name in (
         "shares",

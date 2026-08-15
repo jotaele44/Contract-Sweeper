@@ -2,17 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Iterable, Mapping, Protocol, Any
+from typing import Any, Iterable, Mapping, Protocol
 
 
 class SourceAdapter(Protocol):
     """Adapter contract: acquisition is source-specific; canonicalization is not."""
 
-    def iter_records(self) -> Iterable[Mapping[str, Any]]:
-        ...
+    def iter_records(self) -> Iterable[Mapping[str, Any]]: ...
 
-    def source_manifest(self) -> Mapping[str, Any]:
-        ...
+    def source_manifest(self) -> Mapping[str, Any]: ...
 
 
 def stable_observation_fingerprint(payload: Mapping[str, Any]) -> str:
@@ -31,5 +29,7 @@ def stable_observation_fingerprint(payload: Mapping[str, Any]) -> str:
             "source_record_id",
         )
     }
-    encoded = json.dumps(canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str)
+    encoded = json.dumps(
+        canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str
+    )
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
