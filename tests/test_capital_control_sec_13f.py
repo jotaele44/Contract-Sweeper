@@ -21,10 +21,7 @@ def _metadata(value_scale: float = 1.0) -> SEC13FFilingMetadata:
         filer_cik="0001067983",
         filing_date=date(2026, 5, 15),
         period_of_report=date(2026, 3, 31),
-        source_url=(
-            "https://www.sec.gov/Archives/edgar/data/1067983/"
-            "000119312526226661/53405.xml"
-        ),
+        source_url=("https://www.sec.gov/Archives/edgar/data/1067983/000119312526226661/53405.xml"),
         retrieval_utc=datetime(2026, 8, 15, 10, 49, tzinfo=timezone.utc),
         value_scale=value_scale,
         canonicality="NONCANONICAL",
