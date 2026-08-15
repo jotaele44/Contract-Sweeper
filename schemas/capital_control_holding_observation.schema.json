@@ -93,7 +93,7 @@
   "allOf": [
     {
       "if": {
-        "properties": {"amendment_status": {"const": "SUPERSEDED"}},
+        "properties": {"amendment_status": {"const": "AMENDED"}},
         "required": ["amendment_status"]
       },
       "then": {"required": ["supersedes_observation_id"]}

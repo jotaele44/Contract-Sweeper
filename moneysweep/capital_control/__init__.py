@@ -1,5 +1,6 @@
 from .analytics import PairwiseSetComparison, compare_sets, current_positions, rollup_positions
 from .identity import IdentityCandidate, IdentityResolution, resolve_identity_candidates
+from .ingestion import IngestionResult, ingest
 from .models import HoldingObservation, InvestorIdentity, SourceManifest
 from .source_adapter import SourceAdapter, stable_observation_fingerprint
 from .supersession import SupersessionResult, apply_supersession
@@ -14,6 +15,7 @@ __all__ = [
     "HoldingObservation",
     "IdentityCandidate",
     "IdentityResolution",
+    "IngestionResult",
     "InvestorIdentity",
     "PairwiseSetComparison",
     "SourceAdapter",
@@ -23,6 +25,7 @@ __all__ = [
     "apply_supersession",
     "compare_sets",
     "current_positions",
+    "ingest",
     "resolve_identity_candidates",
     "rollup_positions",
     "stable_observation_fingerprint",
