@@ -12,6 +12,7 @@ Schema reality (verified):
   * contracts reference awarding/contractor as entity_id FKs → join entities.csv
   * a contract's municipality comes from edges.csv (Entity LOCATED_IN Municipality)
   * award_amount is frequently blank → exposed as null; aggregates are null-safe
+  * optional capital/control holdings are exposed as a typed /edges graph view
 """
 
 from __future__ import annotations
@@ -26,6 +27,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 ROOT = Path(__file__).resolve().parents[2]
 CANON = ROOT / "data" / "canonical_v1"
+PROCESSED = ROOT / "data" / "staging" / "processed"
+CAPITAL_CONTROL_PATH = PROCESSED / "capital_control_holdings.csv"
 
 EXPECTED = {
     "contracts": [
@@ -39,6 +42,22 @@ EXPECTED = {
     "entities": ["entity_id", "name", "entity_type"],
     "edges": ["edge_id", "source_node_id", "edge_type", "target_node_id"],
     "municipalities": ["municipality_id", "name", "region"],
+}
+
+CAPITAL_REQUIRED = {
+    "observation_id",
+    "issuer_id",
+    "issuer_name",
+    "security_id",
+    "holder_legal_entity_id",
+    "holder_reported_name_raw",
+    "as_of_date",
+    "report_date",
+    "position_class",
+    "relation_type",
+    "identity_status",
+    "source_id",
+    "source_document_id",
 }
 
 app = FastAPI(title="moneysweep-pr API", version="0.3.0")
@@ -59,6 +78,7 @@ app.add_middleware(
 )
 
 DATA: dict[str, pd.DataFrame] = {}
+_CAPITAL_CACHE: tuple[float, pd.DataFrame] | None = None
 
 
 def _load() -> None:
@@ -84,10 +104,17 @@ def _num(v):
     if v is None or v == "":
         return None
     try:
-        f = float(v)
+        f = float(str(v).replace("$", "").replace(",", "").strip())
         return None if math.isnan(f) else f
     except (TypeError, ValueError):
         return None
+
+
+def _int(v, default: int = 0) -> int:
+    try:
+        return int(str(v))
+    except (TypeError, ValueError):
+        return default
 
 
 def _entity_name_map() -> dict[str, str]:
@@ -105,6 +132,134 @@ def _located_in_map() -> dict[str, str]:
     e = DATA["edges"]
     li = e[e["edge_type"] == "LOCATED_IN"]
     return dict(zip(li["source_node_id"], li["target_node_id"]))
+
+
+def _capital_data() -> pd.DataFrame:
+    """Lazy-load the optional holdings ledger and fail loud on schema drift."""
+    global _CAPITAL_CACHE
+    if not CAPITAL_CONTROL_PATH.exists():
+        return pd.DataFrame()
+    mtime = CAPITAL_CONTROL_PATH.stat().st_mtime
+    if _CAPITAL_CACHE and _CAPITAL_CACHE[0] == mtime:
+        return _CAPITAL_CACHE[1]
+    frame = pd.read_csv(
+        CAPITAL_CONTROL_PATH,
+        dtype=str,
+        low_memory=False,
+        keep_default_na=False,
+    )
+    missing = sorted(CAPITAL_REQUIRED - set(frame.columns))
+    if missing:
+        raise RuntimeError(
+            f"{CAPITAL_CONTROL_PATH.name} missing required columns: {missing}"
+        )
+    _CAPITAL_CACHE = (mtime, frame)
+    return frame
+
+
+def _capital_effective(frame: pd.DataFrame) -> tuple[pd.DataFrame, int]:
+    """Whole-row amendment supersession; tied top observations fail closed."""
+    if frame.empty:
+        return frame.copy(), 0
+    working = frame.copy()
+    for col in ("investor_family_id", "ultimate_parent_id", "amendment_sequence"):
+        if col not in working.columns:
+            working[col] = ""
+    working["_seq"] = working["amendment_sequence"].map(_int)
+    key = [
+        "issuer_id",
+        "security_id",
+        "holder_legal_entity_id",
+        "as_of_date",
+        "position_class",
+        "relation_type",
+    ]
+    rows: list[pd.Series] = []
+    unresolved = 0
+    for _, group in working.groupby(key, sort=True, dropna=False):
+        max_seq = group["_seq"].max()
+        top = group[group["_seq"] == max_seq]
+        if top["observation_id"].nunique(dropna=False) != 1:
+            unresolved += 1
+            continue
+        rows.append(top.sort_values("observation_id", kind="stable").iloc[0])
+    if not rows:
+        return working.iloc[0:0].drop(columns=["_seq"]), unresolved
+    return pd.DataFrame(rows).drop(columns=["_seq"]), unresolved
+
+
+def _capital_record(row: pd.Series) -> dict:
+    """Preserve the reported legal-holder string while exposing roll-up levels."""
+    return {
+        "observationId": row.get("observation_id") or None,
+        "issuerId": row.get("issuer_id") or None,
+        "issuerName": row.get("issuer_name") or None,
+        "securityId": row.get("security_id") or None,
+        "securityName": row.get("security_name") or None,
+        "holderLegalEntityId": row.get("holder_legal_entity_id") or None,
+        "holderReportedNameRaw": row.get("holder_reported_name_raw") or None,
+        "investorFamilyId": row.get("investor_family_id") or None,
+        "investorFamilyName": row.get("investor_family_name") or None,
+        "ultimateParentId": row.get("ultimate_parent_id") or None,
+        "ultimateParentName": row.get("ultimate_parent_name") or None,
+        "asOfDate": row.get("as_of_date") or None,
+        "reportDate": row.get("report_date") or None,
+        "shares": _num(row.get("shares")),
+        "marketValue": _num(row.get("market_value")),
+        "percentClass": _num(row.get("percent_class")),
+        "percentIssuer": _num(row.get("percent_issuer")),
+        "votingPercent": _num(row.get("voting_percent")),
+        "positionClass": row.get("position_class") or None,
+        "relationType": row.get("relation_type") or None,
+        "identityStatus": row.get("identity_status") or None,
+        "sourceId": row.get("source_id") or None,
+        "sourceDocumentId": row.get("source_document_id") or None,
+        "sourceUrl": row.get("source_url") or None,
+        "retrievalUtc": row.get("retrieval_utc") or None,
+        "amendmentSequence": _int(row.get("amendment_sequence")),
+    }
+
+
+def _capital_summary() -> dict:
+    raw = _capital_data()
+    effective, unresolved = _capital_effective(raw)
+    return {
+        "file": CAPITAL_CONTROL_PATH.name,
+        "present": CAPITAL_CONTROL_PATH.exists(),
+        "rawObservations": int(len(raw)),
+        "effectiveObservations": int(len(effective)),
+        "unresolvedAmendmentTies": unresolved,
+        "issuers": int(effective["issuer_id"].nunique()) if not effective.empty else 0,
+        "legalHolders": int(effective["holder_legal_entity_id"].nunique()) if not effective.empty else 0,
+        "investorFamilies": int(effective["investor_family_id"].replace("", pd.NA).nunique()) if not effective.empty and "investor_family_id" in effective else 0,
+        "ultimateParents": int(effective["ultimate_parent_id"].replace("", pd.NA).nunique()) if not effective.empty and "ultimate_parent_id" in effective else 0,
+    }
+
+
+def _capital_compare(frame: pd.DataFrame, issuer_a: str, issuer_b: str, identity_level: str) -> dict:
+    fields = {
+        "legal_holder": "holder_legal_entity_id",
+        "investor_family": "investor_family_id",
+        "ultimate_parent": "ultimate_parent_id",
+    }
+    if identity_level not in fields:
+        raise ValueError(f"unsupported identity_level: {identity_level}")
+    effective, unresolved = _capital_effective(frame)
+    field = fields[identity_level]
+    if effective.empty or field not in effective:
+        a: set[str] = set()
+        b: set[str] = set()
+    else:
+        a = {str(v) for v in effective.loc[effective["issuer_id"] == issuer_a, field] if str(v).strip()}
+        b = {str(v) for v in effective.loc[effective["issuer_id"] == issuer_b, field] if str(v).strip()}
+    return {
+        "intersection": sorted(a & b),
+        "aOnly": sorted(a - b),
+        "bOnly": sorted(b - a),
+        "union": sorted(a | b),
+        "symmetricDifference": sorted(a ^ b),
+        "unresolvedAmendmentTies": unresolved,
+    }
 
 
 @app.get("/health")
@@ -184,7 +339,52 @@ def entities(type: str | None = None, q: str | None = None):
 
 
 @app.get("/edges")
-def edges(edge_type: str | None = None, source_id: str | None = None):
+def edges(
+    edge_type: str | None = None,
+    source_id: str | None = None,
+    view: str | None = None,
+    issuer_id: str | None = None,
+    q: str | None = None,
+    identity_status: str | None = None,
+    position_class: str | None = None,
+    as_of_date: str | None = None,
+    limit: int = 1000,
+):
+    """Return canonical relationship edges or the optional capital/control edge view."""
+    if view == "capital_control":
+        frame, _ = _capital_effective(_capital_data())
+        if frame.empty:
+            return []
+        if issuer_id:
+            frame = frame[frame["issuer_id"] == issuer_id]
+        if identity_status:
+            frame = frame[frame["identity_status"] == identity_status]
+        if position_class:
+            frame = frame[frame["position_class"] == position_class]
+        if as_of_date:
+            frame = frame[frame["as_of_date"] == as_of_date]
+        if q:
+            cols = [
+                c
+                for c in (
+                    "issuer_name",
+                    "holder_reported_name_raw",
+                    "investor_family_name",
+                    "ultimate_parent_name",
+                )
+                if c in frame
+            ]
+            if cols:
+                mask = pd.Series(False, index=frame.index)
+                for col in cols:
+                    mask |= frame[col].astype(str).str.contains(
+                        q, case=False, na=False, regex=False
+                    )
+                frame = frame[mask]
+        if "as_of_date" in frame:
+            frame = frame.sort_values("as_of_date", ascending=False, kind="stable")
+        return [_capital_record(row) for _, row in frame.head(max(1, min(limit, 5000))).iterrows()]
+
     names = _entity_name_map()
     munis = _muni_name_map()
 
@@ -272,6 +472,7 @@ def stats():
         "byStatus": by_status,
         "byServiceType": by_service,
         "byEntityType": ent_types,
+        "capitalControl": _capital_summary(),
     }
 
 
@@ -279,12 +480,10 @@ def stats():
 # still boots when their materialized datasets are absent.
 from server.backend.api_keys import router as api_keys_router  # noqa: E402
 from server.backend.campaign_finance import router as campaign_finance_router  # noqa: E402
-from server.backend.capital_control import router as capital_control_router  # noqa: E402
 from server.backend.government_changes import router as government_changes_router  # noqa: E402
 from server.backend.ownership_api import router as ownership_router  # noqa: E402
 
 app.include_router(api_keys_router)
 app.include_router(campaign_finance_router)
-app.include_router(capital_control_router)
 app.include_router(government_changes_router)
 app.include_router(ownership_router)
