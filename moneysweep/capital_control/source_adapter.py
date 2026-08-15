@@ -2,11 +2,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import tempfile
+import time
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date, datetime
-from typing import Any, Iterable, Mapping, Protocol
+from datetime import date, datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
+from pathlib import Path
+from typing import Any, Callable, Iterable, Mapping, Protocol
+from urllib.parse import urlparse
 from xml.etree import ElementTree as ET
+
+import requests
 
 
 class SourceAdapter(Protocol):
@@ -39,6 +47,404 @@ def stable_observation_fingerprint(payload: Mapping[str, Any]) -> str:
         canonical, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str
     )
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+_ALLOWED_SEC_HOSTS = frozenset({"sec.gov", "www.sec.gov", "data.sec.gov"})
+_RETRYABLE_STATUS_CODES = frozenset({403, 429, 500, 502, 503, 504})
+
+
+class _SECAcquisitionError(RuntimeError):
+    """Fail-closed acquisition error for authoritative SEC resources."""
+
+
+@dataclass(frozen=True)
+class _SECUserAgent:
+    application: str
+    contact: str
+
+    def header_value(self) -> str:
+        application = self.application.strip()
+        contact = self.contact.strip()
+        if not application or not contact:
+            raise _SECAcquisitionError(
+                "SEC user agent requires application and contact"
+            )
+        if any(char in application + contact for char in "\r\n"):
+            raise _SECAcquisitionError("SEC user agent cannot contain line breaks")
+        return f"{application} {contact}"
+
+
+@dataclass(frozen=True)
+class _SECRequestPolicy:
+    max_requests_per_second: float = 5.0
+    timeout_seconds: float = 30.0
+    max_attempts: int = 4
+    base_backoff_seconds: float = 1.0
+    max_backoff_seconds: float = 30.0
+    allowed_content_types: tuple[str, ...] = (
+        "text/xml",
+        "application/xml",
+        "text/plain",
+        "application/json",
+        "application/octet-stream",
+    )
+
+    def validate(self) -> None:
+        if not 0 < self.max_requests_per_second <= 10:
+            raise _SECAcquisitionError(
+                "max_requests_per_second must be > 0 and <= SEC fair-access limit"
+            )
+        if self.timeout_seconds <= 0:
+            raise _SECAcquisitionError("timeout_seconds must be positive")
+        if self.max_attempts < 1:
+            raise _SECAcquisitionError("max_attempts must be >= 1")
+        if self.base_backoff_seconds < 0 or self.max_backoff_seconds < 0:
+            raise _SECAcquisitionError("backoff values must be nonnegative")
+        if self.base_backoff_seconds > self.max_backoff_seconds:
+            raise _SECAcquisitionError(
+                "base_backoff_seconds exceeds max_backoff_seconds"
+            )
+        if not self.allowed_content_types:
+            raise _SECAcquisitionError("allowed_content_types cannot be empty")
+
+
+class _SECTransportResponse(Protocol):
+    status_code: int
+    headers: Mapping[str, str]
+    content: bytes
+    url: str
+
+
+class _SECTransport(Protocol):
+    def get(
+        self,
+        url: str,
+        *,
+        headers: Mapping[str, str],
+        timeout: float,
+    ) -> _SECTransportResponse: ...
+
+
+class _RequestsSECTransport:
+    def __init__(self, session: requests.Session | None = None) -> None:
+        self._session = session or requests.Session()
+
+    def get(
+        self,
+        url: str,
+        *,
+        headers: Mapping[str, str],
+        timeout: float,
+    ) -> requests.Response:
+        return self._session.get(url, headers=dict(headers), timeout=timeout)
+
+
+@dataclass(frozen=True)
+class _SECFetchReceipt:
+    request_url: str
+    response_url: str
+    status_code: int
+    retrieval_utc: datetime
+    attempts: int
+    content_type: str | None
+    content_length_header: str | None
+    etag: str | None
+    last_modified: str | None
+    byte_size: int
+    sha256: str
+
+
+@dataclass(frozen=True)
+class _SECFrozenResource:
+    receipt: _SECFetchReceipt
+    path: Path
+    write_status: str
+
+
+def _header_value(headers: Mapping[str, str], name: str) -> str | None:
+    wanted = name.casefold()
+    for key, value in headers.items():
+        if key.casefold() == wanted:
+            return value
+    return None
+
+
+class _SECFairAccessClient:
+    """Rate-limited, provenance-preserving SEC fetcher with fail-closed freezing."""
+
+    def __init__(
+        self,
+        user_agent: _SECUserAgent,
+        *,
+        policy: _SECRequestPolicy | None = None,
+        transport: _SECTransport | None = None,
+        sleeper: Callable[[float], None] = time.sleep,
+        monotonic: Callable[[], float] = time.monotonic,
+        now_utc: Callable[[], datetime] | None = None,
+    ) -> None:
+        self.user_agent = user_agent
+        self.policy = policy or _SECRequestPolicy()
+        self.policy.validate()
+        self.user_agent.header_value()
+        self._transport = transport or _RequestsSECTransport()
+        self._sleep = sleeper
+        self._monotonic = monotonic
+        self._now_utc = now_utc or (lambda: datetime.now(timezone.utc))
+        self._last_request_monotonic: float | None = None
+
+    @staticmethod
+    def _validate_url(url: str) -> None:
+        parsed = urlparse(url)
+        if parsed.scheme != "https":
+            raise _SECAcquisitionError("SEC acquisition requires HTTPS")
+        hostname = (parsed.hostname or "").lower()
+        if hostname not in _ALLOWED_SEC_HOSTS:
+            raise _SECAcquisitionError(
+                f"non-SEC host rejected: {hostname or '<empty>'}"
+            )
+        if not parsed.path:
+            raise _SECAcquisitionError("SEC URL must include a path")
+
+    def _rate_limit(self) -> None:
+        interval = 1.0 / self.policy.max_requests_per_second
+        now = self._monotonic()
+        if self._last_request_monotonic is not None:
+            remaining = interval - (now - self._last_request_monotonic)
+            if remaining > 0:
+                self._sleep(remaining)
+                now = self._monotonic()
+        self._last_request_monotonic = now
+
+    @staticmethod
+    def _retry_after_seconds(value: str | None, now: datetime) -> float | None:
+        if not value:
+            return None
+        stripped = value.strip()
+        try:
+            return max(0.0, float(stripped))
+        except ValueError:
+            pass
+        try:
+            retry_at = parsedate_to_datetime(stripped)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if retry_at.tzinfo is None:
+            retry_at = retry_at.replace(tzinfo=timezone.utc)
+        return max(
+            0.0,
+            (retry_at.astimezone(timezone.utc) - now).total_seconds(),
+        )
+
+    def _backoff_seconds(
+        self,
+        attempt: int,
+        headers: Mapping[str, str],
+        now: datetime,
+    ) -> float:
+        retry_after = self._retry_after_seconds(
+            _header_value(headers, "Retry-After"), now
+        )
+        if retry_after is not None:
+            return min(retry_after, self.policy.max_backoff_seconds)
+        exponential = self.policy.base_backoff_seconds * (2 ** max(0, attempt - 1))
+        return min(exponential, self.policy.max_backoff_seconds)
+
+    def _retrieval_utc(self) -> datetime:
+        value = self._now_utc()
+        if value.tzinfo is None or value.utcoffset() != timedelta(0):
+            raise _SECAcquisitionError(
+                "now_utc must return timezone-aware UTC datetime"
+            )
+        return value
+
+    def fetch_bytes(
+        self,
+        url: str,
+        *,
+        expected_size: int | None = None,
+        expected_sha256: str | None = None,
+    ) -> tuple[bytes, _SECFetchReceipt]:
+        self._validate_url(url)
+        if expected_size is not None and expected_size < 0:
+            raise _SECAcquisitionError("expected_size must be nonnegative")
+        if expected_sha256 is not None and (
+            len(expected_sha256) != 64
+            or any(
+                char not in "0123456789abcdef" for char in expected_sha256
+            )
+        ):
+            raise _SECAcquisitionError(
+                "expected_sha256 must be 64 lowercase hex characters"
+            )
+
+        headers = {
+            "User-Agent": self.user_agent.header_value(),
+            "Accept-Encoding": "gzip, deflate",
+            "Accept": "*/*",
+        }
+        response: _SECTransportResponse | None = None
+        last_transport_error: BaseException | None = None
+
+        for attempt in range(1, self.policy.max_attempts + 1):
+            self._rate_limit()
+            try:
+                response = self._transport.get(
+                    url,
+                    headers=headers,
+                    timeout=self.policy.timeout_seconds,
+                )
+            except (requests.RequestException, TimeoutError, OSError) as exc:
+                last_transport_error = exc
+                if attempt == self.policy.max_attempts:
+                    break
+                delay = min(
+                    self.policy.base_backoff_seconds
+                    * (2 ** max(0, attempt - 1)),
+                    self.policy.max_backoff_seconds,
+                )
+                if delay > 0:
+                    self._sleep(delay)
+                continue
+
+            retrieval_utc = self._retrieval_utc()
+
+            if 200 <= response.status_code < 300:
+                self._validate_url(response.url)
+                content = bytes(response.content)
+                if not content:
+                    raise _SECAcquisitionError("SEC response body is empty")
+
+                raw_content_type = _header_value(response.headers, "Content-Type")
+                content_type = (
+                    raw_content_type.split(";", 1)[0].strip().lower()
+                    if raw_content_type
+                    else None
+                )
+                allowed = {
+                    item.lower() for item in self.policy.allowed_content_types
+                }
+                if content_type is not None and content_type not in allowed:
+                    raise _SECAcquisitionError(
+                        f"unexpected SEC content type: {content_type}"
+                    )
+
+                digest = hashlib.sha256(content).hexdigest()
+                if expected_size is not None and len(content) != expected_size:
+                    raise _SECAcquisitionError(
+                        "SEC byte-size mismatch: "
+                        f"expected {expected_size}, got {len(content)}"
+                    )
+                if expected_sha256 is not None and digest != expected_sha256:
+                    raise _SECAcquisitionError("SEC SHA-256 mismatch")
+
+                receipt = _SECFetchReceipt(
+                    request_url=url,
+                    response_url=response.url,
+                    status_code=response.status_code,
+                    retrieval_utc=retrieval_utc,
+                    attempts=attempt,
+                    content_type=content_type,
+                    content_length_header=_header_value(
+                        response.headers, "Content-Length"
+                    ),
+                    etag=_header_value(response.headers, "ETag"),
+                    last_modified=_header_value(
+                        response.headers, "Last-Modified"
+                    ),
+                    byte_size=len(content),
+                    sha256=digest,
+                )
+                return content, receipt
+
+            if response.status_code not in _RETRYABLE_STATUS_CODES:
+                raise _SECAcquisitionError(
+                    f"SEC request failed with HTTP {response.status_code}"
+                )
+            if attempt == self.policy.max_attempts:
+                break
+            delay = self._backoff_seconds(
+                attempt, response.headers, retrieval_utc
+            )
+            if delay > 0:
+                self._sleep(delay)
+
+        if last_transport_error is not None and response is None:
+            raise _SECAcquisitionError(
+                "SEC request exhausted transport retries without a response"
+            ) from last_transport_error
+        status = response.status_code if response is not None else "NO_RESPONSE"
+        raise _SECAcquisitionError(
+            "SEC request exhausted "
+            f"{self.policy.max_attempts} attempts; last status={status}"
+        )
+
+    def freeze(
+        self,
+        url: str,
+        destination: Path,
+        *,
+        expected_size: int | None = None,
+        expected_sha256: str | None = None,
+    ) -> _SECFrozenResource:
+        content, receipt = self.fetch_bytes(
+            url,
+            expected_size=expected_size,
+            expected_sha256=expected_sha256,
+        )
+        destination = Path(destination)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+
+        if destination.exists():
+            existing = destination.read_bytes()
+            existing_sha = hashlib.sha256(existing).hexdigest()
+            if (
+                existing_sha == receipt.sha256
+                and len(existing) == receipt.byte_size
+            ):
+                return _SECFrozenResource(
+                    receipt=receipt,
+                    path=destination,
+                    write_status="EXISTING_MATCH",
+                )
+            raise _SECAcquisitionError(
+                "destination already exists with different bytes; "
+                "refusing overwrite"
+            )
+
+        temporary_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="wb",
+                dir=destination.parent,
+                prefix=f".{destination.name}.",
+                suffix=".part",
+                delete=False,
+            ) as handle:
+                temporary_path = Path(handle.name)
+                handle.write(content)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary_path, destination)
+            temporary_path = None
+        finally:
+            if temporary_path is not None:
+                temporary_path.unlink(missing_ok=True)
+
+        frozen = destination.read_bytes()
+        if len(frozen) != receipt.byte_size:
+            destination.unlink(missing_ok=True)
+            raise _SECAcquisitionError(
+                "post-write byte-size verification failed"
+            )
+        if hashlib.sha256(frozen).hexdigest() != receipt.sha256:
+            destination.unlink(missing_ok=True)
+            raise _SECAcquisitionError("post-write SHA-256 verification failed")
+
+        return _SECFrozenResource(
+            receipt=receipt,
+            path=destination,
+            write_status="WRITTEN",
+        )
 
 
 @dataclass(frozen=True)
@@ -336,7 +742,11 @@ class _FrozenSEC13FAdapter:
         return f"SRC_CAP_SEC_13F_{accession}"
 
     def _info_tables(self) -> tuple[ET.Element, ...]:
-        return tuple(child for child in list(self._root) if _local_name(child.tag) == "infoTable")
+        return tuple(
+            child
+            for child in list(self._root)
+            if _local_name(child.tag) == "infoTable"
+        )
 
     def source_manifest(self) -> Mapping[str, Any]:
         rows = self._info_tables()
@@ -354,7 +764,10 @@ class _FrozenSEC13FAdapter:
             "page_or_offset": "INFORMATION_TABLE_XML",
             "raw_bytes_sha256": digest,
             "raw_bytes_size": len(self._xml_bytes),
-            "schema_fingerprint": f"SEC_FORM_13F_INFORMATION_TABLE_XML:value_scale={self._metadata.value_scale:g}",
+            "schema_fingerprint": (
+                "SEC_FORM_13F_INFORMATION_TABLE_XML:"
+                f"value_scale={self._metadata.value_scale:g}"
+            ),
             "record_count": len(rows),
             "canonicality": self._metadata.canonicality,
             "notes": (
@@ -373,8 +786,12 @@ class _FrozenSEC13FAdapter:
             figi = _text(children.get("figi"))
             value_raw = _text(children.get("value"))
             shares_raw = _descendant_text(row, "shrsOrPrnAmt", "sshPrnamt")
-            shares_type = _descendant_text(row, "shrsOrPrnAmt", "sshPrnamtType")
-            investment_discretion = _text(children.get("investmentDiscretion"))
+            shares_type = _descendant_text(
+                row, "shrsOrPrnAmt", "sshPrnamtType"
+            )
+            investment_discretion = _text(
+                children.get("investmentDiscretion")
+            )
             other_manager = _text(children.get("otherManager"))
             put_call = _text(children.get("putCall"))
             sole = _descendant_text(row, "votingAuthority", "Sole")
@@ -384,20 +801,34 @@ class _FrozenSEC13FAdapter:
             if not issuer_name:
                 raise ValueError(f"13F row {index} missing nameOfIssuer")
             if not security_class and not cusip:
-                raise ValueError(f"13F row {index} missing both titleOfClass and cusip")
+                raise ValueError(
+                    f"13F row {index} missing both titleOfClass and cusip"
+                )
             if not investment_discretion:
-                raise ValueError(f"13F row {index} missing investmentDiscretion")
+                raise ValueError(
+                    f"13F row {index} missing investmentDiscretion"
+                )
 
-            source_record_id = f"{self._metadata.accession_number}:INFOTABLE:{index}"
+            source_record_id = (
+                f"{self._metadata.accession_number}:INFOTABLE:{index}"
+            )
             supersedes = None
             if self._metadata.supersedes_by_source_record_id:
-                supersedes = self._metadata.supersedes_by_source_record_id.get(source_record_id)
+                supersedes = (
+                    self._metadata.supersedes_by_source_record_id.get(
+                        source_record_id
+                    )
+                )
 
             security_id = f"CUSIP:{cusip}" if cusip else None
             issuer_id = (
-                f"SEC_13F_SECURITY:{cusip}" if cusip else f"SEC_13F_UNRESOLVED_ISSUER:{index}"
+                f"SEC_13F_SECURITY:{cusip}"
+                if cusip
+                else f"SEC_13F_UNRESOLVED_ISSUER:{index}"
             )
-            observation_hash = hashlib.sha256(source_record_id.encode("utf-8")).hexdigest()[:20]
+            observation_hash = hashlib.sha256(
+                source_record_id.encode("utf-8")
+            ).hexdigest()[:20]
             shares = _number(shares_raw, "sshPrnamt")
             market_value = _number(value_raw, "value")
             if market_value is not None:
@@ -405,7 +836,9 @@ class _FrozenSEC13FAdapter:
 
             yield {
                 "observation_id": f"HOLD_SEC13F_{observation_hash}",
-                "holder_id": f"INV_SEC_CIK_{self._metadata.filer_cik.zfill(10)}",
+                "holder_id": (
+                    f"INV_SEC_CIK_{self._metadata.filer_cik.zfill(10)}"
+                ),
                 "issuer_id": issuer_id,
                 "position_class": "INVESTMENT_DISCRETION",
                 "as_of_date": self._metadata.period_of_report,
@@ -428,7 +861,10 @@ class _FrozenSEC13FAdapter:
                 "amendment_status": "AMENDED" if supersedes else "ORIGINAL",
                 "supersedes_observation_id": supersedes,
                 "source_document_sha256": digest,
-                "notes": "13F investment-discretion observation; not beneficial-ownership proof.",
+                "notes": (
+                    "13F investment-discretion observation; "
+                    "not beneficial-ownership proof."
+                ),
                 "extra": {
                     "raw_name_of_issuer": issuer_name,
                     "raw_title_of_class": security_class,
@@ -447,6 +883,15 @@ class _FrozenSEC13FAdapter:
             }
 
 
+SECAcquisitionError = _SECAcquisitionError
+SECUserAgent = _SECUserAgent
+SECRequestPolicy = _SECRequestPolicy
+SECTransportResponse = _SECTransportResponse
+SECTransport = _SECTransport
+RequestsSECTransport = _RequestsSECTransport
+SECFetchReceipt = _SECFetchReceipt
+SECFrozenResource = _SECFrozenResource
+SECFairAccessClient = _SECFairAccessClient
 CapitalSourceDefinition = _CapitalSourceDefinition
 SEC_SOURCE_DEFINITIONS = _SEC_SOURCE_DEFINITIONS
 source_definition = _source_definition
