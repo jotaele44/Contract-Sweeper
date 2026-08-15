@@ -40,13 +40,21 @@ def current_positions(observations: Iterable[HoldingObservation]) -> tuple[Holdi
             row.position_class,
         )
         incumbent = newest.get(key)
-        if incumbent is None or (row.as_of_date, row.report_date, row.observation_id) > (
-            incumbent.as_of_date,
-            incumbent.report_date,
-            incumbent.observation_id,
-        ):
+        if incumbent is None:
             newest[key] = row
-    return tuple(sorted(newest.values(), key=lambda row: (row.issuer_id, row.holder_id, row.position_class, row.observation_id)))
+            continue
+        candidate_rank = (row.as_of_date, row.report_date)
+        incumbent_rank = (incumbent.as_of_date, incumbent.report_date)
+        if candidate_rank > incumbent_rank:
+            newest[key] = row
+        elif candidate_rank == incumbent_rank and row.observation_id != incumbent.observation_id:
+            raise ValueError("tied current observations require explicit adjudication")
+    return tuple(
+        sorted(
+            newest.values(),
+            key=lambda row: (row.issuer_id, row.holder_id, row.position_class, row.observation_id),
+        )
+    )
 
 
 def rollup_positions(
@@ -66,6 +74,11 @@ def rollup_positions(
         elif level == "INVESTOR_FAMILY":
             key = identity.investor_family_id or identity.legal_entity_id or identity.investor_id
         else:
-            key = identity.ultimate_parent_id or identity.investor_family_id or identity.legal_entity_id or identity.investor_id
+            key = (
+                identity.ultimate_parent_id
+                or identity.investor_family_id
+                or identity.legal_entity_id
+                or identity.investor_id
+            )
         grouped.setdefault(key, []).append(row)
     return {key: tuple(value) for key, value in grouped.items()}

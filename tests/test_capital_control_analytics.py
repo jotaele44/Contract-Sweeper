@@ -1,5 +1,7 @@
 from datetime import date
 
+import pytest
+
 from moneysweep.capital_control.analytics import compare_sets, current_positions, rollup_positions
 from moneysweep.capital_control.models import HoldingObservation, InvestorIdentity
 
@@ -35,6 +37,13 @@ def test_current_positions_selects_newest_whole_row() -> None:
     new = _row("HOLD_new", "INV_a", "ISSUER_a", date(2026, 6, 30))
     selected = current_positions([old, new])
     assert selected == (new,)
+
+
+def test_current_positions_tied_top_rows_fail_closed() -> None:
+    first = _row("HOLD_a", "INV_a", "ISSUER_a", date(2026, 6, 30))
+    second = _row("HOLD_b", "INV_a", "ISSUER_a", date(2026, 6, 30))
+    with pytest.raises(ValueError, match="tied current observations"):
+        current_positions([first, second])
 
 
 def test_rollups_do_not_destroy_legal_holder_rows() -> None:

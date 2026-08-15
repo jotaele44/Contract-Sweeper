@@ -6,12 +6,17 @@ from moneysweep.capital_control.models import HoldingObservation
 from moneysweep.capital_control.supersession import apply_supersession
 
 
-def _row(observation_id: str, source_record_id: str, supersedes: str | None = None) -> HoldingObservation:
+def _row(
+    observation_id: str,
+    source_record_id: str,
+    supersedes: str | None = None,
+    security_id: str = "CUSIP_1",
+) -> HoldingObservation:
     return HoldingObservation(
         observation_id=observation_id,
         holder_id="INV_holder",
         issuer_id="ISSUER_a",
-        security_id="CUSIP_1",
+        security_id=security_id,
         position_class="DIRECT_EQUITY",
         as_of_date=date(2026, 6, 30),
         report_date=date(2026, 8, 14),
@@ -35,3 +40,10 @@ def test_amendment_supersedes_original_without_deleting_it() -> None:
 def test_duplicate_source_record_fails_closed() -> None:
     with pytest.raises(ValueError):
         apply_supersession([_row("HOLD_a", "same"), _row("HOLD_b", "same")])
+
+
+def test_supersession_cannot_cross_security_identity() -> None:
+    original = _row("HOLD_original", "record-original", security_id="CUSIP_A")
+    amended = _row("HOLD_amended", "record-amended", "HOLD_original", security_id="CUSIP_B")
+    with pytest.raises(ValueError, match="security identity"):
+        apply_supersession([original, amended])
