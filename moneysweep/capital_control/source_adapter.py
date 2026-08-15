@@ -66,9 +66,7 @@ class _SECUserAgent:
         application = self.application.strip()
         contact = self.contact.strip()
         if not application or not contact:
-            raise _SECAcquisitionError(
-                "SEC user agent requires application and contact"
-            )
+            raise _SECAcquisitionError("SEC user agent requires application and contact")
         if any(char in application + contact for char in "\r\n"):
             raise _SECAcquisitionError("SEC user agent cannot contain line breaks")
         return f"{application} {contact}"
@@ -101,9 +99,7 @@ class _SECRequestPolicy:
         if self.base_backoff_seconds < 0 or self.max_backoff_seconds < 0:
             raise _SECAcquisitionError("backoff values must be nonnegative")
         if self.base_backoff_seconds > self.max_backoff_seconds:
-            raise _SECAcquisitionError(
-                "base_backoff_seconds exceeds max_backoff_seconds"
-            )
+            raise _SECAcquisitionError("base_backoff_seconds exceeds max_backoff_seconds")
         if not self.allowed_content_types:
             raise _SECAcquisitionError("allowed_content_types cannot be empty")
 
@@ -135,7 +131,7 @@ class _RequestsSECTransport:
         *,
         headers: Mapping[str, str],
         timeout: float,
-    ) -> requests.Response:
+    ) -> _SECTransportResponse:
         return self._session.get(url, headers=dict(headers), timeout=timeout)
 
 
@@ -186,7 +182,7 @@ class _SECFairAccessClient:
         self.policy = policy or _SECRequestPolicy()
         self.policy.validate()
         self.user_agent.header_value()
-        self._transport = transport or _RequestsSECTransport()
+        self._transport: _SECTransport = transport or _RequestsSECTransport()
         self._sleep = sleeper
         self._monotonic = monotonic
         self._now_utc = now_utc or (lambda: datetime.now(timezone.utc))
@@ -199,9 +195,7 @@ class _SECFairAccessClient:
             raise _SECAcquisitionError("SEC acquisition requires HTTPS")
         hostname = (parsed.hostname or "").lower()
         if hostname not in _ALLOWED_SEC_HOSTS:
-            raise _SECAcquisitionError(
-                f"non-SEC host rejected: {hostname or '<empty>'}"
-            )
+            raise _SECAcquisitionError(f"non-SEC host rejected: {hostname or '<empty>'}")
         if not parsed.path:
             raise _SECAcquisitionError("SEC URL must include a path")
 
@@ -241,9 +235,7 @@ class _SECFairAccessClient:
         headers: Mapping[str, str],
         now: datetime,
     ) -> float:
-        retry_after = self._retry_after_seconds(
-            _header_value(headers, "Retry-After"), now
-        )
+        retry_after = self._retry_after_seconds(_header_value(headers, "Retry-After"), now)
         if retry_after is not None:
             return min(retry_after, self.policy.max_backoff_seconds)
         exponential = self.policy.base_backoff_seconds * (2 ** max(0, attempt - 1))
@@ -252,9 +244,7 @@ class _SECFairAccessClient:
     def _retrieval_utc(self) -> datetime:
         value = self._now_utc()
         if value.tzinfo is None or value.utcoffset() != timedelta(0):
-            raise _SECAcquisitionError(
-                "now_utc must return timezone-aware UTC datetime"
-            )
+            raise _SECAcquisitionError("now_utc must return timezone-aware UTC datetime")
         return value
 
     def fetch_bytes(
@@ -269,20 +259,16 @@ class _SECFairAccessClient:
             raise _SECAcquisitionError("expected_size must be nonnegative")
         if expected_sha256 is not None and (
             len(expected_sha256) != 64
-            or any(
-                char not in "0123456789abcdef" for char in expected_sha256
-            )
+            or any(char not in "0123456789abcdef" for char in expected_sha256)
         ):
-            raise _SECAcquisitionError(
-                "expected_sha256 must be 64 lowercase hex characters"
-            )
+            raise _SECAcquisitionError("expected_sha256 must be 64 lowercase hex characters")
 
         headers = {
             "User-Agent": self.user_agent.header_value(),
             "Accept-Encoding": "gzip, deflate",
             "Accept": "*/*",
         }
-        response: _SECTransportResponse | None = None
+        last_status: int | None = None
         last_transport_error: BaseException | None = None
 
         for attempt in range(1, self.policy.max_attempts + 1):
@@ -298,8 +284,7 @@ class _SECFairAccessClient:
                 if attempt == self.policy.max_attempts:
                     break
                 delay = min(
-                    self.policy.base_backoff_seconds
-                    * (2 ** max(0, attempt - 1)),
+                    self.policy.base_backoff_seconds * (2 ** max(0, attempt - 1)),
                     self.policy.max_backoff_seconds,
                 )
                 if delay > 0:
@@ -307,6 +292,7 @@ class _SECFairAccessClient:
                 continue
 
             retrieval_utc = self._retrieval_utc()
+            last_status = response.status_code
 
             if 200 <= response.status_code < 300:
                 self._validate_url(response.url)
@@ -316,23 +302,16 @@ class _SECFairAccessClient:
 
                 raw_content_type = _header_value(response.headers, "Content-Type")
                 content_type = (
-                    raw_content_type.split(";", 1)[0].strip().lower()
-                    if raw_content_type
-                    else None
+                    raw_content_type.split(";", 1)[0].strip().lower() if raw_content_type else None
                 )
-                allowed = {
-                    item.lower() for item in self.policy.allowed_content_types
-                }
+                allowed = {item.lower() for item in self.policy.allowed_content_types}
                 if content_type is not None and content_type not in allowed:
-                    raise _SECAcquisitionError(
-                        f"unexpected SEC content type: {content_type}"
-                    )
+                    raise _SECAcquisitionError(f"unexpected SEC content type: {content_type}")
 
                 digest = hashlib.sha256(content).hexdigest()
                 if expected_size is not None and len(content) != expected_size:
                     raise _SECAcquisitionError(
-                        "SEC byte-size mismatch: "
-                        f"expected {expected_size}, got {len(content)}"
+                        f"SEC byte-size mismatch: expected {expected_size}, got {len(content)}"
                     )
                 if expected_sha256 is not None and digest != expected_sha256:
                     raise _SECAcquisitionError("SEC SHA-256 mismatch")
@@ -344,38 +323,29 @@ class _SECFairAccessClient:
                     retrieval_utc=retrieval_utc,
                     attempts=attempt,
                     content_type=content_type,
-                    content_length_header=_header_value(
-                        response.headers, "Content-Length"
-                    ),
+                    content_length_header=_header_value(response.headers, "Content-Length"),
                     etag=_header_value(response.headers, "ETag"),
-                    last_modified=_header_value(
-                        response.headers, "Last-Modified"
-                    ),
+                    last_modified=_header_value(response.headers, "Last-Modified"),
                     byte_size=len(content),
                     sha256=digest,
                 )
                 return content, receipt
 
             if response.status_code not in _RETRYABLE_STATUS_CODES:
-                raise _SECAcquisitionError(
-                    f"SEC request failed with HTTP {response.status_code}"
-                )
+                raise _SECAcquisitionError(f"SEC request failed with HTTP {response.status_code}")
             if attempt == self.policy.max_attempts:
                 break
-            delay = self._backoff_seconds(
-                attempt, response.headers, retrieval_utc
-            )
+            delay = self._backoff_seconds(attempt, response.headers, retrieval_utc)
             if delay > 0:
                 self._sleep(delay)
 
-        if last_transport_error is not None and response is None:
+        if last_transport_error is not None and last_status is None:
             raise _SECAcquisitionError(
                 "SEC request exhausted transport retries without a response"
             ) from last_transport_error
-        status = response.status_code if response is not None else "NO_RESPONSE"
+        status: int | str = last_status if last_status is not None else "NO_RESPONSE"
         raise _SECAcquisitionError(
-            "SEC request exhausted "
-            f"{self.policy.max_attempts} attempts; last status={status}"
+            f"SEC request exhausted {self.policy.max_attempts} attempts; last status={status}"
         )
 
     def freeze(
@@ -397,18 +367,14 @@ class _SECFairAccessClient:
         if destination.exists():
             existing = destination.read_bytes()
             existing_sha = hashlib.sha256(existing).hexdigest()
-            if (
-                existing_sha == receipt.sha256
-                and len(existing) == receipt.byte_size
-            ):
+            if existing_sha == receipt.sha256 and len(existing) == receipt.byte_size:
                 return _SECFrozenResource(
                     receipt=receipt,
                     path=destination,
                     write_status="EXISTING_MATCH",
                 )
             raise _SECAcquisitionError(
-                "destination already exists with different bytes; "
-                "refusing overwrite"
+                "destination already exists with different bytes; refusing overwrite"
             )
 
         temporary_path: Path | None = None
@@ -433,9 +399,7 @@ class _SECFairAccessClient:
         frozen = destination.read_bytes()
         if len(frozen) != receipt.byte_size:
             destination.unlink(missing_ok=True)
-            raise _SECAcquisitionError(
-                "post-write byte-size verification failed"
-            )
+            raise _SECAcquisitionError("post-write byte-size verification failed")
         if hashlib.sha256(frozen).hexdigest() != receipt.sha256:
             destination.unlink(missing_ok=True)
             raise _SECAcquisitionError("post-write SHA-256 verification failed")
@@ -742,11 +706,7 @@ class _FrozenSEC13FAdapter:
         return f"SRC_CAP_SEC_13F_{accession}"
 
     def _info_tables(self) -> tuple[ET.Element, ...]:
-        return tuple(
-            child
-            for child in list(self._root)
-            if _local_name(child.tag) == "infoTable"
-        )
+        return tuple(child for child in list(self._root) if _local_name(child.tag) == "infoTable")
 
     def source_manifest(self) -> Mapping[str, Any]:
         rows = self._info_tables()
@@ -765,8 +725,7 @@ class _FrozenSEC13FAdapter:
             "raw_bytes_sha256": digest,
             "raw_bytes_size": len(self._xml_bytes),
             "schema_fingerprint": (
-                "SEC_FORM_13F_INFORMATION_TABLE_XML:"
-                f"value_scale={self._metadata.value_scale:g}"
+                f"SEC_FORM_13F_INFORMATION_TABLE_XML:value_scale={self._metadata.value_scale:g}"
             ),
             "record_count": len(rows),
             "canonicality": self._metadata.canonicality,
@@ -786,12 +745,8 @@ class _FrozenSEC13FAdapter:
             figi = _text(children.get("figi"))
             value_raw = _text(children.get("value"))
             shares_raw = _descendant_text(row, "shrsOrPrnAmt", "sshPrnamt")
-            shares_type = _descendant_text(
-                row, "shrsOrPrnAmt", "sshPrnamtType"
-            )
-            investment_discretion = _text(
-                children.get("investmentDiscretion")
-            )
+            shares_type = _descendant_text(row, "shrsOrPrnAmt", "sshPrnamtType")
+            investment_discretion = _text(children.get("investmentDiscretion"))
             other_manager = _text(children.get("otherManager"))
             put_call = _text(children.get("putCall"))
             sole = _descendant_text(row, "votingAuthority", "Sole")
@@ -801,34 +756,20 @@ class _FrozenSEC13FAdapter:
             if not issuer_name:
                 raise ValueError(f"13F row {index} missing nameOfIssuer")
             if not security_class and not cusip:
-                raise ValueError(
-                    f"13F row {index} missing both titleOfClass and cusip"
-                )
+                raise ValueError(f"13F row {index} missing both titleOfClass and cusip")
             if not investment_discretion:
-                raise ValueError(
-                    f"13F row {index} missing investmentDiscretion"
-                )
+                raise ValueError(f"13F row {index} missing investmentDiscretion")
 
-            source_record_id = (
-                f"{self._metadata.accession_number}:INFOTABLE:{index}"
-            )
+            source_record_id = f"{self._metadata.accession_number}:INFOTABLE:{index}"
             supersedes = None
             if self._metadata.supersedes_by_source_record_id:
-                supersedes = (
-                    self._metadata.supersedes_by_source_record_id.get(
-                        source_record_id
-                    )
-                )
+                supersedes = self._metadata.supersedes_by_source_record_id.get(source_record_id)
 
             security_id = f"CUSIP:{cusip}" if cusip else None
             issuer_id = (
-                f"SEC_13F_SECURITY:{cusip}"
-                if cusip
-                else f"SEC_13F_UNRESOLVED_ISSUER:{index}"
+                f"SEC_13F_SECURITY:{cusip}" if cusip else f"SEC_13F_UNRESOLVED_ISSUER:{index}"
             )
-            observation_hash = hashlib.sha256(
-                source_record_id.encode("utf-8")
-            ).hexdigest()[:20]
+            observation_hash = hashlib.sha256(source_record_id.encode("utf-8")).hexdigest()[:20]
             shares = _number(shares_raw, "sshPrnamt")
             market_value = _number(value_raw, "value")
             if market_value is not None:
@@ -836,9 +777,7 @@ class _FrozenSEC13FAdapter:
 
             yield {
                 "observation_id": f"HOLD_SEC13F_{observation_hash}",
-                "holder_id": (
-                    f"INV_SEC_CIK_{self._metadata.filer_cik.zfill(10)}"
-                ),
+                "holder_id": (f"INV_SEC_CIK_{self._metadata.filer_cik.zfill(10)}"),
                 "issuer_id": issuer_id,
                 "position_class": "INVESTMENT_DISCRETION",
                 "as_of_date": self._metadata.period_of_report,
@@ -861,10 +800,7 @@ class _FrozenSEC13FAdapter:
                 "amendment_status": "AMENDED" if supersedes else "ORIGINAL",
                 "supersedes_observation_id": supersedes,
                 "source_document_sha256": digest,
-                "notes": (
-                    "13F investment-discretion observation; "
-                    "not beneficial-ownership proof."
-                ),
+                "notes": ("13F investment-discretion observation; not beneficial-ownership proof."),
                 "extra": {
                     "raw_name_of_issuer": issuer_name,
                     "raw_title_of_class": security_class,
