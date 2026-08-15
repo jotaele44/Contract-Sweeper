@@ -9,6 +9,17 @@ from .deep_dive import (
 from .identity import IdentityCandidate, IdentityResolution, resolve_identity_candidates
 from .ingestion import IngestionResult, ingest
 from .models import HoldingObservation, InvestorIdentity, SourceManifest
+from .sec_acquisition import (
+    SECAcquisitionError,
+    SECFairAccessClient,
+    SECFetchReceipt,
+    SECFrozenResource,
+    SECRequestPolicy,
+    SECTransport,
+    SECTransportResponse,
+    SECUserAgent,
+    RequestsSECTransport,
+)
 from .source_adapter import (
     SEC_SOURCE_DEFINITIONS,
     CapitalSourceDefinition,
@@ -44,7 +55,16 @@ __all__ = [
     "InvestorIdentity",
     "OwnershipDeepDiveError",
     "PairwiseSetComparison",
+    "RequestsSECTransport",
     "SEC13FFilingMetadata",
+    "SECAcquisitionError",
+    "SECFairAccessClient",
+    "SECFetchReceipt",
+    "SECFrozenResource",
+    "SECRequestPolicy",
+    "SECTransport",
+    "SECTransportResponse",
+    "SECUserAgent",
     "SEC_SOURCE_DEFINITIONS",
     "SourceAdapter",
     "SourceManifest",
