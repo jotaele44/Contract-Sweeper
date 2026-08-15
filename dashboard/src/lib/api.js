@@ -75,3 +75,17 @@ export const getOwnershipDeepDiveStatus = () => fetchJSON('/deep-dive/ownership/
 })
 export const getOwnershipDeepDive = (ticker = 'BPOP') =>
   fetchJSON(`/deep-dive/ownership/${encodeURIComponent(ticker)}`, null)
+
+export const getCapitalControlSummary = () => fetchJSON('/capital-control/summary', {
+  file: 'capital_control_holdings.csv', present: false, rawObservations: 0,
+  effectiveObservations: 0, unresolvedAmendmentTies: 0, issuers: 0,
+  legalHolders: 0, investorFamilies: 0, ultimateParents: 0,
+})
+export const getCapitalControlHoldings = (f = {}) =>
+  fetchJSON(`/capital-control/holdings${qs(f)}`, [])
+export const compareCapitalControlIssuers = (issuerA, issuerB, identityLevel = 'legal_holder') =>
+  fetchJSON(`/capital-control/compare${qs({ issuer_a: issuerA, issuer_b: issuerB, identity_level: identityLevel })}`, {
+    issuerA, issuerB, identityLevel, intersection: [], aOnly: [], bOnly: [], union: [],
+    symmetricDifference: [], counts: { intersection: 0, aOnly: 0, bOnly: 0, union: 0, symmetricDifference: 0 },
+    unresolvedAmendmentTies: 0,
+  })
