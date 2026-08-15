@@ -2,7 +2,7 @@
 
 ## Scope
 
-This stacked vector extends the certified v0.1 runtime core with an authoritative-source registry, filing-denominator classifier, SEC fair-access acquisition/freezing controls, and the first source-specific parser: SEC Form 13F information-table XML.
+This stacked vector extends the certified v0.1 runtime core with an authoritative-source registry, filing-denominator classifier, SEC fair-access acquisition/freezing controls, complete-filing 13F materialization gates, and the first source-specific parser: SEC Form 13F information-table XML.
 
 It does **not** claim universal capital-market source exhaustion. The initial authoritative SEC source universe is bounded to four filing families that materially support capital/control analysis: Form 13F, Schedule 13D/13G, Forms 3/4/5, and Form N-PORT.
 
@@ -88,28 +88,58 @@ Safeguards:
 - `otherManager`, put/call, FIGI, raw value, raw class, and raw voting fields remain in `extra`;
 - amendments require explicit row-to-prior-observation supersession binding before canonical `AMENDED` status is emitted.
 
+## Complete-filing materialization gate
+
+`materialize_sec_13f()` and `scripts/materialize_sec_13f.py` require the SEC primary XML and information-table XML from the same EDGAR filing directory. A `CANONICAL` run additionally requires authoritative expected byte sizes for both files before the fetch starts.
+
+The materializer:
+
+- freezes both files independently and preserves separate SHA-256/size receipts;
+- parses `tableEntryTotal` and `tableValueTotal` from the primary filing XML;
+- parses every top-level `infoTable` row without aggregation;
+- requires parsed row count to equal the primary-declared table-entry total;
+- requires the sum of parsed `market_value` observations to equal the primary-declared table-value total exactly through decimal reconciliation;
+- preserves the raw files even if a downstream reconciliation fails, so a failed interpretation cannot erase acquired evidence;
+- emits `PASS` only for a `CANONICAL` target whose byte-size and row/value gates all close; otherwise the materialization remains `PROVISIONAL` or fails closed.
+
+The first real-world target is SEC accession `0001193125-26-226661`, filer CIK `0001067983`, filed 2026-05-15 for period 2026-03-31. The SEC filing index identifies exactly two public documents in the filing directory: `primary_doc.xml` at 5,555 bytes and the information table `53405.xml` at 45,259 bytes. The exact acquisition URLs are:
+
+- `https://www.sec.gov/Archives/edgar/data/1067983/000119312526226661/primary_doc.xml`
+- `https://www.sec.gov/Archives/edgar/data/1067983/000119312526226661/53405.xml`
+
+Reference execution:
+
+```bash
+python scripts/materialize_sec_13f.py \
+  --accession 0001193125-26-226661 \
+  --filer-cik 0001067983 \
+  --filing-date 2026-05-15 \
+  --period-of-report 2026-03-31 \
+  --primary-url https://www.sec.gov/Archives/edgar/data/1067983/000119312526226661/primary_doc.xml \
+  --information-table-url https://www.sec.gov/Archives/edgar/data/1067983/000119312526226661/53405.xml \
+  --expected-primary-size 5555 \
+  --expected-information-table-size 45259 \
+  --output-dir evidence/capital_control/sec/0001193125-26-226661 \
+  --contact YOUR_CONTACT
+```
+
+The command writes the raw XML manifestations plus `materialization.json`, which contains both retrieval identities, hashes, byte sizes, declared totals, parsed totals, and the canonical source manifest.
+
 ## First real-world materialization fixture
 
 The regression fixture `sec_13f_0001193125_26_226661_excerpt.xml` is a **derived two-row excerpt**, not a byte-identical copy of the complete SEC filing. It reproduces the first two `infoTable` observations from SEC accession `0001193125-26-226661`, filed 2026-05-15 for period 2026-03-31 by filer CIK `0001067983`.
 
-Because the fixture is an excerpt reconstructed from the authoritative filing, its manifest is deliberately `NONCANONICAL`. It proves parser behavior against real reported values but cannot certify the complete filing byte manifestation or the full 90-row filing denominator.
+Because the fixture is an excerpt reconstructed from the authoritative filing, its manifest is deliberately `NONCANONICAL`. It proves parser behavior against real reported values but cannot certify the complete filing byte manifestation or the full filing denominator.
 
-The complete filing must later be downloaded/frozen as raw bytes and hashed before any claim of complete filing materialization is promoted to `PASS`.
-
-## Current-head verification
-
-Code head `e93ff8a907ce3bd7f4758b04c2d7e39d94df4af8` corrected the final transport-protocol type issue. Documentation head `cd1e5895e3d178ba5c219ead101e4eaffc378187` records this certification boundary.
-
-All workflows triggered for `cd1e5895e3d178ba5c219ead101e4eaffc378187` passed: Tests, Type check, Lint, pre-commit, GUI capability parity including reachability E2E, Contract Sweeper CI, Federation template drift, Size guard, Lockfile drift, Diagnostic smoke, Top-form reproducibility, Production Status Gate, and PR Intake Router.
-
-The acquisition implementation reached this certified head only after correcting earlier CI findings: Ruff lambda/formatting drift and the requests-response/protocol structural typing mismatch. The latter was resolved by making the transport response contract read-only, matching the semantics required by the acquisition layer without weakening type checking.
+The complete filing still must be executed through the materializer on a network-enabled host before the filing itself is promoted to `PASS`.
 
 ## Certification boundary
 
-This vector is `PASS_BOUNDED` for source-registry contracts, SEC fair-access acquisition/freezing behavior, denominator classification behavior, and 13F parsing semantics. It does not certify:
+This vector is `PASS_BOUNDED` for source-registry contracts, SEC fair-access acquisition/freezing behavior, denominator classification behavior, 13F parsing semantics, and the complete-filing materialization/reconciliation implementation after CI passes. It does not by implementation alone certify:
 
-- complete SEC filing denominators for any issuer, manager, or date range;
-- complete bytes of accession `0001193125-26-226661`;
+- successful acquisition of the complete bytes of accession `0001193125-26-226661`;
+- the resulting SHA-256 values until a network-enabled materialization run is frozen;
+- complete SEC filing denominators for any issuer, manager, or date range beyond an explicitly enumerated universe;
 - beneficial ownership from 13F alone;
 - issuer legal identity from CUSIP alone;
 - current investor rankings;
