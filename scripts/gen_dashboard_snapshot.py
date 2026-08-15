@@ -13,13 +13,13 @@ if str(_ROOT) not in sys.path:
 
 from server.backend import main as backend  # noqa: E402
 from server.backend import campaign_finance as campaign  # noqa: E402
-from server.backend import capital_control as capital  # noqa: E402
 
 ENDPOINTS = {
     "/health": backend.health,
     "/contracts": backend.contracts,
     "/entities": backend.entities,
     "/edges": backend.edges,
+    "/edges?view=capital_control": lambda: backend.edges(view="capital_control", limit=1000),
     "/municipalities": backend.municipalities,
     "/stats": backend.stats,
     "/campaign-finance/summary": campaign.campaign_finance_summary,
@@ -28,8 +28,6 @@ ENDPOINTS = {
     ),
     "/campaign-finance/entities": lambda: campaign.campaign_finance_entities(limit=1000),
     "/campaign-finance/reports": lambda: campaign.campaign_finance_reports(limit=1000),
-    "/capital-control/summary": capital.capital_control_summary,
-    "/capital-control/holdings": lambda: capital.capital_control_holdings(limit=1000),
 }
 
 OUT = _ROOT / "dashboard" / "src" / "lib" / "snapshot.json"
