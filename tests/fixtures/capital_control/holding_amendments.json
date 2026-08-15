@@ -1,0 +1,11 @@
+[
+  {
+    "observation_id": "HOLD_original",
+    "source_record_id": "original"
+  },
+  {
+    "observation_id": "HOLD_amended",
+    "source_record_id": "amended",
+    "supersedes_observation_id": "HOLD_original"
+  }
+]
