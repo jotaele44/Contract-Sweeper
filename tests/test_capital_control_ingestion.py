@@ -35,7 +35,9 @@ class FixtureAdapter:
         }
 
 
-def _row(observation_id: str, source_record_id: str, source_id: str = "SRC_CAP_fixture") -> dict[str, Any]:
+def _row(
+    observation_id: str, source_record_id: str, source_id: str = "SRC_CAP_fixture"
+) -> dict[str, Any]:
     return {
         "observation_id": observation_id,
         "holder_id": "INV_holder",

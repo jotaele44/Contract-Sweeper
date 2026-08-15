@@ -34,9 +34,7 @@ def ingest(adapter: SourceAdapter) -> IngestionResult:
     for index, raw_row in enumerate(raw_rows):
         observation = validate_holding_observation(raw_row)
         if observation.source_id != manifest.source_id:
-            raise ValidationError(
-                f"row {index} source_id does not match manifest source_id"
-            )
+            raise ValidationError(f"row {index} source_id does not match manifest source_id")
         if observation.identity_status == "SUPERSEDED":
             raise ValidationError("SUPERSEDED identity status is derived, not an ingestion input")
         if observation.amendment_status == "SUPERSEDED":
