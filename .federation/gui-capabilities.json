@@ -190,6 +190,66 @@
       }
     },
     {
+      "id": "capital-control-runtime-core",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": false,
+      "rationale": "Canonical investor identity, source provenance, strict ingestion, supersession, and temporal analytics are backend infrastructure. They remain intentionally non-user-facing until a separately certified API and GUI vector is implemented.",
+      "backend": {
+        "files": [
+          "moneysweep/capital_control/__init__.py",
+          "moneysweep/capital_control/analytics.py",
+          "moneysweep/capital_control/identity.py",
+          "moneysweep/capital_control/ingestion.py",
+          "moneysweep/capital_control/models.py",
+          "moneysweep/capital_control/source_adapter.py",
+          "moneysweep/capital_control/supersession.py",
+          "moneysweep/capital_control/validation.py"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_capital_control_schema_contracts.py",
+          "tests/test_capital_control_models.py",
+          "tests/test_capital_control_identity.py",
+          "tests/test_capital_control_ingestion.py",
+          "tests/test_capital_control_supersession.py",
+          "tests/test_capital_control_analytics.py",
+          "tests/test_capital_control_validation_hardening.py"
+        ]
+      },
+      "candidate_ids": [
+        "python_module:moneysweep/capital_control/__init__.py",
+        "python_module:moneysweep/capital_control/analytics.py",
+        "python_module:moneysweep/capital_control/identity.py",
+        "python_module:moneysweep/capital_control/ingestion.py",
+        "python_module:moneysweep/capital_control/models.py",
+        "python_module:moneysweep/capital_control/source_adapter.py",
+        "python_module:moneysweep/capital_control/supersession.py",
+        "python_module:moneysweep/capital_control/validation.py",
+        "python_symbol:moneysweep/capital_control/analytics.py:PairwiseSetComparison",
+        "python_symbol:moneysweep/capital_control/analytics.py:compare_sets",
+        "python_symbol:moneysweep/capital_control/analytics.py:current_positions",
+        "python_symbol:moneysweep/capital_control/analytics.py:rollup_positions",
+        "python_symbol:moneysweep/capital_control/identity.py:IdentityCandidate",
+        "python_symbol:moneysweep/capital_control/identity.py:IdentityResolution",
+        "python_symbol:moneysweep/capital_control/identity.py:resolve_identity_candidates",
+        "python_symbol:moneysweep/capital_control/ingestion.py:IngestionResult",
+        "python_symbol:moneysweep/capital_control/ingestion.py:ingest",
+        "python_symbol:moneysweep/capital_control/models.py:HoldingObservation",
+        "python_symbol:moneysweep/capital_control/models.py:InvestorIdentity",
+        "python_symbol:moneysweep/capital_control/models.py:SourceManifest",
+        "python_symbol:moneysweep/capital_control/source_adapter.py:SourceAdapter",
+        "python_symbol:moneysweep/capital_control/source_adapter.py:stable_observation_fingerprint",
+        "python_symbol:moneysweep/capital_control/supersession.py:SupersessionResult",
+        "python_symbol:moneysweep/capital_control/supersession.py:apply_supersession",
+        "python_symbol:moneysweep/capital_control/validation.py:ValidationError",
+        "python_symbol:moneysweep/capital_control/validation.py:validate_holding_observation",
+        "python_symbol:moneysweep/capital_control/validation.py:validate_investor_identity",
+        "python_symbol:moneysweep/capital_control/validation.py:validate_source_manifest"
+      ]
+    },
+    {
       "id": "postmerge-staged-analysis-and-api-surfaces",
       "classification": "analysis",
       "status": "staged",
