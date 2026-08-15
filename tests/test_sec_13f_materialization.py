@@ -109,7 +109,9 @@ def _target(**overrides: object) -> SEC13FMaterializationTarget:
     return SEC13FMaterializationTarget(**values)  # type: ignore[arg-type]
 
 
-def _client(target: SEC13FMaterializationTarget, info_bytes: bytes = INFORMATION_XML) -> SECFairAccessClient:
+def _client(
+    target: SEC13FMaterializationTarget, info_bytes: bytes = INFORMATION_XML
+) -> SECFairAccessClient:
     transport = _Transport(
         [
             _response(target.primary_document_url, PRIMARY_XML),
@@ -140,13 +142,17 @@ def test_complete_pair_reconciles_and_certifies(tmp_path: Path) -> None:
     assert result.source_manifest["declared_table_entry_total"] == 2
 
 
-def test_canonical_materialization_requires_authoritative_file_sizes(tmp_path: Path) -> None:
+def test_canonical_materialization_requires_authoritative_file_sizes(
+    tmp_path: Path,
+) -> None:
     target = _target(expected_primary_size=None)
     with pytest.raises(SECAcquisitionError, match="expected sizes"):
         materialize_sec_13f(_client(target), target, tmp_path)
 
 
-def test_primary_and_information_table_must_share_filing_directory(tmp_path: Path) -> None:
+def test_primary_and_information_table_must_share_filing_directory(
+    tmp_path: Path,
+) -> None:
     target = _target(
         information_table_url=(
             "https://www.sec.gov/Archives/edgar/data/123456/DIFFERENT/table.xml"
@@ -156,11 +162,16 @@ def test_primary_and_information_table_must_share_filing_directory(tmp_path: Pat
         materialize_sec_13f(_client(target), target, tmp_path)
 
 
-def test_row_count_mismatch_fails_closed_after_preserving_frozen_bytes(tmp_path: Path) -> None:
+def test_row_count_mismatch_fails_closed_after_preserving_frozen_bytes(
+    tmp_path: Path,
+) -> None:
     one_row = INFORMATION_XML.replace(
         b"  <infoTable>\n    <nameOfIssuer>Issuer Two</nameOfIssuer>",
         b"  <ignoredTable>\n    <nameOfIssuer>Issuer Two</nameOfIssuer>",
-    ).replace(b"  </infoTable>\n</informationTable>", b"  </ignoredTable>\n</informationTable>")
+    ).replace(
+        b"  </infoTable>\n</informationTable>",
+        b"  </ignoredTable>\n</informationTable>",
+    )
     target = _target(expected_information_table_size=len(one_row))
 
     with pytest.raises(SECAcquisitionError, match="table-entry reconciliation failed"):
