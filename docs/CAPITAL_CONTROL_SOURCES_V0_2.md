@@ -96,9 +96,17 @@ Because the fixture is an excerpt reconstructed from the authoritative filing, i
 
 The complete filing must later be downloaded/frozen as raw bytes and hashed before any claim of complete filing materialization is promoted to `PASS`.
 
+## Current-head verification
+
+Code head `e93ff8a907ce3bd7f4758b04c2d7e39d94df4af8` corrected the final transport-protocol type issue. Documentation head `cd1e5895e3d178ba5c219ead101e4eaffc378187` records this certification boundary.
+
+All workflows triggered for `cd1e5895e3d178ba5c219ead101e4eaffc378187` passed: Tests, Type check, Lint, pre-commit, GUI capability parity including reachability E2E, Contract Sweeper CI, Federation template drift, Size guard, Lockfile drift, Diagnostic smoke, Top-form reproducibility, Production Status Gate, and PR Intake Router.
+
+The acquisition implementation reached this certified head only after correcting earlier CI findings: Ruff lambda/formatting drift and the requests-response/protocol structural typing mismatch. The latter was resolved by making the transport response contract read-only, matching the semantics required by the acquisition layer without weakening type checking.
+
 ## Certification boundary
 
-This vector can certify source-registry contracts, fair-access acquisition/freezing behavior, denominator classification behavior, and 13F parsing semantics after CI passes. It cannot yet certify:
+This vector is `PASS_BOUNDED` for source-registry contracts, SEC fair-access acquisition/freezing behavior, denominator classification behavior, and 13F parsing semantics. It does not certify:
 
 - complete SEC filing denominators for any issuer, manager, or date range;
 - complete bytes of accession `0001193125-26-226661`;
