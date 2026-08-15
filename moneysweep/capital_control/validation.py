@@ -115,6 +115,8 @@ def validate_holding_observation(payload: Mapping[str, Any]) -> HoldingObservati
         raise ValidationError("invalid amendment_status")
     _require_date("as_of_date", item.as_of_date)
     _require_date("report_date", item.report_date)
+    if item.report_date < item.as_of_date:
+        raise ValidationError("report_date cannot precede as_of_date")
     if not item.security_id and not item.security_class_raw:
         raise ValidationError("security_id or security_class_raw is required")
     if item.currency is not None and (
@@ -139,6 +141,8 @@ def validate_holding_observation(payload: Mapping[str, Any]) -> HoldingObservati
         raise ValidationError("source_document_sha256 must be 64 lowercase hex characters")
     if item.amendment_status == "AMENDED" and not item.supersedes_observation_id:
         raise ValidationError("AMENDED rows require supersedes_observation_id")
+    if item.supersedes_observation_id and item.amendment_status != "AMENDED":
+        raise ValidationError("supersedes_observation_id requires AMENDED status")
     return item
 
 

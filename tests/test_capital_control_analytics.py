@@ -82,3 +82,23 @@ def test_rollups_do_not_destroy_legal_holder_rows() -> None:
     assert set(family) == {"FAM_shared"}
     assert set(parent) == {"PARENT_shared"}
     assert len(family["FAM_shared"]) == 2
+
+
+def test_unbound_identity_cannot_drive_family_or_parent_rollup() -> None:
+    observation = _row("HOLD_a", "INV_a", "ISSUER_a", date(2026, 6, 30))
+    identities = {
+        "INV_a": InvestorIdentity(
+            investor_id="INV_a",
+            raw_name="Fund A",
+            identity_level="FUND_OR_VEHICLE",
+            identity_status="PROVISIONAL",
+            source_id="SRC_CAP_fixture",
+            legal_entity_id="LE_candidate",
+            investor_family_id="FAM_candidate",
+            ultimate_parent_id="PARENT_candidate",
+            binding_basis="HEURISTIC_DISCOVERY_ONLY",
+        )
+    }
+    assert set(rollup_positions([observation], identities, "LEGAL_HOLDER")) == {"INV_a"}
+    assert set(rollup_positions([observation], identities, "INVESTOR_FAMILY")) == {"INV_a"}
+    assert set(rollup_positions([observation], identities, "ULTIMATE_PARENT")) == {"INV_a"}

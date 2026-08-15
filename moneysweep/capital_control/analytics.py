@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, Mapping
 
-from .models import HoldingObservation, InvestorIdentity
+from .models import PASS_BINDING_BASES, HoldingObservation, InvestorIdentity
 from .supersession import apply_supersession
 
 
@@ -57,6 +57,10 @@ def current_positions(observations: Iterable[HoldingObservation]) -> tuple[Holdi
     )
 
 
+def _identity_is_bound(identity: InvestorIdentity) -> bool:
+    return identity.identity_status == "PASS" and identity.binding_basis in PASS_BINDING_BASES
+
+
 def rollup_positions(
     observations: Iterable[HoldingObservation],
     identities: Mapping[str, InvestorIdentity],
@@ -67,7 +71,7 @@ def rollup_positions(
     grouped: dict[str, list[HoldingObservation]] = {}
     for row in current_positions(observations):
         identity = identities.get(row.holder_id)
-        if identity is None:
+        if identity is None or not _identity_is_bound(identity):
             key = row.holder_id
         elif level == "LEGAL_HOLDER":
             key = identity.legal_entity_id or identity.investor_id
