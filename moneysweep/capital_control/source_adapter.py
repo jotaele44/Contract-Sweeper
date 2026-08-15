@@ -237,12 +237,14 @@ def _build_filing_denominator(
     if len(rows) != len(retained) + len(excluded):
         raise AssertionError("denominator arithmetic does not close")
 
-    key = lambda row: (row.filing_date, row.accession_number)
+    def _sort_key(row: _FilingIndexRecord) -> tuple[date, str]:
+        return row.filing_date, row.accession_number
+
     return _DenominatorResult(
         source_key=definition.source_key,
         input_count=len(rows),
-        retained=tuple(sorted(retained, key=key)),
-        excluded=tuple(sorted(excluded, key=key)),
+        retained=tuple(sorted(retained, key=_sort_key)),
+        excluded=tuple(sorted(excluded, key=_sort_key)),
         exclusion_counts=tuple(sorted(reasons.items())),
     )
 
