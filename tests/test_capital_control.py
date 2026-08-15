@@ -37,10 +37,12 @@ def row(
 
 
 def test_amendment_supersession_is_whole_row_and_deterministic():
-    frame = pd.DataFrame([
-        row("O2", "A", "H1", seq="1", pct="2.0"),
-        row("O1", "A", "H1", seq="0", pct="1.0"),
-    ])
+    frame = pd.DataFrame(
+        [
+            row("O2", "A", "H1", seq="1", pct="2.0"),
+            row("O1", "A", "H1", seq="0", pct="1.0"),
+        ]
+    )
     effective, ties = api._capital_effective(frame)
     assert ties == 0
     assert effective["observation_id"].tolist() == ["O2"]
@@ -48,21 +50,25 @@ def test_amendment_supersession_is_whole_row_and_deterministic():
 
 
 def test_tied_top_amendments_fail_closed_instead_of_order_selection():
-    frame = pd.DataFrame([
-        row("O1", "A", "H1", seq="1"),
-        row("O2", "A", "H1", seq="1"),
-    ])
+    frame = pd.DataFrame(
+        [
+            row("O1", "A", "H1", seq="1"),
+            row("O2", "A", "H1", seq="1"),
+        ]
+    )
     effective, ties = api._capital_effective(frame)
     assert effective.empty
     assert ties == 1
 
 
 def test_legal_holder_family_and_parent_are_distinct_identity_levels():
-    frame = pd.DataFrame([
-        row("A1", "A", "BLACKROCK-FUND-ADVISORS", family="BLACKROCK", parent="BLK"),
-        row("A2", "A", "BLACKROCK-ADVISORS-LLC", family="BLACKROCK", parent="BLK"),
-        row("B1", "B", "BLACKROCK-ADVISORS-LLC", family="BLACKROCK", parent="BLK"),
-    ])
+    frame = pd.DataFrame(
+        [
+            row("A1", "A", "BLACKROCK-FUND-ADVISORS", family="BLACKROCK", parent="BLK"),
+            row("A2", "A", "BLACKROCK-ADVISORS-LLC", family="BLACKROCK", parent="BLK"),
+            row("B1", "B", "BLACKROCK-ADVISORS-LLC", family="BLACKROCK", parent="BLK"),
+        ]
+    )
     legal = api._capital_compare(frame, "A", "B", "legal_holder")
     family = api._capital_compare(frame, "A", "B", "investor_family")
     parent = api._capital_compare(frame, "A", "B", "ultimate_parent")
