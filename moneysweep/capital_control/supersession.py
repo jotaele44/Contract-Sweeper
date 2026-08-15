@@ -68,7 +68,7 @@ def apply_supersession(observations: Iterable[HoldingObservation]) -> Supersessi
 
     active = tuple(row for row in rows if row.observation_id not in superseded_ids)
     superseded = tuple(
-        replace(row, identity_status="SUPERSEDED")
+        replace(row, amendment_status="SUPERSEDED")
         for row in rows
         if row.observation_id in superseded_ids
     )

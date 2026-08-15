@@ -28,13 +28,14 @@ def _row(
     )
 
 
-def test_amendment_supersedes_original_without_deleting_it() -> None:
+def test_amendment_supersedes_original_without_deleting_or_reclassifying_identity() -> None:
     original = _row("HOLD_original", "record-original")
     amended = _row("HOLD_amended", "record-amended", "HOLD_original")
     result = apply_supersession([original, amended])
     assert [row.observation_id for row in result.active] == ["HOLD_amended"]
     assert [row.observation_id for row in result.superseded] == ["HOLD_original"]
-    assert result.superseded[0].identity_status == "SUPERSEDED"
+    assert result.superseded[0].identity_status == "PASS"
+    assert result.superseded[0].amendment_status == "SUPERSEDED"
 
 
 def test_duplicate_source_record_fails_closed() -> None:
