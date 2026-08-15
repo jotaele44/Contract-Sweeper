@@ -9,6 +9,11 @@ from .deep_dive import (
 from .identity import IdentityCandidate, IdentityResolution, resolve_identity_candidates
 from .ingestion import IngestionResult, ingest
 from .models import HoldingObservation, InvestorIdentity, SourceManifest
+from .sec_materialization import (
+    SEC13FMaterializationResult,
+    SEC13FMaterializationTarget,
+    materialize_sec_13f,
+)
 from .source_adapter import (
     SEC_SOURCE_DEFINITIONS,
     CapitalSourceDefinition,
@@ -55,6 +60,8 @@ __all__ = [
     "PairwiseSetComparison",
     "RequestsSECTransport",
     "SEC13FFilingMetadata",
+    "SEC13FMaterializationResult",
+    "SEC13FMaterializationTarget",
     "SECAcquisitionError",
     "SECFairAccessClient",
     "SECFetchReceipt",
@@ -77,6 +84,7 @@ __all__ = [
     "ingest",
     "load_certification",
     "load_materialized_holdings",
+    "materialize_sec_13f",
     "resolve_identity_candidates",
     "rollup_positions",
     "source_definition",
