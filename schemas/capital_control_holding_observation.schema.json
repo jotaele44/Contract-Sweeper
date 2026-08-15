@@ -87,8 +87,14 @@
     "notes": {"type": ["string", "null"]}
   },
   "anyOf": [
-    {"required": ["security_id"]},
-    {"required": ["security_class_raw"]}
+    {
+      "required": ["security_id"],
+      "properties": {"security_id": {"type": "string", "minLength": 1}}
+    },
+    {
+      "required": ["security_class_raw"],
+      "properties": {"security_class_raw": {"type": "string", "minLength": 1}}
+    }
   ],
   "allOf": [
     {
@@ -96,7 +102,15 @@
         "properties": {"amendment_status": {"const": "AMENDED"}},
         "required": ["amendment_status"]
       },
-      "then": {"required": ["supersedes_observation_id"]}
+      "then": {
+        "required": ["supersedes_observation_id"],
+        "properties": {
+          "supersedes_observation_id": {
+            "type": "string",
+            "pattern": "^HOLD_[A-Za-z0-9_.:-]+$"
+          }
+        }
+      }
     }
   ],
   "additionalProperties": true

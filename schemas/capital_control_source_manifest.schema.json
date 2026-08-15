@@ -58,7 +58,13 @@
         "properties": {"byte_status": {"const": "FROZEN"}},
         "required": ["byte_status"]
       },
-      "then": {"required": ["raw_bytes_sha256", "raw_bytes_size"]}
+      "then": {
+        "required": ["raw_bytes_sha256", "raw_bytes_size"],
+        "properties": {
+          "raw_bytes_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "raw_bytes_size": {"type": "integer", "minimum": 0}
+        }
+      }
     }
   ],
   "additionalProperties": true
