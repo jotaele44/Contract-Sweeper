@@ -66,7 +66,9 @@ def _positive_int(raw: str | None, field: str) -> int:
     try:
         value = int(raw)
     except ValueError as exc:
-        raise SECAcquisitionError(f"primary 13F document has invalid {field}: {raw!r}") from exc
+        raise SECAcquisitionError(
+            f"primary 13F document has invalid {field}: {raw!r}"
+        ) from exc
     if value <= 0:
         raise SECAcquisitionError(f"primary 13F document {field} must be positive")
     return value
@@ -78,7 +80,9 @@ def _nonnegative_decimal(raw: str | None, field: str) -> Decimal:
     try:
         value = Decimal(raw)
     except InvalidOperation as exc:
-        raise SECAcquisitionError(f"primary 13F document has invalid {field}: {raw!r}") from exc
+        raise SECAcquisitionError(
+            f"primary 13F document has invalid {field}: {raw!r}"
+        ) from exc
     if value < 0:
         raise SECAcquisitionError(f"primary 13F document {field} must be nonnegative")
     return value
@@ -100,11 +104,17 @@ def _validate_target(target: SEC13FMaterializationTarget) -> None:
     table = urlparse(target.information_table_url)
     for parsed in (primary, table):
         if parsed.scheme != "https" or parsed.hostname not in {"www.sec.gov", "sec.gov"}:
-            raise SECAcquisitionError("13F materialization URLs must use SEC HTTPS archives")
+            raise SECAcquisitionError(
+                "13F materialization URLs must use SEC HTTPS archives"
+            )
         if not parsed.path.startswith("/Archives/edgar/data/"):
-            raise SECAcquisitionError("13F materialization URLs must use SEC EDGAR archive paths")
+            raise SECAcquisitionError(
+                "13F materialization URLs must use SEC EDGAR archive paths"
+            )
     if primary.path.rsplit("/", 1)[0] != table.path.rsplit("/", 1)[0]:
-        raise SECAcquisitionError("primary document and information table must share one filing directory")
+        raise SECAcquisitionError(
+            "primary document and information table must share one filing directory"
+        )
 
     if target.expected_primary_size is not None and target.expected_primary_size <= 0:
         raise SECAcquisitionError("expected_primary_size must be positive")
@@ -137,16 +147,22 @@ def _sum_reported_values(records: tuple[dict[str, object], ...]) -> Decimal:
     for index, record in enumerate(records, start=1):
         extra = record.get("extra")
         if not isinstance(extra, Mapping):
-            raise SECAcquisitionError(f"13F row {index} has no preserved raw value metadata")
+            raise SECAcquisitionError(
+                f"13F row {index} has no preserved raw value metadata"
+            )
         raw_value = extra.get("raw_value")
         raw_scale = extra.get("value_scale")
         if raw_value in (None, "") or raw_scale is None:
-            raise SECAcquisitionError(f"13F row {index} has incomplete raw value metadata")
+            raise SECAcquisitionError(
+                f"13F row {index} has incomplete raw value metadata"
+            )
         try:
             value = Decimal(str(raw_value))
             scale = Decimal(str(raw_scale))
         except InvalidOperation as exc:
-            raise SECAcquisitionError(f"13F row {index} has invalid raw value metadata") from exc
+            raise SECAcquisitionError(
+                f"13F row {index} has invalid raw value metadata"
+            ) from exc
         if value < 0 or scale <= 0:
             raise SECAcquisitionError(f"13F row {index} has invalid raw value or scale")
         total += value * scale
