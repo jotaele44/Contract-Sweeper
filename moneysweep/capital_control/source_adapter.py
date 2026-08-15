@@ -394,7 +394,9 @@ class _FrozenSEC13FAdapter:
                 supersedes = self._metadata.supersedes_by_source_record_id.get(source_record_id)
 
             security_id = f"CUSIP:{cusip}" if cusip else None
-            issuer_id = f"SEC_13F_SECURITY:{cusip}" if cusip else f"SEC_13F_UNRESOLVED_ISSUER:{index}"
+            issuer_id = (
+                f"SEC_13F_SECURITY:{cusip}" if cusip else f"SEC_13F_UNRESOLVED_ISSUER:{index}"
+            )
             observation_hash = hashlib.sha256(source_record_id.encode("utf-8")).hexdigest()[:20]
             shares = _number(shares_raw, "sshPrnamt")
             market_value = _number(value_raw, "value")
