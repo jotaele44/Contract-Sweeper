@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep.pr/schemas/capital_control_holding_observation.schema.json",
+  "title": "Capital and Control Holding Observation",
+  "type": "object",
+  "required": [
+    "observation_id",
+    "holder_id",
+    "issuer_id",
+    "position_class",
+    "as_of_date",
+    "report_date",
+    "source_id",
+    "source_record_id",
+    "identity_status"
+  ],
+  "properties": {
+    "observation_id": {"type": "string", "pattern": "^HOLD_[A-Za-z0-9_.:-]+$"},
+    "holder_id": {"type": "string", "pattern": "^INV_[A-Za-z0-9_.:-]+$"},
+    "issuer_id": {"type": "string", "minLength": 1},
+    "security_id": {"type": ["string", "null"]},
+    "security_class_raw": {"type": ["string", "null"]},
+    "position_class": {
+      "type": "string",
+      "enum": [
+        "BENEFICIAL_OWNERSHIP",
+        "INVESTMENT_DISCRETION",
+        "VOTING_AUTHORITY",
+        "DISPOSITIVE_AUTHORITY",
+        "DIRECT_EQUITY",
+        "INDIRECT_EQUITY",
+        "FUND_HOLDING",
+        "NOMINEE",
+        "CUSTODY",
+        "TRUST",
+        "INSIDER",
+        "PARENT_CONTROL",
+        "DEBT",
+        "LENDING",
+        "BONDHOLDING",
+        "GUARANTEE",
+        "LIEN",
+        "MORTGAGE",
+        "COLLATERAL",
+        "JV_INTEREST",
+        "PRIVATE_EQUITY_SPONSORSHIP",
+        "UNKNOWN"
+      ]
+    },
+    "direct_or_indirect": {
+      "type": "string",
+      "enum": ["DIRECT", "INDIRECT", "MIXED", "UNKNOWN"]
+    },
+    "shares": {"type": ["number", "null"], "minimum": 0},
+    "principal_amount": {"type": ["number", "null"], "minimum": 0},
+    "market_value": {"type": ["number", "null"], "minimum": 0},
+    "currency": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$"},
+    "percent_class": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+    "percent_issuer": {"type": ["number", "null"], "minimum": 0, "maximum": 100},
+    "sole_voting_power": {"type": ["number", "null"], "minimum": 0},
+    "shared_voting_power": {"type": ["number", "null"], "minimum": 0},
+    "sole_dispositive_power": {"type": ["number", "null"], "minimum": 0},
+    "shared_dispositive_power": {"type": ["number", "null"], "minimum": 0},
+    "beneficial_owner_status": {"type": "string", "enum": ["YES", "NO", "UNKNOWN"]},
+    "investment_adviser_status": {"type": "string", "enum": ["YES", "NO", "UNKNOWN"]},
+    "control_status": {"type": "string", "enum": ["YES", "NO", "UNKNOWN"]},
+    "as_of_date": {"type": "string", "format": "date"},
+    "report_date": {"type": "string", "format": "date"},
+    "source_id": {"type": "string", "minLength": 1},
+    "source_record_id": {"type": "string", "minLength": 1},
+    "source_document_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "amendment_status": {
+      "type": "string",
+      "enum": ["ORIGINAL", "AMENDED", "SUPERSEDED", "UNKNOWN"]
+    },
+    "supersedes_observation_id": {
+      "type": ["string", "null"],
+      "pattern": "^HOLD_[A-Za-z0-9_.:-]+$"
+    },
+    "identity_status": {
+      "type": "string",
+      "enum": ["PASS", "PROVISIONAL", "CANDIDATE_NOT_IDENTITY", "UNRESOLVED", "SUPERSEDED"]
+    },
+    "notes": {"type": ["string", "null"]}
+  },
+  "anyOf": [
+    {"required": ["security_id"]},
+    {"required": ["security_class_raw"]}
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {"amendment_status": {"const": "SUPERSEDED"}},
+        "required": ["amendment_status"]
+      },
+      "then": {"required": ["supersedes_observation_id"]}
+    }
+  ],
+  "additionalProperties": true
+}
