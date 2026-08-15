@@ -41,7 +41,7 @@ EXPECTED = {
     "municipalities": ["municipality_id", "name", "region"],
 }
 
-app = FastAPI(title="moneysweep-pr API", version="0.2.0")
+app = FastAPI(title="moneysweep-pr API", version="0.3.0")
 
 # Dev CORS. Defaults to the Vite dev origins; override with a comma-separated
 # MONEYSWEEP_CORS_ORIGINS when the frontend runs on a different port/host.
@@ -279,10 +279,12 @@ def stats():
 # still boots when their materialized datasets are absent.
 from server.backend.api_keys import router as api_keys_router  # noqa: E402
 from server.backend.campaign_finance import router as campaign_finance_router  # noqa: E402
+from server.backend.capital_control import router as capital_control_router  # noqa: E402
 from server.backend.government_changes import router as government_changes_router  # noqa: E402
 from server.backend.ownership_api import router as ownership_router  # noqa: E402
 
 app.include_router(api_keys_router)
 app.include_router(campaign_finance_router)
+app.include_router(capital_control_router)
 app.include_router(government_changes_router)
 app.include_router(ownership_router)
