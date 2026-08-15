@@ -230,13 +230,25 @@ def _capital_summary() -> dict:
         "effectiveObservations": int(len(effective)),
         "unresolvedAmendmentTies": unresolved,
         "issuers": int(effective["issuer_id"].nunique()) if not effective.empty else 0,
-        "legalHolders": int(effective["holder_legal_entity_id"].nunique()) if not effective.empty else 0,
-        "investorFamilies": int(effective["investor_family_id"].replace("", pd.NA).nunique()) if not effective.empty and "investor_family_id" in effective else 0,
-        "ultimateParents": int(effective["ultimate_parent_id"].replace("", pd.NA).nunique()) if not effective.empty and "ultimate_parent_id" in effective else 0,
+        "legalHolders": (
+            int(effective["holder_legal_entity_id"].nunique()) if not effective.empty else 0
+        ),
+        "investorFamilies": (
+            int(effective["investor_family_id"].replace("", pd.NA).nunique())
+            if not effective.empty and "investor_family_id" in effective
+            else 0
+        ),
+        "ultimateParents": (
+            int(effective["ultimate_parent_id"].replace("", pd.NA).nunique())
+            if not effective.empty and "ultimate_parent_id" in effective
+            else 0
+        ),
     }
 
 
-def _capital_compare(frame: pd.DataFrame, issuer_a: str, issuer_b: str, identity_level: str) -> dict:
+def _capital_compare(
+    frame: pd.DataFrame, issuer_a: str, issuer_b: str, identity_level: str
+) -> dict:
     fields = {
         "legal_holder": "holder_legal_entity_id",
         "investor_family": "investor_family_id",
@@ -250,8 +262,16 @@ def _capital_compare(frame: pd.DataFrame, issuer_a: str, issuer_b: str, identity
         a: set[str] = set()
         b: set[str] = set()
     else:
-        a = {str(v) for v in effective.loc[effective["issuer_id"] == issuer_a, field] if str(v).strip()}
-        b = {str(v) for v in effective.loc[effective["issuer_id"] == issuer_b, field] if str(v).strip()}
+        a = {
+            str(v)
+            for v in effective.loc[effective["issuer_id"] == issuer_a, field]
+            if str(v).strip()
+        }
+        b = {
+            str(v)
+            for v in effective.loc[effective["issuer_id"] == issuer_b, field]
+            if str(v).strip()
+        }
     return {
         "intersection": sorted(a & b),
         "aOnly": sorted(a - b),
@@ -383,7 +403,10 @@ def edges(
                 frame = frame[mask]
         if "as_of_date" in frame:
             frame = frame.sort_values("as_of_date", ascending=False, kind="stable")
-        return [_capital_record(row) for _, row in frame.head(max(1, min(limit, 5000))).iterrows()]
+        return [
+            _capital_record(row)
+            for _, row in frame.head(max(1, min(limit, 5000))).iterrows()
+        ]
 
     names = _entity_name_map()
     munis = _muni_name_map()
