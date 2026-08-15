@@ -9,7 +9,20 @@ from .deep_dive import (
 from .identity import IdentityCandidate, IdentityResolution, resolve_identity_candidates
 from .ingestion import IngestionResult, ingest
 from .models import HoldingObservation, InvestorIdentity, SourceManifest
-from .source_adapter import SourceAdapter, stable_observation_fingerprint
+from .source_adapter import (
+    SEC_SOURCE_DEFINITIONS,
+    CapitalSourceDefinition,
+    DenominatorResult,
+    FilingIndexRecord,
+    FrozenSEC13FAdapter,
+    SEC13FFilingMetadata,
+    SourceAdapter,
+    assert_source_registry_invariants,
+    build_filing_denominator,
+    source_definition,
+    source_for_form_type,
+    stable_observation_fingerprint,
+)
 from .supersession import SupersessionResult, apply_supersession
 from .validation import (
     ValidationError,
@@ -19,7 +32,11 @@ from .validation import (
 )
 
 __all__ = [
+    "CapitalSourceDefinition",
     "CertifiedOwnershipScope",
+    "DenominatorResult",
+    "FilingIndexRecord",
+    "FrozenSEC13FAdapter",
     "HoldingObservation",
     "IdentityCandidate",
     "IdentityResolution",
@@ -27,11 +44,15 @@ __all__ = [
     "InvestorIdentity",
     "OwnershipDeepDiveError",
     "PairwiseSetComparison",
+    "SEC13FFilingMetadata",
+    "SEC_SOURCE_DEFINITIONS",
     "SourceAdapter",
     "SourceManifest",
     "SupersessionResult",
     "ValidationError",
     "apply_supersession",
+    "assert_source_registry_invariants",
+    "build_filing_denominator",
     "build_ownership_deep_dive",
     "compare_sets",
     "current_positions",
@@ -40,6 +61,8 @@ __all__ = [
     "load_materialized_holdings",
     "resolve_identity_candidates",
     "rollup_positions",
+    "source_definition",
+    "source_for_form_type",
     "stable_observation_fingerprint",
     "validate_holding_observation",
     "validate_investor_identity",
