@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -130,16 +131,25 @@ def _parse_primary_summary(primary_bytes: bytes) -> tuple[int, Decimal]:
     return entry_total, value_total
 
 
-def _sum_market_values(records: tuple[dict[str, object], ...]) -> Decimal:
+def _sum_reported_values(records: tuple[dict[str, object], ...]) -> Decimal:
+    """Reconcile from preserved SEC value strings so floats never affect certification arithmetic."""
     total = Decimal(0)
     for index, record in enumerate(records, start=1):
-        raw = record.get("market_value")
-        if raw is None:
-            raise SECAcquisitionError(f"13F row {index} has no market_value")
+        extra = record.get("extra")
+        if not isinstance(extra, Mapping):
+            raise SECAcquisitionError(f"13F row {index} has no preserved raw value metadata")
+        raw_value = extra.get("raw_value")
+        raw_scale = extra.get("value_scale")
+        if raw_value in (None, "") or raw_scale is None:
+            raise SECAcquisitionError(f"13F row {index} has incomplete raw value metadata")
         try:
-            total += Decimal(str(raw))
+            value = Decimal(str(raw_value))
+            scale = Decimal(str(raw_scale))
         except InvalidOperation as exc:
-            raise SECAcquisitionError(f"13F row {index} has invalid market_value") from exc
+            raise SECAcquisitionError(f"13F row {index} has invalid raw value metadata") from exc
+        if value < 0 or scale <= 0:
+            raise SECAcquisitionError(f"13F row {index} has invalid raw value or scale")
+        total += value * scale
     return total
 
 
@@ -183,7 +193,7 @@ def materialize_sec_13f(
     adapter = FrozenSEC13FAdapter(information_bytes, metadata)
     records = tuple(dict(record) for record in adapter.iter_records())
     parsed_entry_total = len(records)
-    parsed_value_total = _sum_market_values(records)
+    parsed_value_total = _sum_reported_values(records)
 
     if parsed_entry_total != declared_entry_total:
         raise SECAcquisitionError(
