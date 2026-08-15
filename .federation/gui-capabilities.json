@@ -685,7 +685,7 @@
       "classification": "internal",
       "status": "active",
       "requires_terminal": false,
-      "rationale": "Canonical investor identity, source provenance, strict ingestion, supersession, and temporal analytics are backend infrastructure. They remain intentionally non-user-facing until a separately certified API and GUI vector is implemented.",
+      "rationale": "Canonical investor identity, source provenance, strict ingestion, supersession, temporal analytics, and authoritative SEC acquisition/materialization are backend/operator infrastructure. They remain intentionally non-user-facing until a separately certified API and GUI vector is implemented.",
       "backend": {
         "files": [
           "moneysweep/capital_control/__init__.py",
@@ -693,9 +693,24 @@
           "moneysweep/capital_control/identity.py",
           "moneysweep/capital_control/ingestion.py",
           "moneysweep/capital_control/models.py",
+          "moneysweep/capital_control/sec_materialization.py",
           "moneysweep/capital_control/source_adapter.py",
           "moneysweep/capital_control/supersession.py",
           "moneysweep/capital_control/validation.py"
+        ],
+        "symbols": [
+          "moneysweep/capital_control/sec_materialization.py:SEC13FMaterializationResult",
+          "moneysweep/capital_control/sec_materialization.py:SEC13FMaterializationTarget",
+          "moneysweep/capital_control/sec_materialization.py:materialize_sec_13f"
+        ]
+      },
+      "analysis": {
+        "files": [
+          "scripts/materialize_sec_13f.py"
+        ],
+        "symbols": [
+          "scripts/materialize_sec_13f.py:build_parser",
+          "scripts/materialize_sec_13f.py:main"
         ]
       },
       "tests": {
@@ -706,7 +721,8 @@
           "tests/test_capital_control_ingestion.py",
           "tests/test_capital_control_supersession.py",
           "tests/test_capital_control_analytics.py",
-          "tests/test_capital_control_validation_hardening.py"
+          "tests/test_capital_control_validation_hardening.py",
+          "tests/test_sec_13f_materialization.py"
         ]
       },
       "candidate_ids": [
