@@ -105,10 +105,17 @@ class _SECRequestPolicy:
 
 
 class _SECTransportResponse(Protocol):
-    status_code: int
-    headers: Mapping[str, str]
-    content: bytes
-    url: str
+    @property
+    def status_code(self) -> int: ...
+
+    @property
+    def headers(self) -> Mapping[str, str]: ...
+
+    @property
+    def content(self) -> bytes: ...
+
+    @property
+    def url(self) -> str: ...
 
 
 class _SECTransport(Protocol):
