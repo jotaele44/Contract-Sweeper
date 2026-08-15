@@ -116,9 +116,7 @@ def test_user_agent_requires_declared_application_and_contact() -> None:
     with pytest.raises(SECAcquisitionError, match="application and contact"):
         SECUserAgent("MoneySweepPR/0.2", " ").header_value()
     with pytest.raises(SECAcquisitionError, match="line breaks"):
-        SECUserAgent(
-            "MoneySweepPR/0.2\nInjected", "research@example.org"
-        ).header_value()
+        SECUserAgent("MoneySweepPR/0.2\nInjected", "research@example.org").header_value()
 
 
 def test_fetch_declares_user_agent_and_preserves_provenance() -> None:
@@ -138,10 +136,7 @@ def test_fetch_declares_user_agent_and_preserves_provenance() -> None:
     assert receipt.content_type == "text/xml"
     assert receipt.attempts == 1
     assert receipt.retrieval_utc == _now()
-    assert (
-        transport.calls[0][1]["User-Agent"]
-        == "MoneySweepPR/0.2 research@example.org"
-    )
+    assert transport.calls[0][1]["User-Agent"] == "MoneySweepPR/0.2 research@example.org"
     assert transport.calls[0][2] == 30.0
 
 
@@ -263,9 +258,7 @@ def test_exhausted_transport_failures_preserve_failure_boundary() -> None:
 def test_content_type_size_and_hash_mismatch_fail_closed() -> None:
     with pytest.raises(SECAcquisitionError, match="content type"):
         _client(
-            _Transport(
-                [_response(b"html", headers={"Content-Type": "text/html"})]
-            )
+            _Transport([_response(b"html", headers={"Content-Type": "text/html"})])
         ).fetch_bytes("https://www.sec.gov/Archives/file.xml")
 
     with pytest.raises(SECAcquisitionError, match="byte-size mismatch"):
@@ -281,7 +274,9 @@ def test_content_type_size_and_hash_mismatch_fail_closed() -> None:
 
 
 def test_non_utc_retrieval_clock_fails_closed() -> None:
-    non_utc = lambda: datetime(2026, 8, 15, 12, 15, tzinfo=timezone(timedelta(hours=1)))
+    def non_utc() -> datetime:
+        return datetime(2026, 8, 15, 12, 15, tzinfo=timezone(timedelta(hours=1)))
+
     client = _client(_Transport([_response(b"ok")]), now_utc=non_utc)
     with pytest.raises(SECAcquisitionError, match="timezone-aware UTC"):
         client.fetch_bytes("https://www.sec.gov/Archives/file.xml")
