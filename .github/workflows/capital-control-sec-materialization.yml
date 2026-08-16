@@ -1,0 +1,77 @@
+name: Capital Control SEC Materialization
+
+on:
+  push:
+    branches:
+      - codex/capital-control-sources-v0-2
+    paths:
+      - .github/workflows/capital-control-sec-materialization.yml
+      - moneysweep/capital_control/**
+      - scripts/materialize_sec_13f.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  materialize-sec-13f:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.11"
+
+      - name: Install acquisition dependency
+        run: python -m pip install 'requests>=2.34.2'
+
+      - name: Materialize Berkshire Hathaway 2026 Q1 Form 13F
+        env:
+          PYTHONPATH: .
+        run: |
+          python scripts/materialize_sec_13f.py \
+            --accession 0001193125-26-226661 \
+            --filer-cik 0001067983 \
+            --filing-date 2026-05-15 \
+            --period-of-report 2026-03-31 \
+            --primary-url https://www.sec.gov/Archives/edgar/data/1067983/000119312526226661/primary_doc.xml \
+            --information-table-url https://www.sec.gov/Archives/edgar/data/1067983/000119312526226661/53405.xml \
+            --expected-primary-size 5555 \
+            --expected-information-table-size 45259 \
+            --output-dir artifacts/capital_control/sec/0001193125-26-226661 \
+            --application MoneySweepPR/0.2 \
+            --contact jotaele44@users.noreply.github.com \
+            --value-scale 1000 \
+            --canonicality CANONICAL \
+            --max-requests-per-second 2
+
+      - name: Verify materialization report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path('artifacts/capital_control/sec/0001193125-26-226661/materialization.json')
+              .read_text(encoding='utf-8')
+          )
+          assert report['certification_status'] == 'PASS'
+          assert report['primary_document']['byte_size'] == 5555
+          assert report['information_table']['byte_size'] == 45259
+          reconciliation = report['reconciliation']
+          assert reconciliation['declared_table_entry_total'] == reconciliation['parsed_table_entry_total']
+          assert reconciliation['declared_table_value_total'] == reconciliation['parsed_table_value_total']
+          print(json.dumps(report, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload frozen evidence
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: capital-control-sec-13f-0001193125-26-226661
+          path: artifacts/capital_control/sec/0001193125-26-226661/
+          if-no-files-found: error
+          retention-days: 30
