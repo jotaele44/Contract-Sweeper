@@ -474,6 +474,32 @@
         "analysis_symbol:scripts/compare_entity_products.py:main",
         "cli_surface:scripts/compare_entity_products.py"
       ]
+    },
+    {
+      "id": "rdc-civil-claims-ingestion-terminal-only",
+      "reason": "scripts/scrape_rdc_demandas.py and scripts/enrich_rdc_details.py are data-acquisition producers for the rdc_demandas_civiles source (Registro de Demandas Civiles, Ley 1-2003). They render nothing and hold no user workflow: they write data/staging/processed/pr_rdc_demandas_civiles.csv and pr_rdc_demandas_parties.csv, which reach the operator through the existing public-money-intelligence-dashboard capability like every other ingested source. The whole scripts/scrape_*.py and scripts/download_*.py ingestion tier is terminal-only and baseline-grandfathered; giving one new scraper a bespoke GUI would not close that gap and is out of scope for adding a source. The detail pass is additionally operator-paced by design (~44,700 requests against a small government host, bounded per run), so it is an operator-run batch job rather than an interactive workflow. Excepted until the ingestion tier as a whole gets a GUI run/progress surface, which is the tracked postmerge parity reconciliation.",
+      "owner": "jotaele44",
+      "tracking": "https://github.com/jotaele44/moneysweep-pr/pull/480",
+      "expires_on": "2026-11-30",
+      "candidate_ids": [
+        "analysis_module:scripts/enrich_rdc_details.py",
+        "analysis_module:scripts/scrape_rdc_demandas.py",
+        "analysis_symbol:scripts/enrich_rdc_details.py:apply_detail",
+        "analysis_symbol:scripts/enrich_rdc_details.py:main",
+        "analysis_symbol:scripts/enrich_rdc_details.py:parse_detail",
+        "analysis_symbol:scripts/enrich_rdc_details.py:run",
+        "analysis_symbol:scripts/enrich_rdc_details.py:select_pending",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:case_uid",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:declared_last_page",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:fetch_all_records",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:flag_ambiguous_case_numbers",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:main",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:parse_caption",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:parse_rows",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:run",
+        "cli_surface:scripts/enrich_rdc_details.py",
+        "cli_surface:scripts/scrape_rdc_demandas.py"
+      ]
     }
   ]
 }

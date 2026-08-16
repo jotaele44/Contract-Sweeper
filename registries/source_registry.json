@@ -585,6 +585,24 @@
       "notes": "ASG registered-bidder registry (RUL \u2014 Registro \u00danico de Licitadores, and RUP \u2014 Registro \u00danico de Proveedores), ~4,700 vendors over 47 pages. Each vendor carries a Licitador ID, a stable government-issued identifier for a PR government bidder that no other registered source provides; it is registered as the asg_licitador_id scheme in the entity-resolution identifier hierarchy. Also yields a fiscal-address municipality for geo attribution. Emits the shared contractor-reference schema (CONTRACTOR_COLUMNS) plus geo_zip.\n"
     },
     {
+      "source_id": "rdc_demandas_civiles",
+      "family": "territorial",
+      "required": false,
+      "authentication": "none",
+      "endpoint_url": "https://justicia1.justicia.pr.gov/rdc",
+      "producer_script": "scripts/scrape_rdc_demandas.py",
+      "expected_outputs": [
+        "data/staging/processed/pr_rdc_demandas_civiles.csv",
+        "data/staging/processed/pr_rdc_demandas_parties.csv"
+      ],
+      "schema_version": "r5_v1",
+      "validation_threshold": {
+        "min_rows": 1
+      },
+      "update_cadence": "monthly",
+      "notes": "Registro de Demandas Civiles \u2014 the registry the Departamento de Justicia must publish under Ley N\u00fam. 1-2003: every civil claim filed against a government agency, instrumentality or municipality, with the amount demanded (Cuant\u00eda Reclamada) and the amount awarded (Cantidad Adjudicada). This is public money leaving the treasury through the courts rather than through a contract \u2014 no other registered source covers it. ~44,700 cases over 7,451 pages; no API, no bulk export.\nTWO-STAGE LANE. scripts/scrape_rdc_demandas.py sweeps the list view. scripts/enrich_rdc_details.py is a separate resumable pass over the per-case detail pages, which are the ONLY place the defendant agency (Demandado) is a structured field \u2014 that field is the join to government_entity_registry. A full enrichment is ~44,700 further requests against a small government host, so it is bounded per run (--limit / --max-runtime) and must never be wired into a blocking pipeline stage.\nKNOWN GAP: N\u00fam del Caso is not unique (observed values include \"09\", \"105\", \"1000\"), yet the detail route keys on it alone, so the app may serve the wrong case. Rows are keyed by the surrogate rdc_case_uid and sharing rows are flagged case_number_ambiguous; the detail pass skips them unless --include-ambiguous is given, and marks anything so fetched review_status=ambiguous_key rather than verified.\nThe registry renders no FILING date \u2014 only a resolution date, and only once a case is resolved. first_seen_at is carried forward per case as an honest upper bound and must not be read as the filing date.\nPII: captions and party tables name private individuals. This is an official public registry published under Ley 1-2003, the same posture as the cabilderos and campaign-finance sources.\n"
+    },
+    {
       "source_id": "aafaf",
       "family": "territorial",
       "required": false,

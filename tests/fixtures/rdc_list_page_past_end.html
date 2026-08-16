@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<!-- Trimmed capture of https://justicia1.justicia.pr.gov/rdc?pg=99999 (2026-08-16).
+     Requesting a page past the end answers HTTP 200 with the table headers and
+     an EMPTY tbody rather than clamping to the last page, which is what lets
+     the sweep terminate on "no rows" instead of needing a repeated-page check.
+     Note also that the pagination block on an out-of-range page carries no
+     "Ultima" link, so last-page detection must tolerate its absence.
+-->
+<html lang="es">
+<head><title>Home Page - RegDemCivil</title></head>
+<body>
+<table class="table table-hover">
+        <thead>
+        <tr>
+                <th>Caso</th>
+                <th>Núm del Caso</th>
+                <th>Causa de Acción</th>
+            <th>Cuantía Reclamada</th>
+            <th>Cantidad Adjudicada</th>
+            <th>Resolución final</th>
+            <th>Fecha Resolución Final</th>
+            <th>Disposición</th>
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+<ul class="pagination justify-content-end">
+                <li class="page-item">
+                    <a class="page-link" href="/rdc?pg=1">Primera</a>
+                </li>
+                <li>
+                    <a class="page-link" href="/rdc?pg=99998">Anterior</a>
+                </li>
+        </ul>
+</body>
+</html>
