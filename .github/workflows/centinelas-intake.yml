@@ -29,7 +29,6 @@ jobs:
           mkdir -p intake
           printf '%s' "$SIGNAL" > "intake/${ITEM_ID}.json"
           echo "Wrote intake/${ITEM_ID}.json"
-          cat "intake/${ITEM_ID}.json"
       - name: Assert isolated checkout
         run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
       - name: Install dependencies
@@ -39,7 +38,9 @@ jobs:
       - name: Ingest Centinelas signals
         run: python3 scripts/ingest_centinelas_signals.py
       - name: Regenerate federation package
-        run: python3 scripts/federation_export.py --mode test
+        run: |
+          python3 scripts/federation_export.py --mode test
+          python3 scripts/append_project_assertions_to_federation.py
       - name: Commit refreshed federation package
         id: commit
         run: |
