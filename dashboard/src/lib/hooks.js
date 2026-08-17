@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   getHealth, getContracts, getEntities, getEdges, getMunicipalities, getStats,
+  getGovernmentChanges, getGovernmentChangeCandidates, getGovernmentChangeSummary,
   getCampaignFinanceSummary, getCampaignFinanceContributions,
   getCampaignFinanceEntities, getCampaignFinanceReports,
 } from '@/lib/api'
@@ -14,6 +15,12 @@ export const useEntities = (filters = {}) =>
 export const useEdges = (filters = {}) =>
   useQuery({ queryKey: ['edges', filters], queryFn: () => getEdges(filters) })
 export const useMunicipalities = () => useQuery({ queryKey: ['municipalities'], queryFn: getMunicipalities })
+export const useGovernmentChanges = (filters = {}) =>
+  useQuery({ queryKey: ['government-changes', filters], queryFn: () => getGovernmentChanges(filters) })
+export const useGovernmentChangeCandidates = (filters = {}) =>
+  useQuery({ queryKey: ['government-change-candidates', filters], queryFn: () => getGovernmentChangeCandidates(filters) })
+export const useGovernmentChangeSummary = () =>
+  useQuery({ queryKey: ['government-change-summary'], queryFn: getGovernmentChangeSummary })
 
 export const useCampaignFinanceSummary = () =>
   useQuery({ queryKey: ['campaign-finance-summary'], queryFn: getCampaignFinanceSummary })
