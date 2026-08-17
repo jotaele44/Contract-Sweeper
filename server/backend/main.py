@@ -278,5 +278,7 @@ def stats():
 # Campaign-finance is loaded lazily from staging outputs so the core dashboard
 # still boots when optional political-finance datasets are absent.
 from server.backend.campaign_finance import router as campaign_finance_router  # noqa: E402
+from server.backend.government_changes import router as government_changes_router  # noqa: E402
 
 app.include_router(campaign_finance_router)
+app.include_router(government_changes_router)
