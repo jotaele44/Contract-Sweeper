@@ -3,7 +3,9 @@ from pathlib import Path
 from scripts.ingest_centinelas_signals import _project_fiscal_assertions
 
 
-def test_project_fiscal_assertion_preserves_candidate_set_without_identity_promotion(tmp_path: Path):
+def test_project_fiscal_assertion_preserves_candidate_set_without_identity_promotion(
+    tmp_path: Path,
+):
     drop = tmp_path / "los-rosales.json"
     payload = {
         "item_id": "los-rosales-observed-banner",
