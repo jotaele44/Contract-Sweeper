@@ -40,7 +40,7 @@ jobs:
       - name: Regenerate federation package
         run: |
           python3 scripts/federation_export.py --mode test
-          python3 scripts/append_project_assertions_to_federation.py
+          bash scripts/append_project_assertions_to_federation.sh
       - name: Commit refreshed federation package
         id: commit
         run: |
