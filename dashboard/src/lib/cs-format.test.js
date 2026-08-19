@@ -123,3 +123,40 @@ describe('tone lookups', () => {
     expect(new Set(types.map(edgeTone)).size).toBe(types.length);
   });
 });
+
+
+describe('inherited keys do not leak through the lookup tables', () => {
+  // Each helper indexes a plain object literal, and all three keys are
+  // server-supplied. A bare `MAP[key] ?? fallback` resolves these five strings
+  // through Object.prototype to something truthy, so the fallback never fires.
+  //
+  // Contained here — statusRole would render "[object Object]" into a
+  // data-status attribute, and entityTone would lose its badge classes entirely,
+  // because clsx finds no own enumerable keys on the prototype and emits nothing.
+  // Not reachable from the frozen canonical_v1 vocabularies. Fixed because the
+  // identical pattern was a genuine crash in aguayluz-pr, where the key came
+  // from the URL rather than from data.
+  const INHERITED = ['__proto__', 'constructor', 'toString', 'valueOf', 'hasOwnProperty'];
+
+  it.each(INHERITED)('statusRole(%s) falls back to neutral', (key) => {
+    expect(statusRole(key)).toBe('neutral');
+  });
+
+  it.each(INHERITED)('edgeTone(%s) falls back to the slate class', (key) => {
+    expect(edgeTone(key)).toBe('text-slate-300');
+  });
+
+  it.each(INHERITED)('entityTone(%s) returns the slate badge string', (key) => {
+    // Assert the type as well as the value: the bug returned an object here, and
+    // an object stringifies into a className without complaint.
+    expect(typeof entityTone(key)).toBe('string');
+    expect(entityTone(key)).toBe(entityTone('not-an-entity-type'));
+  });
+
+  it.each(INHERITED)('the bare index this replaced does NOT fall back for %s', (key) => {
+    // The premise, pinned. If this starts failing, JavaScript changed and the
+    // lookup() indirection is no longer earning its place.
+    const MAP = { real: 'value' };
+    expect(MAP[key] ?? 'fallback').not.toBe('fallback');
+  });
+});
