@@ -47,14 +47,14 @@ def test_check_passes(nodes, edges):
 
 @pytest.mark.unit
 def test_node_counts(nodes):
-    # 29 entities + 78 municipios + 60 people.
-    assert len(nodes) == 167
+    # 30 entities + 78 municipios + 60 people.
+    assert len(nodes) == 168
     by_type: dict[str, int] = {}
     for n in nodes:
         by_type[n["node_type"]] = by_type.get(n["node_type"], 0) + 1
     assert by_type["municipality"] == 78
     assert by_type["person"] == 60
-    assert by_type["government_agency"] + by_type["organization"] == 29
+    assert by_type["government_agency"] + by_type["organization"] == 30
 
 
 @pytest.mark.unit
