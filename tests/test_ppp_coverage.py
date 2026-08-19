@@ -49,6 +49,21 @@ def test_operator_aliases_resolve_renamed_projects(report):
 
 
 @pytest.mark.integration
+def test_teodoro_moscoso_bridge_is_canonical_and_located(report):
+    """Regression test for the gap this registry originally surfaced: the
+    Teodoro Moscoso Bridge concession had real ACT contracts but no canonical
+    project, because its operator entity was missing (distinct from, and easily
+    confused with, the similarly named Metropistas concessionaire)."""
+    bridge = next(
+        e for e in report["concessions"] if e["operator"] == "Autopistas de Puerto Rico y Compañía"
+    )
+    assert bridge["canonical"] is True
+    assert bridge["canonical_project_ids"]
+    assert bridge["federates_location"] is True
+    assert bridge["contract_rows"] > 0
+
+
+@pytest.mark.integration
 def test_only_site_extent_concessions_federate_a_location(report):
     """An island-wide concession must not report a location.
 
