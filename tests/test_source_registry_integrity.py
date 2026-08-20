@@ -107,7 +107,4 @@ def test_parent_uei_thresholds_match_source_population():
         "fsrs_subawards": 0.90,
     }
     for source_id, threshold in expected.items():
-        assert (
-            sources[source_id]["validation_threshold"]["parent_uei_coverage_pct"]
-            == threshold
-        )
+        assert sources[source_id]["validation_threshold"]["parent_uei_coverage_pct"] == threshold

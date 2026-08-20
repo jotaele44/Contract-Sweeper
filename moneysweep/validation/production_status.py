@@ -91,11 +91,7 @@ def _parent_uei_threshold(root: Path, source_id: str | None) -> float:
         if source.get("source_id") != source_id:
             continue
         threshold = source.get("validation_threshold", {}).get("parent_uei_coverage_pct")
-        return (
-            _safe_float(threshold)
-            if threshold is not None
-            else DEFAULT_PARENT_UEI_THRESHOLD
-        )
+        return _safe_float(threshold) if threshold is not None else DEFAULT_PARENT_UEI_THRESHOLD
     return DEFAULT_PARENT_UEI_THRESHOLD
 
 

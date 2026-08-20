@@ -139,8 +139,7 @@ class FakeSession:
 
 def normalized_record(number: str) -> dict:
     return {
-        column: number if column == "contract_number" else ""
-        for column in resumable.OUTPUT_COLUMNS
+        column: number if column == "contract_number" else "" for column in resumable.OUTPUT_COLUMNS
     }
 
 
