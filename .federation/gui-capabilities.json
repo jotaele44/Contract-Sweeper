@@ -672,6 +672,7 @@
         "analysis_symbol:scripts/scrape_rdc_demandas.py:fetch_all_records",
         "analysis_symbol:scripts/scrape_rdc_demandas.py:flag_ambiguous_case_numbers",
         "analysis_symbol:scripts/scrape_rdc_demandas.py:main",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:merge_with_existing",
         "analysis_symbol:scripts/scrape_rdc_demandas.py:parse_caption",
         "analysis_symbol:scripts/scrape_rdc_demandas.py:parse_rows",
         "analysis_symbol:scripts/scrape_rdc_demandas.py:run",

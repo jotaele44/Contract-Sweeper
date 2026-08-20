@@ -324,6 +324,67 @@ def _carry_forward_first_seen(frame: pd.DataFrame, out_path: Path, today: str) -
     return frame
 
 
+def merge_with_existing(frame: pd.DataFrame, out_path: Path) -> pd.DataFrame:
+    """Fold a sweep's rows into the stored corpus instead of replacing it.
+
+    A sweep only ever observes the list view, so writing its result straight
+    over the output file loses two different things:
+
+    * **Cases the sweep did not visit.** ``--start-page`` exists precisely so
+      the append-ordered tail can be re-swept cheaply, and ``--max-pages``
+      bounds a smoke test. Either way ``raw_records`` holds a slice, not the
+      corpus, and replacing the file with a slice deletes every earlier case.
+
+    * **Detail enrichment, on every run — including a full one.** The list
+      view cannot see Demandado, so a rebuilt row carries a caption guess at
+      best. Since the scheduled refresh re-sweeps from page 1, replacing would
+      discard every party record scripts/enrich_rdc_details.py has accumulated,
+      each month, silently.
+
+    So: a case already carrying ``detail_fetched_at`` is authoritative and is
+    kept as stored; an unenriched case is refreshed from the sweep; and a
+    stored case the sweep did not return is kept rather than dropped. That last
+    rule means the corpus never shrinks, which matches the coverage contract's
+    append-mostly reading — a shortfall means the sweep stopped early, not that
+    the registry lost a case.
+
+    A case whose resolution changes *after* it was enriched is therefore not
+    refreshed by a sweep. Clearing its ``detail_fetched_at`` re-queues it for
+    the detail pass, which is the authoritative path for those fields anyway.
+    """
+    if not out_path.exists():
+        return frame
+    try:
+        existing = pd.read_csv(out_path, dtype=str, low_memory=False)
+    except (OSError, pd.errors.ParserError, pd.errors.EmptyDataError):
+        return frame
+    if existing.empty or "rdc_case_uid" not in existing.columns:
+        return frame
+
+    existing = existing.fillna("")
+    if "detail_fetched_at" not in existing.columns:
+        existing["detail_fetched_at"] = ""
+
+    enriched = set(
+        existing.loc[
+            existing["detail_fetched_at"].astype(str).str.strip() != "", "rdc_case_uid"
+        ].astype(str)
+    )
+    incoming = frame[~frame["rdc_case_uid"].astype(str).isin(enriched)]
+    refreshed = set(incoming["rdc_case_uid"].astype(str))
+    retained = existing[
+        existing["rdc_case_uid"].astype(str).isin(enriched)
+        | ~existing["rdc_case_uid"].astype(str).isin(refreshed)
+    ]
+
+    columns = list(dict.fromkeys([*DEMANDA_COLUMNS, *existing.columns, *frame.columns]))
+    combined = pd.concat(
+        [retained.reindex(columns=columns), incoming.reindex(columns=columns)],
+        ignore_index=True,
+    ).fillna("")
+    return combined.drop_duplicates(subset=["rdc_case_uid"], keep="first")
+
+
 def _fetch_page(session: requests.Session, page: int, logger) -> str | None:
     """GET one listing page. None on a terminal 4xx or retry exhaustion."""
 
@@ -444,9 +505,13 @@ def _run(
 
     frame = pd.DataFrame([_normalize_row(r, today) for r in raw_records], columns=DEMANDA_COLUMNS)
     frame = frame.drop_duplicates(subset=["rdc_case_uid"])
-    frame = flag_ambiguous_case_numbers(frame)
-    # Read before the file is overwritten, so prior first_seen_at values survive.
+    # Both read the file before it is overwritten: first_seen_at values survive,
+    # and so do cases this sweep did not visit or must not overwrite.
     frame = _carry_forward_first_seen(frame, out_path, today)
+    frame = merge_with_existing(frame, out_path)
+    # Corpus-wide, so a duplicate case number is caught even when the two rows
+    # sharing it came from different sweeps.
+    frame = flag_ambiguous_case_numbers(frame)
     # Adds claimed_amount_canonical / adjudicated_amount_canonical,
     # entity_normalized and the geo columns.
     frame = apply_post_ingest(frame, source_id=SOURCE_ID, root=Path(root))

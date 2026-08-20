@@ -20,6 +20,7 @@ from scripts.scrape_rdc_demandas import (
     declared_last_page,
     fetch_all_records,
     flag_ambiguous_case_numbers,
+    merge_with_existing,
     parse_caption,
     parse_rows,
 )
@@ -346,3 +347,113 @@ def test_run_reports_an_error_when_the_registry_yields_nothing(tmp_path, monkeyp
 class _FakeSession:
     def close(self):
         pass
+
+
+# ---------------------------------------------------------------------------
+# Regression: a sweep must fold into the corpus, never replace it
+# ---------------------------------------------------------------------------
+
+
+def _stored_corpus(path: Path, rows: list[dict]) -> None:
+    pd.DataFrame(rows, columns=DEMANDA_COLUMNS).to_csv(path, index=False)
+
+
+@pytest.mark.unit
+def test_tail_resweep_keeps_cases_it_did_not_visit(tmp_path):
+    """--start-page re-sweeps the append-ordered tail; it must not delete the head.
+
+    Writing the slice straight over the file would drop every earlier case.
+    """
+    out = tmp_path / "cases.csv"
+    _stored_corpus(
+        out,
+        [
+            {**{c: "" for c in DEMANDA_COLUMNS}, "rdc_case_uid": "old-1", "case_number": "1"},
+            {**{c: "" for c in DEMANDA_COLUMNS}, "rdc_case_uid": "old-2", "case_number": "2"},
+        ],
+    )
+    tail = pd.DataFrame(
+        [{**{c: "" for c in DEMANDA_COLUMNS}, "rdc_case_uid": "new-1", "case_number": "9"}],
+        columns=DEMANDA_COLUMNS,
+    )
+    merged = merge_with_existing(tail, out)
+    assert set(merged["rdc_case_uid"]) == {"old-1", "old-2", "new-1"}
+
+
+@pytest.mark.unit
+def test_a_full_resweep_does_not_wipe_detail_enrichment(tmp_path):
+    """The scheduled refresh re-sweeps from page 1 every month.
+
+    The list view cannot see Demandado, so replacing an enriched row with a
+    freshly-swept one would discard the party record and silently downgrade it
+    back to a caption guess.
+    """
+    out = tmp_path / "cases.csv"
+    _stored_corpus(
+        out,
+        [
+            {
+                **{c: "" for c in DEMANDA_COLUMNS},
+                "rdc_case_uid": "u1",
+                "case_number": "09",
+                "defendant_name": "DEPARTAMENTO DE CORRECCION",
+                "defendant_count": "2",
+                "defendant_attribution_method": "detail_page",
+                "review_status": "verified",
+                "detail_fetched_at": "2026-08-16",
+            }
+        ],
+    )
+    resweep = pd.DataFrame(
+        [
+            {
+                **{c: "" for c in DEMANDA_COLUMNS},
+                "rdc_case_uid": "u1",
+                "case_number": "09",
+                "defendant_name": "ADMINISTRACION DE CORRECCION",  # caption guess
+                "defendant_attribution_method": "caption_parse",
+                "review_status": "needs_review",
+            }
+        ],
+        columns=DEMANDA_COLUMNS,
+    )
+    merged = merge_with_existing(resweep, out)
+
+    assert len(merged) == 1
+    row = merged.iloc[0]
+    assert row["defendant_name"] == "DEPARTAMENTO DE CORRECCION"
+    assert row["defendant_attribution_method"] == "detail_page"
+    assert row["review_status"] == "verified"
+    assert row["detail_fetched_at"] == "2026-08-16"
+
+
+@pytest.mark.unit
+def test_an_unenriched_row_is_refreshed_by_a_later_sweep(tmp_path):
+    # Nothing to protect, so the newer list data wins.
+    out = tmp_path / "cases.csv"
+    _stored_corpus(
+        out,
+        [
+            {
+                **{c: "" for c in DEMANDA_COLUMNS},
+                "rdc_case_uid": "u1",
+                "resolucion_final": "",
+                "detail_fetched_at": "",
+            }
+        ],
+    )
+    resweep = pd.DataFrame(
+        [{**{c: "" for c in DEMANDA_COLUMNS}, "rdc_case_uid": "u1", "resolucion_final": "Ganado"}],
+        columns=DEMANDA_COLUMNS,
+    )
+    merged = merge_with_existing(resweep, out)
+    assert len(merged) == 1
+    assert merged.iloc[0]["resolucion_final"] == "Ganado"
+
+
+@pytest.mark.unit
+def test_merge_is_a_no_op_on_the_very_first_sweep(tmp_path):
+    frame = pd.DataFrame(
+        [{**{c: "" for c in DEMANDA_COLUMNS}, "rdc_case_uid": "u1"}], columns=DEMANDA_COLUMNS
+    )
+    assert merge_with_existing(frame, tmp_path / "absent.csv").equals(frame)

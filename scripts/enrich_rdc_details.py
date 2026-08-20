@@ -114,6 +114,10 @@ DETAIL_LABELS = {
     "Epígrafe": "epigrafe",
 }
 
+# Money columns the detail page can restate at full precision. Their
+# `*_canonical` companions must be recomputed rather than carried over.
+DETAIL_REFRESHED_AMOUNTS = ("claimed_amount", "adjudicated_amount")
+
 # The registry's own "no value" sentinel. Stored as blank so downstream
 # consumers do not have to know the phrase.
 _NULL_SENTINEL = "-No hay Información-"
@@ -267,8 +271,20 @@ def _write_outputs(
     parties_path: Path,
     root: Path,
 ) -> None:
-    """Write both CSVs, re-running post-ingest so canonical columns stay current."""
+    """Write both CSVs, re-running post-ingest so canonical columns stay current.
+
+    ``canonicalize_currency`` is idempotent by design: it skips any money column
+    that already has a ``*_canonical`` companion. That is right for a producer
+    writing fresh rows, but wrong here — the list sweep already wrote canonical
+    amounts, and the detail page is the authoritative, full-precision source for
+    the raw ones. Left alone, an enriched row would carry a detail-sourced raw
+    amount beside a list-sourced numeric, and every downstream total would be
+    computed from the stale number. So the affected companions are dropped and
+    recomputed rather than preserved.
+    """
     case_path.parent.mkdir(parents=True, exist_ok=True)
+    stale = [f"{col}_canonical" for col in DETAIL_REFRESHED_AMOUNTS]
+    cases = cases.drop(columns=[c for c in stale if c in cases.columns])
     enriched = apply_post_ingest(cases, source_id=SOURCE_ID, root=root)
     enriched.to_csv(case_path, index=False, encoding="utf-8")
     parties.to_csv(parties_path, index=False, encoding="utf-8")

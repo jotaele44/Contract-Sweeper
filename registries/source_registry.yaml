@@ -540,7 +540,6 @@ sources:
   producer_script: scripts/scrape_rdc_demandas.py
   expected_outputs:
   - data/staging/processed/pr_rdc_demandas_civiles.csv
-  - data/staging/processed/pr_rdc_demandas_parties.csv
   schema_version: r5_v1
   validation_threshold:
     min_rows: 1
@@ -552,6 +551,13 @@ sources:
     leaving the treasury through the courts rather than through a contract — no
     other registered source covers it. ~44,700 cases over 7,451 pages; no API, no
     bulk export.
+
+    EXPECTED OUTPUTS cover only the scheduled producer. The update controller
+    runs producer_script alone and fails the run OUTPUT_MISSING unless every
+    declared path exists, so pr_rdc_demandas_parties.csv is deliberately NOT
+    declared: it is written by the operator-run enrichment pass below, and
+    gating scheduled sweeps on it would fail every refresh until someone ran
+    enrichment by hand.
 
     TWO-STAGE LANE. scripts/scrape_rdc_demandas.py sweeps the list view.
     scripts/enrich_rdc_details.py is a separate resumable pass over the per-case

@@ -367,3 +367,43 @@ def test_run_without_a_case_file_fails_with_a_pointer_to_the_sweep(tmp_path):
     result = _run(root=tmp_path)
     assert result["status"] == "ERROR"
     assert "scrape_rdc_demandas" in result["errors"][0]
+
+
+# ---------------------------------------------------------------------------
+# Regression: canonical amounts must track the detail page, not the list view
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.integration
+def test_canonical_amounts_are_recomputed_from_the_detail_page(tmp_path, monkeypatch):
+    """apply_post_ingest skips money columns that already have a canonical twin.
+
+    The list sweep writes those twins, so without an explicit drop the enriched
+    row would carry a detail-sourced raw amount beside a list-sourced numeric,
+    and every downstream total would use the stale one.
+    """
+    case_path = tmp_path / OUT_PATH_REL
+    case_path.parent.mkdir(parents=True, exist_ok=True)
+    row = {
+        **{col: "" for col in DEMANDA_COLUMNS},
+        "rdc_case_uid": "uid-09",
+        "case_number": "09",
+        "claimed_amount": "1.00",  # stale list value
+        "detail_url": "https://justicia1.justicia.pr.gov/rdc/Home/Details/09",
+        "case_number_ambiguous": "false",
+    }
+    frame = pd.DataFrame([row], columns=DEMANDA_COLUMNS)
+    frame["claimed_amount_canonical"] = "1.0"
+    frame["adjudicated_amount_canonical"] = "0.0"
+    frame.to_csv(case_path, index=False)
+
+    monkeypatch.setattr(
+        "scripts.enrich_rdc_details._fetch_detail", lambda session, url, logger: DETAIL_HTML
+    )
+    monkeypatch.setattr("scripts.enrich_rdc_details.build_session", lambda *a, **k: _FakeSession())
+    _run(root=tmp_path)
+
+    out = pd.read_csv(case_path, dtype=str)
+    # Detail page says 400000.0000; the raw column and its canonical twin agree.
+    assert out.loc[0, "claimed_amount"] == "400000.0000"
+    assert float(out.loc[0, "claimed_amount_canonical"]) == 400000.0
