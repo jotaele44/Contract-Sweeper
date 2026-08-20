@@ -640,6 +640,45 @@
         "python_symbol:moneysweep/forensics/seed.py:populate",
         "python_symbol:moneysweep/forensics/seed.py:seed_cluster"
       ]
+    },
+    {
+      "id": "rdc-civil-claims-ingestion",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": false,
+      "rationale": "Batch ingestion for the rdc_demandas_civiles source (Registro de Demandas Civiles, Ley 1-2003): a paginated list sweep plus a resumable per-case detail pass. Both run offline and render nothing — zero references in dashboard/src. Their outputs (data/staging/processed/pr_rdc_demandas_civiles.csv and pr_rdc_demandas_parties.csv) reach the operator through the existing public-money-intelligence-dashboard capability, like every other ingested source. The detail pass is additionally operator-paced by design (~44,700 requests against a small government host, bounded per run via --limit / --max-runtime), so it is an operator-run batch job rather than an interactive workflow; it is deliberately not wired into a blocking pipeline stage.",
+      "backend": {
+        "files": [
+          "scripts/scrape_rdc_demandas.py",
+          "scripts/enrich_rdc_details.py"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_scrape_rdc_demandas.py",
+          "tests/test_enrich_rdc_details.py"
+        ]
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/enrich_rdc_details.py",
+        "analysis_module:scripts/scrape_rdc_demandas.py",
+        "analysis_symbol:scripts/enrich_rdc_details.py:apply_detail",
+        "analysis_symbol:scripts/enrich_rdc_details.py:main",
+        "analysis_symbol:scripts/enrich_rdc_details.py:parse_detail",
+        "analysis_symbol:scripts/enrich_rdc_details.py:run",
+        "analysis_symbol:scripts/enrich_rdc_details.py:select_pending",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:case_uid",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:declared_last_page",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:fetch_all_records",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:flag_ambiguous_case_numbers",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:main",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:merge_with_existing",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:parse_caption",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:parse_rows",
+        "analysis_symbol:scripts/scrape_rdc_demandas.py:run",
+        "cli_surface:scripts/enrich_rdc_details.py",
+        "cli_surface:scripts/scrape_rdc_demandas.py"
+      ]
     }
   ],
   "exceptions": [
