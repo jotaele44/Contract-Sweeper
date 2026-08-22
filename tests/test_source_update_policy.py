@@ -24,12 +24,12 @@ REPORT = validate_policy()
 
 def test_exactly_one_effective_policy_per_source():
     assert set(POLICIES) == CANONICAL
-    assert len(POLICIES) == len(CANONICAL) == 157
+    assert len(POLICIES) == len(CANONICAL) == 158
 
 
 def test_policy_validation_has_no_errors():
     assert REPORT["ok"], REPORT["errors"]
-    assert REPORT["policy_coverage"] == "157/157"
+    assert REPORT["policy_coverage"] == "158/158"
 
 
 def test_no_orphan_policy_overrides():
@@ -41,7 +41,7 @@ def test_every_trigger_type_is_recognized():
     for pol in POLICIES.values():
         assert pol.trigger_type in allowed
     dist = REPORT["trigger_distribution"]
-    assert sum(dist.values()) == 157
+    assert sum(dist.values()) == 158
     # all six trigger types are represented
     assert all(dist[t.value] >= 1 for t in TriggerType)
 

@@ -1,14 +1,14 @@
 # Source Materialization Readiness
 
-Total sources: **157**
-Automatable: **108** (ready: **108**, need API key at run time: 12)
+Total sources: **158**
+Automatable: **109** (ready: **109**, need API key at run time: 12)
 Queued / excluded: **49**
 
 ## Path types
 
 | path_type | automatable | count | recommended_action |
 | --- | --- | --- | --- |
-| `api_producer` | True | 67 | Run producer under strict preflight; public API path, set key if gated. |
+| `api_producer` | True | 68 | Run producer under strict preflight; public API path, set key if gated. |
 | `api_adapter` | True | 41 | Materialize via `python -m moneysweep.query --source <id>` (set key if gated). |
 | `manual_export` | False | 42 | Operator delivers file to the dropzone; see manual_export_registry.yaml + runbook. |
 | `semantic_duplicate` | False | 3 | No action; covered by sibling source. |
@@ -61,7 +61,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `wic`
 - `wioa`
 
-## api_producer (67)
+## api_producer (68)
 
 - `aafaf`
 - `act_transition_ppp`
@@ -118,6 +118,7 @@ API keys needed for full automatable materialization: `CENSUS_API_KEY`, `EIA_API
 - `prasa_contracts_master`
 - `prepa_luma_genera`
 - `promesa_creditors`
+- `rdc_demandas_civiles`
 - `roadwatch_corridor_join`
 - `rum_cover_over`
 - `sam_exclusions`

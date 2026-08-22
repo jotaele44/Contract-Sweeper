@@ -30,7 +30,8 @@
         "audit_report",
         "security",
         "loan",
-        "payment"
+        "payment",
+        "claim"
       ]
     },
     "geography_scope": {

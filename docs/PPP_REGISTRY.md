@@ -32,14 +32,16 @@ about each, so a gap shows up as a gap.
 | PREPA generation | Genera PR | island-wide | yes | — |
 | PR-22 / PR-5 toll road | Autopistas Metropolitanas (Metropistas) | corridor | yes | 22 rows, $2.40B |
 | Luis Muñoz Marín Airport | Aerostar Airport Holdings | site | yes | — |
-| Teodoro Moscoso Bridge toll | Autopistas de Puerto Rico y Compañía | site | **no** | 3 rows, $0.98M |
+| Teodoro Moscoso Bridge toll | Autopistas de Puerto Rico y Compañía | site | yes | 3 rows, $0.98M |
 | PRASA operation & maintenance | Veolia Water Puerto Rico | island-wide | yes | — |
 
-**The open gap is the Teodoro Moscoso Bridge concession.** It surfaced from the
-ACT transition report — three contracts running to 2044 — and has no canonical
-project row. It is also `site` extent, so it is one of only two concessions that
-could carry a real point. Closing it needs a project row whose lead resolves to
-the operator entity.
+All six known concessions are now canonical. The Teodoro Moscoso Bridge gap
+this document originally flagged — three ACT contracts running to 2044 with no
+canonical project row — is closed: `Autopistas de Puerto Rico y Compañía` (a
+distinct entity from the similarly named Metropistas concessionaire) is now a
+tracked entity, and the concession is a `P3-006` row in
+`data/reference/pr_p3_concessions.csv`, resolved the same way the P3 seed
+surface already resolves LMM Airport and the PRASA O&M agreement.
 
 ## Spatial extent, and why most PPPs have no location
 

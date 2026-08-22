@@ -9,8 +9,8 @@
       "source_id": "prasa_consulting_engineer_ppp"
     }
   ],
-  "canonical_concessions": 5,
-  "canonical_ppp_project_rows": 5,
+  "canonical_concessions": 6,
+  "canonical_ppp_project_rows": 6,
   "concessions": [
     {
       "aliases": [
@@ -93,14 +93,16 @@
       "aliases": [
         "Teodoro Moscoso"
       ],
-      "canonical": false,
-      "canonical_project_ids": [],
+      "canonical": true,
+      "canonical_project_ids": [
+        "project_autopistas_de_puerto_rico_y_compa_a_p3_006"
+      ],
       "concession": "Teodoro Moscoso Bridge toll concession",
       "contract_rows": 3,
       "contract_value_documented": 979208.0,
-      "federates_location": false,
-      "has_municipality": false,
-      "in_p3_reference": false,
+      "federates_location": true,
+      "has_municipality": true,
+      "in_p3_reference": true,
       "locatable": true,
       "operator": "Autopistas de Puerto Rico y Compa\u00f1\u00eda",
       "sector": "transport",
@@ -127,9 +129,9 @@
       "spatial_extent": "islandwide"
     }
   ],
-  "concessions_federating_a_location": 1,
+  "concessions_federating_a_location": 2,
   "concessions_with_documented_contracts": 2,
-  "generated_at": "2026-08-10T04:14:04.525709+00:00",
+  "generated_at": "2026-08-17T20:24:18.354767+00:00",
   "known_concessions": 6,
   "locatable_concessions": 2,
   "producer_script": "scripts/build_ppp_coverage.py",
