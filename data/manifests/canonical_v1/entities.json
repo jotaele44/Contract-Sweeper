@@ -4,14 +4,14 @@
   "source_inputs": [
     "data/reference/pr_public_money_entities.csv"
   ],
-  "row_count": 29,
-  "evidence_rows_added": 29,
-  "evidence_table_rows": 239,
+  "row_count": 30,
+  "evidence_rows_added": 30,
+  "evidence_table_rows": 259,
   "entity_types": [
     "agency",
     "firm",
     "fund",
     "utility"
   ],
-  "generated_at": "2026-08-09T21:20:11.066785+00:00"
+  "generated_at": "2026-08-17T20:23:32.467832+00:00"
 }

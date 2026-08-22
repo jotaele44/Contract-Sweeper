@@ -19,11 +19,13 @@ def test_builds_all_seeded_edge_types():
     for e in built["edge_rows"]:
         by_type[e["edge_type"]] = by_type.get(e["edge_type"], 0) + 1
     assert built["skipped"] == []
-    # LOCATED_IN: 10 entity->muni + 6 project->muni + 4 property->muni.
+    # LOCATED_IN: 10 entity->muni + 7 project->muni + 4 property->muni.
     # The 6th project->muni edge is Luis Muñoz Marín Airport -> Carolina, from
-    # the P3 acquisition surface that ingest_projects.py now reads.
+    # the P3 acquisition surface that ingest_projects.py now reads. The 7th is
+    # the Teodoro Moscoso Bridge concession -> San Juan, closing the PPP
+    # registry's originally-flagged gap.
     assert by_type == {
-        "LOCATED_IN": 20,
+        "LOCATED_IN": 21,
         "HOLDS_ROLE_IN": 7,
         "HOLDS_DEBT": 20,
         "ADVISES": 5,
@@ -32,7 +34,7 @@ def test_builds_all_seeded_edge_types():
         "RECEIVES_CONTRACT": 3,
         "LOBBIES_FOR": 3,
     }
-    assert len(built["edge_rows"]) == 65
+    assert len(built["edge_rows"]) == 66
 
 
 @pytest.mark.integration

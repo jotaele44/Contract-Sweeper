@@ -32,7 +32,7 @@ openpyxl==3.1.5
     # via -r requirements.in
 packaging==26.2
     # via pytest
-pandas==3.0.3
+pandas==3.0.5
     # via -r requirements.in
 pdfminer-six==20260107
     # via pdfplumber

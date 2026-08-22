@@ -70,9 +70,15 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # campaign-finance completion adds one live OCE source plus two derived
     # campaign-finance producers, all automatable after upstream refreshes
     # (+3 total_sources, +3 automatable_total/ready).
-    assert snapshot["total_sources"] == 157
-    assert snapshot["automatable_total"] == 108
-    assert snapshot["automatable_ready"] == 108
+    # rdc_demandas_civiles added (api_producer, live HTML scraper over the
+    # Registro de Demandas Civiles at justicia1.justicia.pr.gov/rdc;
+    # scripts/scrape_rdc_demandas.py): +1 total_sources and
+    # +1 automatable_total/automatable_ready. Its detail-enrichment pass
+    # (scripts/enrich_rdc_details.py) is a second stage of the same source, not
+    # a separate registry entry, so it adds nothing to these counts.
+    assert snapshot["total_sources"] == 158
+    assert snapshot["automatable_total"] == 109
+    assert snapshot["automatable_ready"] == 109
     assert snapshot["queued_excluded_total"] == 49
     assert snapshot["automatable_not_ready"] == []
 

@@ -113,6 +113,21 @@ canonical_tables:
         obligation_amount: [obligation_amount, costo]
         awarding_agency:   [awarding_agency, agencia]
         municipality:      [geo_municipality_name, municipality]
+      rdc_demandas_civiles:
+        # award_id is the surrogate rdc_case_uid, NOT Núm del Caso: the registry's
+        # own case number is not unique across the corpus (values like "09" and
+        # "1000" recur), so it cannot serve as an identity.
+        award_id:          [rdc_case_uid]
+        contract_number:   [case_number, num_del_caso]
+        # The party sued is the government entity — that is the join to the
+        # government entity registry, and the reason this source exists.
+        awarding_agency:   [defendant_name, demandado]
+        recipient_name:    [plaintiff_name, demandante]
+        # Two distinct money facts: what was demanded and what was awarded. The
+        # gap between them is the point of tracking the source at all.
+        obligation_amount: [adjudicated_amount, cantidad_adjudicada]
+        award_date:        [fecha_resolucion_final]
+        municipality:      [geo_municipality_name, municipality]
 
   entities_resolved:
     primary_key: [entity_id]
