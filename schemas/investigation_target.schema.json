@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep.local/schemas/investigation_target.schema.json",
+  "title": "Money Sweep Investigation Target",
+  "type": "object",
+  "required": [
+    "requested_value",
+    "requested_kind",
+    "resolution_state",
+    "canonical_entity_id",
+    "candidates",
+    "evidence"
+  ],
+  "properties": {
+    "requested_value": {"type": "string"},
+    "requested_kind": {"type": "string"},
+    "resolution_state": {"enum": ["RESOLVED", "REVIEW", "UNRESOLVED"]},
+    "canonical_entity_id": {
+      "type": ["string", "null"],
+      "pattern": "^ENT_(ORG|PERSON|AGENCY|MUNI|PROJECT|CONTRACT|DEBT|PROPERTY|ASSET)_.+"
+    },
+    "canonical_name": {"type": ["string", "null"]},
+    "entity_type": {"type": ["string", "null"]},
+    "jurisdiction": {"type": ["string", "null"]},
+    "match_method": {"type": ["string", "null"]},
+    "matched_value": {"type": ["string", "null"]},
+    "aliases": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "external_identifiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "value"],
+        "properties": {
+          "kind": {"enum": ["uei", "name", "cage", "duns", "ein", "cik"]},
+          "value": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    },
+    "candidates": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["evidence_type", "source_path", "raw_value", "strength"],
+        "properties": {
+          "evidence_type": {"type": "string"},
+          "source_path": {"type": "string"},
+          "raw_value": {"type": "string"},
+          "canonical_entity_id": {"type": ["string", "null"]},
+          "strength": {"type": "string"},
+          "notes": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"resolution_state": {"const": "RESOLVED"}}},
+      "then": {
+        "required": ["canonical_name", "match_method"],
+        "properties": {"canonical_entity_id": {"type": "string"}}
+      }
+    },
+    {
+      "if": {"properties": {"resolution_state": {"const": "REVIEW"}}},
+      "then": {"properties": {"candidates": {"minItems": 2}}}
+    }
+  ],
+  "additionalProperties": false
+}
