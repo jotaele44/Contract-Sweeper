@@ -8,9 +8,11 @@ from typing import Any, Iterable, Mapping, Protocol
 class SourceAdapter(Protocol):
     """Adapter contract: acquisition is source-specific; canonicalization is not."""
 
-    def iter_records(self) -> Iterable[Mapping[str, Any]]: ...
+    def iter_records(self) -> Iterable[Mapping[str, Any]]:
+        raise NotImplementedError
 
-    def source_manifest(self) -> Mapping[str, Any]: ...
+    def source_manifest(self) -> Mapping[str, Any]:
+        raise NotImplementedError
 
 
 def stable_observation_fingerprint(payload: Mapping[str, Any]) -> str:
