@@ -32,9 +32,10 @@ def test_seed_has_core_institutions(built):
         # P3 concessionaires, so P3 projects resolve a lead entity
         "Aerostar Airport Holdings",
         "Veolia Water Puerto Rico",
+        "Autopistas de Puerto Rico y Compañía",
     ]:
         assert required in names
-    assert len(rows) == 29
+    assert len(rows) == 30
     assert ie.check(rows) == []
 
 

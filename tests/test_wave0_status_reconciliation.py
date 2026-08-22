@@ -21,7 +21,7 @@ def test_current_status_matches_authoritative_readiness() -> None:
     status = _read("reports/current_status.json")
     readiness = _read("reports/materialization_readiness.json")
     registry = status["source_registry_current"]
-    assert registry["total_sources"] == readiness["total_sources"] == 157
+    assert registry["total_sources"] == readiness["total_sources"] == 158
     assert (
         registry["source_ids_sha256"]
         == readiness["source_count_provenance"]["source_ids_sha256"]
@@ -66,7 +66,7 @@ def test_coverage_preserves_certified_denominator_without_false_credit() -> None
     # needs an operator machine — this checkout has no such corpus, so the
     # snapshot must not be regenerated here.
     assert coverage["evidence_registry_total"] == 151
-    assert coverage["current_registry_total"] == 157
+    assert coverage["current_registry_total"] == 158
     assert coverage["denominator_comparable"] is False
     assert coverage["denominator_drift_note"]
     assert coverage["probe_ran"] is False

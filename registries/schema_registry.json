@@ -416,6 +416,34 @@
             "geo_municipality_name",
             "municipality"
           ]
+        },
+        "rdc_demandas_civiles": {
+          "award_id": [
+            "rdc_case_uid"
+          ],
+          "contract_number": [
+            "case_number",
+            "num_del_caso"
+          ],
+          "awarding_agency": [
+            "defendant_name",
+            "demandado"
+          ],
+          "recipient_name": [
+            "plaintiff_name",
+            "demandante"
+          ],
+          "obligation_amount": [
+            "adjudicated_amount",
+            "cantidad_adjudicada"
+          ],
+          "award_date": [
+            "fecha_resolucion_final"
+          ],
+          "municipality": [
+            "geo_municipality_name",
+            "municipality"
+          ]
         }
       }
     },

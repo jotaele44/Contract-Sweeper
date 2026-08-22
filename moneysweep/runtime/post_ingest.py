@@ -44,6 +44,10 @@ ENTITY_NAME_COLUMNS = (
     "issuer",
     "organization_name",
     "legal_name",
+    # Appended, not inserted: priority order above is load-bearing for sources
+    # that carry more than one of these columns. The party sued in a civil
+    # claim is a government entity, so it clusters through the same key.
+    "defendant_name",
 )
 
 # Money columns that should gain a parsed numeric ``<col>_canonical`` companion.
@@ -62,6 +66,11 @@ AMOUNT_COLUMNS = (
     "income",
     "expenses",
     "total_approved",
+    # Civil-claim amounts. Kept as two columns rather than one: what a
+    # plaintiff demands and what a court actually awards are different facts,
+    # and the gap between them is the point of tracking them at all.
+    "claimed_amount",
+    "adjudicated_amount",
 )
 
 _CURRENCY_STRIP = re.compile(r"[^0-9.\-]")

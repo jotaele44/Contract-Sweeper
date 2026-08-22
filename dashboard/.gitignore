@@ -32,3 +32,7 @@ dist-ssr
 
 # standalone single-file export (build artifact, regenerate via build-export.sh)
 export-standalone
+
+# Playwright run artifacts
+test-results
+playwright-report
