@@ -14,10 +14,12 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from typing import cast
 
 from moneysweep.investigate import investigate
 from moneysweep.investigate.models import InvestigationLimits
 from moneysweep.query import EntityIdentifier
+from moneysweep.query.entity_types import EntityKind, SUPPORTED_KINDS
 
 
 def _bindings(values: list[str]) -> dict[str, tuple[EntityIdentifier, ...]]:
@@ -29,22 +31,37 @@ def _bindings(values: list[str]) -> dict[str, tuple[EntityIdentifier, ...]]:
             raise ValueError("--bind must be ENT_ID:kind:value") from exc
         if not entity_id.startswith("ENT_"):
             raise ValueError("--bind requires a canonical ENT_* id")
-        out.setdefault(entity_id, []).append(EntityIdentifier(kind=kind, value=identifier))
+        if kind not in SUPPORTED_KINDS:
+            raise ValueError(f"unsupported --bind identifier kind: {kind}")
+        out.setdefault(entity_id, []).append(
+            EntityIdentifier(kind=cast(EntityKind, kind), value=identifier)
+        )
     return {entity_id: tuple(items) for entity_id, items in out.items()}
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("targets", nargs="+", help="Canonical names, authoritative aliases, or ENT_* ids")
+    parser.add_argument(
+        "targets", nargs="+", help="Canonical names, authoritative aliases, or ENT_* ids"
+    )
     parser.add_argument("--root", default=".")
-    parser.add_argument("--mode", action="append", default=[], help="PROFILE, LINEAGE, CORRELATION, RELATIONSHIP, CONVERGENCE, or FULL")
+    parser.add_argument(
+        "--mode",
+        action="append",
+        default=[],
+        help="PROFILE, LINEAGE, CORRELATION, RELATIONSHIP, CONVERGENCE, or FULL",
+    )
     parser.add_argument("--depth", type=int, default=1)
     parser.add_argument("--max-nodes", type=int, default=100)
     parser.add_argument("--max-edges", type=int, default=250)
     parser.add_argument("--max-local-matches", type=int, default=500)
-    parser.add_argument("--bind", action="append", default=[], help="Attach external id as ENT_ID:kind:value")
+    parser.add_argument(
+        "--bind", action="append", default=[], help="Attach external id as ENT_ID:kind:value"
+    )
     parser.add_argument("--remote", action="store_true", help="Enable on-demand source adapters")
-    parser.add_argument("--source", action="append", default=[], help="Restrict remote adapter source_ids")
+    parser.add_argument(
+        "--source", action="append", default=[], help="Restrict remote adapter source_ids"
+    )
     parser.add_argument("--force-refresh", action="store_true")
     parser.add_argument("--output", help="Write JSON result to this path; stdout is always emitted")
     args = parser.parse_args(argv)
