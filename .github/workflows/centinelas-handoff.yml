@@ -36,6 +36,8 @@ jobs:
           DUPLICATE: ${{ steps.ingest.outputs.duplicate }}
         run: |
           test -n "$TOKEN"
+          body=$(jq -nc --arg item "$ITEM" --arg key "$KEY" --argjson duplicate "$DUPLICATE" \
+            '{event_type:"centinelas-handoff-ack",client_payload:{item_id:$item,target:"moneysweep-pr",idempotency_key:$key,status:"acknowledged",duplicate:$duplicate}}')
           curl -sSf -X POST -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/jotaele44/centinelas-pr/dispatches \
-            -d "{\"event_type\":\"centinelas-handoff-ack\",\"client_payload\":{\"item_id\":\"$ITEM\",\"target\":\"moneysweep-pr\",\"idempotency_key\":\"$KEY\",\"status\":\"acknowledged\",\"duplicate\":$DUPLICATE}}"
+            -d "$body"
