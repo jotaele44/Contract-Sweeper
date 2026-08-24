@@ -1,0 +1,21 @@
+{
+  "schema_version": "pr0_two_stage_source_freeze_v1",
+  "frozen_at": "2026-08-24T18:31:00-04:00",
+  "base_branch": "main",
+  "base_main_sha": "80028013ee6cab525428675bc7deb7ca38121bc9",
+  "source_registry_path": "registries/source_registry.yaml",
+  "source_registry_blob_sha": "52c61b97839793e2ec66458d9bdb8b4545f231f3",
+  "source_count": 158,
+  "source_ids_sha256": "673659d9c53e8428e21052d95819ff35023e90142756686e73a9c9f1b326bbf2",
+  "requested_legacy_denominator": 157,
+  "legacy_denominator_status": "SUPERSEDED",
+  "superseding_source": "rdc_demandas_civiles",
+  "closure_gate": {
+    "classified": 158,
+    "unclassified": 0,
+    "duplicates": 0,
+    "require_exact_registry_blob": true,
+    "require_exact_source_id_digest": true
+  },
+  "promotion_status": "BLOCKED"
+}
