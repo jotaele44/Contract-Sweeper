@@ -20,6 +20,7 @@ from moneysweep.orchestrator._offline_baseline_core import (
     sha256_file,
 )
 from moneysweep.orchestrator._offline_baseline_runner import run_offline_baseline
+from moneysweep.runtime.source_registry import source_by_id
 
 LOCAL_CORPUS_SCHEMA_VERSION = "moneysweep_local_corpus_v1"
 LOCAL_CORPUS_CLASSIFICATION = "LOCAL_EVIDENCE_CORPUS_PROVISIONAL"
@@ -161,6 +162,32 @@ def _excluded_local_path(relative_path: Path) -> bool:
     return bool(lowered & _LOCAL_EXCLUDED_PARTS)
 
 
+def _binding_fields(
+    *, relative_text: str, binding: Mapping[str, Any]
+) -> tuple[list[str], str, str]:
+    source_ids_raw = binding.get("source_ids") or []
+    if not isinstance(source_ids_raw, list) or not all(
+        isinstance(source_id, str) and source_id for source_id in source_ids_raw
+    ):
+        raise OfflineBaselineViolation(
+            f"local binding source_ids for {relative_text!r} must be a list of non-empty strings"
+        )
+    source_ids = list(source_ids_raw)
+    unknown_source_ids = [source_id for source_id in source_ids if source_by_id(source_id) is None]
+    if unknown_source_ids:
+        raise OfflineBaselineViolation(
+            f"local binding for {relative_text!r} references unknown source_ids: "
+            + ", ".join(unknown_source_ids)
+        )
+    evidence_class = str(binding.get("evidence_class") or "unresolved")
+    if evidence_class not in {"financial", "control", "unresolved"}:
+        raise OfflineBaselineViolation(
+            f"local binding evidence_class for {relative_text!r} must be financial, control, or unresolved"
+        )
+    semantic_class = str(binding.get("semantic_class") or "UNRESOLVED")
+    return source_ids, semantic_class, evidence_class
+
+
 def inventory_local_corpus(config: LocalCorpusConfig) -> dict[str, Any]:
     """Freeze and classify one explicit local root without materializing rows.
 
@@ -172,6 +199,12 @@ def inventory_local_corpus(config: LocalCorpusConfig) -> dict[str, Any]:
     root = config.input_dir.expanduser().resolve()
     if not root.exists() or not root.is_dir():
         raise OfflineBaselineViolation(f"local corpus root is not a directory: {root}")
+    if config.output_path is not None:
+        output_path = config.output_path.expanduser().resolve()
+        if output_path == root or root in output_path.parents:
+            raise OfflineBaselineViolation(
+                "local corpus receipt must be written outside the inventoried root"
+            )
 
     bindings = dict(config.bindings or {})
     iterator = root.rglob("*") if config.recursive else root.iterdir()
@@ -197,7 +230,9 @@ def inventory_local_corpus(config: LocalCorpusConfig) -> dict[str, Any]:
             continue
 
         binding = dict(bindings.get(relative_text) or {})
-        evidence_class = str(binding.get("evidence_class") or "unresolved")
+        source_ids, semantic_class, evidence_class = _binding_fields(
+            relative_text=relative_text, binding=binding
+        )
         detected = _detected_format(path)
         item: dict[str, Any] = {
             "relative_path": relative_text,
@@ -206,8 +241,8 @@ def inventory_local_corpus(config: LocalCorpusConfig) -> dict[str, Any]:
             "detected_format": detected,
             "size_bytes": path.stat().st_size,
             "sha256": sha256_file(path),
-            "source_ids": list(binding.get("source_ids") or []),
-            "semantic_class": str(binding.get("semantic_class") or "UNRESOLVED"),
+            "source_ids": source_ids,
+            "semantic_class": semantic_class,
             "evidence_class": evidence_class,
             "binding_status": "BINDING" if binding else "UNRESOLVED",
             "file_conservation_status": "PASS",
