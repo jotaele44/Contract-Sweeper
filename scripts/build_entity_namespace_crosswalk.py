@@ -37,6 +37,12 @@ PRODUCTS = (
 )
 
 
+def _require_int(value: object, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(f"{field} must be an int, got {type(value).__name__}")
+    return value
+
+
 def build(root: Path, prepa_graph: str | None = None) -> dict[str, object]:
     index = CanonicalEntityIndex(root=root)
     records: list[NamespaceBridgeRecord] = []
@@ -58,7 +64,9 @@ def build(root: Path, prepa_graph: str | None = None) -> dict[str, object]:
     for record in records:
         counts[record.bridge_status] = counts.get(record.bridge_status, 0) + 1
     index_audit = index.audit()
-    index_collision_count = int(index_audit["identity_collision_count"])
+    index_collision_count = _require_int(
+        index_audit["identity_collision_count"], "identity_collision_count"
+    )
     return {
         "canonical_identity_authority": "data/reference/entity_master.csv::entity_id (ENT_*)",
         "record_count": len(records),
@@ -112,7 +120,10 @@ def main(argv: list[str] | None = None) -> int:
     write_csv(payload, root / args.csv)
     summary = {key: value for key, value in payload.items() if key != "records"}
     print(json.dumps(summary, indent=2))
-    collision_count = int(payload["unadjudicated_identity_collision_count"])
+    collision_count = _require_int(
+        payload["unadjudicated_identity_collision_count"],
+        "unadjudicated_identity_collision_count",
+    )
     if args.check and collision_count != 0:
         return 1
     return 0
