@@ -73,7 +73,8 @@ def audit(root: Path, products: Iterable[tuple[str, str, str]]) -> dict[str, obj
     for i, left in enumerate(labels):
         for right in labels[i + 1 :]:
             comparisons[f"{left}__vs__{right}"] = compare_sets(
-                loaded[left]["keys"], loaded[right]["keys"]  # type: ignore[arg-type]
+                loaded[left]["keys"],
+                loaded[right]["keys"],  # type: ignore[arg-type]
             )
     return {
         "status": "AUDIT_ONLY",
