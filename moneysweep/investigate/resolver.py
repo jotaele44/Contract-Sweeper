@@ -234,5 +234,7 @@ class CanonicalEntityIndex:
             resolution_state=ResolutionState.REVIEW,
             match_method=issue,
             candidates=tuple(candidates),
-            notes=("tied authoritative candidate set; no deterministic winner is identity evidence",),
+            notes=(
+                "tied authoritative candidate set; no deterministic winner is identity evidence",
+            ),
         )
