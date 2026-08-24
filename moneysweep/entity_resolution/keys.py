@@ -25,6 +25,7 @@ __all__ = [
     "identifier_priority",
     "is_authoritative",
     "best_identifier",
+    "shared_authoritative_identifiers",
     "has_unique_authoritative_id",
     "internal_canonical_id",
 ]
@@ -66,13 +67,20 @@ AUTHORITATIVE_KEYS: frozenset[str] = frozenset(
 
 @dataclass(frozen=True)
 class Identifier:
-    """A concrete identifier value on an entity, with temporal validity."""
+    """A concrete identifier assertion with temporal/provenance context.
+
+    Multiple values for the same ``key`` are valid and must be preserved. This is
+    required for historical identifiers such as DUNS/CAGE changes and prevents a
+    ``{key: value}`` collapse from silently overwriting contradictory evidence.
+    """
 
     key: str
     value: str
     valid_from: str | None = None
     valid_to: str | None = None
     source_date: str | None = None
+    issuer: str | None = None
+    source_record_id: str | None = None
 
     def is_authoritative(self) -> bool:
         return is_authoritative(self.key)
@@ -109,23 +117,64 @@ def best_identifier(identifiers: list[Identifier]) -> Identifier | None:
     return min(identifiers, key=lambda i: identifier_priority(i.key))
 
 
-def has_unique_authoritative_id(left: list[Identifier], right: list[Identifier]) -> bool:
-    """True if the two entities share exactly one authoritative id key whose values match.
+def _intervals_overlap(left: Identifier, right: Identifier) -> bool:
+    """Return whether two identifier-validity intervals overlap.
 
-    This is the precondition for an auto-merge: a single, unambiguous authoritative
-    identifier held in common. If two entities disagree on the value of any shared
-    authoritative key, they cannot auto-merge.
+    ``None`` bounds are open-ended. Bounds are ISO date strings, so lexical order
+    is chronological for the accepted ``YYYY-MM-DD`` representation.
     """
-    left_auth = {i.key: i.value for i in left if i.is_authoritative()}
-    right_auth = {i.key: i.value for i in right if i.is_authoritative()}
-    shared_keys = set(left_auth) & set(right_auth)
-    if not shared_keys:
-        return False
-    # Any conflicting shared authoritative key disqualifies an auto-merge.
-    for k in shared_keys:
-        if left_auth[k] != right_auth[k]:
-            return False
-    return True
+    latest_start = max(filter(None, (left.valid_from, right.valid_from)), default=None)
+    earliest_end = min(filter(None, (left.valid_to, right.valid_to)), default=None)
+    if latest_start is None or earliest_end is None:
+        return True
+    return latest_start <= earliest_end
+
+
+def shared_authoritative_identifiers(
+    left: list[Identifier], right: list[Identifier]
+) -> tuple[tuple[Identifier, Identifier], ...]:
+    """Return all temporally-overlapping equal authoritative assertions.
+
+    The full candidate sets are retained. A pair matches only when scheme/key and
+    value agree and their validity intervals overlap. No normalization, proximity,
+    score, or source absence can create a match here.
+    """
+    matches: list[tuple[Identifier, Identifier]] = []
+    for left_id in left:
+        if not left_id.is_authoritative():
+            continue
+        for right_id in right:
+            if not right_id.is_authoritative() or left_id.key != right_id.key:
+                continue
+            if left_id.value == right_id.value and _intervals_overlap(left_id, right_id):
+                matches.append((left_id, right_id))
+    return tuple(matches)
+
+
+def has_unique_authoritative_id(left: list[Identifier], right: list[Identifier]) -> bool:
+    """Whether authoritative evidence can safely anchor an auto-merge.
+
+    This legacy-named predicate now evaluates complete multi-value temporal
+    assertion sets instead of collapsing each side to ``{key: value}``.
+
+    Rules:
+    * at least one equal authoritative assertion must overlap in time;
+    * any *overlapping* disagreement on the same authoritative scheme fails
+      closed, even if another assertion matches;
+    * non-overlapping historical succession is preserved and is not treated as a
+      contemporaneous contradiction.
+    """
+    left_auth = [identifier for identifier in left if identifier.is_authoritative()]
+    right_auth = [identifier for identifier in right if identifier.is_authoritative()]
+
+    for left_id in left_auth:
+        for right_id in right_auth:
+            if left_id.key != right_id.key or not _intervals_overlap(left_id, right_id):
+                continue
+            if left_id.value != right_id.value:
+                return False
+
+    return bool(shared_authoritative_identifiers(left_auth, right_auth))
 
 
 def internal_canonical_id(name: str | None, *, person: bool = False) -> str:
