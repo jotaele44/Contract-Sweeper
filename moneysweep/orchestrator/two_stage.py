@@ -7,6 +7,7 @@ profile dispatcher while preserving legacy full/incremental execution unchanged.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,6 +32,11 @@ def _timestamp(value: str | None) -> str:
     return value or datetime.now(timezone.utc).isoformat()
 
 
+def _case_id(seeds: tuple[str, ...]) -> str:
+    material = "\x1f".join(seeds).encode("utf-8")
+    return "discovery-" + hashlib.sha256(material).hexdigest()[:24]
+
+
 def _source_gate() -> dict[str, Any]:
     ledger = build_role_ledger()
     counts = role_counts(ledger)
@@ -48,7 +54,7 @@ def run_discovery(config: TwoStageConfig) -> dict[str, Any]:
         raise ValueError("--discovery-seed is required for discovery profile")
 
     packet = DiscoveryStagePacket(
-        case_id="discovery-" + str(abs(hash(tuple(config.discovery_seeds)))),
+        case_id=_case_id(config.discovery_seeds),
         created_at=_timestamp(config.generated_at),
         subject_seeds=config.discovery_seeds,
         candidates=(),
@@ -79,6 +85,7 @@ def run_corpus(config: TwoStageConfig) -> dict[str, Any]:
         raise ValueError("--discovery-packet is required for corpus profile")
     packet = load_packet(config.discovery_packet)
     eligible = packet.stage2_subject_ids()
+    eligible_set = set(eligible)
     return {
         "profile": "corpus",
         "status": "PROVISIONAL",
@@ -88,9 +95,12 @@ def run_corpus(config: TwoStageConfig) -> dict[str, Any]:
         "stage2_subject_ids": list(eligible),
         "stage2_subject_count": len(eligible),
         "candidate_scoped_unresolved_count": sum(
-            1 for candidate in packet.candidates if candidate.candidate_id not in set(eligible)
+            1 for candidate in packet.candidates if candidate.candidate_id not in eligible_set
         ),
-        "note": "Corpus execution is gated by the DiscoveryStagePacket; corpus hits cannot promote identity.",
+        "note": (
+            "Corpus execution is gated by the DiscoveryStagePacket; "
+            "corpus hits cannot promote identity."
+        ),
     }
 
 
