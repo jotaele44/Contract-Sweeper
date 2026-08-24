@@ -1,0 +1,86 @@
+{
+  "version": "0.1",
+  "schema_version": "document_recovery_registry_v1",
+  "production_status": "NON_PRODUCTION_DIAGNOSTIC",
+  "rules": {
+    "request_is_not_identity_evidence": true,
+    "recovered_artifact_requires_separate_ingest": true,
+    "preserve_original_bytes_when_lawfully_available": true,
+    "sha256_required_when_bytes_preserved": true,
+    "retrieval_timestamp_required": true,
+    "source_locator_required": true,
+    "promotion_from_recovery_requires_identity_readjudication": true
+  },
+  "recovery_routes": [
+    {
+      "recovery_id": "pr_judiciary_oat85",
+      "institution": "Puerto Rico Judicial Branch",
+      "source_family": "pr_judiciary",
+      "role": "RECOVERY",
+      "public_entrypoint": "https://poderjudicial.pr/formularios/",
+      "form_name": "Solicitud de Servicios de Documentos",
+      "form_code": "OAT 85",
+      "trigger_conditions": [
+        "case_candidate_requires_primary_document",
+        "docket_annotation_insufficient",
+        "identity_adjudication_requires_underlying_filing"
+      ],
+      "required_locator_fields": [
+        "party_names",
+        "case_year",
+        "case_number_or_filing_number",
+        "case_nature",
+        "court"
+      ],
+      "acquisition_modes": [
+        "court_secretariat",
+        "judicial_record_examination",
+        "digital_copy_when_authorized"
+      ],
+      "post_acquisition": [
+        "preserve_original_filename",
+        "preserve_original_bytes",
+        "sha256",
+        "record_retrieval_timestamp",
+        "record_case_locator",
+        "ingest_as_new_evidence",
+        "rerun_identity_adjudication"
+      ],
+      "prohibitions": [
+        "Do not treat filing a request as evidence of identity.",
+        "Do not treat a docket annotation as equivalent to the underlying document.",
+        "Do not upgrade a candidate until recovered evidence is separately adjudicated."
+      ]
+    },
+    {
+      "recovery_id": "pr_public_records_law141",
+      "institution": "Puerto Rico public bodies",
+      "source_family": "public_records_request",
+      "role": "RECOVERY",
+      "public_entrypoint": "",
+      "trigger_conditions": [
+        "public_primary_record_not_available_after_public_source_exhaustion"
+      ],
+      "required_locator_fields": [
+        "agency",
+        "record_description",
+        "date_or_period"
+      ],
+      "acquisition_modes": [
+        "agency_public_records_channel"
+      ],
+      "post_acquisition": [
+        "preserve_original_filename",
+        "preserve_original_bytes",
+        "sha256",
+        "record_retrieval_timestamp",
+        "ingest_as_new_evidence",
+        "rerun_identity_adjudication"
+      ],
+      "prohibitions": [
+        "Use only after bounded public-source exhaustion is documented.",
+        "Do not infer source absence from failed keyword search alone."
+      ]
+    }
+  ]
+}
