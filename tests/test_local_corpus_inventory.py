@@ -6,12 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from moneysweep.orchestrator.offline_baseline import (
-    LocalCorpusConfig,
-    OfflineBaselineViolation,
-    certify_record_conservation,
-    inventory_local_corpus,
-)
+from moneysweep.orchestrator import offline_baseline as baseline
 
 
 def test_inventory_preserves_files_hashes_and_fails_closed_on_rows(tmp_path: Path) -> None:
@@ -32,8 +27,8 @@ def test_inventory_preserves_files_hashes_and_fails_closed_on_rows(tmp_path: Pat
             "evidence_class": "control",
         },
     }
-    manifest = inventory_local_corpus(
-        LocalCorpusConfig(
+    manifest = baseline._inventory_local_corpus(
+        baseline._LocalCorpusConfig(
             input_dir=corpus,
             bindings=bindings,
             generated_at="2026-08-24T12:00:00+00:00",
@@ -59,7 +54,7 @@ def test_inventory_same_filename_different_bytes_is_not_identity(tmp_path: Path)
     (corpus / "a" / "same.pdf").write_bytes(b"%PDF-1.4\nA")
     (corpus / "b" / "same.pdf").write_bytes(b"%PDF-1.4\nB")
 
-    manifest = inventory_local_corpus(LocalCorpusConfig(input_dir=corpus))
+    manifest = baseline._inventory_local_corpus(baseline._LocalCorpusConfig(input_dir=corpus))
     hashes = {item["sha256"] for item in manifest["files"]}
 
     assert len(hashes) == 2
@@ -73,7 +68,7 @@ def test_inventory_marks_byte_identical_files_without_dropping_rows(tmp_path: Pa
     (corpus / "one.pdf").write_bytes(payload)
     (corpus / "two.pdf").write_bytes(payload)
 
-    manifest = inventory_local_corpus(LocalCorpusConfig(input_dir=corpus))
+    manifest = baseline._inventory_local_corpus(baseline._LocalCorpusConfig(input_dir=corpus))
 
     assert manifest["file_count"] == 2
     assert manifest["duplicate_byte_group_count"] == 1
@@ -92,7 +87,7 @@ def test_inventory_rejects_symlink_escape(tmp_path: Path) -> None:
     except (OSError, NotImplementedError):
         pytest.skip("symlinks unavailable")
 
-    manifest = inventory_local_corpus(LocalCorpusConfig(input_dir=corpus))
+    manifest = baseline._inventory_local_corpus(baseline._LocalCorpusConfig(input_dir=corpus))
 
     assert manifest["file_count"] == 0
     assert manifest["excluded_path_count"] == 1
@@ -107,7 +102,7 @@ def test_archive_members_have_path_size_and_sha256(tmp_path: Path) -> None:
         archive.writestr("xl/sharedStrings.xml", b"alpha")
         archive.writestr("xl/worksheets/sheet1.xml", b"beta")
 
-    manifest = inventory_local_corpus(LocalCorpusConfig(input_dir=corpus))
+    manifest = baseline._inventory_local_corpus(baseline._LocalCorpusConfig(input_dir=corpus))
     members = manifest["files"][0]["archive_members"]
 
     assert [member["path"] for member in members] == [
@@ -123,9 +118,9 @@ def test_inventory_rejects_unknown_registry_binding(tmp_path: Path) -> None:
     corpus.mkdir()
     (corpus / "contracts.pdf").write_bytes(b"%PDF-1.4\nfixture")
 
-    with pytest.raises(OfflineBaselineViolation, match="unknown source_ids"):
-        inventory_local_corpus(
-            LocalCorpusConfig(
+    with pytest.raises(baseline.OfflineBaselineViolation, match="unknown source_ids"):
+        baseline._inventory_local_corpus(
+            baseline._LocalCorpusConfig(
                 input_dir=corpus,
                 bindings={
                     "contracts.pdf": {
@@ -143,9 +138,9 @@ def test_inventory_rejects_receipt_inside_corpus(tmp_path: Path) -> None:
     corpus.mkdir()
     (corpus / "contracts.pdf").write_bytes(b"%PDF-1.4\nfixture")
 
-    with pytest.raises(OfflineBaselineViolation, match="outside the inventoried root"):
-        inventory_local_corpus(
-            LocalCorpusConfig(
+    with pytest.raises(baseline.OfflineBaselineViolation, match="outside the inventoried root"):
+        baseline._inventory_local_corpus(
+            baseline._LocalCorpusConfig(
                 input_dir=corpus,
                 output_path=corpus / "local_corpus_manifest.json",
             )
@@ -153,7 +148,7 @@ def test_inventory_rejects_receipt_inside_corpus(tmp_path: Path) -> None:
 
 
 def test_record_conservation_requires_arithmetic_and_provenance_closure() -> None:
-    passed = certify_record_conservation(
+    passed = baseline._certify_record_conservation(
         source_records=10,
         retained_records=8,
         excluded_records=2,
@@ -163,7 +158,7 @@ def test_record_conservation_requires_arithmetic_and_provenance_closure() -> Non
     assert passed["state"] == "PASS"
     assert passed["queryable"] is True
 
-    lost = certify_record_conservation(
+    lost = baseline._certify_record_conservation(
         source_records=10,
         retained_records=8,
         excluded_records=1,
@@ -174,7 +169,7 @@ def test_record_conservation_requires_arithmetic_and_provenance_closure() -> Non
     assert lost["arithmetic_closed"] is False
     assert lost["queryable"] is False
 
-    provenance_gap = certify_record_conservation(
+    provenance_gap = baseline._certify_record_conservation(
         source_records=10,
         retained_records=8,
         excluded_records=2,
@@ -185,7 +180,7 @@ def test_record_conservation_requires_arithmetic_and_provenance_closure() -> Non
     assert provenance_gap["provenance_closed"] is False
     assert provenance_gap["queryable"] is False
 
-    unresolved = certify_record_conservation(
+    unresolved = baseline._certify_record_conservation(
         source_records=10,
         retained_records=8,
         excluded_records=2,
@@ -198,7 +193,7 @@ def test_record_conservation_requires_arithmetic_and_provenance_closure() -> Non
 
 def test_record_conservation_rejects_negative_counts() -> None:
     with pytest.raises(ValueError, match="non-negative"):
-        certify_record_conservation(
+        baseline._certify_record_conservation(
             source_records=1,
             retained_records=-1,
             excluded_records=2,
