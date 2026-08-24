@@ -34,6 +34,7 @@ LOCAL_PRODUCTS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
 )
 UEI_FIELDS = ("recipient_uei", "uei", "known_uei")
+DEFAULT_UEI_GENERAL_SOURCES = ("usaspending_prime", "grants_gov")
 
 
 def _coerce_modes(modes: Iterable[str]) -> tuple[str, ...]:
@@ -151,7 +152,9 @@ def _local_correlations(
                             "source_path": rel_path,
                             "source_row": source_row,
                             "match_status": "LINKED" if stable_match else "CANDIDATE_NOT_IDENTITY",
-                            "match_method": "uei" if stable_match else "canonical_or_alias_name_discovery",
+                            "match_method": "uei"
+                            if stable_match
+                            else "canonical_or_alias_name_discovery",
                             "matched_field": matched_field,
                             "matched_value": matched_value,
                             "record": dict(row),
@@ -169,11 +172,18 @@ def _remote_queries(
     *,
     force_refresh: bool,
 ) -> dict[str, object]:
-    entity_ids = [sid for sid in (source_ids or sorted(ENTITY_ADAPTER_REGISTRY)) if sid in ENTITY_ADAPTER_REGISTRY]
-    general_ids = [sid for sid in (source_ids or []) if sid in ADAPTER_REGISTRY]
+    selected = source_ids or sorted(ENTITY_ADAPTER_REGISTRY)
+    entity_ids = [sid for sid in selected if sid in ENTITY_ADAPTER_REGISTRY]
     identifiers: list[EntityIdentifier] = []
     for target in targets:
         identifiers.extend(target.query_identifiers(include_names=True))
+
+    ueis = sorted({uei for target in targets for uei in _target_ueis(target)})
+    if source_ids is None:
+        general_ids = [sid for sid in DEFAULT_UEI_GENERAL_SOURCES if sid in ADAPTER_REGISTRY]
+    else:
+        general_ids = [sid for sid in source_ids if sid in ADAPTER_REGISTRY]
+
     summary: dict[str, object] = {}
     if identifiers and entity_ids:
         result = query_entities(
@@ -194,9 +204,11 @@ def _remote_queries(
                 }
                 for sid, out in result.outcomes.items()
             },
-            "identity_warning": "Remote name results are discovery candidates unless independently bound by authoritative identifiers.",
+            "identity_warning": (
+                "Remote name results are discovery candidates unless independently bound "
+                "by authoritative identifiers."
+            ),
         }
-    ueis = sorted({uei for target in targets for uei in _target_ueis(target)})
     if ueis and general_ids:
         result = query(
             Query(recipient_ueis=tuple(ueis)),
@@ -216,6 +228,7 @@ def _remote_queries(
                 }
                 for sid, out in result.outcomes.items()
             },
+            "routing_basis": "attached_uei",
         }
     return summary
 
@@ -248,6 +261,30 @@ def investigate(
         for value in target_values
     ]
     result = InvestigationResult(targets=targets, modes=mode_tuple)
+
+    for collision in index.identity_collisions():
+        result.review_items.append(
+            {
+                "object_type": "canonical_identity_index",
+                "raw_value": collision["normalized_key"],
+                "issue_type": collision["issue_type"],
+                "candidates": collision["candidate_entity_ids"],
+                "status": "OPEN",
+            }
+        )
+    for issue in index.integrity_issues:
+        result.review_items.append(
+            {
+                "object_type": "canonical_identity_index",
+                "raw_value": issue.get("entity_id") or issue.get("alias") or "",
+                "issue_type": issue["issue_type"],
+                "candidates": [],
+                "status": "OPEN",
+                "source_path": issue.get("source_path"),
+                "source_row": issue.get("source_row"),
+            }
+        )
+
     for target in targets:
         if target.resolution_state is ResolutionState.REVIEW:
             result.review_items.append(
@@ -281,6 +318,8 @@ def investigate(
         )
     if "RELATIONSHIP" in mode_tuple or "CONVERGENCE" in mode_tuple:
         result.notes.append(
-            "Relationship/convergence v1 is bounded to canonical parent-map edges plus preserved local correlation candidates; it does not promote name-only overlaps to graph identity."
+            "Relationship/convergence v1 is bounded to canonical parent-map edges plus "
+            "preserved local correlation candidates; it does not promote name-only "
+            "overlaps to graph identity."
         )
     return result
