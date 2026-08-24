@@ -99,10 +99,14 @@ def bridge_csv(
     out: list[NamespaceBridgeRecord] = []
     with path.open(newline="", encoding="utf-8-sig", errors="replace") as handle:
         for source_row, row in enumerate(csv.DictReader(handle), start=2):
-            name = next((str(row.get(field) or "").strip() for field in name_fields if row.get(field)), "")
+            name = next(
+                (str(row.get(field) or "").strip() for field in name_fields if row.get(field)), ""
+            )
             if not name:
                 continue
-            record_id = next((str(row.get(field) or "").strip() for field in id_fields if row.get(field)), "")
+            record_id = next(
+                (str(row.get(field) or "").strip() for field in id_fields if row.get(field)), ""
+            )
             if not record_id:
                 record_id = f"row:{source_row}"
             out.append(
