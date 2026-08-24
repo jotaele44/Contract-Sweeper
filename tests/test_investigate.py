@@ -31,7 +31,9 @@ def test_pilot_three_entity_alias_resolution_is_canonical():
 
 @pytest.mark.unit
 def test_unknown_name_fails_closed_without_candidate_identity():
-    target = CanonicalEntityIndex(root=ROOT).resolve("Definitely Not A Canonical Money Sweep Entity")
+    target = CanonicalEntityIndex(root=ROOT).resolve(
+        "Definitely Not A Canonical Money Sweep Entity"
+    )
     assert target.resolution_state is ResolutionState.UNRESOLVED
     assert target.canonical_entity_id is None
     assert target.match_method == "discovery_name_no_binding"
@@ -60,7 +62,10 @@ def test_three_entity_pilot_lineage_positive_and_negative_gates():
     assert (COMMONWEALTH, PREPA, "INSTRUMENTALITY_OF") in pairs
     assert (PREPA, GENERA, "P3_OPERATOR_OF") in pairs
     # Arcadis has no curated parent/operator edge in the current canonical map.
-    assert not any(ARCADIS in (edge["parent_entity_id"], edge["child_entity_id"]) for edge in result.lineage_edges)
+    assert not any(
+        ARCADIS in (edge["parent_entity_id"], edge["child_entity_id"])
+        for edge in result.lineage_edges
+    )
     assert not result.review_items
 
 
