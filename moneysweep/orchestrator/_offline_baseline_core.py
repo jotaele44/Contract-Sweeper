@@ -7,9 +7,10 @@ import csv
 import hashlib
 import json
 import os
-import re
 import socket
+import zipfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator, Mapping
 
@@ -19,6 +20,13 @@ CLASSIFICATION = "CANON_BASELINE_PROVISIONAL"
 PRODUCTION_STATUS = "NON_PRODUCTION_DIAGNOSTIC"
 REQUIRED_TOTAL = 14
 REQUIRED_CREDIT_CEILING = 10
+
+LOCAL_CORPUS_SCHEMA_VERSION = "moneysweep_local_corpus_v1"
+LOCAL_CORPUS_CLASSIFICATION = "LOCAL_EVIDENCE_CORPUS_PROVISIONAL"
+LOCAL_CORPUS_EXTENSIONS = frozenset(
+    {".csv", ".json", ".jsonl", ".parquet", ".pdf", ".xlsx", ".xls", ".sqlite", ".db", ".txt"}
+)
+_LOCAL_EXCLUDED_PARTS = frozenset({".git", ".env", "secrets", "credentials", "__pycache__"})
 
 InputSpec = tuple[str, tuple[str, ...], bool, str]
 
@@ -79,6 +87,8 @@ KEY_CANDIDATES = (
     "name",
 )
 
+import re
+
 REGISTRATION_RE = re.compile(r"\b20\d{2}Q[1-4]-\d{5}\b")
 WAYBACK_RE = re.compile(r"The Wayback Machine - (https://web\.archive\.org/web/(\d{14})/\S+)")
 CREDENTIAL_MARKERS = ("API_KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL", "PRIVATE_KEY")
@@ -96,6 +106,24 @@ class BaselineConfig:
     git_sha: str = "UNKNOWN"
     generated_at: str | None = None
     strict_inputs: bool = False
+
+
+@dataclass(frozen=True)
+class LocalCorpusConfig:
+    """Configuration for a read-only, bounded local evidence inventory.
+
+    ``bindings`` is keyed by exact corpus-relative path.  A binding may carry
+    ``source_ids`` (existing registry IDs only), ``semantic_class``, and
+    ``evidence_class`` (``financial`` or ``control``).  Bindings classify source
+    manifestation; they never assert entity identity.
+    """
+
+    input_dir: Path
+    output_path: Path | None = None
+    bindings: Mapping[str, Mapping[str, Any]] | None = None
+    generated_at: str | None = None
+    recursive: bool = True
+    include_extensions: frozenset[str] = LOCAL_CORPUS_EXTENSIONS
 
 
 def _json_bytes(value: Any) -> bytes:
@@ -225,3 +253,198 @@ def block_network() -> Iterator[None]:
         socket.socket.connect = original_connect  # type: ignore[method-assign]
         socket.socket.connect_ex = original_connect_ex  # type: ignore[method-assign]
         socket.create_connection = original_create  # type: ignore[assignment]
+
+
+def _detected_format(path: Path) -> str:
+    """Content-aware format detection; extension is never the sole classifier."""
+
+    with path.open("rb") as handle:
+        head = handle.read(16)
+    if head.startswith(b"%PDF-"):
+        return "pdf"
+    if head.startswith(b"PAR1"):
+        return "parquet"
+    if head.startswith(b"SQLite format 3\x00"):
+        return "sqlite"
+    if head.startswith(b"PK\x03\x04"):
+        return "zip_container"
+    if path.suffix.casefold() in {".json", ".jsonl"}:
+        return path.suffix.casefold().lstrip(".")
+    if path.suffix.casefold() == ".csv":
+        return "csv"
+    if path.suffix.casefold() == ".txt":
+        return "text"
+    return "unknown"
+
+
+def _zip_member_manifest(path: Path) -> list[dict[str, Any]]:
+    """Hash archive payload members by path and uncompressed size.
+
+    This supports archive adjudication without treating outer ZIP hashes as
+    payload identity.  Directory members are omitted.
+    """
+
+    if _detected_format(path) != "zip_container":
+        return []
+    members: list[dict[str, Any]] = []
+    try:
+        with zipfile.ZipFile(path) as archive:
+            for info in sorted(archive.infolist(), key=lambda item: item.filename):
+                if info.is_dir():
+                    continue
+                digest = hashlib.sha256(archive.read(info.filename)).hexdigest()
+                members.append(
+                    {
+                        "path": info.filename,
+                        "uncompressed_size": info.file_size,
+                        "sha256": digest,
+                    }
+                )
+    except (OSError, zipfile.BadZipFile):
+        return []
+    return members
+
+
+def certify_record_conservation(
+    *,
+    source_records: int,
+    retained_records: int,
+    excluded_records: int,
+    unresolved_records: int,
+    provenance_complete_records: int,
+) -> dict[str, Any]:
+    """Fail-closed record conservation gate for a materialized local source."""
+
+    values = (
+        source_records,
+        retained_records,
+        excluded_records,
+        unresolved_records,
+        provenance_complete_records,
+    )
+    if any(value < 0 for value in values):
+        raise ValueError("record conservation counts must be non-negative")
+    arithmetic_closed = source_records == retained_records + excluded_records
+    provenance_closed = provenance_complete_records == source_records
+    state = (
+        "PASS"
+        if arithmetic_closed and provenance_closed and unresolved_records == 0
+        else "FAIL"
+    )
+    return {
+        "state": state,
+        "source_records": source_records,
+        "retained_records": retained_records,
+        "excluded_records": excluded_records,
+        "unresolved_records": unresolved_records,
+        "provenance_complete_records": provenance_complete_records,
+        "arithmetic_closed": arithmetic_closed,
+        "provenance_closed": provenance_closed,
+        "queryable": state == "PASS",
+    }
+
+
+def _excluded_local_path(relative_path: Path) -> bool:
+    lowered = {part.casefold() for part in relative_path.parts}
+    return bool(lowered & _LOCAL_EXCLUDED_PARTS)
+
+
+def inventory_local_corpus(config: LocalCorpusConfig) -> dict[str, Any]:
+    """Freeze and classify a bounded local directory without materializing rows.
+
+    The inventory is read-only.  Symlinks are rejected to prevent an allowlisted
+    root from escaping through filesystem indirection.  Absolute operator paths
+    are never written to the manifest.  All financial inputs remain non-queryable
+    until a source-specific parser supplies a PASS record-conservation receipt.
+    """
+
+    root = config.input_dir.expanduser().resolve()
+    if not root.exists() or not root.is_dir():
+        raise OfflineBaselineViolation(f"local corpus root is not a directory: {root}")
+
+    bindings = dict(config.bindings or {})
+    iterator = root.rglob("*") if config.recursive else root.iterdir()
+    files: list[dict[str, Any]] = []
+    excluded: list[dict[str, str]] = []
+    for path in sorted(iterator, key=lambda item: item.as_posix()):
+        if path.is_symlink():
+            excluded.append({"path": path.relative_to(root).as_posix(), "reason": "SYMLINK_REJECTED"})
+            continue
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root)
+        relative_text = relative.as_posix()
+        if _excluded_local_path(relative):
+            excluded.append({"path": relative_text, "reason": "SENSITIVE_OR_INTERNAL_PATH"})
+            continue
+        extension = path.suffix.casefold()
+        if extension not in config.include_extensions:
+            excluded.append({"path": relative_text, "reason": "UNSUPPORTED_EXTENSION"})
+            continue
+        binding = dict(bindings.get(relative_text) or {})
+        evidence_class = str(binding.get("evidence_class") or "unresolved")
+        detected = _detected_format(path)
+        item: dict[str, Any] = {
+            "relative_path": relative_text,
+            "filename_raw": path.name,
+            "extension": extension,
+            "detected_format": detected,
+            "size_bytes": path.stat().st_size,
+            "sha256": sha256_file(path),
+            "source_ids": list(binding.get("source_ids") or []),
+            "semantic_class": str(binding.get("semantic_class") or "UNRESOLVED"),
+            "evidence_class": evidence_class,
+            "binding_status": "BINDING" if binding else "UNRESOLVED",
+            "file_conservation_status": "PASS",
+            "record_conservation_status": "NOT_APPLICABLE" if evidence_class == "control" else "OPEN",
+            "provenance_status": "FILE_LEVEL_PASS",
+            "queryable": False,
+        }
+        if detected == "zip_container":
+            item["archive_members"] = _zip_member_manifest(path)
+        files.append(item)
+
+    by_hash: dict[str, list[str]] = {}
+    for item in files:
+        by_hash.setdefault(str(item["sha256"]), []).append(str(item["relative_path"]))
+    duplicate_groups = [
+        {"sha256": digest, "paths": sorted(paths), "classification": "BYTE_IDENTICAL"}
+        for digest, paths in sorted(by_hash.items())
+        if len(paths) > 1
+    ]
+
+    financial = [item for item in files if item["evidence_class"] == "financial"]
+    control = [item for item in files if item["evidence_class"] == "control"]
+    unresolved = [item for item in files if item["evidence_class"] == "unresolved"]
+    file_arithmetic_closed = len(files) == len(financial) + len(control) + len(unresolved)
+    generated_at = config.generated_at or datetime.now(timezone.utc).isoformat()
+    manifest: dict[str, Any] = {
+        "schema_version": LOCAL_CORPUS_SCHEMA_VERSION,
+        "classification": LOCAL_CORPUS_CLASSIFICATION,
+        "generated_at": generated_at,
+        "root_disclosure": "REDACTED_OPERATOR_ROOT",
+        "recursive": config.recursive,
+        "file_count": len(files),
+        "financial_file_count": len(financial),
+        "control_file_count": len(control),
+        "unresolved_file_count": len(unresolved),
+        "excluded_path_count": len(excluded),
+        "duplicate_byte_group_count": len(duplicate_groups),
+        "files": files,
+        "excluded_paths": excluded,
+        "byte_duplicate_groups": duplicate_groups,
+        "certification": {
+            "scope": "bounded files discovered under the explicit local root",
+            "file_conservation": "PASS" if file_arithmetic_closed else "FAIL",
+            "file_arithmetic_closed": file_arithmetic_closed,
+            "record_conservation": "OPEN" if financial else "NOT_APPLICABLE",
+            "record_provenance": "OPEN" if financial else "NOT_APPLICABLE",
+            "identity_certification": "NOT_ATTEMPTED",
+            "canonical_certification": False,
+            "queryable_evidence": False,
+            "promotion_authorized": False,
+        },
+    }
+    if config.output_path is not None:
+        _write_json(config.output_path, manifest)
+    return manifest
