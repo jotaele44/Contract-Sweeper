@@ -12,8 +12,13 @@ import argparse
 import csv
 import json
 from pathlib import Path
+from typing import cast
 
-from moneysweep.investigate.crosswalk import bridge_csv, bridge_prepa_graph
+from moneysweep.investigate.crosswalk import (
+    NamespaceBridgeRecord,
+    bridge_csv,
+    bridge_prepa_graph,
+)
 from moneysweep.investigate.resolver import CanonicalEntityIndex
 
 PRODUCTS = (
@@ -34,7 +39,7 @@ PRODUCTS = (
 
 def build(root: Path, prepa_graph: str | None = None) -> dict[str, object]:
     index = CanonicalEntityIndex(root=root)
-    records = []
+    records: list[NamespaceBridgeRecord] = []
     for namespace, rel_path, name_fields, id_fields in PRODUCTS:
         records.extend(
             bridge_csv(
@@ -53,19 +58,19 @@ def build(root: Path, prepa_graph: str | None = None) -> dict[str, object]:
     for record in records:
         counts[record.bridge_status] = counts.get(record.bridge_status, 0) + 1
     index_audit = index.audit()
+    index_collision_count = int(index_audit["identity_collision_count"])
     return {
         "canonical_identity_authority": "data/reference/entity_master.csv::entity_id (ENT_*)",
         "record_count": len(records),
         "status_counts": counts,
-        "unadjudicated_identity_collision_count": len(collisions)
-        + int(index_audit["identity_collision_count"]),
+        "unadjudicated_identity_collision_count": len(collisions) + index_collision_count,
         "canonical_index_audit": index_audit,
         "records": [record.to_dict() for record in records],
     }
 
 
 def write_csv(payload: dict[str, object], path: Path) -> None:
-    rows = payload.get("records") or []
+    rows = cast(list[dict[str, object]], payload.get("records") or [])
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = [
         "source_namespace",
@@ -85,7 +90,8 @@ def write_csv(payload: dict[str, object], path: Path) -> None:
         writer.writeheader()
         for row in rows:
             public = dict(row)
-            public["candidates"] = "|".join(public.get("candidates") or [])
+            candidates = cast(list[str], public.get("candidates") or [])
+            public["candidates"] = "|".join(candidates)
             writer.writerow({key: public.get(key, "") for key in fields})
 
 
@@ -104,8 +110,10 @@ def main(argv: list[str] | None = None) -> int:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     write_csv(payload, root / args.csv)
-    print(json.dumps({key: value for key, value in payload.items() if key != "records"}, indent=2))
-    if args.check and payload["unadjudicated_identity_collision_count"] != 0:
+    summary = {key: value for key, value in payload.items() if key != "records"}
+    print(json.dumps(summary, indent=2))
+    collision_count = int(payload["unadjudicated_identity_collision_count"])
+    if args.check and collision_count != 0:
         return 1
     return 0
 
