@@ -1,8 +1,8 @@
 """MoneySweep pipeline profile dispatcher.
 
 The legacy full and incremental pipeline remains byte-identical in
-``run_all_legacy.py``. The ``offline-baseline`` profile is intercepted here so it
-cannot fall through into any downloader or credentialed stage.
+``run_all_legacy.py``. Special profiles are intercepted here so they cannot fall
+through into legacy downloaders, credentialed stages, or production promotion.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Iterator, Sequence
 
 PROJECT_ROOT = Path(__file__).resolve().parent
+TWO_STAGE_PROFILES = frozenset({"discovery", "corpus", "two-stage"})
 
 
 def _profile_value(argv: Sequence[str]) -> str | None:
@@ -66,10 +67,33 @@ def _run_offline_baseline(argv: Sequence[str]) -> int:
     return 0
 
 
+def _run_two_stage(argv: Sequence[str]) -> int:
+    from moneysweep.orchestrator.cli import build_arg_parser
+    from moneysweep.orchestrator.two_stage import TwoStageConfig, run_profile
+
+    args = build_arg_parser().parse_args(list(argv))
+    packet = PROJECT_ROOT / args.discovery_packet if args.discovery_packet else None
+    result = run_profile(
+        TwoStageConfig(
+            profile=args.profile,
+            repo_root=PROJECT_ROOT,
+            output_root=PROJECT_ROOT / args.two_stage_output_root,
+            discovery_packet=packet,
+            discovery_seeds=tuple(args.discovery_seed),
+            generated_at=args.two_stage_generated_at,
+        )
+    )
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = list(sys.argv[1:] if argv is None else argv)
-    if _profile_value(arguments) == "offline-baseline":
+    profile = _profile_value(arguments)
+    if profile == "offline-baseline":
         return _run_offline_baseline(arguments)
+    if profile in TWO_STAGE_PROFILES:
+        return _run_two_stage(arguments)
 
     from run_all_legacy import main as legacy_main
 
