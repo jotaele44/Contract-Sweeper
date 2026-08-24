@@ -24,7 +24,7 @@ from .fhlb import FHLBAdvancesAdapter
 from .highergov import HigherGovSupplementalAdapter
 from .lda import LDAAdapter
 from .nih import NIHReporterAdapter
-from .nonprofits import NonprofitsIRS990Adapter
+from .nonprofits import NonprofitsIRS990Adapter, NonprofitsIRS990EntityAdapter
 from .nsf import NSFAwardsAdapter
 from .ofac import OFACSDNAdapter
 from .sam import SAMEntitiesAdapter
@@ -68,7 +68,6 @@ ADAPTER_REGISTRY: dict[str, Type[SourceAdapter]] = {
     FECPRAdapter.source_id: FECPRAdapter,
     NIHReporterAdapter.source_id: NIHReporterAdapter,
     SBIRAdapter.source_id: SBIRAdapter,
-    # Per-agency USAspending grant adapters
     EPAGrantsAdapter.source_id: EPAGrantsAdapter,
     DOTGrantsAdapter.source_id: DOTGrantsAdapter,
     EDGrantsAdapter.source_id: EDGrantsAdapter,
@@ -77,32 +76,24 @@ ADAPTER_REGISTRY: dict[str, Type[SourceAdapter]] = {
     DOJGrantsAdapter.source_id: DOJGrantsAdapter,
     USDAGrantsAdapter.source_id: USDAGrantsAdapter,
     OIAGrantsAdapter.source_id: OIAGrantsAdapter,
-    # Distinct-API adapters
     LDAAdapter.source_id: LDAAdapter,
     NSFAwardsAdapter.source_id: NSFAwardsAdapter,
-    # OpenFEMA NFIP claims (same v2 surface as fema_pa)
     OpenFEMANfipClaimsAdapter.source_id: OpenFEMANfipClaimsAdapter,
-    # USAspending program-narrows (Treasury / EXIM)
     SLFRFAdapter.source_id: SLFRFAdapter,
     HAFAdapter.source_id: HAFAdapter,
     EXIMBankAdapter.source_id: EXIMBankAdapter,
-    # USAspending agency+CFDA narrows (benefit programs)
     VABenefitsAdapter.source_id: VABenefitsAdapter,
     WIOAAdapter.source_id: WIOAAdapter,
     WICAdapter.source_id: WICAdapter,
     SNAPNAPAdapter.source_id: SNAPNAPAdapter,
     HUDHCVSection8Adapter.source_id: HUDHCVSection8Adapter,
-    # USAspending sub-agency narrow + FDIC SDI
     USACECivilWorksAdapter.source_id: USACECivilWorksAdapter,
     FHLBAdvancesAdapter.source_id: FHLBAdvancesAdapter,
-    # New distinct-API adapters
     FDICInstitutionsAdapter.source_id: FDICInstitutionsAdapter,
     NonprofitsIRS990Adapter.source_id: NonprofitsIRS990Adapter,
     SBALoansAdapter.source_id: SBALoansAdapter,
     SBAPaycheckProtectionAdapter.source_id: SBAPaycheckProtectionAdapter,
-    # Auth-gated adapter (Batch 6)
     HigherGovSupplementalAdapter.source_id: HigherGovSupplementalAdapter,
-    # CMS family (Batch 7a — Socrata + CKAN-metastore)
     MedicareAdvantageAdapter.source_id: MedicareAdvantageAdapter,
     MedicarePartsAdapter.source_id: MedicarePartsAdapter,
     CMSOpenPaymentsAdapter.source_id: CMSOpenPaymentsAdapter,
@@ -110,18 +101,15 @@ ADAPTER_REGISTRY: dict[str, Type[SourceAdapter]] = {
     CHIPAdapter.source_id: CHIPAdapter,
 }
 
-
-#: Entity-mode adapters keyed by their registry source_id. Ride a separate
-#: registry from the geographic :data:`ADAPTER_REGISTRY` so callers can't
-#: accidentally route an entity-shaped source through ``query()``.
+#: Entity-mode adapters keyed by their registry source_id.
 ENTITY_ADAPTER_REGISTRY: dict[str, Type[EntityAdapter]] = {
     SAMEntitiesAdapter.source_id: SAMEntitiesAdapter,
     OFACSDNAdapter.source_id: OFACSDNAdapter,
+    NonprofitsIRS990EntityAdapter.source_id: NonprofitsIRS990EntityAdapter,
 }
 
 
 def get_adapter(source_id: str, *, root: Path) -> SourceAdapter:
-    """Return a concrete adapter for `source_id`, or the stub fallback."""
     cls = ADAPTER_REGISTRY.get(source_id)
     if cls is None:
         return NotImplementedAdapter(root=root, source_id=source_id)
@@ -129,11 +117,6 @@ def get_adapter(source_id: str, *, root: Path) -> SourceAdapter:
 
 
 def get_entity_adapter(source_id: str, *, root: Path) -> EntityAdapter:
-    """Return a concrete entity adapter for ``source_id``.
-
-    Raises ``KeyError`` if the source isn't registered; the dispatcher
-    handles routing decisions before calling this.
-    """
     return ENTITY_ADAPTER_REGISTRY[source_id](root=root)
 
 
