@@ -6,6 +6,7 @@ normalization is discovery-only unless it resolves through the committed
 canonical alias registry; ambiguous matches fail closed to REVIEW.
 """
 
+from .crosswalk import NamespaceBridgeRecord, bridge_name
 from .models import InvestigationResult, InvestigationTarget, ResolutionState
 from .orchestrator import investigate
 from .resolver import CanonicalEntityIndex
@@ -14,6 +15,8 @@ __all__ = [
     "CanonicalEntityIndex",
     "InvestigationResult",
     "InvestigationTarget",
+    "NamespaceBridgeRecord",
     "ResolutionState",
+    "bridge_name",
     "investigate",
 ]
