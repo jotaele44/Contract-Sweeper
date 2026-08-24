@@ -44,7 +44,7 @@ _LOCAL_EXCLUDED_PARTS = frozenset(
 
 
 @dataclass(frozen=True)
-class LocalCorpusConfig:
+class _LocalCorpusConfig:
     """Configuration for a read-only, bounded local evidence inventory.
 
     Bindings are keyed by exact corpus-relative path. A binding may carry
@@ -62,11 +62,8 @@ class LocalCorpusConfig:
 
 __all__ = [
     "BaselineConfig",
-    "LocalCorpusConfig",
     "OfflineBaselineViolation",
     "block_network",
-    "certify_record_conservation",
-    "inventory_local_corpus",
     "run_offline_baseline",
     "sanitized_child_environment",
 ]
@@ -118,7 +115,7 @@ def _zip_member_manifest(path: Path) -> list[dict[str, Any]]:
     return members
 
 
-def certify_record_conservation(
+def _certify_record_conservation(
     *,
     source_records: int,
     retained_records: int,
@@ -188,7 +185,7 @@ def _binding_fields(
     return source_ids, semantic_class, evidence_class
 
 
-def inventory_local_corpus(config: LocalCorpusConfig) -> dict[str, Any]:
+def _inventory_local_corpus(config: _LocalCorpusConfig) -> dict[str, Any]:
     """Freeze and classify one explicit local root without materializing rows.
 
     Symlinks are rejected to prevent root escape. Absolute operator paths are
@@ -352,8 +349,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.inventory_local_corpus:
         output_path = Path(args.output_root) / "local_corpus_manifest.json"
-        result = inventory_local_corpus(
-            LocalCorpusConfig(
+        result = _inventory_local_corpus(
+            _LocalCorpusConfig(
                 input_dir=Path(args.input_dir),
                 output_path=output_path,
                 bindings=_read_bindings(args.local_bindings),
