@@ -8,6 +8,7 @@ import pytest
 
 from moneysweep.orchestrator.offline_baseline import (
     LocalCorpusConfig,
+    OfflineBaselineViolation,
     certify_record_conservation,
     inventory_local_corpus,
 )
@@ -115,6 +116,40 @@ def test_archive_members_have_path_size_and_sha256(tmp_path: Path) -> None:
     ]
     assert all(member["uncompressed_size"] > 0 for member in members)
     assert all(len(member["sha256"]) == 64 for member in members)
+
+
+def test_inventory_rejects_unknown_registry_binding(tmp_path: Path) -> None:
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "contracts.pdf").write_bytes(b"%PDF-1.4\nfixture")
+
+    with pytest.raises(OfflineBaselineViolation, match="unknown source_ids"):
+        inventory_local_corpus(
+            LocalCorpusConfig(
+                input_dir=corpus,
+                bindings={
+                    "contracts.pdf": {
+                        "source_ids": ["definitely_not_a_real_source_id"],
+                        "semantic_class": "CONTRACT_REGISTER",
+                        "evidence_class": "financial",
+                    }
+                },
+            )
+        )
+
+
+def test_inventory_rejects_receipt_inside_corpus(tmp_path: Path) -> None:
+    corpus = tmp_path / "corpus"
+    corpus.mkdir()
+    (corpus / "contracts.pdf").write_bytes(b"%PDF-1.4\nfixture")
+
+    with pytest.raises(OfflineBaselineViolation, match="outside the inventoried root"):
+        inventory_local_corpus(
+            LocalCorpusConfig(
+                input_dir=corpus,
+                output_path=corpus / "local_corpus_manifest.json",
+            )
+        )
 
 
 def test_record_conservation_requires_arithmetic_and_provenance_closure() -> None:
