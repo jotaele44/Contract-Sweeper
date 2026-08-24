@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
@@ -22,6 +23,14 @@ DEFAULT_PRODUCTS = (
     ("entity_hierarchy", "data/staging/processed/enrichment/entity_hierarchy.csv", "vendor_name"),
     ("entity_profiles", "data/staging/processed/pr_entity_profiles.csv", "recipient_name"),
 )
+
+
+@dataclass(frozen=True)
+class ProductKeys:
+    path: str
+    field: str
+    exists: bool
+    keys: set[str]
 
 
 def _keys(path: Path, field: str) -> set[str]:
@@ -59,22 +68,22 @@ def compare_sets(a: set[str], b: set[str]) -> dict[str, object]:
 
 
 def audit(root: Path, products: Iterable[tuple[str, str, str]]) -> dict[str, object]:
-    loaded: dict[str, dict[str, object]] = {}
+    loaded: dict[str, ProductKeys] = {}
     for label, rel_path, field in products:
         path = root / rel_path
-        loaded[label] = {
-            "path": rel_path,
-            "field": field,
-            "exists": path.exists(),
-            "keys": _keys(path, field),
-        }
+        loaded[label] = ProductKeys(
+            path=rel_path,
+            field=field,
+            exists=path.exists(),
+            keys=_keys(path, field),
+        )
     comparisons: dict[str, object] = {}
     labels = list(loaded)
     for i, left in enumerate(labels):
         for right in labels[i + 1 :]:
             comparisons[f"{left}__vs__{right}"] = compare_sets(
-                loaded[left]["keys"],
-                loaded[right]["keys"],  # type: ignore[arg-type]
+                loaded[left].keys,
+                loaded[right].keys,
             )
     return {
         "status": "AUDIT_ONLY",
@@ -87,10 +96,10 @@ def audit(root: Path, products: Iterable[tuple[str, str, str]]) -> dict[str, obj
         },
         "products": {
             label: {
-                "path": item["path"],
-                "field": item["field"],
-                "exists": item["exists"],
-                "key_count": len(item["keys"]),  # type: ignore[arg-type]
+                "path": item.path,
+                "field": item.field,
+                "exists": item.exists,
+                "key_count": len(item.keys),
             }
             for label, item in loaded.items()
         },
