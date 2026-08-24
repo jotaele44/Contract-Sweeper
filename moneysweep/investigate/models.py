@@ -59,7 +59,9 @@ class InvestigationTarget:
             identifiers.append(EntityIdentifier(kind="name", value=self.canonical_name))
             for alias in self.aliases:
                 identifiers.append(EntityIdentifier(kind="name", value=alias))
-        dedup = {(ident.kind, ident.value.strip()): ident for ident in identifiers if ident.value.strip()}
+        dedup = {
+            (ident.kind, ident.value.strip()): ident for ident in identifiers if ident.value.strip()
+        }
         return tuple(dedup[key] for key in sorted(dedup))
 
     def to_dict(self) -> dict[str, Any]:
