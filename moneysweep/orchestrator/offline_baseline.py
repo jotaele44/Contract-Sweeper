@@ -38,9 +38,7 @@ LOCAL_CORPUS_EXTENSIONS = frozenset(
         ".xlsx",
     }
 )
-_LOCAL_EXCLUDED_PARTS = frozenset(
-    {".env", ".git", "__pycache__", "credentials", "secrets"}
-)
+_LOCAL_EXCLUDED_PARTS = frozenset({".env", ".git", "__pycache__", "credentials", "secrets"})
 
 
 @dataclass(frozen=True)
@@ -136,11 +134,7 @@ def _certify_record_conservation(
         raise ValueError("record conservation counts must be non-negative")
     arithmetic_closed = source_records == retained_records + excluded_records
     provenance_closed = provenance_complete_records == source_records
-    state = (
-        "PASS"
-        if arithmetic_closed and provenance_closed and unresolved_records == 0
-        else "FAIL"
-    )
+    state = "PASS" if arithmetic_closed and provenance_closed and unresolved_records == 0 else "FAIL"
     return {
         "state": state,
         "source_records": source_records,
@@ -217,9 +211,7 @@ def _inventory_local_corpus(config: _LocalCorpusConfig) -> dict[str, Any]:
             continue
         relative = path.relative_to(root)
         if _excluded_local_path(relative):
-            excluded.append(
-                {"path": relative_text, "reason": "SENSITIVE_OR_INTERNAL_PATH"}
-            )
+            excluded.append({"path": relative_text, "reason": "SENSITIVE_OR_INTERNAL_PATH"})
             continue
         extension = path.suffix.casefold()
         if extension not in config.include_extensions:
