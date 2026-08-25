@@ -1,7 +1,8 @@
 name: desktop-build
 
-# Builds the standalone double-click desktop app (PyInstaller) for each OS.
-# Runs on demand, and attaches the bundles to the release on desktop-v* tags.
+# Builds the self-contained double-click desktop app for each OS.
+# Public desktop-v* releases remain fail-closed behind production-data status
+# and (on macOS) signed/notarized Gatekeeper validation.
 
 on:
   workflow_dispatch:
@@ -12,15 +13,22 @@ on:
     branches: [main]
     paths:
       - "desktop/**"
+      - "server/backend/**"
+      - "scripts/run_automatable_sources.py"
+      - "requirements.txt"
       - "requirements-desktop.txt"
+      - "registries/**"
+      - "schemas/**"
+      - "reports/materialization_readiness.json"
+      - "data/exports/production_status.json"
       - ".github/workflows/desktop-build.yml"
 
 permissions:
   contents: write
 
-# Serialise runs on the same ref without cancelling. This workflow can
-# publish, write data, or hand off to another repo, and killing it
-# mid-flight risks leaving that work half-done.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
@@ -56,28 +64,70 @@ jobs:
         shell: bash
         run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
 
-      - name: Install Python dependencies
+      - name: Install complete frozen runtime
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install -r server/backend/requirements.txt -r requirements-desktop.txt pyinstaller
+          pip install \
+            -r requirements.txt \
+            -r server/backend/requirements.txt \
+            -r requirements-desktop.txt \
+            pyinstaller
 
-      - name: Freeze console build (for smoke test)
+      - name: Assert real forensic/materialization dependencies
+        shell: python
+        run: |
+          import duckdb, pyarrow, pandas, fastapi, multipart
+          print("duckdb", duckdb.__version__)
+          print("pyarrow", pyarrow.__version__)
+          print("pandas", pandas.__version__)
+          print("fastapi", fastapi.__version__)
+
+      - name: Freeze console build for certification
         env:
           PRII_CONSOLE: "1"
         run: pyinstaller desktop/pyinstaller.spec --distpath dist-smoke --noconfirm
 
-      - name: Smoke test frozen app
+      - name: Smoke and data-plane self-test exact frozen executable
         shell: python
         run: |
-          import pathlib, subprocess, sys
+          import os, pathlib, shutil, subprocess, sys, tempfile
+
           name = "PRII-MONEYSWEEP"
           exe = pathlib.Path("dist-smoke") / name / (name + (".exe" if sys.platform == "win32" else ""))
-          result = subprocess.run([str(exe), "--smoke"], timeout=120)
-          sys.exit(result.returncode)
+          workspace = pathlib.Path(tempfile.mkdtemp(prefix="moneysweep-frozen-selftest-"))
+          env = os.environ.copy()
+          env["MONEYSWEEP_WORKSPACE_ROOT"] = str(workspace)
 
-      - name: Freeze desktop app (windowed release)
+          smoke = subprocess.run([str(exe), "--smoke"], timeout=120, env=env)
+          if smoke.returncode:
+              raise SystemExit(smoke.returncode)
+
+          selftest = subprocess.run([str(exe), "--selftest"], timeout=120, env=env)
+          if selftest.returncode:
+              raise SystemExit(selftest.returncode)
+
+          receipt = workspace / "receipts" / "desktop_bootstrap_latest.json"
+          if not receipt.exists():
+              raise SystemExit("frozen self-test did not create bootstrap receipt")
+          shutil.rmtree(workspace, ignore_errors=True)
+
+      - name: Freeze desktop app (windowed release candidate)
         run: pyinstaller desktop/pyinstaller.spec --distpath dist-desktop --noconfirm
+
+      # A public macOS release must be a true double-click artifact. An unsigned
+      # or unstapled app is allowed as a CI artifact for testing, but it may not
+      # be attached to a desktop-v* public release. This gate intentionally fails
+      # closed until Developer-ID signing/notarization infrastructure is present.
+      - name: Require signed and notarized macOS app for public release
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="dist-desktop/PRII-MONEYSWEEP.app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          xcrun stapler validate "$app"
+          spctl --assess --type execute --verbose=4 "$app"
 
       - name: Package bundle
         shell: bash
@@ -102,34 +152,53 @@ jobs:
             -ov -format UDZO "PRII-MONEYSWEEP-macOS.dmg"
           rm -rf "$staging"
 
+      - name: Freeze artifact byte identities
+        shell: python
+        run: |
+          import hashlib, json, os, pathlib
+
+          dist = pathlib.Path("dist-desktop")
+          files = sorted(
+              p for p in dist.glob("PRII-MONEYSWEEP-*")
+              if p.is_file() and p.suffix in {".zip", ".dmg"}
+          )
+          if not files:
+              raise SystemExit("no packaged desktop artifacts found")
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with path.open("rb") as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          readiness = json.loads(pathlib.Path("reports/materialization_readiness.json").read_text())
+          production = json.loads(pathlib.Path("data/exports/production_status.json").read_text())
+          manifest = {
+              "schema_version": "1.0.0",
+              "source_commit": os.environ["GITHUB_SHA"],
+              "runner_os": os.environ["RUNNER_OS"],
+              "source_ids_sha256": readiness["source_count_provenance"]["source_ids_sha256"],
+              "registered_sources": readiness["total_sources"],
+              "automatable_sources": readiness["automatable_total"],
+              "production_status": production["production_status"],
+              "artifacts": [
+                  {"name": p.name, "bytes": p.stat().st_size, "sha256": sha256(p)}
+                  for p in files
+              ],
+          }
+          (dist / "DESKTOP_RELEASE_MANIFEST.json").write_text(
+              json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+          )
+
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: PRII-MONEYSWEEP-${{ runner.os }}
           path: |
             dist-desktop/PRII-MONEYSWEEP-*.zip
             dist-desktop/PRII-MONEYSWEEP-*.dmg
+            dist-desktop/DESKTOP_RELEASE_MANIFEST.json
 
-      # A desktop-v* tag is the one route in this repo that publishes a public
-      # GitHub Release (the step below creates it if absent), and until now it
-      # consulted nothing. Every other guardrail — production-status-gate.yml,
-      # release-tag.yml — is scoped to pushes and PRs, so a tag walked straight
-      # past all of them. release-tag.yml records why that matters: this project
-      # "has not cut a software release yet", and only the federation contract
-      # is tagged. Publishing a desktop bundle while the pipeline is paused
-      # would ship an accountability tool backed by the diagnostic dataset.
-      # Fail rather than skip: an accidental tag should say why it stopped, not
-      # look green having published nothing. shell: python because this job runs
-      # on the windows runner too.
-      #
-      # Allowlist, not denylist. Only PRODUCTION_VALIDATED publishes; every other
-      # value — including a missing key, a typo, and PARTIAL_PRODUCTION — stops
-      # here. PARTIAL_PRODUCTION is the case that makes this matter: it is
-      # produced legitimately when the WARN gates fail (absent bond actor layer,
-      # parent UEI coverage under 0.90) and its own status message is "major
-      # layers still require validation", so it is not a release-ready state.
-      # Values are defined in moneysweep/validation/production_status.py; a
-      # rename there makes this gate refuse to publish rather than wrongly
-      # publish, and tests/test_desktop_release_gate.py keeps the two in step.
       - name: Refuse to publish unless the pipeline is production-validated
         if: startsWith(github.ref, 'refs/tags/desktop-v')
         shell: python
@@ -137,19 +206,15 @@ jobs:
           import json, pathlib, sys
 
           RELEASE_READY = "PRODUCTION_VALIDATED"
-
           status = json.loads(
-              pathlib.Path("data/exports/production_status.json").read_text(
-                  encoding="utf-8"
-              )
+              pathlib.Path("data/exports/production_status.json").read_text(encoding="utf-8")
           )
           state = status.get("production_status")
           if state != RELEASE_READY:
               print(
                   f"::error::Refusing to publish a release: production_status is "
-                  f"{state!r}, and only {RELEASE_READY!r} may publish. The "
-                  f"preconditions are in docs/RESUMPTION_CHECKLIST.md. Builds "
-                  f"remain available as workflow artifacts, which need no tag."
+                  f"{state!r}, and only {RELEASE_READY!r} may publish. Builds "
+                  f"remain available as workflow artifacts."
               )
               sys.exit(1)
           print(f"production_status={state!r}; release publishing allowed")
@@ -161,3 +226,4 @@ jobs:
           files: |
             dist-desktop/PRII-MONEYSWEEP-*.zip
             dist-desktop/PRII-MONEYSWEEP-*.dmg
+            dist-desktop/DESKTOP_RELEASE_MANIFEST.json
