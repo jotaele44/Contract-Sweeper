@@ -67,12 +67,7 @@ jobs:
 
       - name: Install dependencies for live fetch
         if: ${{ steps.validate_dispatch.outputs.authorized == 'true' }}
-        run: |
-          if [ ! -d ../thehub-pr ]; then
-            git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || \
-              git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr
-          fi
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Egress preflight for live fetch
         if: ${{ steps.validate_dispatch.outputs.authorized == 'true' }}
