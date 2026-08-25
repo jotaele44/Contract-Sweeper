@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import scripts.config as script_config
+import scripts.run_automatable_sources as materialization_runner
 from scripts.run_automatable_sources import _bind_legacy_config_to_workspace, run
 
 
@@ -35,6 +36,38 @@ def test_legacy_config_paths_rebind_into_workspace(tmp_path):
         assert Path(script_config.DATA_DIR).resolve() != original_root / "data"
     finally:
         _restore_path_globals(script_config, snapshot)
+
+
+def test_source_selection_uses_explicit_immutable_classifier_root(monkeypatch, tmp_path):
+    resource_root = (tmp_path / "immutable-resources").resolve()
+    workspace_root = (tmp_path / "workspace").resolve()
+    seen_roots = []
+
+    def fake_classify(source, root=None):
+        seen_roots.append(root)
+        return "api_producer" if root == resource_root else "broken_producer"
+
+    monkeypatch.setattr(materialization_runner, "_classify", fake_classify)
+    sources = [{"source_id": "producer-only", "family": "test"}]
+
+    selected = materialization_runner.select_sources(
+        sources,
+        source=None,
+        family=None,
+        only=None,
+        classifier_root=resource_root,
+    )
+    wrong_root_selected = materialization_runner.select_sources(
+        sources,
+        source=None,
+        family=None,
+        only=None,
+        classifier_root=workspace_root,
+    )
+
+    assert [source["source_id"] for source in selected] == ["producer-only"]
+    assert wrong_root_selected == []
+    assert seen_roots == [resource_root, workspace_root]
 
 
 def test_materialization_dry_run_preserves_registry_denominator(monkeypatch, tmp_path):
