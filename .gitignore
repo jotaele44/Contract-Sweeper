@@ -12,6 +12,10 @@ build/
 # macOS metadata
 .DS_Store
 
+# Local git-stash reconciliation audit trails (developer-machine artifacts,
+# not repo content — accidentally committed once, see repo history)
+.stash-reconciliation/
+
 # Coverage reports
 .coverage
 coverage.xml
