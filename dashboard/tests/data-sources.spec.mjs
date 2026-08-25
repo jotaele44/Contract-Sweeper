@@ -99,7 +99,7 @@ test("Data Sources exposes terminal-free offline/API controls", async ({ page })
     buffer: Buffer.from("id,amount\n1,5\n"),
   });
   await page.getByRole("button", { name: "Stage + hash" }).click();
-  await expect(page.getByText("STAGED_NOT_PROMOTED")).toBeVisible();
+  await expect(page.getByText("STAGED_NOT_PROMOTED", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Dry run" }).click();
   await expect(page.getByText('"dry_run": true')).toBeVisible();
