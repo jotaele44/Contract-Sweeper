@@ -54,7 +54,7 @@ export default function DataSources() {
     [sources],
   )
   const apiSources = useMemo(
-    () => sources.filter((s) => s.producerScript && s.authentication !== 'manual_export'),
+    () => sources.filter((s) => s.automatable),
     [sources],
   )
 
@@ -70,8 +70,8 @@ export default function DataSources() {
     setManualSource((current) => current || nextSources.find((s) => s.manualDropDir)?.sourceId || '')
     setApiSource((current) => {
       if (current) return current
-      const preferred = nextSources.find((s) => s.sourceId === 'usaspending_prime')
-      return preferred?.sourceId || nextSources.find((s) => s.producerScript && s.authentication !== 'manual_export')?.sourceId || ''
+      const preferred = nextSources.find((s) => s.sourceId === 'fema_pa_openfema_v2' && s.automatable)
+      return preferred?.sourceId || nextSources.find((s) => s.automatable)?.sourceId || ''
     })
     setCredentialKey((current) => current || nextCredentials.allowedKeys?.[0] || '')
   }
@@ -107,6 +107,18 @@ export default function DataSources() {
     }
   }
 
+  const onRefresh = async () => {
+    setBusy('refresh')
+    setError('')
+    try {
+      await refresh()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy('')
+    }
+  }
+
   const onStage = () => execute('stage', async () => {
     if (!manualSource) throw new Error('Select a registered manual source')
     if (!offlineFile) throw new Error('Choose an offline file first')
@@ -119,7 +131,7 @@ export default function DataSources() {
   })
 
   const onApi = (dryRun) => execute(dryRun ? 'api-dry' : 'api-live', async () => {
-    if (!apiSource) throw new Error('Select a source')
+    if (!apiSource) throw new Error('Select an automatable source')
     return runApiMaterialization({ source: apiSource, dryRun })
   })
 
@@ -142,6 +154,7 @@ export default function DataSources() {
 
   const readiness = status?.readiness ?? {}
   const production = status?.production ?? {}
+  const automatableTotal = readiness.automatable_total ?? apiSources.length
 
   return (
     <div className="ms-scroll-region h-full overflow-auto p-4">
@@ -154,13 +167,13 @@ export default function DataSources() {
                 Immutable source registry + writable local workspace. Materialization never promotes by filename alone.
               </p>
             </div>
-            <Button variant="outline" className="min-h-11" onClick={() => execute('refresh', refresh)} disabled={Boolean(busy)}>
+            <Button variant="outline" className="min-h-11" onClick={onRefresh} disabled={Boolean(busy)}>
               Refresh
             </Button>
           </div>
           <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2 lg:grid-cols-5">
             <div><dt className="text-muted-foreground">Registered</dt><dd className="mt-1 font-mono text-foreground">{status?.registeredSources ?? '—'}</dd></div>
-            <div><dt className="text-muted-foreground">Automatable</dt><dd className="mt-1 font-mono text-foreground">{readiness.automatable_total ?? '—'}</dd></div>
+            <div><dt className="text-muted-foreground">Automatable</dt><dd className="mt-1 font-mono text-foreground">{automatableTotal}</dd></div>
             <div><dt className="text-muted-foreground">Manual exports</dt><dd className="mt-1 font-mono text-foreground">{readiness.queued_excluded?.manual_export ?? status?.manualExportSources ?? '—'}</dd></div>
             <div><dt className="text-muted-foreground">Source-ID hash</dt><dd className="mt-1 truncate font-mono text-foreground" title={readiness.source_count_provenance?.source_ids_sha256}>{readiness.source_count_provenance?.source_ids_sha256?.slice(0, 12) ?? '—'}…</dd></div>
             <div><dt className="text-muted-foreground">Production</dt><dd className="mt-1 font-mono text-foreground">{production.production_status ?? 'UNKNOWN'}</dd></div>
@@ -201,7 +214,7 @@ export default function DataSources() {
         <section className="rounded-lg border border-border bg-card/50 p-4">
           <h2 className="text-sm font-semibold text-foreground">API materialization</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Start one registry-declared producer at a time. Dry-run performs source selection only; live run performs egress gating and preserves a versioned run receipt.
+            Start one classifier-approved automatable source at a time. Dry-run performs source selection only; live run performs egress gating and preserves a versioned run receipt.
           </p>
           <div className="mt-4 space-y-3">
             <NativeSelect value={apiSource} onChange={setApiSource} label="API materialization source">
@@ -215,7 +228,7 @@ export default function DataSources() {
               <Button variant="outline" className="min-h-11" onClick={() => onApi(true)} disabled={Boolean(busy) || !apiSource}>Dry run</Button>
               <Button className="min-h-11" onClick={() => onApi(false)} disabled={Boolean(busy) || !apiSource}>Fetch + materialize</Button>
             </div>
-            <p className="text-[11px] text-muted-foreground">The GUI intentionally omits a one-click “run all 109” action to prevent accidental large network/API runs.</p>
+            <p className="text-[11px] text-muted-foreground">The GUI intentionally omits a one-click “run all {automatableTotal}” action to prevent accidental large network/API runs.</p>
           </div>
         </section>
 
@@ -244,7 +257,7 @@ export default function DataSources() {
           </div>
         </section>
 
-        {(error || result) && (
+        {(busy || error || result) && (
           <section className="rounded-lg border border-border bg-card/50 p-4 lg:col-span-2" aria-live="polite">
             <h2 className="text-sm font-semibold text-foreground">Operation result</h2>
             {busy && <p className="mt-2 text-xs text-muted-foreground">Running {busy}…</p>}
