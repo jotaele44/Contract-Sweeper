@@ -82,6 +82,7 @@ hiddenimports = sorted(
     set(
         collect_submodules("moneysweep")
         + collect_submodules("server.backend")
+        + collect_submodules("keyring.backends")
         + producer_hiddenimports
         + [
             "scripts.run_automatable_sources",
@@ -95,6 +96,7 @@ hiddenimports = sorted(
             "uvicorn.lifespan.on",
             "desktop.app_server",
             "desktop.workspace",
+            "desktop.secrets",
             "server.backend.desktop_app",
             "server.backend.materialization",
             "prii_desktop",
