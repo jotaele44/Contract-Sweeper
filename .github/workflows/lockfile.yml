@@ -28,11 +28,11 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
 
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
+
       - name: Recompile the lockfile
-        run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
-          uv pip compile requirements.in --universal --python-version 3.11 -o requirements.lock
+        run: uv pip compile requirements.in --universal --python-version 3.11 -o requirements.lock
 
       - name: Upload regenerated lock candidate
         if: always()
