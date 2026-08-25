@@ -13,6 +13,11 @@ Source selection reuses the recovery-matrix classifier (no reinvented logic): th
 target is every source classified ``api_adapter`` / ``api_producer``. Explicit ``--source``
 / ``--only`` override the automatable filter (run a named source regardless of class).
 
+Desktop builds may separate the immutable source registry from the writable workspace.
+``MONEYSWEEP_REGISTRY_ROOT`` selects the immutable registry root while ``root`` remains
+the output/materialization workspace. Source identity and mutable data therefore never
+need to share a filesystem root.
+
 No secrets are printed. A run summary is written to
 ``data/staging/materialization_run_summary.json`` (gitignored — it carries timestamps and
 row counts, so it must never be a committed/gated artifact) and echoed to stdout.
@@ -29,6 +34,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -42,8 +48,6 @@ from scripts.check_network_egress import run_checks
 from scripts.config import PROJECT_ROOT, setup_logging
 
 ENTRYPOINTS = ("run", "main", "fetch", "download")
-# Small representative set for the egress gate (fast fail; the full list lives in
-# check_network_egress.DEFAULT_ENDPOINTS).
 EGRESS_PROBE = ["https://api.usaspending.gov/", "https://datos.estadisticas.pr/"]
 SUMMARY_REL = "data/staging/materialization_run_summary.json"
 
@@ -71,7 +75,7 @@ def select_sources(
             continue
         if family and src.get("family") != family:
             continue
-        if PATH_TYPES[_classify(src)][0]:  # automatable
+        if PATH_TYPES[_classify(src)][0]:
             selected.append(src)
     return selected
 
@@ -85,7 +89,7 @@ def run_one(root: Path, src: dict, logger) -> dict:
         return result
     try:
         module = importlib.import_module(_module_name(producer))
-    except Exception as exc:  # import-time failure
+    except Exception as exc:
         result["status"] = "IMPORT_ERROR"
         result["error"] = f"{type(exc).__name__}: {exc}"
         return result
@@ -128,13 +132,16 @@ def run(
 ) -> dict:
     root = Path(root or PROJECT_ROOT)
     logger = setup_logging("run_automatable_sources")
-    sources = load_source_registry(root).get("sources", [])
+    registry_root = Path(os.environ.get("MONEYSWEEP_REGISTRY_ROOT", str(root))).resolve()
+    sources = load_source_registry(registry_root).get("sources", [])
     selected = select_sources(sources, source=source, family=family, only=only)
     selected_ids = [s.get("source_id", "") for s in selected]
 
     summary: dict[str, Any] = {
         "selected_count": len(selected_ids),
         "selected": selected_ids,
+        "registry_root": str(registry_root),
+        "workspace_root": str(root),
         "egress_ok": None,
         "ran": [],
         "dry_run": dry_run,
