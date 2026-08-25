@@ -4,6 +4,9 @@ This router never promotes uploaded files directly into canonical data. Offline
 files are preserved byte-for-byte in the writable workspace with provenance
 receipts; source-specific producers must then materialize them. API producers
 reuse the registry-driven runner and keep source failures explicit.
+
+API credentials are stored in the operating-system credential vault and are
+never returned, written to receipts, or persisted in the MoneySweep workspace.
 """
 
 from __future__ import annotations
@@ -20,29 +23,28 @@ import yaml
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
+from desktop.secrets import (
+    ALLOWED_KEYS,
+    activated_credentials,
+    delete_secret,
+    presence as credential_presence,
+    set_secret,
+)
 from desktop.workspace import bootstrap_workspace, resource_root
 from moneysweep.runtime.source_registry import load_source_registry, source_by_id
 from scripts.run_automatable_sources import run as run_automatable
 
 router = APIRouter(prefix="/materialization", tags=["materialization"])
 
-API_KEY_NAMES = (
-    "CENSUS_API_KEY",
-    "EIA_API_KEY",
-    "FAC_API_KEY",
-    "FEC_API_KEY",
-    "FINANCIALDATA_API_KEY",
-    "FRED_API_KEY",
-    "HIGHERGOV_API_KEY",
-    "OPENSTATES_API_KEY",
-    "SAM_API_KEY",
-)
-
 
 class ApiRunRequest(BaseModel):
     source: str | None = None
     family: str | None = None
     dry_run: bool = False
+
+
+class CredentialWriteRequest(BaseModel):
+    value: str
 
 
 def _workspace() -> Path:
@@ -112,7 +114,7 @@ def materialization_status():
         "manualExportSources": len(manual),
         "readiness": readiness,
         "production": production,
-        "apiKeys": {name: bool(os.environ.get(name)) for name in API_KEY_NAMES},
+        "apiKeys": credential_presence(),
         "secretsReturned": False,
     }
 
@@ -130,6 +132,7 @@ def materialization_sources():
                 "sourceId": sid,
                 "family": source.get("family"),
                 "authentication": source.get("authentication"),
+                "requiredSecret": source.get("required_secret"),
                 "required": bool(source.get("required")),
                 "producerScript": source.get("producer_script"),
                 "expectedOutputs": source.get("expected_outputs") or [],
@@ -140,6 +143,38 @@ def materialization_sources():
             }
         )
     return rows
+
+
+@router.get("/credentials")
+def credential_status():
+    return {
+        "keys": credential_presence(),
+        "allowedKeys": sorted(ALLOWED_KEYS),
+        "secretsReturned": False,
+    }
+
+
+@router.put("/credentials/{key_name}")
+def credential_write(key_name: str, request: CredentialWriteRequest):
+    """Store one API credential in the OS vault; never echo its value."""
+    try:
+        set_secret(key_name, request.value)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(503, "operating-system credential vault unavailable") from exc
+    return {"keyName": key_name.upper(), "configured": True, "secretReturned": False}
+
+
+@router.delete("/credentials/{key_name}")
+def credential_delete(key_name: str):
+    try:
+        deleted = delete_secret(key_name)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(503, "operating-system credential vault unavailable") from exc
+    return {"keyName": key_name.upper(), "configured": False, "deleted": deleted}
 
 
 @router.post("/offline/upload")
@@ -210,21 +245,31 @@ def run_offline_source(source_id: str):
     resources = resource_root()
     if source_by_id(source_id, resources) is None:
         raise HTTPException(404, f"unknown source_id {source_id!r}")
-    # The explicit source selection bypasses the automatable-only filter. No
-    # egress probe is required because this path is for already-downloaded data.
-    result = run_automatable(root=_workspace(), source=source_id, require_egress=False)
-    return result
+    # Explicit selection bypasses the automatable-only filter. Egress is not a
+    # prerequisite because the payload has already been supplied offline.
+    return run_automatable(root=_workspace(), source=source_id, require_egress=False)
 
 
 @router.post("/api/run")
 def run_api_sources(request: ApiRunRequest):
-    """Run one or more registry-classified API/producer sources with egress gating."""
+    """Run registry-classified sources with egress and credential gating."""
     if request.source and source_by_id(request.source, resource_root()) is None:
         raise HTTPException(404, f"unknown source_id {request.source!r}")
-    return run_automatable(
-        root=_workspace(),
-        source=request.source,
-        family=request.family,
-        dry_run=request.dry_run,
-        require_egress=not request.dry_run,
-    )
+
+    if request.dry_run:
+        return run_automatable(
+            root=_workspace(),
+            source=request.source,
+            family=request.family,
+            dry_run=True,
+            require_egress=False,
+        )
+
+    with activated_credentials():
+        return run_automatable(
+            root=_workspace(),
+            source=request.source,
+            family=request.family,
+            dry_run=False,
+            require_egress=True,
+        )
