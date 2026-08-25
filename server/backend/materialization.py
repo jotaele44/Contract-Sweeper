@@ -141,6 +141,7 @@ def materialization_sources():
             source=None,
             family=None,
             only=None,
+            classifier_root=resources,
         )
     }
 
@@ -247,8 +248,6 @@ async def upload_offline_file(
                 temp.unlink(missing_ok=True)
                 classification = "BYTE_IDENTICAL_HASH_SUFFIX_EXISTING"
             elif target.exists():
-                # A 12-hex prefix collision cannot silently overwrite another
-                # payload; retain the full digest in the fallback filename.
                 target = target.with_name(f"{stem}__sha256_{digest}{suffix}")
                 temp.replace(target)
                 classification = "DISTINCT_PAYLOADS_HASH_PREFIX_COLLISION"
@@ -285,7 +284,9 @@ def run_offline_source(source_id: str):
     if source_by_id(source_id, resources) is None:
         raise HTTPException(404, f"unknown source_id {source_id!r}")
     if source_id not in _manual_registry():
-        raise HTTPException(409, f"source {source_id!r} is not registered for offline/manual ingestion")
+        raise HTTPException(
+            409, f"source {source_id!r} is not registered for offline/manual ingestion"
+        )
     return run_automatable(root=_workspace(), source=source_id, require_egress=False)
 
 
@@ -299,16 +300,20 @@ def run_api_sources(request: ApiRunRequest):
         source=request.source,
         family=request.family,
         only=None,
+        classifier_root=resources,
     )
     if request.source and not selected:
         raise HTTPException(404, f"unknown source_id {request.source!r}")
 
-    # Explicit --source in the low-level runner intentionally bypasses its
-    # automatable filter for operator/manual use. The API surface is stricter:
-    # only sources in the classifier's automatable candidate set may run here.
     automatable_ids = {
         str(source.get("source_id") or "")
-        for source in select_sources(registry, source=None, family=None, only=None)
+        for source in select_sources(
+            registry,
+            source=None,
+            family=None,
+            only=None,
+            classifier_root=resources,
+        )
     }
     if request.source and request.source not in automatable_ids:
         raise HTTPException(409, f"source {request.source!r} is not classified automatable")
