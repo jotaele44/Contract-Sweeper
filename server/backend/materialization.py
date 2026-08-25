@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -32,7 +31,10 @@ from desktop.secrets import (
 )
 from desktop.workspace import bootstrap_workspace, resource_root
 from moneysweep.runtime.source_registry import load_source_registry, source_by_id
-from scripts.run_automatable_sources import run as run_automatable
+from scripts.run_automatable_sources import (
+    run as run_automatable,
+    select_sources,
+)
 
 router = APIRouter(prefix="/materialization", tags=["materialization"])
 
@@ -80,6 +82,14 @@ def _within(root: Path, candidate: Path) -> bool:
         return False
 
 
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _manual_target(source_id: str, raw_filename: str) -> tuple[Path, dict[str, Any]]:
     manual = _manual_registry().get(source_id)
     if manual is None:
@@ -123,8 +133,19 @@ def materialization_status():
 def materialization_sources():
     resources = resource_root()
     manual = _manual_registry()
+    all_registered = load_source_registry(resources).get("sources", [])
+    automatable_ids = {
+        str(source.get("source_id") or "")
+        for source in select_sources(
+            all_registered,
+            source=None,
+            family=None,
+            only=None,
+        )
+    }
+
     rows = []
-    for source in load_source_registry(resources).get("sources", []):
+    for source in all_registered:
         sid = str(source.get("source_id") or "")
         manual_entry = manual.get(sid)
         rows.append(
@@ -134,6 +155,7 @@ def materialization_sources():
                 "authentication": source.get("authentication"),
                 "requiredSecret": source.get("required_secret"),
                 "required": bool(source.get("required")),
+                "automatable": sid in automatable_ids,
                 "producerScript": source.get("producer_script"),
                 "expectedOutputs": source.get("expected_outputs") or [],
                 "manualDropDir": manual_entry.get("expected_drop_dir") if manual_entry else None,
@@ -189,7 +211,7 @@ async def upload_offline_file(
     raw_filename = file.filename or "upload.bin"
     target, manual = _manual_target(source_id, raw_filename)
     temp = target.parent / f".ingest-{uuid.uuid4().hex}.tmp"
-    h = hashlib.sha256()
+    digest_builder = hashlib.sha256()
     total = 0
     try:
         with temp.open("wb") as out:
@@ -198,15 +220,22 @@ async def upload_offline_file(
                 if not chunk:
                     break
                 total += len(chunk)
-                h.update(chunk)
+                digest_builder.update(chunk)
                 out.write(chunk)
+    except Exception:
+        temp.unlink(missing_ok=True)
+        raise
     finally:
         await file.close()
 
-    digest = h.hexdigest()
+    if total == 0:
+        temp.unlink(missing_ok=True)
+        raise HTTPException(400, "empty files are NULL_EMPTY and are not staged")
+
+    digest = digest_builder.hexdigest()
     classification = "NEW_PAYLOAD"
     if target.exists():
-        existing_hash = hashlib.sha256(target.read_bytes()).hexdigest()
+        existing_hash = _sha256_file(target)
         if existing_hash == digest:
             temp.unlink(missing_ok=True)
             classification = "BYTE_IDENTICAL_EXISTING"
@@ -214,14 +243,24 @@ async def upload_offline_file(
             suffix = target.suffix
             stem = target.name[: -len(suffix)] if suffix else target.name
             target = target.with_name(f"{stem}__sha256_{digest[:12]}{suffix}")
-            temp.replace(target)
-            classification = "DISTINCT_PAYLOADS_SAME_FILENAME"
+            if target.exists() and _sha256_file(target) == digest:
+                temp.unlink(missing_ok=True)
+                classification = "BYTE_IDENTICAL_HASH_SUFFIX_EXISTING"
+            elif target.exists():
+                # A 12-hex prefix collision cannot silently overwrite another
+                # payload; retain the full digest in the fallback filename.
+                target = target.with_name(f"{stem}__sha256_{digest}{suffix}")
+                temp.replace(target)
+                classification = "DISTINCT_PAYLOADS_HASH_PREFIX_COLLISION"
+            else:
+                temp.replace(target)
+                classification = "DISTINCT_PAYLOADS_SAME_FILENAME"
     else:
         temp.replace(target)
 
     root = _workspace()
     receipt = {
-        "schema_version": "1.0.0",
+        "schema_version": "1.1.0",
         "source_id": source_id,
         "raw_filename": raw_filename,
         "stored_relative_path": target.relative_to(root).as_posix(),
@@ -245,16 +284,34 @@ def run_offline_source(source_id: str):
     resources = resource_root()
     if source_by_id(source_id, resources) is None:
         raise HTTPException(404, f"unknown source_id {source_id!r}")
-    # Explicit selection bypasses the automatable-only filter. Egress is not a
-    # prerequisite because the payload has already been supplied offline.
+    if source_id not in _manual_registry():
+        raise HTTPException(409, f"source {source_id!r} is not registered for offline/manual ingestion")
     return run_automatable(root=_workspace(), source=source_id, require_egress=False)
 
 
 @router.post("/api/run")
 def run_api_sources(request: ApiRunRequest):
-    """Run registry-classified sources with egress and credential gating."""
-    if request.source and source_by_id(request.source, resource_root()) is None:
+    """Run registry-classified automatable sources with egress/credential gating."""
+    resources = resource_root()
+    registry = load_source_registry(resources).get("sources", [])
+    selected = select_sources(
+        registry,
+        source=request.source,
+        family=request.family,
+        only=None,
+    )
+    if request.source and not selected:
         raise HTTPException(404, f"unknown source_id {request.source!r}")
+
+    # Explicit --source in the low-level runner intentionally bypasses its
+    # automatable filter for operator/manual use. The API surface is stricter:
+    # only sources in the classifier's automatable candidate set may run here.
+    automatable_ids = {
+        str(source.get("source_id") or "")
+        for source in select_sources(registry, source=None, family=None, only=None)
+    }
+    if request.source and request.source not in automatable_ids:
+        raise HTTPException(409, f"source {request.source!r} is not classified automatable")
 
     if request.dry_run:
         return run_automatable(
