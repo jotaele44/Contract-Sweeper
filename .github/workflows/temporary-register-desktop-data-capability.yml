@@ -1,0 +1,106 @@
+name: temporary-register-desktop-data-capability
+
+on:
+  push:
+    branches:
+      - agent/desktop-self-contained-data-plane-v1
+    paths:
+      - .github/workflows/temporary-register-desktop-data-capability.yml
+
+permissions:
+  contents: write
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: agent/desktop-self-contained-data-plane-v1
+          fetch-depth: 0
+      - name: Register exact desktop data-plane GUI capability
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          path = Path('.federation/gui-capabilities.json')
+          payload = json.loads(path.read_text(encoding='utf-8'))
+          capability_id = 'desktop-data-materialization'
+          if any(c.get('id') == capability_id for c in payload.get('capabilities', [])):
+              raise SystemExit('capability already registered; no mutation required')
+
+          capability = {
+              'id': capability_id,
+              'classification': 'operator',
+              'status': 'active',
+              'requires_terminal': False,
+              'backend': {
+                  'files': [
+                      'desktop/secrets.py',
+                      'desktop/workspace.py',
+                      'server/backend/desktop_app.py',
+                      'server/backend/materialization.py',
+                  ],
+                  'endpoints': [
+                      'GET /status',
+                      'GET /sources',
+                      'GET /credentials',
+                      'PUT /credentials/{key_name}',
+                      'DELETE /credentials/{key_name}',
+                      'POST /offline/upload',
+                      'POST /offline/{source_id}/run',
+                      'POST /api/run',
+                  ],
+                  'symbols': [
+                      'desktop/secrets.py:activated_credentials',
+                      'desktop/secrets.py:delete_secret',
+                      'desktop/secrets.py:get_secret',
+                      'desktop/secrets.py:presence',
+                      'desktop/secrets.py:set_secret',
+                      'desktop/workspace.py:bootstrap_workspace',
+                      'desktop/workspace.py:resource_root',
+                      'desktop/workspace.py:workspace_root',
+                      'server/backend/materialization.py:ApiRunRequest',
+                      'server/backend/materialization.py:CredentialWriteRequest',
+                      'server/backend/materialization.py:credential_delete',
+                      'server/backend/materialization.py:credential_status',
+                      'server/backend/materialization.py:credential_write',
+                      'server/backend/materialization.py:materialization_sources',
+                      'server/backend/materialization.py:materialization_status',
+                      'server/backend/materialization.py:run_api_sources',
+                      'server/backend/materialization.py:run_offline_source',
+                      'server/backend/materialization.py:upload_offline_file',
+                  ],
+              },
+              'frontend': {
+                  'routes': ['/'],
+                  'e2e_routes': ['/'],
+                  'components': [
+                      'dashboard/src/lib/api.js',
+                      'dashboard/src/pages/Dashboard.jsx',
+                      'dashboard/src/components/DataSources.jsx',
+                  ],
+                  'discoverability': ['dashboard/src/pages/Dashboard.jsx'],
+              },
+              'tests': {
+                  'backend': [
+                      'tests/test_desktop_workspace.py',
+                      'tests/test_desktop_materialization_runtime.py',
+                  ],
+                  'contract': ['tests/test_gui_parity.py'],
+                  'e2e': ['dashboard/tests/data-sources.spec.mjs'],
+              },
+          }
+          payload.setdefault('capabilities', []).append(capability)
+          path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+      - name: Commit reviewed capability contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .federation/gui-capabilities.json
+          git diff --cached --check
+          git commit -m "gui: register desktop data materialization capability"
+          git push origin HEAD:agent/desktop-self-contained-data-plane-v1
