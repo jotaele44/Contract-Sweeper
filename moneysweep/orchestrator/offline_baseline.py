@@ -134,7 +134,9 @@ def _certify_record_conservation(
         raise ValueError("record conservation counts must be non-negative")
     arithmetic_closed = source_records == retained_records + excluded_records
     provenance_closed = provenance_complete_records == source_records
-    state = "PASS" if arithmetic_closed and provenance_closed and unresolved_records == 0 else "FAIL"
+    state = (
+        "PASS" if arithmetic_closed and provenance_closed and unresolved_records == 0 else "FAIL"
+    )
     return {
         "state": state,
         "source_records": source_records,
