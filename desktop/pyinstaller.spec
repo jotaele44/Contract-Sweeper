@@ -40,23 +40,30 @@ datas = [
 ]
 
 
-def _producer_modules_from_registry() -> list[str]:
-    """Discover the exact dynamic-producer candidate set from registry JSON.
+def _producer_candidates_from_registry() -> tuple[list[str], list[str]]:
+    """Return exact dynamic producer modules and source manifestations.
 
-    PyInstaller cannot see importlib-loaded producer modules. Do not freeze the
-    entire scripts package heuristically: preserve the full declared candidate
-    set and add exactly each declared producer module as a hidden import.
+    PyInstaller cannot see importlib-loaded producer modules. The registry is
+    therefore the authoritative candidate set for both hidden imports and the
+    producer ``.py`` files used by the existing structural-readiness classifier.
+    Keeping those source manifestations inside immutable resources makes frozen
+    classification equivalent to source-checkout classification without inventing
+    a second desktop-only taxonomy.
     """
     modules: set[str] = set()
+    scripts: set[str] = set()
 
     def walk(value):
         if isinstance(value, dict):
             producer = value.get("producer_script")
             if isinstance(producer, str) and producer.strip():
-                name = producer.strip()
-                if name.endswith(".py"):
-                    name = name[:-3]
-                modules.add(name.replace("/", ".").replace("\\", "."))
+                rel = producer.strip().replace("\\", "/")
+                if rel.endswith(".py"):
+                    scripts.add(rel)
+                    module_name = rel[:-3]
+                else:
+                    module_name = rel
+                modules.add(module_name.replace("/", "."))
             for child in value.values():
                 walk(child)
         elif isinstance(value, list):
@@ -73,10 +80,19 @@ def _producer_modules_from_registry() -> list[str]:
         walk(json.loads(path.read_text(encoding="utf-8")))
     if not modules:
         raise RuntimeError("source registry yielded zero producer modules")
-    return sorted(modules)
+    return sorted(modules), sorted(scripts)
 
 
-producer_hiddenimports = _producer_modules_from_registry()
+producer_hiddenimports, producer_scripts = _producer_candidates_from_registry()
+
+# Preserve each declared producer source file at its registry-relative path.
+# Missing files remain missing: the normal readiness classifier must continue to
+# expose genuine broken/deferred producers rather than manufacturing them.
+for relative in producer_scripts:
+    source = REPO_ROOT / relative
+    if source.is_file():
+        destination = Path(relative).parent.as_posix()
+        datas.append((str(source), destination))
 
 hiddenimports = sorted(
     set(
