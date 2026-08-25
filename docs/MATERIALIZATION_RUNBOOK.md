@@ -145,6 +145,11 @@ python3 scripts/build_source_recovery_matrix.py
 
 Judge automatable completion against the generated automatable denominator, not
 overall registered-source coverage while manual/deferred classes remain queued.
+`reports/gap_analysis_report.json` may also expose an overall `coverage_rate`.
+That metric spans the entire registered-source denominator, including
+manual/deferred classes, so it is contextual only and must not replace
+`automatable_ready == automatable_total` or source-specific validation
+thresholds for the automatable completion claim.
 
 ## Per-source definition of done
 
