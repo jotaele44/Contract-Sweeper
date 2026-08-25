@@ -33,11 +33,11 @@ jobs:
           python-version: "3.13"
           cache: pip
 
+      - name: Assert isolated checkout
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
+
       - name: Install dependencies
-        run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Validate policy
         run: python3 scripts/update_sources.py validate-policy
