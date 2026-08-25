@@ -1,54 +1,76 @@
-# PyInstaller spec for the standalone desktop build (Phase 2).
+# PyInstaller spec for the standalone MoneySweep desktop build.
 # Build (on the target OS):
 #   pip install pyinstaller
 #   pyinstaller desktop/pyinstaller.spec --distpath dist-desktop
-# Produces a self-contained one-folder app: dist-desktop/PRII-MONEYSWEEP/
-# The bundle mirrors the repo layout so server/backend/main.py finds data/
-# and releases/ with its normal relative paths.
+#
+# The frozen application is self-contained: Python, the dashboard, the complete
+# MoneySweep runtime, source registry/schema metadata, and seed canonical data
+# are inside the bundle. Mutable data is never written into the bundle; the
+# launcher bootstraps a per-user Application-Support workspace.
 
 import os
 import sys
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_submodules
+
 REPO_ROOT = Path(SPECPATH).resolve().parent
 APP_NAME = "PRII-MONEYSWEEP"
 
-# Branding is generated from assets/branding/icon.png by
-# thehub-pr/tools/build_program_icons.py, so the frozen build, the committed
-# PRII-*.app bundle and the web favicons all trace back to one master.
 BRANDING = REPO_ROOT / "assets" / "branding"
-# PyInstaller wants .ico on Windows and .icns on macOS; it warns and ignores the
-# argument on other platforms, so leave it unset there.
 EXE_ICON = str(BRANDING / "icon.ico") if sys.platform == "win32" else None
-
-# Windowed by default (no console window for double-click users). CI sets
-# PRII_CONSOLE=1 to build a console binary it can smoke-test with visible stdio.
 CONSOLE = os.environ.get("PRII_CONSOLE") == "1"
 
+# Immutable resources needed by the desktop data plane. Keep mutable raw,
+# staging and manual payloads out of the application bundle.
 datas = [
     (str(REPO_ROOT / "dashboard" / "dist"), "dashboard/dist"),
     (str(REPO_ROOT / "data" / "canonical_v1"), "data/canonical_v1"),
+    (str(REPO_ROOT / "registries"), "registries"),
+    (str(REPO_ROOT / "schemas"), "schemas"),
+    (
+        str(REPO_ROOT / "reports" / "materialization_readiness.json"),
+        "reports",
+    ),
+    (
+        str(REPO_ROOT / "data" / "exports" / "production_status.json"),
+        "data/exports",
+    ),
 ]
+
+# Producers are selected dynamically from the source registry. PyInstaller
+# cannot discover those importlib imports statically, so freeze the complete
+# runtime namespaces explicitly. This is a release invariant: a source may be
+# unavailable because of egress/credentials, but never because its producer was
+# omitted from the .app.
+hiddenimports = sorted(
+    set(
+        collect_submodules("moneysweep")
+        + collect_submodules("scripts")
+        + collect_submodules("server.backend")
+        + [
+            "uvicorn.logging",
+            "uvicorn.loops.auto",
+            "uvicorn.protocols.http.auto",
+            "uvicorn.protocols.websockets.auto",
+            "uvicorn.lifespan.on",
+            "desktop.app_server",
+            "desktop.workspace",
+            "server.backend.desktop_app",
+            "server.backend.materialization",
+            "prii_desktop",
+            "prii_desktop.launcher",
+            "prii_desktop.appserver",
+            "prii_desktop.config",
+        ]
+    )
+)
 
 a = Analysis(
     [str(REPO_ROOT / "desktop" / "launch.py")],
     pathex=[str(REPO_ROOT)],
     datas=datas,
-    hiddenimports=[
-        "uvicorn.logging",
-        "uvicorn.loops.auto",
-        "uvicorn.protocols.http.auto",
-        "uvicorn.protocols.websockets.auto",
-        "uvicorn.lifespan.on",
-        "desktop.app_server",
-        "server.backend.main",
-        # Shared desktop-wrapper runtime (thehub-pr/packages/prii_desktop),
-        # imported by the desktop/ shims — bundle it into the frozen build.
-        "prii_desktop",
-        "prii_desktop.launcher",
-        "prii_desktop.appserver",
-        "prii_desktop.config",
-    ],
+    hiddenimports=hiddenimports,
     noarchive=False,
 )
 pyz = PYZ(a.pure)
