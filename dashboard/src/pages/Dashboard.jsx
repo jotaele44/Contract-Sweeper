@@ -7,9 +7,10 @@ import RelationshipGraph from '@/components/RelationshipGraph'
 import MunicipalityAggregates from '@/components/MunicipalityAggregates'
 import CampaignFinance from '@/components/CampaignFinance'
 import GovernmentChanges from '@/components/GovernmentChanges'
+import DataSources from '@/components/DataSources'
 import brandMark from "@/assets/icon-64.png?inline";
 
-const TABS = ['contracts', 'entities', 'government-changes', 'graph', 'municipios', 'campaign-finance']
+const TABS = ['contracts', 'entities', 'government-changes', 'graph', 'municipios', 'campaign-finance', 'data-sources']
 
 export default function Dashboard() {
   const [params, setParams] = useSearchParams()
@@ -18,6 +19,8 @@ export default function Dashboard() {
     prev.set('tab', value)
     return prev
   }, { replace: true })
+
+  const triggerClass = 'min-h-11 text-xs data-[state=active]:glow-border'
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
@@ -33,21 +36,25 @@ export default function Dashboard() {
 
       <div className="min-h-0 flex-1 p-3">
         <Tabs value={tab} onValueChange={setTab} className="flex h-full flex-col">
-          <TabsList className="grid w-full grid-cols-6 bg-card">
-            <TabsTrigger value="contracts" className="text-xs data-[state=active]:glow-border">Contracts</TabsTrigger>
-            <TabsTrigger value="entities" className="text-xs data-[state=active]:glow-border">Entities</TabsTrigger>
-            <TabsTrigger value="government-changes" className="text-xs data-[state=active]:glow-border">Gov Changes</TabsTrigger>
-            <TabsTrigger value="graph" className="text-xs data-[state=active]:glow-border">Relationships</TabsTrigger>
-            <TabsTrigger value="municipios" className="text-xs data-[state=active]:glow-border">Municipios</TabsTrigger>
-            <TabsTrigger value="campaign-finance" className="text-xs data-[state=active]:glow-border">Campaign Finance</TabsTrigger>
-          </TabsList>
-          <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background/40">
+          <div className="overflow-x-auto pb-1">
+            <TabsList className="grid h-auto min-w-[760px] grid-cols-7 bg-card">
+              <TabsTrigger value="contracts" className={triggerClass}>Contracts</TabsTrigger>
+              <TabsTrigger value="entities" className={triggerClass}>Entities</TabsTrigger>
+              <TabsTrigger value="government-changes" className={triggerClass}>Gov Changes</TabsTrigger>
+              <TabsTrigger value="graph" className={triggerClass}>Relationships</TabsTrigger>
+              <TabsTrigger value="municipios" className={triggerClass}>Municipios</TabsTrigger>
+              <TabsTrigger value="campaign-finance" className={triggerClass}>Campaign Finance</TabsTrigger>
+              <TabsTrigger value="data-sources" className={triggerClass}>Data Sources</TabsTrigger>
+            </TabsList>
+          </div>
+          <div className="mt-2 min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background/40">
             <TabsContent value="contracts" className="m-0 h-full"><ContractsTable /></TabsContent>
             <TabsContent value="entities" className="m-0 h-full"><EntitiesTable /></TabsContent>
             <TabsContent value="government-changes" className="m-0 h-full"><GovernmentChanges /></TabsContent>
             <TabsContent value="graph" className="m-0 h-full"><RelationshipGraph /></TabsContent>
             <TabsContent value="municipios" className="m-0 h-full"><MunicipalityAggregates /></TabsContent>
             <TabsContent value="campaign-finance" className="m-0 h-full"><CampaignFinance /></TabsContent>
+            <TabsContent value="data-sources" className="m-0 h-full"><DataSources /></TabsContent>
           </div>
         </Tabs>
       </div>
