@@ -14,7 +14,7 @@ coverage==7.14.1
     # via pytest-cov
 cryptography==48.0.0
     # via pdfminer-six
-duckdb==1.5.4
+duckdb==1.5.5
     # via -r requirements.in
 et-xmlfile==2.0.0
     # via openpyxl
