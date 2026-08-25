@@ -135,7 +135,9 @@ def select_sources(
             continue
         if family and src.get("family") != family:
             continue
-        source_class = _classify(src) if classifier_root is None else _classify(src, classifier_root)
+        source_class = (
+            _classify(src) if classifier_root is None else _classify(src, classifier_root)
+        )
         if PATH_TYPES[source_class][0]:
             selected.append(src)
     return selected
