@@ -2,7 +2,7 @@ name: desktop-build
 
 # Builds the self-contained double-click desktop app for each OS.
 # Public desktop-v* releases remain fail-closed behind production-data status
-# and (on macOS) signed/notarized Gatekeeper validation.
+# and, on macOS, Developer-ID signing + notarization + Gatekeeper validation.
 
 on:
   workflow_dispatch:
@@ -16,11 +16,13 @@ on:
       - "server/backend/**"
       - "scripts/run_automatable_sources.py"
       - "requirements.txt"
+      - "requirements.lock"
       - "requirements-desktop.txt"
       - "registries/**"
       - "schemas/**"
       - "reports/materialization_readiness.json"
       - "data/exports/production_status.json"
+      - "dashboard/src/**"
       - ".github/workflows/desktop-build.yml"
 
 permissions:
@@ -69,19 +71,28 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install \
-            -r requirements.txt \
+            -r requirements.lock \
             -r server/backend/requirements.txt \
             -r requirements-desktop.txt \
             pyinstaller
 
+      - name: Freeze resolved dependency inventory
+        shell: bash
+        run: |
+          mkdir -p build-metadata
+          python --version > build-metadata/PYTHON_VERSION.txt 2>&1
+          node --version > build-metadata/NODE_VERSION.txt 2>&1
+          pip freeze --all | LC_ALL=C sort > build-metadata/FROZEN_DEPENDENCIES.txt
+
       - name: Assert real forensic/materialization dependencies
         shell: python
         run: |
-          import duckdb, pyarrow, pandas, fastapi, multipart
+          import duckdb, pyarrow, pandas, fastapi, multipart, keyring
           print("duckdb", duckdb.__version__)
           print("pyarrow", pyarrow.__version__)
           print("pandas", pandas.__version__)
           print("fastapi", fastapi.__version__)
+          print("keyring", keyring.__version__ if hasattr(keyring, "__version__") else "installed")
 
       - name: Freeze console build for certification
         env:
@@ -115,19 +126,77 @@ jobs:
       - name: Freeze desktop app (windowed release candidate)
         run: pyinstaller desktop/pyinstaller.spec --distpath dist-desktop --noconfirm
 
-      # A public macOS release must be a true double-click artifact. An unsigned
-      # or unstapled app is allowed as a CI artifact for testing, but it may not
-      # be attached to a desktop-v* public release. This gate intentionally fails
-      # closed until Developer-ID signing/notarization infrastructure is present.
-      - name: Require signed and notarized macOS app for public release
+      - name: Require signing configuration for public macOS release
         if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/desktop-v')
         shell: bash
+        env:
+          P12_B64: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in P12_B64 P12_PASSWORD SIGNING_IDENTITY APPLE_ID APPLE_TEAM_ID APPLE_APP_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing required macOS release signing/notarization secret: $name"
+              exit 1
+            fi
+          done
+
+      - name: Sign and notarize public macOS release candidate
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: bash
+        env:
+          P12_B64: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+          SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
           set -euo pipefail
           app="dist-desktop/PRII-MONEYSWEEP.app"
+          cert="$RUNNER_TEMP/moneysweep-developer-id.p12"
+          keychain="$RUNNER_TEMP/moneysweep-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+
+          python - <<'PY'
+          import base64, os, pathlib
+          pathlib.Path(os.environ["RUNNER_TEMP"], "moneysweep-developer-id.p12").write_bytes(
+              base64.b64decode(os.environ["P12_B64"], validate=True)
+          )
+          PY
+
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$cert" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
+            -k "$keychain_password" "$keychain"
+          security list-keychains -d user -s "$keychain"
+
+          codesign --force --deep --options runtime --timestamp \
+            --sign "$SIGNING_IDENTITY" "$app"
           codesign --verify --deep --strict --verbose=2 "$app"
+
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/PRII-MONEYSWEEP-notarize.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/PRII-MONEYSWEEP-notarize.zip" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --wait
+          xcrun stapler staple "$app"
           xcrun stapler validate "$app"
           spctl --assess --type execute --verbose=4 "$app"
+
+      - name: Clean signing material
+        if: always() && runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/moneysweep-developer-id.p12" "$RUNNER_TEMP/PRII-MONEYSWEEP-notarize.zip"
+          security delete-keychain "$RUNNER_TEMP/moneysweep-signing.keychain-db" 2>/dev/null || true
 
       - name: Package bundle
         shell: bash
@@ -152,10 +221,17 @@ jobs:
             -ov -format UDZO "PRII-MONEYSWEEP-macOS.dmg"
           rm -rf "$staging"
 
+      - name: Copy build-resolution evidence
+        shell: bash
+        run: |
+          cp build-metadata/FROZEN_DEPENDENCIES.txt dist-desktop/
+          cp build-metadata/PYTHON_VERSION.txt dist-desktop/
+          cp build-metadata/NODE_VERSION.txt dist-desktop/
+
       - name: Freeze artifact byte identities
         shell: python
         run: |
-          import hashlib, json, os, pathlib
+          import hashlib, json, os, pathlib, platform
 
           dist = pathlib.Path("dist-desktop")
           files = sorted(
@@ -174,14 +250,21 @@ jobs:
 
           readiness = json.loads(pathlib.Path("reports/materialization_readiness.json").read_text())
           production = json.loads(pathlib.Path("data/exports/production_status.json").read_text())
+          deps = dist / "FROZEN_DEPENDENCIES.txt"
           manifest = {
-              "schema_version": "1.0.0",
+              "schema_version": "1.1.0",
               "source_commit": os.environ["GITHUB_SHA"],
               "runner_os": os.environ["RUNNER_OS"],
+              "python_version": platform.python_version(),
               "source_ids_sha256": readiness["source_count_provenance"]["source_ids_sha256"],
               "registered_sources": readiness["total_sources"],
               "automatable_sources": readiness["automatable_total"],
               "production_status": production["production_status"],
+              "dependency_inventory": {
+                  "name": deps.name,
+                  "bytes": deps.stat().st_size,
+                  "sha256": sha256(deps),
+              },
               "artifacts": [
                   {"name": p.name, "bytes": p.stat().st_size, "sha256": sha256(p)}
                   for p in files
@@ -198,6 +281,9 @@ jobs:
             dist-desktop/PRII-MONEYSWEEP-*.zip
             dist-desktop/PRII-MONEYSWEEP-*.dmg
             dist-desktop/DESKTOP_RELEASE_MANIFEST.json
+            dist-desktop/FROZEN_DEPENDENCIES.txt
+            dist-desktop/PYTHON_VERSION.txt
+            dist-desktop/NODE_VERSION.txt
 
       - name: Refuse to publish unless the pipeline is production-validated
         if: startsWith(github.ref, 'refs/tags/desktop-v')
@@ -227,3 +313,4 @@ jobs:
             dist-desktop/PRII-MONEYSWEEP-*.zip
             dist-desktop/PRII-MONEYSWEEP-*.dmg
             dist-desktop/DESKTOP_RELEASE_MANIFEST.json
+            dist-desktop/FROZEN_DEPENDENCIES.txt
