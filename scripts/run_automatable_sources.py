@@ -14,11 +14,15 @@ target is every source classified ``api_adapter`` / ``api_producer``. Explicit `
 / ``--only`` override the automatable filter (run a named source regardless of class).
 
 Desktop builds separate immutable source identity from mutable workspace state.
-``MONEYSWEEP_REGISTRY_ROOT`` selects the immutable registry root while ``root`` is the
-writable materialization workspace. Before dynamically importing any producer, the
-legacy ``scripts.config`` path globals are rebound from their source-tree-relative values
-to equivalent paths under the workspace. This prevents older producers that ignore a
-``root=`` argument from silently writing into packaged resources.
+``MONEYSWEEP_REGISTRY_ROOT`` selects the immutable registry/classification root while
+``root`` is the writable materialization workspace. The classifier must use that immutable
+root as well; otherwise a frozen app can silently demote packaged producer sources merely
+because the writable workspace does not contain source-code files.
+
+Before dynamically importing any producer, the legacy ``scripts.config`` path globals are
+rebound from their source-tree-relative values to equivalent paths under the workspace.
+This prevents older producers that ignore a ``root=`` argument from silently writing into
+packaged resources.
 
 No secrets are printed. A latest-run summary is written to
 ``data/staging/materialization_run_summary.json`` and a versioned immutable-in-workspace
@@ -113,8 +117,14 @@ def select_sources(
     source: str | None,
     family: str | None,
     only: list[str] | None,
+    classifier_root: Path | None = None,
 ) -> list[dict]:
-    """Return the source dicts to run. Explicit ids bypass the automatable filter."""
+    """Return source candidates using one explicit classification root.
+
+    ``classifier_root`` is the immutable source/resource manifestation used to
+    establish producer readiness. It is intentionally distinct from the writable
+    materialization workspace. Explicit ids bypass the automatable filter.
+    """
     explicit = set(only or ([source] if source else []))
     selected: list[dict] = []
     for src in sources:
@@ -125,7 +135,7 @@ def select_sources(
             continue
         if family and src.get("family") != family:
             continue
-        if PATH_TYPES[_classify(src)][0]:
+        if PATH_TYPES[_classify(src, classifier_root)][0]:
             selected.append(src)
     return selected
 
@@ -182,9 +192,17 @@ def run(
 ) -> dict:
     root = Path(root or PROJECT_ROOT).expanduser().resolve()
     logger = setup_logging("run_automatable_sources")
-    registry_root = Path(os.environ.get("MONEYSWEEP_REGISTRY_ROOT", str(root))).expanduser().resolve()
+    registry_root = (
+        Path(os.environ.get("MONEYSWEEP_REGISTRY_ROOT", str(root))).expanduser().resolve()
+    )
     sources = load_source_registry(registry_root).get("sources", [])
-    selected = select_sources(sources, source=source, family=family, only=only)
+    selected = select_sources(
+        sources,
+        source=source,
+        family=family,
+        only=only,
+        classifier_root=registry_root,
+    )
     selected_ids = [s.get("source_id", "") for s in selected]
 
     started_utc = datetime.now(timezone.utc).isoformat()
