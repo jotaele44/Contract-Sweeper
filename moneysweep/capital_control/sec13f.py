@@ -376,11 +376,11 @@ class Sec13FBulkAdapter:
                 manager_raw = str(cov["FILINGMANAGER_NAME"]).strip()
                 if not manager_raw:
                     raise Sec13FError(f"{accession}: empty filing manager name")
-                existing = investors.get(holder_id)
-                if existing is not None and existing.raw_name != manager_raw:
-                    raise Sec13FError(
-                        f"CIK {cik.zfill(10)} has conflicting raw manager names in one archive"
-                    )
+                # CIK is the authoritative legal-entity identity. Multiple raw
+                # FILINGMANAGER_NAME strings can legitimately occur for one CIK,
+                # even inside one quarterly archive. Keep the first observed name
+                # only as the representative InvestorIdentity label; every raw
+                # manifestation remains preserved on its source HoldingObservation.
                 investors.setdefault(
                     holder_id,
                     InvestorIdentity(
