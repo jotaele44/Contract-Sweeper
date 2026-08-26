@@ -142,9 +142,7 @@ def validate_holding_observation(payload: Mapping[str, Any]) -> HoldingObservati
 
     replacement_statuses = {"AMENDED", "AMENDED_RESTATEMENT"}
     if item.amendment_status in replacement_statuses and not item.supersedes_observation_id:
-        raise ValidationError(
-            f"{item.amendment_status} rows require supersedes_observation_id"
-        )
+        raise ValidationError(f"{item.amendment_status} rows require supersedes_observation_id")
     if item.supersedes_observation_id and item.amendment_status not in replacement_statuses:
         raise ValidationError(
             "supersedes_observation_id requires AMENDED or AMENDED_RESTATEMENT status"
