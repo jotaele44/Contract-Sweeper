@@ -1,0 +1,78 @@
+name: SEC Ownership Golden Data Audit
+
+on:
+  pull_request:
+    paths:
+      - "moneysweep/capital_control/**"
+      - "moneysweep/sec_equity_identity.py"
+      - "scripts/acquire_sec13f_bpop_golden.py"
+      - "scripts/certify_bpop_sec13f_8q.py"
+      - "scripts/download_sec_equity_v2.py"
+      - "registries/capital_control_golden_cases.json"
+      - ".github/workflows/sec-ownership-golden-data-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: BPOP 8Q authoritative-data audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6
+        with:
+          python-version: "3.11"
+      - name: Install acquisition dependency
+        run: python -m pip install "requests>=2.34.2"
+
+      - name: Re-materialize benchmark issuer identities and denominators
+        id: equity
+        continue-on-error: true
+        run: python scripts/download_sec_equity_v2.py --root "$GITHUB_WORKSPACE"
+
+      - name: Freeze authoritative SEC 13F archives
+        id: freeze
+        continue-on-error: true
+        run: python scripts/acquire_sec13f_bpop_golden.py --root "$GITHUB_WORKSPACE"
+
+      - name: Certify bounded BPOP eight-quarter corpus
+        id: certify
+        if: ${{ steps.equity.outcome == 'success' && steps.freeze.outcome == 'success' }}
+        continue-on-error: true
+        run: python scripts/certify_bpop_sec13f_8q.py --root "$GITHUB_WORKSPACE"
+
+      - name: Record audit outcome
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p artifacts/sec-ownership-golden-data-audit
+          cat > artifacts/sec-ownership-golden-data-audit/workflow-state.json <<EOF
+          {
+            "equity": "${{ steps.equity.outcome }}",
+            "freeze": "${{ steps.freeze.outcome }}",
+            "certify": "${{ steps.certify.outcome }}",
+            "claim": "AUDIT_ONLY_UNTIL_CERTIFICATION_JSON_STATE_PASS"
+          }
+          EOF
+          find data/manifests -type f -maxdepth 4 -print 2>/dev/null || true
+
+      - name: Upload frozen SEC evidence and manifests
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sec-ownership-bpop-8q-audit
+          path: |
+            artifacts/sec-ownership-golden-data-audit
+            data/manifests/sec_equity_v2
+            data/manifests/capital_control
+            data/staging/processed/pr_sec_companies_v2.csv
+            data/staging/processed/pr_sec_financials_v2.csv
+            data/staging/processed/pr_sec_share_denominators_v2.csv
+            data/staging/processed/capital_control/sec13f_pr_golden_holdings.csv
+            data/staging/processed/capital_control/sec13f_pr_golden_investors.csv
+            data/staging/raw/sec13f_bulk/bpop_8q_v1
+          if-no-files-found: warn
+          retention-days: 90
