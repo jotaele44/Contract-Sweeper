@@ -1,0 +1,27 @@
+{
+  "baseline_id": "MONEYSWEEP_PR_SEC_UPLOAD_AUDIT_v0_1",
+  "classification": "NONCANONICAL_DERIVED_UPLOAD_SNAPSHOTS",
+  "files": [
+    {"name": "pr_sec_companies.csv", "rows": 15, "sha256": "3731b1b7bcbc6fd4b5f5818e6c4a890bde442a09f613e12ba24104c6dfcd9002"},
+    {"name": "pr_sec_officers.csv", "rows": 85, "sha256": "9cc4d3509e8a2cb6d0e86bd2685571104f964a9ec66f264816b1d264825c2349"},
+    {"name": "pr_sec_financials.csv", "rows": 156, "sha256": "ef055ec70454c5dd6a8eba5578be98a5fae01002f3f99dc6546634b3db579036"},
+    {"name": "pr_sec_holdings.csv", "rows": 54, "sha256": "6540e9ce339228b32d247efc9465835266fcfa7b99cceba4939eb1a9e83b3918"}
+  ],
+  "authoritative_identity_bindings": {
+    "BPOP": {"cik": "0000763901", "name": "POPULAR, INC."},
+    "OFG": {"cik": "0001030469", "name": "OFG BANCORP"},
+    "EVTC": {"cik": "0001559865", "name": "EVERTEC, Inc."}
+  },
+  "negative_regressions": [
+    {"rule": "OFG_NOT_CARVER", "reject_cik": "0001016178"},
+    {"rule": "EVTC_NOT_EVRI", "reject_ticker": "EVRI"},
+    {"rule": "FORM13F_FILE_NUMBER_NOT_CIK", "example": "028-14486"},
+    {"rule": "MUNICIPAL_DEBT_NOT_CORPORATE_EQUITY_OWNERSHIP"}
+  ],
+  "known_gaps": {
+    "shares_outstanding_null_rows": 156,
+    "corporate_target_rows_in_uploaded_holdings": 0,
+    "non_cik_values_in_uploaded_filer_cik": 50,
+    "bpop_2014_assets_minus_liabilities_minus_equity": -9924000
+  }
+}
