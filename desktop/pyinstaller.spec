@@ -17,6 +17,8 @@ from PyInstaller.utils.hooks import collect_submodules
 
 REPO_ROOT = Path(SPECPATH).resolve().parent
 APP_NAME = "PRII-MONEYSWEEP"
+APP_VERSION = os.environ.get("MONEYSWEEP_APP_VERSION", "0.0.0")
+BUILD_VERSION = os.environ.get("MONEYSWEEP_BUILD_VERSION", "0")
 
 BRANDING = REPO_ROOT / "assets" / "branding"
 EXE_ICON = str(BRANDING / "icon.ico") if sys.platform == "win32" else None
@@ -154,4 +156,8 @@ if sys.platform == "darwin":
         name=f"{APP_NAME}.app",
         icon=str(BRANDING / "AppIcon.icns"),
         bundle_identifier="pr.prii.moneysweep",
+        info_plist={
+            "CFBundleShortVersionString": APP_VERSION,
+            "CFBundleVersion": BUILD_VERSION,
+        },
     )
