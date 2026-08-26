@@ -1,12 +1,6 @@
 name: PR assistance failed-shard recovery
 
 on:
-  push:
-    branches:
-      - recovery/pr-assistance-failed-shards-v1
-    paths:
-      - "scripts/recover_pr_assistance_failed_shards.py"
-      - ".github/workflows/pr-assistance-recovery.yml"
   pull_request:
     paths:
       - "scripts/recover_pr_assistance_failed_shards.py"
@@ -31,6 +25,7 @@ jobs:
       - run: ruff format --check scripts/recover_pr_assistance_failed_shards.py
 
   recover:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 90
