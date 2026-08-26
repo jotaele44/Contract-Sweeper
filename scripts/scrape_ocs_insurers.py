@@ -13,7 +13,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -68,19 +68,21 @@ def _sid(*parts: str) -> str:
 
 
 def parse_insurers(page_html: str, *, source_url: str, retrieved_at: str) -> list[dict]:
-    """Extract insurer cards without normalizing names into identities.
-
-    The current OCS page exposes insurer names principally as image ``alt`` text.
-    A fallback inspects card-like containers that contain an external website.
-    """
+    """Extract insurer cards without normalizing names into identities."""
     doc = lxml_html.fromstring(page_html)
     rows: list[dict] = []
     seen_exact: set[str] = set()
+    excluded_alt = {
+        "image",
+        "ocs",
+        "logo",
+        "gobierno de puerto rico",
+        "sello ogp",
+    }
 
-    # Primary path: image alt is the displayed insurer label on OCS cards.
     for img in doc.xpath("//img[@alt]"):
         name = _clean(img.get("alt") or "")
-        if not name or name.casefold() in {"image", "ocs", "gobierno de puerto rico"}:
+        if not name or name.casefold() in excluded_alt:
             continue
         parent = img
         website = ""
@@ -106,15 +108,15 @@ def parse_insurers(page_html: str, *, source_url: str, retrieved_at: str) -> lis
             }
         )
 
-    # Fail closed instead of treating a redesigned page as a valid empty list.
     if not rows:
         raise RuntimeError("OCS insurer parser found zero insurer cards")
     return rows
 
 
 def _nearest_year(node) -> str:
-    """Find the nearest preceding year heading/label in document order."""
-    preceding = node.xpath("preceding::*[self::h1 or self::h2 or self::h3 or self::h4 or self::div or self::span]")
+    preceding = node.xpath(
+        "preceding::*[self::h1 or self::h2 or self::h3 or self::h4 or self::div or self::span]"
+    )
     for cand in reversed(preceding):
         text = _clean(cand.text_content())
         match = _YEAR_RE.match(text)
@@ -123,7 +125,12 @@ def _nearest_year(node) -> str:
     return ""
 
 
-def parse_annual_reports(page_html: str, *, source_url: str, retrieved_at: str) -> list[dict]:
+def parse_annual_reports(
+    page_html: str,
+    *,
+    source_url: str,
+    retrieved_at: str,
+) -> list[dict]:
     doc = lxml_html.fromstring(page_html)
     rows: list[dict] = []
     seen: set[tuple[str, str, str]] = set()
@@ -134,7 +141,6 @@ def parse_annual_reports(page_html: str, *, source_url: str, retrieved_at: str) 
         if not href or not name:
             continue
         lower = href.casefold()
-        # OCS annual statements are document links; do not mistake navigation for reports.
         if not any(token in lower for token in (".pdf", "document", "download", "media", "files")):
             continue
         year = _nearest_year(anchor)
@@ -180,12 +186,16 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
     insurers_path = root / INSURERS_OUT_REL
     annual_path = root / ANNUAL_OUT_REL
     if not force and file_has_data(insurers_path) and file_has_data(annual_path):
-        a = pd.read_csv(insurers_path, dtype=str, low_memory=False)
-        b = pd.read_csv(annual_path, dtype=str, low_memory=False)
-        return {"rows": len(a) + len(b), "paths": [str(insurers_path), str(annual_path)], "errors": []}
+        insurers_existing = pd.read_csv(insurers_path, dtype=str, low_memory=False)
+        annual_existing = pd.read_csv(annual_path, dtype=str, low_memory=False)
+        return {
+            "rows": len(insurers_existing) + len(annual_existing),
+            "paths": [str(insurers_path), str(annual_path)],
+            "errors": [],
+        }
 
     logger = setup_logging("scrape_ocs_insurers")
-    session = build_session(HTTP)
+    session = build_session(HTTP.user_agent, HTTP.extra_headers)
     try:
         insurer_html, insurer_at = _get(session, INSURERS_URL)
         annual_html, annual_at = _get(session, ANNUAL_URL)
@@ -208,7 +218,11 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
     insurers_path.parent.mkdir(parents=True, exist_ok=True)
     insurers.to_csv(insurers_path, index=False, encoding="utf-8")
     annual.to_csv(annual_path, index=False, encoding="utf-8")
-    logger.info("OCS: %s current insurer rows; %s annual-report observations", len(insurers), len(annual))
+    logger.info(
+        "OCS: %s current insurer rows; %s annual-report observations",
+        len(insurers),
+        len(annual),
+    )
     return {
         "rows": len(insurers) + len(annual),
         "paths": [str(insurers_path), str(annual_path)],
