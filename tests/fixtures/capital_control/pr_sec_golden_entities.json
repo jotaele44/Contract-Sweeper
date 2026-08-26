@@ -1,0 +1,47 @@
+"""Entity-mode projection of materialized capital/control holdings."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pandas as pd
+
+from .entity_base import EntityAdapter
+from ..entity_types import EntityQuery
+from ..types import ManualOnlyError
+
+
+class Sec13FCapitalControlAdapter(EntityAdapter):
+    """Read the materialized SEC 13F holdings slice by exact CUSIP.
+
+    Acquisition, hashing, amendment adjudication, and certification stay in
+    the batch producer. Interactive queries never bypass those gates.
+    """
+
+    source_id = "sec_13f_capital_control"
+    supported_kinds = frozenset({"cusip"})
+    relative_path = Path("data/staging/processed/capital_control/sec13f_holdings.csv")
+
+    def fetch(self, query: EntityQuery) -> pd.DataFrame:
+        path = self.root / self.relative_path
+        if not path.is_file():
+            raise ManualOnlyError(
+                self.source_id,
+                "scripts/build_sec_13f_capital_control.py",
+                "none",
+            )
+        frame = pd.read_csv(path, dtype=str, keep_default_na=False)
+        required = {"security_cusip", "issuer_id", "holder_id", "observation_id"}
+        missing = required - set(frame.columns)
+        if missing:
+            raise ValueError(
+                f"{self.source_id}: materialized holdings missing columns {sorted(missing)}"
+            )
+        wanted = {value.upper() for value in query.by_kind("cusip")}
+        if not wanted:
+            return frame.iloc[0:0].copy()
+        normalized = frame["security_cusip"].astype(str).str.strip().str.upper()
+        out = frame.loc[normalized.isin(wanted)].copy()
+        out["matched_on"] = "cusip"
+        out["identity_match_state"] = "STABLE_SECURITY_ID"
+        return out.reset_index(drop=True)
