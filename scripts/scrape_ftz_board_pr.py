@@ -17,7 +17,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pandas as pd
-import requests
 from lxml import html as lxml_html
 
 from moneysweep.runtime.base_downloader import HttpConfig, build_session, file_has_data
@@ -26,11 +25,7 @@ from scripts.config import PROJECT_ROOT, setup_logging
 
 SOURCE_ID = "ftz_board_pr"
 OUT_REL = "data/staging/processed/pr_ftz_zones_sites.csv"
-DETAILS = {
-    "007": 103,
-    "061": 239,
-    "163": 115,
-}
+DETAILS = {"007": 103, "061": 239, "163": 115}
 BASE = "https://ofis.trade.gov/Zones/Details/{detail_id}"
 COLUMNS = [
     "source_record_id",
@@ -111,7 +106,13 @@ def _site_rows(doc) -> list[dict[str, str]]:
     return rows
 
 
-def parse_zone(page_html: str, *, detail_id: int, source_url: str, retrieved_at: str) -> list[dict]:
+def parse_zone(
+    page_html: str,
+    *,
+    detail_id: int,
+    source_url: str,
+    retrieved_at: str,
+) -> list[dict]:
     doc = lxml_html.fromstring(page_html)
     lines = _lines(doc)
     zone = _label_value(lines, "Zone Number")
@@ -146,7 +147,9 @@ def parse_zone(page_html: str, *, detail_id: int, source_url: str, retrieved_at:
         row.update(base)
         row.update(site)
         row["record_type"] = "site"
-        row["source_record_id"] = _sid("site", zone, site["site_number_raw"], site["site_name_raw"])
+        row["source_record_id"] = _sid(
+            "site", zone, site["site_number_raw"], site["site_name_raw"]
+        )
         output.append(row)
     return output
 
@@ -159,7 +162,7 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
         return {"rows": len(existing), "path": str(out_path), "errors": []}
 
     logger = setup_logging("scrape_ftz_board_pr")
-    session = build_session(HTTP)
+    session = build_session(HTTP.user_agent, HTTP.extra_headers)
     rows: list[dict] = []
     observed: set[str] = set()
     try:
@@ -168,11 +171,17 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
             response = session.get(url, timeout=HTTP.timeout)
             response.raise_for_status()
             retrieved_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-            parsed = parse_zone(response.text, detail_id=detail_id, source_url=url, retrieved_at=retrieved_at)
+            parsed = parse_zone(
+                response.text,
+                detail_id=detail_id,
+                source_url=url,
+                retrieved_at=retrieved_at,
+            )
             actual = parsed[0]["zone_number_raw"]
             if actual != expected_zone:
                 raise RuntimeError(
-                    f"FTZ locator mismatch: detail_id={detail_id} expected={expected_zone} observed={actual}"
+                    f"FTZ locator mismatch: detail_id={detail_id} "
+                    f"expected={expected_zone} observed={actual}"
                 )
             if actual in observed:
                 raise RuntimeError(f"FTZ duplicate zone: {actual}")
@@ -183,7 +192,9 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
 
     expected = set(DETAILS)
     if observed != expected:
-        raise RuntimeError(f"FTZ denominator mismatch: expected={sorted(expected)} observed={sorted(observed)}")
+        raise RuntimeError(
+            f"FTZ denominator mismatch: expected={sorted(expected)} observed={sorted(observed)}"
+        )
 
     df = pd.DataFrame(rows, columns=COLUMNS)
     if df.empty or int((df["record_type"] == "zone").sum()) != len(expected):
