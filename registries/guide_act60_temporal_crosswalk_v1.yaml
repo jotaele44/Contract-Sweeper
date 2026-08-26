@@ -1,4 +1,4 @@
-version: "1.0"
+version: "1.1"
 schema_version: guide_act60_temporal_crosswalk_v1
 scope_id: GUIDE_BOUNDED_100_PERCENT
 source_guide_as_of: "2020-12-31"
@@ -16,6 +16,7 @@ relation_types:
   - SPLIT_INTO
   - MERGED_FROM
   - SPECIAL_OVERLAY
+  - PARALLEL_SPECIAL_LAW
   - SUPERSEDED
   - NO_DIRECT_CURRENT_EQUIVALENT
   - UNRESOLVED
@@ -211,13 +212,18 @@ crosswalk:
 
   GFAV-029:
     guide_canonical: hospital_facilities
-    current_category: Otras
-    relation: UNRESOLVED
+    current_act60_category: null
+    parallel_special_law: Ley 168-1968
+    parallel_special_law_title: Ley de Exenciones Contributivas a Hospitales
+    parallel_special_law_current_revision: "2026-04-14"
+    source_url: https://bvirtualogp.pr.gov/ogp/Bvirtual/leyesreferencia/PDF/Incentivos/168-1968/168-1968.pdf
+    current_term: unidad hospitalaria
+    relation: PARALLEL_SPECIAL_LAW
     note: >-
-      Current Act 60 contains medical-professional provisions and references to
-      hospitals, but the exact guide phrase 'hospital facilities' has not yet
-      been bound to a current statutory incentive section without collapsing a
-      facility incentive into a professional-services incentive.
+      The current OGP compilation of Ley 168-1968 remains a distinct hospital-tax
+      incentive statute and authorizes benefits where necessary to increase or
+      modernize hospital facilities and medical services. It must not be collapsed
+      into Act 60 medical-professional incentives merely because both concern health.
 
   GFAV-030:
     guide_canonical: solid_waste_disposal
@@ -232,11 +238,12 @@ crosswalk:
       name. Current recycling/manufacturing provisions must not be silently
       substituted for the broader historical solid-waste facility incentive.
 
-open_crosswalk_residue:
-  - GFAV-029
+open_crosswalk_residue: []
 
-certification_state: OPEN
+certification_state: PASS
+certification_scope: CATEGORY_AND_TEMPORAL_CROSSWALK_ONLY
 certification_reason: >-
-  The guide-to-current-law category crosswalk is materially closed except for the
-  exact current statutory binding for hospital-facility incentives, and category
-  closure does not substitute for beneficiary/decree denominator closure.
+  Every guide incentive lane in this crosswalk now has a bounded current Act 60,
+  special-overlay, active parallel-law, or superseded-predecessor classification.
+  This PASS applies only to taxonomy/temporal binding and does not certify the
+  member-level beneficiary/decree denominator.
