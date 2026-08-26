@@ -114,7 +114,7 @@ jobs:
 
   guide-live-freeze:
     name: Guide bounded live freeze (one-shot branch gate)
-    if: ${{ github.event_name == 'push' && github.ref_name == 'audit/guide-financial-avenue-coverage-v1' }}
+    if: ${{ (github.event_name == 'push' && github.ref_name == 'audit/guide-financial-avenue-coverage-v1') || (github.event_name == 'pull_request' && github.head_ref == 'audit/guide-financial-avenue-coverage-v1') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
