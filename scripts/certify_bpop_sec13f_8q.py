@@ -159,6 +159,46 @@ def _write_csv(path: Path, rows: Iterable[dict[str, object]]) -> int:
     return len(materialized)
 
 
+def _holder_name_manifestations(
+    rows: Iterable[HoldingObservation],
+) -> list[dict[str, object]]:
+    """Preserve raw SEC filer names without treating name drift as identity drift.
+
+    CIK is the stable SEC filer identity.  FILINGMANAGER_NAME is a source
+    manifestation and can legitimately vary over time.  The manifestation key
+    is bounded to the filing accession/archive so every distinct observed raw
+    string remains auditable without multiplying canonical investor identity.
+    """
+    manifestations: list[dict[str, object]] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for row in rows:
+        raw_name = str(row.extra.get("filing_manager_name_raw") or "")
+        accession = str(row.extra.get("accession_number") or "")
+        archive = str(row.extra.get("source_archive") or "")
+        if not raw_name or not accession or not archive:
+            raise ValueError(
+                f"holder name manifestation missing raw provenance: {row.observation_id}"
+            )
+        key = (row.holder_id, accession, archive, raw_name)
+        if key in seen:
+            continue
+        seen.add(key)
+        manifestations.append(
+            {
+                "holder_id": row.holder_id,
+                "filer_cik": str(row.extra.get("filer_cik") or ""),
+                "filing_manager_name_raw": raw_name,
+                "accession_number": accession,
+                "source_archive": archive,
+                "as_of_date": row.as_of_date.isoformat(),
+                "report_date": row.report_date.isoformat(),
+                "identity_binding": "STABLE_CIK",
+                "name_identity_role": "SOURCE_MANIFESTATION_NOT_IDENTITY_PROOF",
+            }
+        )
+    return manifestations
+
+
 def run(*, root: Path) -> dict[str, object]:
     registry_path = root / "registries" / "capital_control_golden_cases.json"
     data = _load_registry(registry_path)
@@ -194,12 +234,10 @@ def run(*, root: Path) -> dict[str, object]:
         result = ingest(adapter)
         observations.extend(result.observations)
         for investor in adapter.iter_investors():
-            incumbent = investors.get(investor.investor_id)
-            if incumbent is not None and incumbent.raw_name != investor.raw_name:
-                raise ValueError(
-                    f"holder CIK name contradiction across archives: {investor.investor_id}"
-                )
-            investors[investor.investor_id] = investor
+            # The CIK is the authoritative legal-entity identity.  A different
+            # raw SEC manager-name string in another archive is preserved below
+            # as a NAME manifestation; it does not override the stable ID.
+            investors.setdefault(investor.investor_id, investor)
         audit = adapter.audit()
         archive_audits.append(
             {
@@ -230,6 +268,19 @@ def run(*, root: Path) -> dict[str, object]:
     if len(preserved) != source_count:
         raise AssertionError("supersession violated row conservation")
 
+    name_manifestations = _holder_name_manifestations(preserved)
+    names_by_holder: dict[str, set[str]] = {}
+    for item in name_manifestations:
+        holder_id = str(item["holder_id"])
+        names_by_holder.setdefault(holder_id, set()).add(
+            str(item["filing_manager_name_raw"])
+        )
+    name_variations = {
+        holder_id: sorted(names)
+        for holder_id, names in names_by_holder.items()
+        if len(names) > 1
+    }
+
     bpop_cusip = by_ticker["BPOP"]["cusip"].upper()
     bpop_rows = [row for row in preserved if row.security_id == f"CUSIP:{bpop_cusip}"]
     observed_periods = {row.as_of_date for row in bpop_rows}
@@ -252,9 +303,25 @@ def run(*, root: Path) -> dict[str, object]:
         )
         for row in preserved
     ]
-    materialized_count = _write_csv(output_dir / "sec13f_pr_golden_holdings.csv", materialized_rows)
+    materialized_count = _write_csv(
+        output_dir / "sec13f_pr_golden_holdings.csv", materialized_rows
+    )
+    investor_rows: list[dict[str, object]] = []
+    for investor in investors.values():
+        payload: dict[str, object] = asdict(investor)
+        payload["raw_name_role"] = "REPRESENTATIVE_ONLY"
+        payload["name_manifestation_count"] = len(
+            names_by_holder.get(investor.investor_id, set())
+        )
+        payload["name_variation_state"] = (
+            "NAME_VARIATION_STABLE_ID_BOUND"
+            if investor.investor_id in name_variations
+            else "SINGLE_RAW_NAME_OBSERVED"
+        )
+        investor_rows.append(payload)
+    _write_csv(output_dir / "sec13f_pr_golden_investors.csv", investor_rows)
     _write_csv(
-        output_dir / "sec13f_pr_golden_investors.csv", [asdict(v) for v in investors.values()]
+        output_dir / "sec13f_holder_name_manifestations.csv", name_manifestations
     )
 
     bpop_eligible = [
@@ -263,6 +330,7 @@ def run(*, root: Path) -> dict[str, object]:
         if row.get("security_cusip") == bpop_cusip
         and row.get("issuer_percent_eligibility") == "ELIGIBLE_COMMON_SHARE_POSITION"
     ]
+    holder_ids_in_observations = {row.holder_id for row in preserved}
     gates = {
         "exact_archive_count_8": len(archive_audits) == 8,
         "archive_names_exact": tuple(item["archive"] for item in archive_audits)
@@ -285,6 +353,9 @@ def run(*, root: Path) -> dict[str, object]:
         "holder_ids_are_stable_cik_ids": all(
             row.holder_id.startswith("INV_CIK_") for row in preserved
         ),
+        "holder_identity_cardinality_closed": holder_ids_in_observations == set(investors),
+        "holder_name_manifestations_preserved": holder_ids_in_observations
+        == set(names_by_holder),
         "supersession_arithmetic": len(active_ids) + len(superseded) == len(preserved),
         "provider_equivalence_not_promoted": all(
             row.get("provider_equivalence_state") == "OPEN" for row in materialized_rows
@@ -306,6 +377,11 @@ def run(*, root: Path) -> dict[str, object]:
         "observed_bpop_periods": sorted(value.isoformat() for value in observed_periods),
         "denominator_ledger": denominator_ledger,
         "restatement_issues": [asdict(issue) for issue in adjudicated.issues],
+        "holder_name_variation_count": len(name_variations),
+        "holder_name_variations": name_variations,
+        "holder_name_variation_adjudication": (
+            "NAME source manifestations preserved; stable SEC CIK remains authoritative identity"
+        ),
         "archive_audits": archive_audits,
         "gates": gates,
         "morningstar_percent_total_assets_equivalence": "OPEN",
