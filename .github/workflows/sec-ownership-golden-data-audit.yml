@@ -88,7 +88,12 @@ jobs:
         id: certify
         if: ${{ steps.restore.outcome == 'success' || (steps.equity.outcome == 'success' && steps.freeze.outcome == 'success') }}
         continue-on-error: true
-        run: python -m scripts.certify_bpop_sec13f_8q --root "$GITHUB_WORKSPACE"
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/sec-ownership-golden-data-audit
+          python -m scripts.certify_bpop_sec13f_8q --root "$GITHUB_WORKSPACE" 2>&1 \
+            | tee artifacts/sec-ownership-golden-data-audit/certify.log
 
       - name: Record audit outcome
         if: always()
