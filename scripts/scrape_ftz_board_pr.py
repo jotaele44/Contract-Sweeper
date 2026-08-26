@@ -147,9 +147,7 @@ def parse_zone(
         row.update(base)
         row.update(site)
         row["record_type"] = "site"
-        row["source_record_id"] = _sid(
-            "site", zone, site["site_number_raw"], site["site_name_raw"]
-        )
+        row["source_record_id"] = _sid("site", zone, site["site_number_raw"], site["site_name_raw"])
         output.append(row)
     return output
 

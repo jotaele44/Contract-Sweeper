@@ -180,7 +180,9 @@ def fetch_class(session: requests.Session, license_type: str, logger) -> list[di
             retrieved_at=retrieved_at,
         )
         if meta["page"] != page:
-            raise RuntimeError(f"OCIF page-number mismatch: requested={page}, observed={meta['page']}")
+            raise RuntimeError(
+                f"OCIF page-number mismatch: requested={page}, observed={meta['page']}"
+            )
         if expected_total is None:
             expected_total = meta["total_rows"]
         elif meta["total_rows"] not in (None, expected_total):

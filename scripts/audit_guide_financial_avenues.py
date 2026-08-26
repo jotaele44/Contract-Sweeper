@@ -120,8 +120,8 @@ def validate_inputs(inputs: dict) -> dict:
     mapping = bindings.get("bindings") or {}
     if set(mapping) != set(avenue_ids):
         raise RuntimeError(
-            f"binding denominator mismatch: missing={sorted(set(avenue_ids)-set(mapping))} "
-            f"extra={sorted(set(mapping)-set(avenue_ids))}"
+            f"binding denominator mismatch: missing={sorted(set(avenue_ids) - set(mapping))} "
+            f"extra={sorted(set(mapping) - set(avenue_ids))}"
         )
 
     unknown_sources: dict[str, list[str]] = {}
@@ -330,7 +330,9 @@ def run(root: Path = PROJECT_ROOT, *, write: bool = True) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="validate/compute without writing reports")
+    parser.add_argument(
+        "--check", action="store_true", help="validate/compute without writing reports"
+    )
     args = parser.parse_args()
     result = run(write=not args.check)
     print(json.dumps(result["metrics_payload"], indent=2, sort_keys=True))

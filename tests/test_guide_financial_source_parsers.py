@@ -49,7 +49,10 @@ def test_ocs_current_and_annual_are_distinct_observation_grains():
         source_url="https://example.test/insurers",
         retrieved_at="2026-08-26T00:00:00+00:00",
     )
-    assert [row["insurer_name_raw"] for row in current] == ["Popular Re, Inc.", "Triple-S Vida, Inc."]
+    assert [row["insurer_name_raw"] for row in current] == [
+        "Popular Re, Inc.",
+        "Triple-S Vida, Inc.",
+    ]
 
     annual_html = """
     <html><body>

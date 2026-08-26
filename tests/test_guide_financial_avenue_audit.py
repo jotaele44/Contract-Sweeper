@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from scripts.audit_guide_financial_avenues import compute, load_inputs, metrics_payload, validate_inputs
+from scripts.audit_guide_financial_avenues import (
+    compute,
+    load_inputs,
+    metrics_payload,
+    validate_inputs,
+)
 
 
 def test_frozen_guide_and_158_source_denominators_close():
