@@ -39,9 +39,7 @@ def merge_manifest() -> Path:
     manifest["capabilities"] = capabilities
     manifest["exceptions"] = exceptions
     MERGED.parent.mkdir(parents=True, exist_ok=True)
-    MERGED.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    MERGED.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return MERGED
 
 
