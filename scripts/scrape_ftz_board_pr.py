@@ -4,12 +4,19 @@ The discovery denominator is frozen to the three Puerto Rico zones independently
 confirmed on the FTZ Board public information system: 7, 61 and 163. The numeric
 OFIS detail ids are transport locators only; the producer verifies the returned
 zone number before retaining anything.
+
+When ``GUIDE_SOURCE_SNAPSHOT_DIR`` is set, exact HTTP response bytes are frozen
+alongside a machine-readable manifest containing retrieval UTC, URL/transport
+locator, response metadata, SHA256, byte size and retained row counts. Existing
+snapshots are never overwritten because each run receives a UTC run directory.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -166,12 +173,30 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
     session = build_session(HTTP.user_agent, HTTP.extra_headers)
     rows: list[dict] = []
     observed: set[str] = set()
+    run_started_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    snapshot_base = os.getenv("GUIDE_SOURCE_SNAPSHOT_DIR", "").strip()
+    snapshot_run: Path | None = None
+    snapshot_entries: list[dict] = []
+    if snapshot_base:
+        run_token = run_started_at.replace(":", "").replace("+00:00", "Z")
+        snapshot_run = Path(snapshot_base) / SOURCE_ID / run_token
+        snapshot_run.mkdir(parents=True, exist_ok=False)
+
     try:
         for expected_zone, detail_id in DETAILS.items():
             url = BASE.format(detail_id=detail_id)
             response = session.get(url, timeout=HTTP.timeout)
             response.raise_for_status()
             retrieved_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+            raw_bytes = response.content
+            raw_sha256 = hashlib.sha256(raw_bytes).hexdigest()
+            raw_rel = ""
+            if snapshot_run is not None:
+                raw_name = f"zone_{expected_zone}_detail_{detail_id}.html"
+                raw_path = snapshot_run / raw_name
+                raw_path.write_bytes(raw_bytes)
+                raw_rel = raw_name
+
             parsed = parse_zone(
                 response.text,
                 detail_id=detail_id,
@@ -188,6 +213,21 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
                 raise RuntimeError(f"FTZ duplicate zone: {actual}")
             observed.add(actual)
             rows.extend(parsed)
+            snapshot_entries.append(
+                {
+                    "expected_zone": expected_zone,
+                    "observed_zone": actual,
+                    "detail_id": detail_id,
+                    "url": url,
+                    "retrieved_at_utc": retrieved_at,
+                    "http_status": response.status_code,
+                    "content_type": response.headers.get("Content-Type", ""),
+                    "byte_size": len(raw_bytes),
+                    "sha256": raw_sha256,
+                    "raw_file": raw_rel,
+                    "retained_rows": len(parsed),
+                }
+            )
     finally:
         session.close()
 
@@ -208,8 +248,45 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
     df = apply_post_ingest(df, source_id=SOURCE_ID, root=root)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path, index=False, encoding="utf-8")
+    output_bytes = out_path.read_bytes()
+
+    manifest_path = ""
+    if snapshot_run is not None:
+        manifest = {
+            "schema_version": "guide_source_snapshot_manifest_v1",
+            "source_id": SOURCE_ID,
+            "run_started_at_utc": run_started_at,
+            "source_denominator": {
+                "expected_zone_numbers": sorted(expected),
+                "observed_zone_numbers": sorted(observed),
+                "expected_zone_count": len(expected),
+                "observed_zone_count": len(observed),
+            },
+            "manifestations": snapshot_entries,
+            "processed_output": {
+                "path": OUT_REL,
+                "row_count": len(df),
+                "byte_size": len(output_bytes),
+                "sha256": hashlib.sha256(output_bytes).hexdigest(),
+            },
+            "certification_scope_note": (
+                "Frozen FTZ Board source manifestations establish this bounded public route only; "
+                "they do not expand GUIDE_BOUNDED_100_PERCENT into ALL_PUERTO_RICO_FINANCE."
+            ),
+        }
+        manifest_file = snapshot_run / "manifest.json"
+        manifest_file.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        manifest_path = str(manifest_file)
+
     logger.info("FTZ Board PR: %s rows across %s zones", len(df), len(expected))
-    return {"rows": len(df), "path": str(out_path), "errors": []}
+    return {
+        "rows": len(df),
+        "path": str(out_path),
+        "snapshot_manifest": manifest_path,
+        "errors": [],
+    }
 
 
 def main() -> int:
