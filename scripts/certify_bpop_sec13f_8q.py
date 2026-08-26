@@ -40,10 +40,14 @@ def _load_registry(path: Path) -> dict[str, Any]:
 def _bindings(data: dict[str, Any]) -> tuple[dict[str, str], dict[str, dict[str, str]]]:
     by_cusip: dict[str, str] = {}
     by_ticker: dict[str, dict[str, str]] = {}
-    for raw in data.get("issuer_bindings", []):
+    for index, raw in enumerate(data.get("issuer_bindings", [])):
         if not isinstance(raw, dict):
-            continue
+            raise ValueError(f"issuer_bindings[{index}] must be an object")
         item = {str(k): str(v) for k, v in raw.items() if v is not None}
+        required = {"ticker", "cusip", "issuer_id"}
+        missing = sorted(required - set(item))
+        if missing:
+            raise ValueError(f"issuer_bindings[{index}] missing required fields: {missing}")
         ticker = item["ticker"].upper()
         cusip = item["cusip"].upper()
         issuer_id = item["issuer_id"]
@@ -135,7 +139,10 @@ def _flatten(
         "ELIGIBLE_COMMON_SHARE_POSITION" if eligible else "EXCLUDED_OPTION_OR_NONSHARE_POSITION"
     )
     payload["provider_percent_total_assets"] = None
-    payload["provider_equivalence_state"] = "OPEN"
+    if payload.get("provider_metric_equivalence") != "OPEN":
+        raise ValueError(
+            f"provider metric equivalence must remain OPEN: {row.observation_id}"
+        )
     return payload
 
 
@@ -164,8 +171,8 @@ def _holder_name_manifestations(
 ) -> list[dict[str, object]]:
     """Preserve raw SEC filer names without treating name drift as identity drift.
 
-    CIK is the stable SEC filer identity.  FILINGMANAGER_NAME is a source
-    manifestation and can legitimately vary over time.  The manifestation key
+    CIK is the stable SEC filer identity. FILINGMANAGER_NAME is a source
+    manifestation and can legitimately vary over time. The manifestation key
     is bounded to the filing accession/archive so every distinct observed raw
     string remains auditable without multiplying canonical investor identity.
     """
@@ -234,7 +241,7 @@ def run(*, root: Path) -> dict[str, object]:
         result = ingest(adapter)
         observations.extend(result.observations)
         for investor in adapter.iter_investors():
-            # The CIK is the authoritative legal-entity identity.  A different
+            # The CIK is the authoritative legal-entity identity. A different
             # raw SEC manager-name string in another archive is preserved below
             # as a NAME manifestation; it does not override the stable ID.
             investors.setdefault(investor.investor_id, investor)
@@ -347,7 +354,7 @@ def run(*, root: Path) -> dict[str, object]:
         "holder_name_manifestations_preserved": holder_ids_in_observations == set(names_by_holder),
         "supersession_arithmetic": len(active_ids) + len(superseded) == len(preserved),
         "provider_equivalence_not_promoted": all(
-            row.get("provider_equivalence_state") == "OPEN" for row in materialized_rows
+            row.get("provider_metric_equivalence") == "OPEN" for row in materialized_rows
         ),
     }
     state = "PASS" if all(gates.values()) else "OPEN"
@@ -390,7 +397,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         result = run(root=args.root)
-    except (OSError, ValueError, Sec13FError) as exc:
+    except (OSError, ValueError, Sec13FError, AssertionError) as exc:
         print(f"BPOP SEC13F certification failed: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
     print(json.dumps(result, indent=2, sort_keys=True))
