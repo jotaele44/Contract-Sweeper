@@ -272,13 +272,9 @@ def run(*, root: Path) -> dict[str, object]:
     names_by_holder: dict[str, set[str]] = {}
     for item in name_manifestations:
         holder_id = str(item["holder_id"])
-        names_by_holder.setdefault(holder_id, set()).add(
-            str(item["filing_manager_name_raw"])
-        )
+        names_by_holder.setdefault(holder_id, set()).add(str(item["filing_manager_name_raw"]))
     name_variations = {
-        holder_id: sorted(names)
-        for holder_id, names in names_by_holder.items()
-        if len(names) > 1
+        holder_id: sorted(names) for holder_id, names in names_by_holder.items() if len(names) > 1
     }
 
     bpop_cusip = by_ticker["BPOP"]["cusip"].upper()
@@ -303,16 +299,12 @@ def run(*, root: Path) -> dict[str, object]:
         )
         for row in preserved
     ]
-    materialized_count = _write_csv(
-        output_dir / "sec13f_pr_golden_holdings.csv", materialized_rows
-    )
+    materialized_count = _write_csv(output_dir / "sec13f_pr_golden_holdings.csv", materialized_rows)
     investor_rows: list[dict[str, object]] = []
     for investor in investors.values():
         payload: dict[str, object] = asdict(investor)
         payload["raw_name_role"] = "REPRESENTATIVE_ONLY"
-        payload["name_manifestation_count"] = len(
-            names_by_holder.get(investor.investor_id, set())
-        )
+        payload["name_manifestation_count"] = len(names_by_holder.get(investor.investor_id, set()))
         payload["name_variation_state"] = (
             "NAME_VARIATION_STABLE_ID_BOUND"
             if investor.investor_id in name_variations
@@ -320,9 +312,7 @@ def run(*, root: Path) -> dict[str, object]:
         )
         investor_rows.append(payload)
     _write_csv(output_dir / "sec13f_pr_golden_investors.csv", investor_rows)
-    _write_csv(
-        output_dir / "sec13f_holder_name_manifestations.csv", name_manifestations
-    )
+    _write_csv(output_dir / "sec13f_holder_name_manifestations.csv", name_manifestations)
 
     bpop_eligible = [
         row
@@ -354,8 +344,7 @@ def run(*, root: Path) -> dict[str, object]:
             row.holder_id.startswith("INV_CIK_") for row in preserved
         ),
         "holder_identity_cardinality_closed": holder_ids_in_observations == set(investors),
-        "holder_name_manifestations_preserved": holder_ids_in_observations
-        == set(names_by_holder),
+        "holder_name_manifestations_preserved": holder_ids_in_observations == set(names_by_holder),
         "supersession_arithmetic": len(active_ids) + len(superseded) == len(preserved),
         "provider_equivalence_not_promoted": all(
             row.get("provider_equivalence_state") == "OPEN" for row in materialized_rows
