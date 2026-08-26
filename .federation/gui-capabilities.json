@@ -1058,6 +1058,8 @@
         "analysis_module:scripts/manage_api_keys.py",
         "analysis_module:scripts/set_api_key.py",
         "analysis_symbol:scripts/manage_api_keys.py:KeyInfo",
+        "analysis_symbol:scripts/manage_api_keys.py:InvalidKeyValueError",
+        "analysis_symbol:scripts/manage_api_keys.py:UnknownKeyError",
         "analysis_symbol:scripts/manage_api_keys.py:key_status",
         "analysis_symbol:scripts/manage_api_keys.py:known_keys",
         "analysis_symbol:scripts/manage_api_keys.py:set_key",
