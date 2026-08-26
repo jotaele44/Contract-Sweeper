@@ -137,7 +137,9 @@ def _annual_series(facts: Mapping[str, Any], concepts: Iterable[str]) -> dict[in
     return {}
 
 
-def _financial_rows(binding: SecIssuerBinding, name: str, facts: Mapping[str, Any]) -> list[dict[str, object]]:
+def _financial_rows(
+    binding: SecIssuerBinding, name: str, facts: Mapping[str, Any]
+) -> list[dict[str, object]]:
     years: dict[int, dict[str, object]] = {}
     for field, concepts in FINANCIAL_CONCEPTS.items():
         for year, value in _annual_series(facts, concepts).items():
@@ -159,7 +161,9 @@ def _financial_rows(binding: SecIssuerBinding, name: str, facts: Mapping[str, An
     return rows
 
 
-def _share_denominators(binding: SecIssuerBinding, facts: Mapping[str, Any]) -> list[dict[str, object]]:
+def _share_denominators(
+    binding: SecIssuerBinding, facts: Mapping[str, Any]
+) -> list[dict[str, object]]:
     fact_root = facts.get("facts", {})
     if not isinstance(fact_root, Mapping):
         return []
@@ -214,7 +218,9 @@ def _share_denominators(binding: SecIssuerBinding, facts: Mapping[str, Any]) -> 
                     "denominator_state": "CANDIDATE_EXACT_DATE",
                 }
             )
-    return sorted(rows, key=lambda row: (str(row["ticker"]), str(row["as_of_date"]), str(row["filed_date"])))
+    return sorted(
+        rows, key=lambda row: (str(row["ticker"]), str(row["as_of_date"]), str(row["filed_date"]))
+    )
 
 
 def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
@@ -261,7 +267,9 @@ def run(*, root: Path, tickers: tuple[str, ...], refresh: bool = False) -> dict[
     denominator_rows: list[dict[str, object]] = []
     try:
         for ticker in wanted:
-            binding = require_binding(ticker_payload, ticker=ticker, expected_cik=BENCHMARKS[ticker])
+            binding = require_binding(
+                ticker_payload, ticker=ticker, expected_cik=BENCHMARKS[ticker]
+            )
             submission, sub_meta = _fetch_frozen(
                 session,
                 url=SUBMISSIONS_URL.format(cik=binding.cik),

@@ -63,7 +63,9 @@ def _read_denominators(path: Path) -> list[dict[str, str]]:
         reader = csv.DictReader(handle)
         required = {"ticker", "as_of_date", "shares_outstanding", "concept", "accession_number"}
         if reader.fieldnames is None or not required.issubset(reader.fieldnames):
-            raise ValueError(f"denominator file missing fields {sorted(required - set(reader.fieldnames or []))}")
+            raise ValueError(
+                f"denominator file missing fields {sorted(required - set(reader.fieldnames or []))}"
+            )
         return list(reader)
 
 
@@ -74,7 +76,8 @@ def _select_bpop_denominators(
     ledger: list[dict[str, object]] = []
     for period in required_periods:
         candidates = [
-            row for row in rows
+            row
+            for row in rows
             if row.get("ticker", "").upper() == "BPOP"
             and row.get("as_of_date") == period.isoformat()
             and row.get("shares_outstanding", "").strip()
@@ -84,7 +87,9 @@ def _select_bpop_denominators(
             try:
                 values.add(float(row["shares_outstanding"]))
             except ValueError as exc:
-                raise ValueError(f"invalid BPOP denominator at {period}: {row['shares_outstanding']!r}") from exc
+                raise ValueError(
+                    f"invalid BPOP denominator at {period}: {row['shares_outstanding']!r}"
+                ) from exc
         state = "PASS" if len(values) == 1 else "UNRESOLVED"
         value = next(iter(values)) if len(values) == 1 else None
         if value is not None and value <= 0:
@@ -99,7 +104,9 @@ def _select_bpop_denominators(
                 "distinct_values": sorted(values),
                 "selected_value": value,
                 "state": state,
-                "candidate_accessions": sorted({row.get("accession_number", "") for row in candidates}),
+                "candidate_accessions": sorted(
+                    {row.get("accession_number", "") for row in candidates}
+                ),
                 "candidate_concepts": sorted({row.get("concept", "") for row in candidates}),
             }
         )
@@ -125,9 +132,7 @@ def _flatten(
     payload["issuer_share_denominator"] = denominator
     payload["percent_issuer_shares_computed"] = percent
     payload["issuer_percent_eligibility"] = (
-        "ELIGIBLE_COMMON_SHARE_POSITION"
-        if eligible
-        else "EXCLUDED_OPTION_OR_NONSHARE_POSITION"
+        "ELIGIBLE_COMMON_SHARE_POSITION" if eligible else "EXCLUDED_OPTION_OR_NONSHARE_POSITION"
     )
     payload["provider_percent_total_assets"] = None
     payload["provider_equivalence_state"] = "OPEN"
@@ -161,7 +166,9 @@ def run(*, root: Path) -> dict[str, object]:
     required_periods = tuple(date.fromisoformat(value) for value in data["bpop_required_periods"])
     required_archives = tuple(str(value) for value in data["bpop_required_archives"])
     if len(required_periods) != 8 or len(required_archives) != 8:
-        raise ValueError("BPOP certification denominator must contain exactly eight periods/archives")
+        raise ValueError(
+            "BPOP certification denominator must contain exactly eight periods/archives"
+        )
 
     archive_dir = root / "data" / "staging" / "raw" / "sec13f_bulk" / "bpop_8q_v1"
     archive_paths = tuple(archive_dir / name for name in required_archives)
@@ -189,7 +196,9 @@ def run(*, root: Path) -> dict[str, object]:
         for investor in adapter.iter_investors():
             incumbent = investors.get(investor.investor_id)
             if incumbent is not None and incumbent.raw_name != investor.raw_name:
-                raise ValueError(f"holder CIK name contradiction across archives: {investor.investor_id}")
+                raise ValueError(
+                    f"holder CIK name contradiction across archives: {investor.investor_id}"
+                )
             investors[investor.investor_id] = investor
         audit = adapter.audit()
         archive_audits.append(
@@ -237,35 +246,49 @@ def run(*, root: Path) -> dict[str, object]:
         _flatten(
             row,
             active=row.observation_id in active_ids,
-            denominator=denominators.get(row.as_of_date) if row.security_id == f"CUSIP:{bpop_cusip}" else None,
+            denominator=denominators.get(row.as_of_date)
+            if row.security_id == f"CUSIP:{bpop_cusip}"
+            else None,
         )
         for row in preserved
     ]
     materialized_count = _write_csv(output_dir / "sec13f_pr_golden_holdings.csv", materialized_rows)
-    _write_csv(output_dir / "sec13f_pr_golden_investors.csv", [asdict(v) for v in investors.values()])
+    _write_csv(
+        output_dir / "sec13f_pr_golden_investors.csv", [asdict(v) for v in investors.values()]
+    )
 
     bpop_eligible = [
-        row for row in materialized_rows
+        row
+        for row in materialized_rows
         if row.get("security_cusip") == bpop_cusip
         and row.get("issuer_percent_eligibility") == "ELIGIBLE_COMMON_SHARE_POSITION"
     ]
     gates = {
         "exact_archive_count_8": len(archive_audits) == 8,
-        "archive_names_exact": tuple(item["archive"] for item in archive_audits) == required_archives,
-        "all_archive_hashes_present": all(len(str(item["sha256"])) == 64 for item in archive_audits),
+        "archive_names_exact": tuple(item["archive"] for item in archive_audits)
+        == required_archives,
+        "all_archive_hashes_present": all(
+            len(str(item["sha256"])) == 64 for item in archive_audits
+        ),
         "row_conservation": source_count == materialized_count == len(preserved),
         "source_record_unique": len(source_keys) == len(set(source_keys)),
         "restatement_residue_zero": len(adjudicated.issues) == 0,
         "bpop_all_eight_periods_present": observed_periods == set(required_periods),
         "bpop_exact_denominator_each_period": set(denominators) == set(required_periods),
-        "bpop_eligible_rows_have_percent": all(row.get("percent_issuer_shares_computed") is not None for row in bpop_eligible),
+        "bpop_eligible_rows_have_percent": all(
+            row.get("percent_issuer_shares_computed") is not None for row in bpop_eligible
+        ),
         "bpop_rows_present": len(bpop_rows) > 0,
         "ofg_regression_rows_present": regression_counts["OFG"] > 0,
         "evtc_regression_rows_present": regression_counts["EVTC"] > 0,
         "issuer_bindings_pass": all(row.identity_status == "PASS" for row in preserved),
-        "holder_ids_are_stable_cik_ids": all(row.holder_id.startswith("INV_CIK_") for row in preserved),
+        "holder_ids_are_stable_cik_ids": all(
+            row.holder_id.startswith("INV_CIK_") for row in preserved
+        ),
         "supersession_arithmetic": len(active_ids) + len(superseded) == len(preserved),
-        "provider_equivalence_not_promoted": all(row.get("provider_equivalence_state") == "OPEN" for row in materialized_rows),
+        "provider_equivalence_not_promoted": all(
+            row.get("provider_equivalence_state") == "OPEN" for row in materialized_rows
+        ),
     }
     state = "PASS" if all(gates.values()) else "OPEN"
     certification = {
@@ -286,7 +309,9 @@ def run(*, root: Path) -> dict[str, object]:
         "archive_audits": archive_audits,
         "gates": gates,
         "morningstar_percent_total_assets_equivalence": "OPEN",
-        "deep_dive_promotion": "BLOCKED" if state != "PASS" else "ELIGIBLE_FOR_SEPARATE_PROMOTION_VECTOR",
+        "deep_dive_promotion": "BLOCKED"
+        if state != "PASS"
+        else "ELIGIBLE_FOR_SEPARATE_PROMOTION_VECTOR",
     }
     (manifest_dir / "bpop_sec13f_8q_certification.json").write_text(
         json.dumps(certification, indent=2, sort_keys=True) + "\n", encoding="utf-8"

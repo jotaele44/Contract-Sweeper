@@ -148,9 +148,7 @@ def _validate_fields(fieldnames: Iterable[str] | None, table: str) -> tuple[str,
 
 def _canonical_row(row: Mapping[str | None, str | None]) -> dict[str, str]:
     return {
-        str(key).strip().upper(): str(value or "")
-        for key, value in row.items()
-        if key is not None
+        str(key).strip().upper(): str(value or "") for key, value in row.items() if key is not None
     }
 
 
@@ -179,9 +177,7 @@ def _obs_id(accession: str, sk: str) -> str:
     return f"HOLD_SEC13F_{_SAFE.sub('_', accession).strip('_')}_{sk}"
 
 
-def _amendment(
-    cover: Mapping[str, str], submission: Mapping[str, str]
-) -> tuple[str, str]:
+def _amendment(cover: Mapping[str, str], submission: Mapping[str, str]) -> tuple[str, str]:
     stype = (submission.get("SUBMISSIONTYPE") or "").strip().upper()
     is_amend = (cover.get("ISAMENDMENT") or "").strip().upper() in {
         "Y",
@@ -402,9 +398,7 @@ class Sec13FBulkAdapter:
                 issuer_id = self.issuer_bindings.get(
                     security_cusip, f"ISSUER_UNRESOLVED_CUSIP_{security_cusip}"
                 )
-                identity_status = (
-                    "PASS" if security_cusip in self.issuer_bindings else "UNRESOLVED"
-                )
+                identity_status = "PASS" if security_cusip in self.issuer_bindings else "UNRESOLVED"
                 amendment_status, raw_amendment = _amendment(cov, sub)
                 amount = _number(row.get("SSHPRNAMT"))
                 amount_type = row["SSHPRNAMTTYPE"].strip().upper()

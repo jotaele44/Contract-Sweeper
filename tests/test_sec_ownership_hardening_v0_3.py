@@ -95,10 +95,7 @@ def _write_zip(path: Path, *, duplicate_info: bool = False) -> None:
         "ACCESSION_NUMBER\tREPORTCALENDARORQUARTER\tISAMENDMENT\tAMENDMENTTYPE\tFILINGMANAGER_NAME\n"
         "0000000123-26-000001\t2026-03-31\tN\t\tManager One LLC\n"
     )
-    summary = (
-        "ACCESSION_NUMBER\tTABLEENTRYTOTAL\tTABLEVALUETOTAL\n"
-        "0000000123-26-000001\t1\t1000\n"
-    )
+    summary = "ACCESSION_NUMBER\tTABLEENTRYTOTAL\tTABLEVALUETOTAL\n0000000123-26-000001\t1\t1000\n"
     header = (
         "ACCESSION_NUMBER\tINFOTABLE_SK\tNAMEOFISSUER\tTITLEOFCLASS\tCUSIP\tVALUE\t"
         "SSHPRNAMT\tSSHPRNAMTTYPE\tPUTCALL\tINVESTMENTDISCRETION\tOTHERMANAGER\t"
@@ -152,9 +149,9 @@ def test_sec13f_duplicate_compound_key_fails_closed(tmp_path: Path) -> None:
 
 def test_uploaded_audit_baseline_is_frozen() -> None:
     data = json.loads(
-        (ROOT / "tests" / "fixtures" / "capital_control" / "sec_upload_baseline_v0_1.json").read_text(
-            encoding="utf-8"
-        )
+        (
+            ROOT / "tests" / "fixtures" / "capital_control" / "sec_upload_baseline_v0_1.json"
+        ).read_text(encoding="utf-8")
     )
     assert sum(item["rows"] for item in data["files"]) == 310
     assert data["authoritative_identity_bindings"]["BPOP"]["cik"] == "0000763901"

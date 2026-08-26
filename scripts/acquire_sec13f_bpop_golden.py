@@ -126,7 +126,9 @@ def run(*, root: Path, refresh: bool = False) -> dict[str, object]:
         "refresh_requested": refresh,
         "archives": audits,
     }
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return manifest
 
 
