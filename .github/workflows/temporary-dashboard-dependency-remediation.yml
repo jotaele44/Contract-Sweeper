@@ -1,0 +1,81 @@
+name: temporary-dashboard-dependency-remediation
+
+on:
+  push:
+    branches:
+      - agent/desktop-self-contained-data-plane-v1
+    paths:
+      - ".github/workflows/temporary-dashboard-dependency-remediation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: agent/desktop-self-contained-data-plane-v1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: Upgrade explicit Vite/Vitest line without force
+        working-directory: dashboard
+        run: npm install --save-dev --save-exact vite@6.4.3 vitest@4.1.11
+
+      - name: Apply non-breaking transitive fixes only
+        working-directory: dashboard
+        run: npm audit fix --package-lock-only
+
+      - name: Clean install regenerated lockfile
+        working-directory: dashboard
+        run: npm ci --no-audit --no-fund
+
+      - name: Require zero moderate-or-higher advisories
+        working-directory: dashboard
+        run: npm audit --audit-level=moderate
+
+      - name: Unit tests
+        working-directory: dashboard
+        run: npm test
+
+      - name: Lint
+        working-directory: dashboard
+        run: npm run lint
+
+      - name: Production build
+        working-directory: dashboard
+        env:
+          VITE_API_BASE: ""
+        run: npm run build
+
+      - name: Assert mutation scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git diff --name-only)"
+          printf '%s\n' "$changed"
+          test -n "$changed"
+          while IFS= read -r path; do
+            case "$path" in
+              dashboard/package.json|dashboard/package-lock.json) ;;
+              *) echo "::error::Unexpected remediation mutation: $path"; exit 1 ;;
+            esac
+          done <<< "$changed"
+
+      - name: Commit validated dependency manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dashboard/package.json dashboard/package-lock.json
+          git commit -m "fix: remediate dashboard dependency advisories"
+          git push origin HEAD:agent/desktop-self-contained-data-plane-v1
