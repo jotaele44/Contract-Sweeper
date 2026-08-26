@@ -1,12 +1,2 @@
-Traceback (most recent call last):
-  File "/home/runner/work/moneysweep-pr/moneysweep-pr/scripts/scrape_ocs_insurers.py", line 394, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "/home/runner/work/moneysweep-pr/moneysweep-pr/scripts/scrape_ocs_insurers.py", line 388, in main
-    result = run(force=args.force)
-             ^^^^^^^^^^^^^^^^^^^^^
-  File "/home/runner/work/moneysweep-pr/moneysweep-pr/scripts/scrape_ocs_insurers.py", line 292, in run
-    parse_annual_reports(
-  File "/home/runner/work/moneysweep-pr/moneysweep-pr/scripts/scrape_ocs_insurers.py", line 213, in parse_annual_reports
-    raise RuntimeError("OCS annual-report parser found zero report links")
-RuntimeError: OCS annual-report parser found zero report links
+2026-08-26 16:25:40 [INFO] OCS: 41 current insurer rows; 1 annual-report observations
+OCS insurer registry: 42 rows
