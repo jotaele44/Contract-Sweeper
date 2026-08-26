@@ -23,11 +23,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import yaml
 
+from moneysweep.runtime.source_registry import load_source_registry
 from scripts.config import PROJECT_ROOT
 
 GUIDE_REL = Path("registries/guide_financial_avenues_v1.yaml")
 BINDINGS_REL = Path("registries/guide_financial_avenue_bindings_v1.yaml")
-SOURCE_REGISTRY_REL = Path("registries/source_registry.yaml")
 SOURCE_STATUS_REL = Path("reports/source_registry_status.csv")
 OVERLAY_REL = Path("registries/source_registry_overlays/guide_financial_avenues_v1.yaml")
 
@@ -70,7 +70,11 @@ def _status_rows(path: Path) -> list[dict[str, str]]:
 def load_inputs(root: Path = PROJECT_ROOT) -> dict:
     guide = _yaml(root / GUIDE_REL)
     bindings = _yaml(root / BINDINGS_REL)
-    registry = _yaml(root / SOURCE_REGISTRY_REL)
+    # The canonical MoneySweep source denominator is the effective registry,
+    # including source-registry extensions and scoped metadata overrides. Reading
+    # only registries/source_registry.yaml silently drops extension sources and
+    # would corrupt the frozen 158-source denominator.
+    registry = load_source_registry(root)
     overlay = _yaml(root / OVERLAY_REL)
     statuses = _status_rows(root / SOURCE_STATUS_REL)
     return {
