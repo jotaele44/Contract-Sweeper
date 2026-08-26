@@ -13,6 +13,8 @@ from pathlib import Path
 
 import requests
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from scripts.config import PROJECT_ROOT
 
 USER_AGENT = "MoneySweep research@pr-pipeline.org"
@@ -38,6 +40,14 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _zip_member_sha256(zf: zipfile.ZipFile, info: zipfile.ZipInfo) -> str:
+    digest = hashlib.sha256()
+    with zf.open(info, "r") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def archive_audit(path: Path) -> dict[str, object]:
     if not zipfile.is_zipfile(path):
         raise ValueError(f"not a ZIP archive: {path}")
@@ -47,13 +57,12 @@ def archive_audit(path: Path) -> dict[str, object]:
         for info in zf.infolist():
             if info.is_dir():
                 continue
-            payload = zf.read(info)
             present.add(Path(info.filename).name.upper())
             members.append(
                 {
                     "path": info.filename,
-                    "uncompressed_size": len(payload),
-                    "sha256": hashlib.sha256(payload).hexdigest(),
+                    "uncompressed_size": info.file_size,
+                    "sha256": _zip_member_sha256(zf, info),
                 }
             )
     missing = sorted(REQUIRED_MEMBERS - present)
@@ -66,6 +75,24 @@ def archive_audit(path: Path) -> dict[str, object]:
         "required_members_present": True,
         "members": sorted(members, key=lambda row: str(row["path"])),
     }
+
+
+def _download_zip(session: requests.Session, *, url: str, path: Path) -> None:
+    temporary = path.with_suffix(path.suffix + ".part")
+    temporary.unlink(missing_ok=True)
+    try:
+        with session.get(url, timeout=180, stream=True) as response:
+            response.raise_for_status()
+            with temporary.open("wb") as handle:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        handle.write(chunk)
+        if not zipfile.is_zipfile(temporary):
+            raise ValueError(f"{url}: response is not a ZIP archive")
+        temporary.replace(path)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def run(*, root: Path, refresh: bool = False) -> dict[str, object]:
@@ -82,14 +109,7 @@ def run(*, root: Path, refresh: bool = False) -> dict[str, object]:
             url = f"{BASE}/{filename}"
             origin = "REUSED_FROZEN"
             if refresh or not path.is_file():
-                response = session.get(url, timeout=180)
-                response.raise_for_status()
-                temporary = path.with_suffix(path.suffix + ".part")
-                temporary.write_bytes(response.content)
-                if not zipfile.is_zipfile(temporary):
-                    temporary.unlink(missing_ok=True)
-                    raise ValueError(f"{url}: response is not a ZIP archive")
-                temporary.replace(path)
+                _download_zip(session, url=url, path=path)
                 origin = "DOWNLOADED"
             audit = archive_audit(path)
             audit.update({"quarter": quarter, "source_url": url, "origin": origin})
