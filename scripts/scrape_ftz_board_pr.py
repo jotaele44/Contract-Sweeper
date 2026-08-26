@@ -68,7 +68,10 @@ def _sid(*parts: str) -> str:
 
 
 def _lines(doc) -> list[str]:
-    return [x.strip() for x in doc.text_content().splitlines() if x.strip()]
+    # XPath text-node extraction preserves adjacent sibling values such as
+    # <div>Zone Number</div><div>061</div>. Using text_content().splitlines()
+    # can silently concatenate those siblings into "Zone Number061".
+    return [cleaned for text in doc.xpath("//text()") if (cleaned := _clean(str(text)))]
 
 
 def _label_value(lines: list[str], label: str) -> str:
