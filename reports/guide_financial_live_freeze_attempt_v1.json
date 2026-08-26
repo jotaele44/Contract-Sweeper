@@ -1,0 +1,31 @@
+{
+  "completed_at_utc": "2026-08-26T15:58:43+00:00",
+  "exit_codes": {
+    "finalize": 1,
+    "ftz": 0,
+    "ocif": 0,
+    "ocs": 1
+  },
+  "head_sha": "27469aab5129c2753983dd60f5ff3fa47f812315",
+  "logs": {
+    "finalize.log": {
+      "byte_size": 15878,
+      "sha256": "2668dbde165a7ae7d93e9a302915b7f5ba8eb8e8396d07d7f8133af2dd9c47ef"
+    },
+    "ftz.log": {
+      "byte_size": 181,
+      "sha256": "fd3ac4ef35fa06d6cbc499f957c5c897c053b7a39ff09c6d18b79d3bac9eda55"
+    },
+    "ocif.log": {
+      "byte_size": 479,
+      "sha256": "69b6886381fdf774c7a62ee85977f7de3239e022bd5045949b5ca4d25d58074d"
+    },
+    "ocs.log": {
+      "byte_size": 749,
+      "sha256": "f5e28481068ff6587ca9f55b78b6bd526529840d060bf8730ffc33c4961989e0"
+    }
+  },
+  "schema_version": "guide_financial_live_freeze_attempt_v1",
+  "scope_id": "GUIDE_BOUNDED_100_PERCENT",
+  "scope_limitation": "GUIDE_BOUNDED_100_PERCENT != ALL_PUERTO_RICO_FINANCE"
+}
