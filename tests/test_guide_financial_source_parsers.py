@@ -74,6 +74,27 @@ def test_ocs_current_and_annual_are_distinct_observation_grains():
     assert annual[0]["source_record_id"] != annual[1]["source_record_id"]
 
 
+def test_ocs_annual_parser_accepts_official_cms_item_links():
+    html = """
+    <html><body>
+      <h2>2025</h2>
+      <div><a href='/informes-anuales/2025-popular-re-inc-j4idh'>Popular Re, Inc.</a></div>
+      <div><a href='/informes-anuales/triple-s-vida-inc-32ejq2025'>Triple-S Vida, Inc.</a></div>
+      <div><a href='/unrelated/2025-item'>Not an annual report</a></div>
+    </body></html>
+    """
+    rows = parse_annual_reports(
+        html,
+        source_url="https://www.ocs.pr.gov/regulados/informes-anuales",
+        retrieved_at="2026-08-26T00:00:00+00:00",
+    )
+    assert [(row["report_year_raw"], row["insurer_name_raw"]) for row in rows] == [
+        ("2025", "Popular Re, Inc."),
+        ("2025", "Triple-S Vida, Inc."),
+    ]
+    assert all("/informes-anuales/" in row["report_url"] for row in rows)
+
+
 def test_ftz_parser_verifies_zone_and_preserves_site_rows():
     html = """
     <html><body>
