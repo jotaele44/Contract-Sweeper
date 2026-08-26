@@ -137,9 +137,7 @@ def set_key(
     if "\n" in value or "\r" in value or "\0" in value:
         raise InvalidKeyValueError("key value must be a single text line")
     if len(value) > MAX_KEY_VALUE_LENGTH:
-        raise InvalidKeyValueError(
-            f"key value exceeds {MAX_KEY_VALUE_LENGTH} characters"
-        )
+        raise InvalidKeyValueError(f"key value exceeds {MAX_KEY_VALUE_LENGTH} characters")
     if env_path.exists():
         lines = env_path.read_text(encoding="utf-8").splitlines()
     elif example_path.exists():

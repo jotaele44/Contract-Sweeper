@@ -101,9 +101,7 @@ def test_api_key_status_rejects_nonloopback_client(isolated_env):
 
     with TestClient(backend.app, client=("203.0.113.10", 50000)) as remote_client:
         assert remote_client.get("/api-keys").status_code == 403
-        response = remote_client.post(
-            "/api-keys/SAM_API_KEY", json={"value": "not-written"}
-        )
+        response = remote_client.post("/api-keys/SAM_API_KEY", json={"value": "not-written"})
         assert response.status_code == 403
     assert not isolated_env.exists()
 
