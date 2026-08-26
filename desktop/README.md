@@ -10,7 +10,7 @@ Double-click the launcher for your system in the repo root:
 
 The **first run** needs an internet connection once: it creates a private
 `.venv`, installs the Python dependencies, and builds the dashboard
-(requires [Python 3.10+](https://www.python.org/downloads/) and
+(requires [Python 3.11+](https://www.python.org/downloads/) and
 [Node.js](https://nodejs.org) to be installed). Every later run starts
 instantly and **works offline** — the app serves the data committed in this
 repository from a local server and shows it in a native window.
