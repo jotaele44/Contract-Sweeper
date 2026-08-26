@@ -3,12 +3,18 @@
 The two surfaces are kept separate because a current insurer listing and a
 historical annual-report observation are different facts. Raw display names are
 preserved exactly; this producer does not collapse aliases across years.
+
+When ``GUIDE_SOURCE_SNAPSHOT_DIR`` is set, both authoritative HTTP responses are
+frozen byte-for-byte under a unique UTC run directory. The manifest records URL,
+retrieval UTC, response metadata, byte size, SHA256 and processed-output counts.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -67,11 +73,58 @@ def _sid(*parts: str) -> str:
     return hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()
 
 
+def _external_links(node) -> list[str]:
+    links = [str(x).strip() for x in node.xpath(".//a[@href]/@href")]
+    return [
+        x
+        for x in links
+        if x.startswith("http")
+        and "ocs.pr.gov" not in x.casefold()
+        and "oig.pr.gov" not in x.casefold()
+        and "prits.pr.gov" not in x.casefold()
+        and "googletagmanager.com" not in x.casefold()
+    ]
+
+
+def _card_display_name(img) -> tuple[str, str]:
+    """Return smallest-card visible display text and website.
+
+    The live OCS page commonly uses short brand names in ``img alt`` while the
+    visible card text contains the insurer/legal display name. Prefer visible
+    non-link text when present; retain the image alt only as a fixture/fallback.
+    """
+    alt = _clean(img.get("alt") or "")
+    parent = img
+    for _ in range(7):
+        if parent is None:
+            break
+        external = _external_links(parent)
+        if external:
+            texts = [
+                _clean(str(x))
+                for x in parent.xpath(".//text()[not(ancestor::a)]")
+                if _clean(str(x))
+            ]
+            # De-duplicate adjacent Webflow text fragments without normalizing
+            # punctuation/case in the source-facing string.
+            unique_texts: list[str] = []
+            for text in texts:
+                if text not in unique_texts:
+                    unique_texts.append(text)
+            visible = " ".join(unique_texts).strip()
+            if visible and len(visible) <= 500:
+                return visible, external[0]
+            if alt:
+                return alt, external[0]
+        parent = parent.getparent()
+    return alt, ""
+
+
 def parse_insurers(page_html: str, *, source_url: str, retrieved_at: str) -> list[dict]:
-    """Extract insurer cards without normalizing names into identities."""
+    """Extract OCS insurer cards without collapsing card text into legal identities."""
     doc = lxml_html.fromstring(page_html)
     rows: list[dict] = []
-    seen_exact: set[str] = set()
+    seen_exact: set[tuple[str, str]] = set()
     excluded_alt = {
         "image",
         "ocs",
@@ -81,23 +134,17 @@ def parse_insurers(page_html: str, *, source_url: str, retrieved_at: str) -> lis
     }
 
     for img in doc.xpath("//img[@alt]"):
-        name = _clean(img.get("alt") or "")
-        if not name or name.casefold() in excluded_alt:
+        alt = _clean(img.get("alt") or "")
+        if not alt or alt.casefold() in excluded_alt:
             continue
-        parent = img
-        website = ""
-        for _ in range(5):
-            if parent is None:
-                break
-            links = parent.xpath(".//a[@href]/@href")
-            external = [x for x in links if x.startswith("http") and "ocs.pr.gov" not in x]
-            if external:
-                website = external[0]
-                break
-            parent = parent.getparent()
-        if name in seen_exact:
+        name, website = _card_display_name(img)
+        name = _clean(name)
+        if not name:
             continue
-        seen_exact.add(name)
+        key = (name, website)
+        if key in seen_exact:
+            continue
+        seen_exact.add(key)
         rows.append(
             {
                 "source_record_id": _sid("current", name, website),
@@ -167,11 +214,11 @@ def parse_annual_reports(
     return rows
 
 
-def _get(session: requests.Session, url: str) -> tuple[str, str]:
+def _get(session: requests.Session, url: str) -> tuple[requests.Response, str]:
     response = session.get(url, timeout=HTTP.timeout)
     response.raise_for_status()
     retrieved_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    return response.text, retrieved_at
+    return response, retrieved_at
 
 
 def _assert_unique(df: pd.DataFrame, column: str, label: str) -> None:
@@ -179,6 +226,28 @@ def _assert_unique(df: pd.DataFrame, column: str, label: str) -> None:
         raise RuntimeError(f"{label}: null/empty {column}")
     if df[column].duplicated().any():
         raise RuntimeError(f"{label}: duplicate {column}")
+
+
+def _snapshot_entry(
+    response: requests.Response,
+    *,
+    retrieved_at: str,
+    raw_file: str,
+    observation_grain: str,
+    retained_rows: int,
+) -> dict:
+    raw = response.content
+    return {
+        "observation_grain": observation_grain,
+        "url": response.url,
+        "retrieved_at_utc": retrieved_at,
+        "http_status": response.status_code,
+        "content_type": response.headers.get("Content-Type", ""),
+        "byte_size": len(raw),
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "raw_file": raw_file,
+        "retained_rows": retained_rows,
+    }
 
 
 def run(root: Path | None = None, *, force: bool = False) -> dict:
@@ -191,23 +260,40 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
         return {
             "rows": len(insurers_existing) + len(annual_existing),
             "paths": [str(insurers_path), str(annual_path)],
+            "snapshot_manifest": "",
             "errors": [],
         }
+
+    run_started_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    snapshot_base = os.getenv("GUIDE_SOURCE_SNAPSHOT_DIR", "").strip()
+    snapshot_run: Path | None = None
+    if snapshot_base:
+        run_token = run_started_at.replace(":", "").replace("+00:00", "Z")
+        snapshot_run = Path(snapshot_base) / SOURCE_ID / run_token
+        snapshot_run.mkdir(parents=True, exist_ok=False)
 
     logger = setup_logging("scrape_ocs_insurers")
     session = build_session(HTTP.user_agent, HTTP.extra_headers)
     try:
-        insurer_html, insurer_at = _get(session, INSURERS_URL)
-        annual_html, annual_at = _get(session, ANNUAL_URL)
+        insurer_response, insurer_at = _get(session, INSURERS_URL)
+        annual_response, annual_at = _get(session, ANNUAL_URL)
     finally:
         session.close()
 
     insurers = pd.DataFrame(
-        parse_insurers(insurer_html, source_url=INSURERS_URL, retrieved_at=insurer_at),
+        parse_insurers(
+            insurer_response.text,
+            source_url=INSURERS_URL,
+            retrieved_at=insurer_at,
+        ),
         columns=INSURER_COLUMNS,
     )
     annual = pd.DataFrame(
-        parse_annual_reports(annual_html, source_url=ANNUAL_URL, retrieved_at=annual_at),
+        parse_annual_reports(
+            annual_response.text,
+            source_url=ANNUAL_URL,
+            retrieved_at=annual_at,
+        ),
         columns=ANNUAL_COLUMNS,
     )
     _assert_unique(insurers, "source_record_id", "OCS insurers")
@@ -218,6 +304,70 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
     insurers_path.parent.mkdir(parents=True, exist_ok=True)
     insurers.to_csv(insurers_path, index=False, encoding="utf-8")
     annual.to_csv(annual_path, index=False, encoding="utf-8")
+
+    manifest_path = ""
+    if snapshot_run is not None:
+        raw_insurers_name = "current_insurers.html"
+        raw_annual_name = "annual_reports.html"
+        (snapshot_run / raw_insurers_name).write_bytes(insurer_response.content)
+        (snapshot_run / raw_annual_name).write_bytes(annual_response.content)
+        insurers_bytes = insurers_path.read_bytes()
+        annual_bytes = annual_path.read_bytes()
+        manifestations = [
+            _snapshot_entry(
+                insurer_response,
+                retrieved_at=insurer_at,
+                raw_file=raw_insurers_name,
+                observation_grain="current_insurer_listing",
+                retained_rows=len(insurers),
+            ),
+            _snapshot_entry(
+                annual_response,
+                retrieved_at=annual_at,
+                raw_file=raw_annual_name,
+                observation_grain="historical_annual_report_index",
+                retained_rows=len(annual),
+            ),
+        ]
+        manifest = {
+            "schema_version": "guide_source_snapshot_manifest_v1",
+            "source_id": SOURCE_ID,
+            "run_started_at_utc": run_started_at,
+            "manifestations": manifestations,
+            "processed_outputs": [
+                {
+                    "path": INSURERS_OUT_REL,
+                    "row_count": len(insurers),
+                    "byte_size": len(insurers_bytes),
+                    "sha256": hashlib.sha256(insurers_bytes).hexdigest(),
+                },
+                {
+                    "path": ANNUAL_OUT_REL,
+                    "row_count": len(annual),
+                    "byte_size": len(annual_bytes),
+                    "sha256": hashlib.sha256(annual_bytes).hexdigest(),
+                },
+            ],
+            "temporal_invariant": (
+                "The current insurer listing and historical annual-report index are distinct "
+                "observation grains. A historical report does not prove current license/status."
+            ),
+            "identity_invariant": (
+                "OCS display cards are retained as displayed and are not silently split or merged "
+                "into legal entities without a separate authoritative identifier binding."
+            ),
+            "certification_scope_note": (
+                "This source freeze supports bounded guide insurance routes only and does not imply "
+                "complete Puerto Rico finance coverage."
+            ),
+        }
+        manifest_file = snapshot_run / "manifest.json"
+        manifest_file.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        manifest_path = str(manifest_file)
+
     logger.info(
         "OCS: %s current insurer rows; %s annual-report observations",
         len(insurers),
@@ -226,6 +376,7 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
     return {
         "rows": len(insurers) + len(annual),
         "paths": [str(insurers_path), str(annual_path)],
+        "snapshot_manifest": manifest_path,
         "errors": [],
     }
 
