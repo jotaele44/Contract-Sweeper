@@ -3,7 +3,7 @@
 **Local federation baseline:** Python 3.11  
 **Supported systems:** macOS and Ubuntu/Debian
 
-MoneySweep is one producer in the PRII federation. A final long-lived clone must be created as an immediate sibling of `thehub-pr` through the certified TheHub workspace procedure. The standalone clone instructions below are for isolated repository development only.
+MoneySweep is one producer in the PRII federation. It installs and runs from an isolated clone — no `thehub-pr` sibling checkout is required; the shared `prii-*` packages resolve via a pinned `git+https` reference in `requirements.txt` (see ADR 0007 in `thehub-pr`).
 
 ## Python policy
 
@@ -18,36 +18,17 @@ The following surfaces must remain aligned:
 
 Do not use one virtual environment for the entire federation. Every repository owns a private `.venv`.
 
-## 1. Repository placement
-
-Canonical federation topology:
-
-```text
-PRII_ROOT/
-├── thehub-pr/
-├── moneysweep-pr/
-├── spiderweb-pr/
-├── skywatcher-pr/
-├── centinelas-pr/
-├── aguayluz-pr/
-└── ovnis-pr/
-```
-
-`moneysweep-pr` depends on shared packages under the sibling checkout:
-
-```text
-../thehub-pr/packages/prii_maintenance
-../thehub-pr/packages/prii_export_utils
-```
-
-Do not nest MoneySweep inside TheHub or another producer.
-
-For isolated development only:
+## 1. Clone the repository
 
 ```bash
 git clone https://github.com/jotaele44/moneysweep-pr.git
 cd moneysweep-pr
 ```
+
+No sibling checkout is required. `moneysweep-pr` resolves the shared
+`prii-maintenance` package via a pinned `git+https` dependency declared in
+`requirements.txt` — installing it fetches that commit directly, regardless
+of where this clone lives on disk.
 
 ## 2. Create the private environment
 
@@ -178,7 +159,7 @@ Desktop and packaged-app procedures are governed separately by the shared `prii_
 | Problem | Resolution |
 |---|---|
 | Python is not 3.11 | Recreate `.venv` with `python3.11 -m venv .venv` |
-| Shared package cannot resolve | Verify `thehub-pr` is an immediate sibling and contains both shared package directories |
+| Shared package cannot resolve | Confirm network access to GitHub — the `prii-maintenance` dependency is fetched from a pinned `git+https` URL on install, not a local path |
 | `pip` writes outside the repository | Deactivate the global environment, activate `.venv`, and use `python -m pip` |
 | Lockfile drift fails | Run `make lock` under Python 3.11 and review the complete diff |
 | Tests need absent local directories | Run `python scripts/setup_directories.py` |
