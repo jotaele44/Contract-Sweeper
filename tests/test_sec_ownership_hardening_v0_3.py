@@ -112,6 +112,36 @@ def _write_zip(path: Path, *, duplicate_info: bool = False) -> None:
         zf.writestr("INFOTABLE.tsv", info)
 
 
+def _write_same_cik_name_variation_zip(path: Path) -> None:
+    submission = (
+        "ACCESSION_NUMBER\tFILING_DATE\tSUBMISSIONTYPE\tCIK\tPERIODOFREPORT\n"
+        "0000000123-26-000001\t2026-05-15\t13F-HR\t123\t2026-03-31\n"
+        "0000000123-26-000002\t2026-05-16\t13F-HR\t123\t2026-03-31\n"
+    )
+    cover = (
+        "ACCESSION_NUMBER\tREPORTCALENDARORQUARTER\tISAMENDMENT\tAMENDMENTTYPE\tFILINGMANAGER_NAME\n"
+        "0000000123-26-000001\t2026-03-31\tN\t\tManager One LLC\n"
+        "0000000123-26-000002\t2026-03-31\tN\t\tMANAGER ONE, L.L.C.\n"
+    )
+    summary = (
+        "ACCESSION_NUMBER\tTABLEENTRYTOTAL\tTABLEVALUETOTAL\n"
+        "0000000123-26-000001\t1\t1000\n"
+        "0000000123-26-000002\t1\t1200\n"
+    )
+    info = (
+        "ACCESSION_NUMBER\tINFOTABLE_SK\tNAMEOFISSUER\tTITLEOFCLASS\tCUSIP\tVALUE\t"
+        "SSHPRNAMT\tSSHPRNAMTTYPE\tPUTCALL\tINVESTMENTDISCRETION\tOTHERMANAGER\t"
+        "VOTING_AUTH_SOLE\tVOTING_AUTH_SHARED\tVOTING_AUTH_NONE\n"
+        "0000000123-26-000001\t1\tPOPULAR INC\tCOM\t733174700\t100\t500\tSH\t\tSOLE\t\t500\t0\t0\n"
+        "0000000123-26-000002\t2\tPOPULAR INC\tCOM\t733174700\t120\t600\tSH\t\tSOLE\t\t600\t0\t0\n"
+    )
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr("SUBMISSION.tsv", submission)
+        zf.writestr("COVERPAGE.tsv", cover)
+        zf.writestr("SUMMARYPAGE.tsv", summary)
+        zf.writestr("INFOTABLE.tsv", info)
+
+
 def test_sec13f_adapter_preserves_stable_ids_and_provider_separation(tmp_path: Path) -> None:
     archive = tmp_path / "fixture.zip"
     _write_zip(archive)
@@ -133,6 +163,27 @@ def test_sec13f_adapter_preserves_stable_ids_and_provider_separation(tmp_path: P
     audit = adapter.audit()
     assert audit.raw_bytes_sha256 and len(audit.raw_bytes_sha256) == 64
     assert len(audit.member_digests) == 4
+
+
+def test_same_cik_preserves_all_raw_manager_name_manifestations(tmp_path: Path) -> None:
+    archive = tmp_path / "name-variation.zip"
+    _write_same_cik_name_variation_zip(archive)
+    adapter = Sec13FBulkAdapter(
+        archive,
+        target_cusips=("733174700",),
+        issuer_bindings={"733174700": "ISSUER_CIK_0000763901"},
+    )
+    result = ingest(adapter)
+    assert result.input_count == result.retained_count == 2
+    assert {row.holder_id for row in result.observations} == {"INV_CIK_0000000123"}
+    assert {row.extra["filing_manager_name_raw"] for row in result.observations} == {
+        "Manager One LLC",
+        "MANAGER ONE, L.L.C.",
+    }
+    investors = adapter.iter_investors()
+    assert len(investors) == 1
+    assert investors[0].investor_id == "INV_CIK_0000000123"
+    assert investors[0].binding_basis == "STABLE_ID"
 
 
 def test_sec13f_duplicate_compound_key_fails_closed(tmp_path: Path) -> None:
