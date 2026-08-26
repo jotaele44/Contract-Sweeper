@@ -6,7 +6,8 @@ preserved exactly; this producer does not collapse aliases across years.
 
 When ``GUIDE_SOURCE_SNAPSHOT_DIR`` is set, both authoritative HTTP responses are
 frozen byte-for-byte under a unique UTC run directory. The manifest records URL,
-retrieval UTC, response metadata, byte size, SHA256 and processed-output counts.
+retrieval UTC, response metadata, byte size, SHA256, schema fingerprints, and
+processed-output counts/hashes.
 """
 
 from __future__ import annotations
@@ -63,6 +64,7 @@ ANNUAL_COLUMNS = [
     "retrieved_at_utc",
 ]
 _YEAR_RE = re.compile(r"^(20\d{2})$")
+_YEAR_ANY_RE = re.compile(r"(?<!\d)(20\d{2})(?!\d)")
 
 
 def _clean(value: str) -> str:
@@ -71,6 +73,10 @@ def _clean(value: str) -> str:
 
 def _sid(*parts: str) -> str:
     return hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()
+
+
+def _schema_fingerprint(columns: list[str]) -> str:
+    return hashlib.sha256("\x1f".join(columns).encode("utf-8")).hexdigest()
 
 
 def _external_links(node) -> list[str]:
@@ -105,8 +111,6 @@ def _card_display_name(img) -> tuple[str, str]:
                 for x in parent.xpath(".//text()[not(ancestor::a)]")
                 if _clean(str(x))
             ]
-            # De-duplicate adjacent Webflow text fragments without normalizing
-            # punctuation/case in the source-facing string.
             unique_texts: list[str] = []
             for text in texts:
                 if text not in unique_texts:
@@ -172,6 +176,22 @@ def _nearest_year(node) -> str:
     return ""
 
 
+def _report_year(anchor, href: str, name: str) -> str:
+    """Resolve the report year without promoting an ambiguous date.
+
+    Webflow's live OCS index currently links insurer cards to internal
+    ``/informes-anuales/...`` CMS item pages rather than directly to the PDF.
+    Those slugs frequently carry the year. Prefer the surrounding year heading;
+    use a unique year token in the official href/display text only as a fallback.
+    """
+    nearest = _nearest_year(anchor)
+    if nearest:
+        return nearest
+    tokens = _YEAR_ANY_RE.findall(f"{href} {name}")
+    unique = sorted(set(tokens))
+    return unique[0] if len(unique) == 1 else ""
+
+
 def parse_annual_reports(
     page_html: str,
     *,
@@ -188,9 +208,13 @@ def parse_annual_reports(
         if not href or not name:
             continue
         lower = href.casefold()
-        if not any(token in lower for token in (".pdf", "document", "download", "media", "files")):
+        is_direct_document = any(
+            token in lower for token in (".pdf", "document", "download", "media", "files")
+        )
+        is_official_report_item = "/informes-anuales/" in lower
+        if not (is_direct_document or is_official_report_item):
             continue
-        year = _nearest_year(anchor)
+        year = _report_year(anchor, href, name)
         if not year:
             continue
         report_url = urljoin(source_url, href)
@@ -334,6 +358,16 @@ def run(root: Path | None = None, *, force: bool = False) -> dict:
             "source_id": SOURCE_ID,
             "run_started_at_utc": run_started_at,
             "manifestations": manifestations,
+            "schemas": {
+                "current_insurer_listing": {
+                    "columns": list(insurers.columns),
+                    "schema_fingerprint": _schema_fingerprint(list(insurers.columns)),
+                },
+                "historical_annual_report_index": {
+                    "columns": list(annual.columns),
+                    "schema_fingerprint": _schema_fingerprint(list(annual.columns)),
+                },
+            },
             "processed_outputs": [
                 {
                     "path": INSURERS_OUT_REL,
