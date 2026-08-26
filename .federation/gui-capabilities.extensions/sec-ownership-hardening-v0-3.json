@@ -1,0 +1,67 @@
+{
+  "extension_id": "sec-ownership-hardening-v0-3",
+  "capabilities": [
+    {
+      "id": "sec-ownership-hardening-runtime",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": false,
+      "rationale": "Authoritative SEC acquisition, identifier adjudication, source freezing, and bounded BPOP ownership certification are offline backend infrastructure. They intentionally remain non-user-facing until code CI and the real eight-quarter data certification both pass and a separate Deep Dive promotion vector is approved.",
+      "backend": {
+        "files": [
+          "moneysweep/capital_control/sec13f.py",
+          "moneysweep/sec_equity_identity.py"
+        ]
+      },
+      "analysis": {
+        "files": [
+          "scripts/acquire_sec13f_bpop_golden.py",
+          "scripts/certify_bpop_sec13f_8q.py",
+          "scripts/download_sec_equity_v2.py",
+          "scripts/rematerialize_sec_holdings_discovery_v2.py"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_sec_ownership_hardening_v0_3.py"
+        ]
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/acquire_sec13f_bpop_golden.py",
+        "analysis_module:scripts/certify_bpop_sec13f_8q.py",
+        "analysis_module:scripts/download_sec_equity_v2.py",
+        "analysis_module:scripts/rematerialize_sec_holdings_discovery_v2.py",
+        "analysis_symbol:scripts/acquire_sec13f_bpop_golden.py:archive_audit",
+        "analysis_symbol:scripts/acquire_sec13f_bpop_golden.py:main",
+        "analysis_symbol:scripts/acquire_sec13f_bpop_golden.py:run",
+        "analysis_symbol:scripts/acquire_sec13f_bpop_golden.py:sha256_file",
+        "analysis_symbol:scripts/certify_bpop_sec13f_8q.py:main",
+        "analysis_symbol:scripts/certify_bpop_sec13f_8q.py:run",
+        "analysis_symbol:scripts/download_sec_equity_v2.py:main",
+        "analysis_symbol:scripts/download_sec_equity_v2.py:run",
+        "analysis_symbol:scripts/rematerialize_sec_holdings_discovery_v2.py:classify_identifier",
+        "analysis_symbol:scripts/rematerialize_sec_holdings_discovery_v2.py:main",
+        "analysis_symbol:scripts/rematerialize_sec_holdings_discovery_v2.py:run",
+        "cli_surface:scripts/acquire_sec13f_bpop_golden.py",
+        "cli_surface:scripts/certify_bpop_sec13f_8q.py",
+        "cli_surface:scripts/download_sec_equity_v2.py",
+        "cli_surface:scripts/rematerialize_sec_holdings_discovery_v2.py",
+        "python_module:moneysweep/capital_control/sec13f.py",
+        "python_module:moneysweep/sec_equity_identity.py",
+        "python_symbol:moneysweep/capital_control/sec13f.py:ArchiveMemberDigest",
+        "python_symbol:moneysweep/capital_control/sec13f.py:RestatementAdjudication",
+        "python_symbol:moneysweep/capital_control/sec13f.py:RestatementIssue",
+        "python_symbol:moneysweep/capital_control/sec13f.py:Sec13FArchiveAudit",
+        "python_symbol:moneysweep/capital_control/sec13f.py:Sec13FBulkAdapter",
+        "python_symbol:moneysweep/capital_control/sec13f.py:Sec13FError",
+        "python_symbol:moneysweep/capital_control/sec13f.py:adjudicate_sec13f_restatements",
+        "python_symbol:moneysweep/sec_equity_identity.py:SecIdentityError",
+        "python_symbol:moneysweep/sec_equity_identity.py:SecIssuerBinding",
+        "python_symbol:moneysweep/sec_equity_identity.py:canonical_cik",
+        "python_symbol:moneysweep/sec_equity_identity.py:require_binding",
+        "python_symbol:moneysweep/sec_equity_identity.py:require_submission_identity",
+        "python_symbol:moneysweep/sec_equity_identity.py:ticker_map"
+      ]
+    }
+  ]
+}
