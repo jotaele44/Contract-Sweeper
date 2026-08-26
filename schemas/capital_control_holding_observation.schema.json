@@ -114,6 +114,19 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "amendment_status": {"const": "AMENDED_ADDITION"}
+        },
+        "required": ["amendment_status"]
+      },
+      "then": {
+        "properties": {
+          "supersedes_observation_id": {"type": "null"}
+        }
+      }
     }
   ],
   "additionalProperties": true
