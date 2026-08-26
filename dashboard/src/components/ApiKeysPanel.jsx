@@ -22,14 +22,18 @@ function ApiKeyRow({ keyInfo }) {
   })
 
   return (
-    <TableRow className="border-border">
+    <TableRow className="border-border" data-testid={`api-key-row-${keyInfo.name}`}>
       <TableCell className="whitespace-nowrap font-mono text-xs text-foreground">{keyInfo.name}</TableCell>
       <TableCell className="max-w-[280px] text-xs text-muted-foreground">{keyInfo.description}</TableCell>
       <TableCell>
         <Badge variant="outline" className="text-[10px]">{keyInfo.required ? 'Required' : 'Optional'}</Badge>
       </TableCell>
       <TableCell>
-        <Badge variant={keyInfo.is_set ? 'default' : 'secondary'} className="text-[10px]">
+        <Badge
+          data-testid={`api-key-status-${keyInfo.name}`}
+          variant={keyInfo.is_set ? 'default' : 'secondary'}
+          className="text-[10px]"
+        >
           {keyInfo.is_set ? 'Set' : 'Not set'}
         </Badge>
       </TableCell>
@@ -66,7 +70,7 @@ export default function ApiKeysPanel() {
   const rows = query.data ?? []
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="api-keys-panel">
       <div className="ms-filter-bar border-b border-border p-3 text-xs text-muted-foreground">
         Saving a key here writes it to this machine's local <code className="font-mono">.env</code> file.
         It does not start or affect any running pipeline, and does not by itself authorize live

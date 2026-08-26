@@ -13,21 +13,21 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api-keys", tags=["api-keys"])
+router = APIRouter(tags=["api-keys"])
 
 
 class SetKeyRequest(BaseModel):
     value: str
 
 
-@router.get("")
+@router.get("/api-keys")
 def list_api_keys() -> list[dict]:
     from scripts.manage_api_keys import key_status
 
     return key_status()
 
 
-@router.post("/{name}")
+@router.post("/api-keys/{name}")
 def set_api_key(name: str, body: SetKeyRequest) -> dict:
     from scripts.manage_api_keys import key_status, set_key
 
