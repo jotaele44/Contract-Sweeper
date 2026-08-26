@@ -32,8 +32,19 @@ SNAPSHOT_SOURCES = (
 )
 SNAPSHOT_SCHEMA = "guide_source_snapshot_manifest_v1"
 PUBLIC_ADJ_REL = Path("registries/guide_public_denominator_adjudications_v1.yaml")
+ACT60_CROSSWALK_REL = Path("registries/guide_act60_temporal_crosswalk_v1.yaml")
 REPORT_REL = Path("reports/guide_financial_live_freeze_v1.json")
 CERT_REL = Path("reports/guide_bounded_100_percent_certification_v1.json")
+
+# Only these three lanes are absent from the frozen base projection. A passing
+# immutable snapshot closes their materialization route without rewriting the
+# historical base set algebra. Other overlay relationships are supporting or
+# identity candidates and do not alter the A_ONLY route set here.
+MATERIALIZED_OVERLAY_LANES = {
+    "ocif_guide_financial_classes": {"GFAV-004"},
+    "ocs_insurer_registry": {"GFAV-005"},
+    "ftz_board_pr": {"GFAV-020"},
+}
 
 
 def sha256_file(path: Path) -> str:
@@ -108,7 +119,14 @@ def validate_source_snapshot(root: Path, snapshot_root: Path, source_id: str) ->
         if not isinstance(item, dict):
             errors.append(f"manifestation[{index}] not object")
             continue
-        for field in ("url", "retrieved_at_utc", "byte_size", "sha256", "raw_file", "retained_rows"):
+        for field in (
+            "url",
+            "retrieved_at_utc",
+            "byte_size",
+            "sha256",
+            "raw_file",
+            "retained_rows",
+        ):
             if field not in item:
                 errors.append(f"manifestation[{index}] missing {field}")
         raw_file = str(item.get("raw_file") or "")
@@ -177,6 +195,54 @@ def validate_source_snapshot(root: Path, snapshot_root: Path, source_id: str) ->
     }
 
 
+def _failed_snapshot(source_id: str, exc: Exception) -> dict[str, Any]:
+    return {
+        "source_id": source_id,
+        "manifest_path": "",
+        "manifest_sha256": "",
+        "run_started_at_utc": None,
+        "raw_manifestation_count": 0,
+        "raw_manifestations": [],
+        "processed_outputs": [],
+        "errors": [str(exc)],
+        "state": "FAIL",
+    }
+
+
+def materialized_projection(audit: dict[str, Any], freeze_report: dict[str, Any]) -> dict[str, Any]:
+    base_sets = audit["computed"]["avenue_sets"]
+    universe = set(base_sets["A"])
+    represented = set(base_sets["B_GUIDE_PROJECTION"])
+    source_states = freeze_report["source_states"]
+    overlay_promotions: dict[str, list[str]] = {}
+
+    for source_id, lanes in MATERIALIZED_OVERLAY_LANES.items():
+        if source_states.get(source_id) == "PASS":
+            promoted = sorted(lanes & universe)
+            represented.update(promoted)
+            overlay_promotions[source_id] = promoted
+
+    intersection = universe & represented
+    a_only = universe - represented
+    b_only = represented - universe
+    union = universe | represented
+    symmetric_difference = universe ^ represented
+    return {
+        "a_count": len(universe),
+        "b_materialized_count": len(represented),
+        "intersection_count": len(intersection),
+        "a_only_count": len(a_only),
+        "b_only_count": len(b_only),
+        "union_count": len(union),
+        "symmetric_difference_count": len(symmetric_difference),
+        "a_only": sorted(a_only),
+        "b_only": sorted(b_only),
+        "symmetric_difference": sorted(symmetric_difference),
+        "materialized_overlay_promotions": overlay_promotions,
+        "historical_base_projection": audit["metrics_payload"]["guide_projection"],
+    }
+
+
 def build_certification(root: Path, freeze_report: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any]:
     public_adj = _load_yaml(root / PUBLIC_ADJ_REL)
     adjudications = public_adj.get("adjudications") or {}
@@ -189,12 +255,20 @@ def build_certification(root: Path, freeze_report: dict[str, Any], audit: dict[s
         item["source_id"] for item in freeze_report["sources"] if item["state"] != "PASS"
     )
     metrics = audit["metrics_payload"]
-    guide_projection = metrics["guide_projection"]
+    materialized = materialized_projection(audit, freeze_report)
+
+    crosswalk_open: list[str] = []
+    crosswalk_path = root / ACT60_CROSSWALK_REL
+    if crosswalk_path.is_file():
+        crosswalk = _load_yaml(crosswalk_path)
+        crosswalk_open = [str(x) for x in (crosswalk.get("open_crosswalk_residue") or [])]
+
     residue = {
         "source_snapshot_failures": source_failures,
         "public_denominator_open": public_open,
-        "a_only": guide_projection.get("a_only", []),
-        "symmetric_difference": guide_projection.get("symmetric_difference", []),
+        "act60_crosswalk_open": crosswalk_open,
+        "materialized_a_only": materialized["a_only"],
+        "materialized_symmetric_difference": materialized["symmetric_difference"],
     }
     zero_residue = not any(residue.values())
     return {
@@ -203,11 +277,14 @@ def build_certification(root: Path, freeze_report: dict[str, Any], audit: dict[s
         "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "guide_avenue_count": metrics["guide_avenue_count"],
         "base_source_count": metrics["base_source_count"],
-        "set_metrics": guide_projection,
+        "base_set_metrics": metrics["guide_projection"],
+        "materialized_set_metrics": materialized,
         "source_snapshot_report": str(REPORT_REL),
         "source_snapshot_report_sha256": sha256_file(root / REPORT_REL),
         "public_denominator_registry": str(PUBLIC_ADJ_REL),
         "public_denominator_registry_sha256": sha256_file(root / PUBLIC_ADJ_REL),
+        "act60_crosswalk_registry": str(ACT60_CROSSWALK_REL) if crosswalk_path.is_file() else "",
+        "act60_crosswalk_registry_sha256": sha256_file(crosswalk_path) if crosswalk_path.is_file() else "",
         "residue": residue,
         "unresolved_residue_count": sum(len(value) for value in residue.values()),
         "certification_state": "PASS" if zero_residue else "OPEN",
@@ -217,7 +294,13 @@ def build_certification(root: Path, freeze_report: dict[str, Any], audit: dict[s
 
 def run(root: Path = PROJECT_ROOT, *, snapshot_dir: str) -> dict[str, Any]:
     snapshot_root = root / snapshot_dir
-    source_results = [validate_source_snapshot(root, snapshot_root, sid) for sid in SNAPSHOT_SOURCES]
+    source_results: list[dict[str, Any]] = []
+    for source_id in SNAPSHOT_SOURCES:
+        try:
+            source_results.append(validate_source_snapshot(root, snapshot_root, source_id))
+        except Exception as exc:  # fail-closed receipt rather than aborting the audit
+            source_results.append(_failed_snapshot(source_id, exc))
+
     freeze_report = {
         "schema_version": "guide_financial_live_freeze_v1",
         "scope_id": "GUIDE_BOUNDED_100_PERCENT",
