@@ -13,8 +13,6 @@ from pathlib import Path
 
 import requests
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from scripts.config import PROJECT_ROOT
 
 USER_AGENT = "MoneySweep research@pr-pipeline.org"
