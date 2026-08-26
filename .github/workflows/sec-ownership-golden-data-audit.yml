@@ -123,6 +123,7 @@ jobs:
             data/staging/processed/pr_sec_share_denominators_v2.csv
             data/staging/processed/capital_control/sec13f_pr_golden_holdings.csv
             data/staging/processed/capital_control/sec13f_pr_golden_investors.csv
+            data/staging/processed/capital_control/sec13f_holder_name_manifestations.csv
           if-no-files-found: warn
           retention-days: 90
 
