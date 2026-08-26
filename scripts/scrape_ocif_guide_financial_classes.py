@@ -79,7 +79,6 @@ def _clean(text: str) -> str:
 
 
 def _record_id(row: dict[str, str]) -> str:
-    # This is source-manifestation identity only. Never use it as legal-entity identity.
     material = "\x1f".join(
         [
             row.get("license_type_raw", ""),
@@ -91,13 +90,18 @@ def _record_id(row: dict[str, str]) -> str:
     return hashlib.sha256(material.encode("utf-8")).hexdigest()
 
 
-def parse_page(page_html: str, *, source_page: int, source_url: str, retrieved_at: str) -> tuple[list[dict], dict]:
+def parse_page(
+    page_html: str,
+    *,
+    source_page: int,
+    source_url: str,
+    retrieved_at: str,
+) -> tuple[list[dict], dict]:
     """Parse exactly the visible result table and its denominator marker."""
     doc = lxml_html.fromstring(page_html)
-    tables = doc.xpath("//table")
     rows: list[dict] = []
 
-    for table in tables:
+    for table in doc.xpath("//table"):
         headers = [_clean(x.text_content()) for x in table.xpath(".//thead//th")]
         if not headers or "Nombre de Ins." not in headers:
             continue
@@ -110,7 +114,7 @@ def parse_page(page_html: str, *, source_page: int, source_url: str, retrieved_a
                 zip(
                     COLUMNS[:12],
                     [
-                        "",  # populated below
+                        "",
                         values[0],
                         values[1],
                         values[2],
@@ -146,7 +150,8 @@ def parse_page(page_html: str, *, source_page: int, source_url: str, retrieved_a
 
 
 def _url(license_type: str, page: int) -> str:
-    return f"{BASE_URL}?{urlencode({'LicenseTypeFilter': license_type, 'Page': page, 'PageSize': PAGE_SIZE})}"
+    params = {"LicenseTypeFilter": license_type, "Page": page, "PageSize": PAGE_SIZE}
+    return f"{BASE_URL}?{urlencode(params)}"
 
 
 def fetch_class(session: requests.Session, license_type: str, logger) -> list[dict]:
@@ -168,20 +173,27 @@ def fetch_class(session: requests.Session, license_type: str, logger) -> list[di
         seen_page_hashes.add(raw_hash)
 
         retrieved_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-        rows, meta = parse_page(response.text, source_page=page, source_url=url, retrieved_at=retrieved_at)
+        rows, meta = parse_page(
+            response.text,
+            source_page=page,
+            source_url=url,
+            retrieved_at=retrieved_at,
+        )
         if meta["page"] != page:
             raise RuntimeError(f"OCIF page-number mismatch: requested={page}, observed={meta['page']}")
         if expected_total is None:
             expected_total = meta["total_rows"]
         elif meta["total_rows"] not in (None, expected_total):
             raise RuntimeError(
-                f"OCIF denominator changed during run for {license_type!r}: {expected_total} -> {meta['total_rows']}"
+                f"OCIF denominator changed during run for {license_type!r}: "
+                f"{expected_total} -> {meta['total_rows']}"
             )
 
         for row in rows:
             if row["license_type_raw"] != license_type:
                 raise RuntimeError(
-                    f"OCIF filter leakage: requested {license_type!r}, observed {row['license_type_raw']!r}"
+                    f"OCIF filter leakage: requested {license_type!r}, "
+                    f"observed {row['license_type_raw']!r}"
                 )
             if not row["institution_name_raw"]:
                 raise RuntimeError(f"OCIF null institution name in {license_type!r} page {page}")
@@ -189,7 +201,6 @@ def fetch_class(session: requests.Session, license_type: str, logger) -> list[di
 
         total_pages = meta["total_pages"]
         if total_pages is None:
-            # No denominator marker means we cannot prove exhaustive paging.
             raise RuntimeError(f"OCIF denominator marker missing for {license_type!r} page {page}")
         if page >= total_pages:
             break
@@ -198,7 +209,8 @@ def fetch_class(session: requests.Session, license_type: str, logger) -> list[di
 
     if expected_total is None or len(all_rows) != expected_total:
         raise RuntimeError(
-            f"OCIF arithmetic closure failed for {license_type!r}: retained={len(all_rows)} expected={expected_total}"
+            f"OCIF arithmetic closure failed for {license_type!r}: "
+            f"retained={len(all_rows)} expected={expected_total}"
         )
     ids = [row["source_record_id"] for row in all_rows]
     if len(ids) != len(set(ids)):
@@ -206,7 +218,12 @@ def fetch_class(session: requests.Session, license_type: str, logger) -> list[di
     return all_rows
 
 
-def run(root: Path | None = None, *, force: bool = False, license_classes: tuple[str, ...] = LICENSE_CLASSES) -> dict:
+def run(
+    root: Path | None = None,
+    *,
+    force: bool = False,
+    license_classes: tuple[str, ...] = LICENSE_CLASSES,
+) -> dict:
     root = root or PROJECT_ROOT
     out_path = root / OUT_REL
     logger = setup_logging("scrape_ocif_guide_financial_classes")
@@ -214,7 +231,7 @@ def run(root: Path | None = None, *, force: bool = False, license_classes: tuple
         existing = pd.read_csv(out_path, dtype=str, low_memory=False)
         return {"rows": len(existing), "path": str(out_path), "errors": []}
 
-    session = build_session(HTTP)
+    session = build_session(HTTP.user_agent, HTTP.extra_headers)
     rows: list[dict] = []
     try:
         for license_type in license_classes:
@@ -226,7 +243,6 @@ def run(root: Path | None = None, *, force: bool = False, license_classes: tuple
     df = pd.DataFrame(rows, columns=COLUMNS)
     if df.empty:
         raise RuntimeError("OCIF produced zero rows")
-    # Across classes, the manifestation key must remain unique.
     if df["source_record_id"].duplicated().any():
         raise RuntimeError("OCIF duplicate source_record_id across license classes")
 
