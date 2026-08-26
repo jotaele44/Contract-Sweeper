@@ -112,8 +112,13 @@ def _flatten(
     payload = asdict(row)
     extra = dict(payload.pop("extra") or {})
     put_call = str(extra.get("put_call") or "").strip().upper()
-    eligible = row.shares is not None and not put_call
-    percent = row.shares / denominator * 100.0 if eligible and denominator else None
+    shares = row.shares
+    eligible = shares is not None and not put_call
+    percent = (
+        shares / denominator * 100.0
+        if shares is not None and not put_call and denominator is not None and denominator > 0
+        else None
+    )
     payload.update(extra)
     payload["security_cusip"] = str(row.security_id or "").removeprefix("CUSIP:")
     payload["is_active"] = active
