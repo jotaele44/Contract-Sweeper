@@ -1,4 +1,4 @@
-version: "1.0"
+version: "1.1"
 schema_version: guide_public_denominator_adjudications_v1
 scope_id: GUIDE_BOUNDED_100_PERCENT
 as_of_utc: "2026-08-26T00:00:00Z"
@@ -28,14 +28,24 @@ adjudications:
         fact: >-
           Hacienda expressly treats a real estate investment trust as a distinct
           Puerto Rico taxpayer/entity class for the cited reporting rule.
+      - authority: Departamento de Hacienda de Puerto Rico
+        title: Codigo de Rentas Internas de Puerto Rico de 2011
+        url: https://hacienda.pr.gov/sites/default/files/codigo_de_rentas_internas.pdf
+        fact: >-
+          Section 1082.01 defines a Puerto Rico fideicomiso de inversiones en
+          bienes raices and its qualification requirements, independently from
+          financial institutions and insurance companies.
     searched_public_authority_families:
       - Departamento de Hacienda de Puerto Rico
       - Oficina del Comisionado de Instituciones Financieras
       - Departamento de Desarrollo Economico y Comercio
+      - Instituto de Estadisticas de Puerto Rico
+      - Portal de Transicion Gubernamental 2024
     unresolved_residue:
       - >-
-        No authoritative current named roster or tax-election denominator for
-        Puerto Rico REITs has been located on the reachable public surfaces.
+        No authoritative current named roster, tax-election roster, or published
+        denominator count for Puerto Rico REITs has been located on the reachable
+        public Hacienda/OCIF/DDEC/IEPR/transition surfaces.
       - >-
         SEC issuer classification, entity names, property holdings, and issuer
         self-description remain candidate/supporting evidence only and cannot
@@ -44,7 +54,9 @@ adjudications:
   GFAV-007:
     canonical: registered_investment_companies
     class_binding_state: AUTHORITATIVE_CLASS_CONFIRMED
-    member_denominator_state: PUBLIC_DENOMINATOR_UNRESOLVED
+    member_denominator_state: AUTHORITATIVE_COUNT_CLOSED_MEMBER_ROSTER_INACCESSIBLE
+    authoritative_member_count: 48
+    authoritative_member_count_period: "2024-2025 transition report snapshot"
     certification_state: OPEN
     authoritative_class_evidence:
       - authority: Oficina del Comisionado de Instituciones Financieras
@@ -61,6 +73,37 @@ adjudications:
           OCIF publishes a separate Companias de Inversion reporting family,
           including Report of Condition, investment-asset schedules, income
           statements, and changes in net assets.
+      - authority: Oficina del Comisionado de Instituciones Financieras
+        title: Informe de Transicion 2024
+        url: https://transicion2024.pr.gov/Agencias/075/Informe%20status%20planes%20unidades%20administrativas/Informe%20de%20Transici%C3%B3n%202024.pdf
+        fact: >-
+          The OCIF transition report states 48 Puerto Rico investment companies
+          and reports 48 for every fiscal-year column from 2020-2021 through
+          2024-2025, independently distinguishing investment advisers, registered
+          agents, investment-capital funds and private-equity funds.
+      - authority: Oficina del Comisionado de Instituciones Financieras
+        title: Investment Companies statistics
+        url: https://docs.pr.gov/files/OCIF/ESTADISTICAS/Investment%20Companies.pdf
+        fact: >-
+          OCIF publishes aggregate balance-sheet, asset/capital and income
+          statistics for Investment Companies as a separate supervised industry.
+    member_roster_access_evidence:
+      - authority: Oficina del Comisionado de Instituciones Financieras
+        title: Securities Registration
+        url: https://eric.ocif.pr.gov/web/
+        state: LOGIN_GATED
+        fact: >-
+          The dedicated OCIF securities-registration application exposes a login
+          surface rather than an anonymous member-level investment-company roster.
+      - authority: Oficina del Comisionado de Instituciones Financieras
+        title: Public concessionaire search
+        url: https://concesionarios.ocif.pr.gov/
+        state: PUBLIC_BUT_DIFFERENT_LICENSE_UNIVERSE
+        fact: >-
+          The public concessionaire system exposes many financial license types,
+          including investment advisers and private funds, but no located public
+          Compañia de Inversion member list equivalent to the 48-count securities
+          denominator.
     identity_non_equivalences:
       - "INVESTMENT_COMPANY != INVESTMENT_ADVISOR"
       - "INVESTMENT_COMPANY != EXEMPT_REPORTING_ADVISOR"
@@ -70,10 +113,10 @@ adjudications:
       - "INVESTMENT_COMPANY != SEC_NPORT_FUND"
     unresolved_residue:
       - >-
-        The regulatory class is authoritative, but a complete current and
-        historical member-level Puerto Rico registration roster with stable
-        registration identifiers has not yet been located on reachable public
-        OCIF surfaces.
+        The authoritative denominator count is now closed at 48 for the cited
+        transition snapshot, but the corresponding 48 member identities and
+        stable Puerto Rico registration identifiers are not anonymously exposed
+        on the reachable public OCIF surfaces.
 
   ACT60_CATEGORY_AND_BENEFICIARY:
     guide_avenues:
@@ -99,7 +142,7 @@ adjudications:
       - GFAV-029
       - GFAV-030
     category_denominator_state: PARTIAL_TEMPORAL_CROSSWALK_REQUIRED
-    beneficiary_denominator_state: PUBLIC_DENOMINATOR_UNRESOLVED
+    beneficiary_denominator_state: PUBLIC_MEMBER_DENOMINATOR_DEMONSTRABLY_INACCESSIBLE
     certification_state: OPEN
     authoritative_public_evidence:
       - authority: Departamento de Desarrollo Economico y Comercio
@@ -126,6 +169,28 @@ adjudications:
           the majority of active decrees and must be considered alongside Act 60;
           beneficiary infrastructure used for the evaluation does not itself
           establish a complete public member-level roster.
+      - authority: Instituto de Estadisticas de Puerto Rico / DDEC-PRIDCO
+        title: Directorio de Empresas Operando DDEC-PRIDCO
+        url: https://www.estadisticas.pr.gov/productos/directorio-de-empresas-operando-ddec-pridco
+        fact: >-
+          IEPR describes a monthly directory whose reference population is
+          companies/projects operating under DDEC-PRIDCO incentive programs, but
+          the current public product page states that the product contains no files.
+    public_access_blockers:
+      - authority: Departamento de Desarrollo Economico y Comercio
+        title: Incentives transaction portal
+        url: https://incentives.ddec.pr.gov/Security/Login
+        state: LOGIN_GATED
+        fact: >-
+          The transactional incentives system requires authentication and its
+          anonymous landing page does not expose the complete current/historical
+          decree-beneficiary ledger.
+      - authority: Instituto de Estadisticas de Puerto Rico / DDEC-PRIDCO
+        title: Directorio de Empresas Operando DDEC-PRIDCO
+        state: PUBLIC_METADATA_NO_CURRENT_FILE
+        fact: >-
+          The public metadata describes a beneficiary-like operating-company
+          directory but explicitly presents no downloadable product files.
     temporal_invariants:
       - "PREDECESSOR_DECREE != ACT60_DECREE"
       - "2020_FILED_ACT60 != 2020_APPROVED_PREDECESSOR_BY_DEFAULT"
@@ -134,18 +199,19 @@ adjudications:
       - pr_act_60_decrees known-seed fallback rows
     unresolved_residue:
       - >-
-        The public IEPR series is statistical/category-level evidence rather than
-        a complete beneficiary/decree roster with stable decree identifiers.
+        The public IEPR decree series is statistical/category-level evidence
+        rather than a complete beneficiary/decree roster with stable decree IDs.
       - >-
-        The DDEC incentives transaction portal is login-gated and does not, on
-        the public landing surface, expose a complete current and historical
-        beneficiary/decree denominator.
+        Public metadata and statistical reports do not establish the complete
+        current plus historical beneficiary/decree denominator needed for
+        member-level certification.
       - >-
         A guide-2021 to current-Act-60/predecessor-law temporal category crosswalk
         must be completed without retroactively normalizing historical regimes.
 
 certification_state: OPEN
 certification_reason: >-
-  Materialization of the three missing regulatory/source routes, complete public
-  REIT and investment-company member denominators, and Act 60/predecessor
-  category plus beneficiary/decree closure have not all reached zero residue.
+  Materialization of the three missing regulatory/source routes, a complete
+  public REIT denominator, the 48 investment-company member identities, and
+  Act 60/predecessor category plus beneficiary/decree closure have not all
+  reached zero residue.
