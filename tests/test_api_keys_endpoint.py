@@ -40,7 +40,7 @@ def client(isolated_env):
 
     import server.backend.main as backend
 
-    with TestClient(backend.app) as test_client:
+    with TestClient(backend.app, client=("127.0.0.1", 50000)) as test_client:
         yield test_client
 
 
@@ -74,10 +74,38 @@ def test_post_known_key_sets_it_and_never_echoes_the_value(client):
     assert sam_row["is_set"] is True
 
 
-def test_post_empty_value_reports_not_set(client):
+def test_post_empty_value_is_rejected(client):
     response = client.post("/api-keys/SAM_API_KEY", json={"value": "  "})
-    assert response.status_code == 200
-    assert response.json() == {"name": "SAM_API_KEY", "is_set": False}
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("value", ["first\nINJECTED=value", "first\rsecond", "x\0y"])
+def test_post_rejects_values_that_can_escape_one_dotenv_line(client, value):
+    response = client.post("/api-keys/SAM_API_KEY", json={"value": value})
+    assert response.status_code == 422
+
+
+def test_post_rejects_nonlocal_origin(client):
+    response = client.post(
+        "/api-keys/SAM_API_KEY",
+        json={"value": "not-written"},
+        headers={"Origin": "https://attacker.example"},
+    )
+    assert response.status_code == 403
+
+
+def test_api_key_status_rejects_nonloopback_client(isolated_env):
+    from starlette.testclient import TestClient
+
+    import server.backend.main as backend
+
+    with TestClient(backend.app, client=("203.0.113.10", 50000)) as remote_client:
+        assert remote_client.get("/api-keys").status_code == 403
+        response = remote_client.post(
+            "/api-keys/SAM_API_KEY", json={"value": "not-written"}
+        )
+        assert response.status_code == 403
+    assert not isolated_env.exists()
 
 
 def test_set_key_never_touches_real_repo_env(client, isolated_env):

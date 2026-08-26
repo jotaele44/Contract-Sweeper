@@ -11,6 +11,7 @@ back from this module except set_key()'s own caller, who already has it.
 from __future__ import annotations
 
 import os
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +25,15 @@ ENV_EXAMPLE_PATH = PROJECT_ROOT / ".env.example"
 # following SETUP.md's `cp .env.example .env`, carries this value verbatim —
 # it must never count as "set".
 PLACEHOLDER_VALUE = "paste_your_key_here"
+MAX_KEY_VALUE_LENGTH = 8192
+
+
+class UnknownKeyError(ValueError):
+    """Raised when a caller requests a name outside the documented registry."""
+
+
+class InvalidKeyValueError(ValueError):
+    """Raised when a value cannot be represented safely in a dotenv line."""
 
 
 @dataclass(frozen=True)
@@ -119,9 +129,17 @@ def set_key(
         example_path = ENV_EXAMPLE_PATH
     valid_names = {key.name for key in known_keys(example_path)}
     if name not in valid_names:
-        raise ValueError(f"unknown key: {name!r}")
+        raise UnknownKeyError(f"unknown key: {name!r}")
 
     value = value.strip()
+    if not value:
+        raise InvalidKeyValueError("key value must not be empty")
+    if "\n" in value or "\r" in value or "\0" in value:
+        raise InvalidKeyValueError("key value must be a single text line")
+    if len(value) > MAX_KEY_VALUE_LENGTH:
+        raise InvalidKeyValueError(
+            f"key value exceeds {MAX_KEY_VALUE_LENGTH} characters"
+        )
     if env_path.exists():
         lines = env_path.read_text(encoding="utf-8").splitlines()
     elif example_path.exists():
@@ -139,10 +157,18 @@ def set_key(
     if not replaced:
         lines.append(f"{name}={value}")
 
-    tmp_path = env_path.with_suffix(env_path.suffix + ".tmp")
-    tmp_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    tmp_path.replace(env_path)
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{env_path.name}.", dir=env_path.parent)
+    tmp_path = Path(tmp_name)
     try:
-        os.chmod(env_path, 0o600)
-    except OSError:
-        pass
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            # This repository deliberately uses a mode-0600 local .env as its
+            # credential store; values are never logged or returned.
+            # codeql[py/clear-text-storage-sensitive-data]
+            handle.write("\n".join(lines) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(tmp_path, 0o600)
+        tmp_path.replace(env_path)
+    finally:
+        tmp_path.unlink(missing_ok=True)

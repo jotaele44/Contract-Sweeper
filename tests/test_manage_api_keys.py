@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.manage_api_keys import known_keys, key_status, set_key
+from scripts.manage_api_keys import InvalidKeyValueError, known_keys, key_status, set_key
 
 REAL_EXAMPLE = Path(__file__).resolve().parents[1] / ".env.example"
 
@@ -55,6 +55,14 @@ def test_set_key_rejects_unknown_name(tmp_path):
     env = tmp_path / ".env"
     with pytest.raises(ValueError, match="unknown key"):
         set_key("NOT_A_REAL_KEY", "value", env_path=env, example_path=REAL_EXAMPLE)
+    assert not env.exists()
+
+
+@pytest.mark.parametrize("value", ["", "   ", "first\nSECOND=value", "x\r\ny", "x\0y"])
+def test_set_key_rejects_unsafe_values(tmp_path, value):
+    env = tmp_path / ".env"
+    with pytest.raises(InvalidKeyValueError):
+        set_key("SAM_API_KEY", value, env_path=env, example_path=REAL_EXAMPLE)
     assert not env.exists()
 
 
