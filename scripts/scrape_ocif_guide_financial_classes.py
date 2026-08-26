@@ -7,12 +7,19 @@ This producer intentionally preserves source strings. ``source_record_id`` is a
 manifestation key, not proof that two legal entities are identical. License
 number is retained separately and is the preferred authoritative identifier when
 present.
+
+When ``GUIDE_SOURCE_SNAPSHOT_DIR`` is set, every paginated HTTP response is
+frozen byte-for-byte under a unique UTC run directory. The accompanying manifest
+records request filters/pages, retrieval UTC, response status/content type,
+byte size, SHA256, reported denominators and retained row counts.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import json
+import os
 import re
 import sys
 import time
@@ -154,7 +161,14 @@ def _url(license_type: str, page: int) -> str:
     return f"{BASE_URL}?{urlencode(params)}"
 
 
-def fetch_class(session: requests.Session, license_type: str, logger) -> list[dict]:
+def fetch_class(
+    session: requests.Session,
+    license_type: str,
+    logger,
+    *,
+    snapshot_run: Path | None = None,
+    snapshot_entries: list[dict] | None = None,
+) -> list[dict]:
     all_rows: list[dict] = []
     seen_page_hashes: set[str] = set()
     expected_total: int | None = None
@@ -167,7 +181,8 @@ def fetch_class(session: requests.Session, license_type: str, logger) -> list[di
             time.sleep(HTTP.rate_limit_sleep)
             continue
         response.raise_for_status()
-        raw_hash = hashlib.sha256(response.content).hexdigest()
+        raw_bytes = response.content
+        raw_hash = hashlib.sha256(raw_bytes).hexdigest()
         if raw_hash in seen_page_hashes:
             raise RuntimeError(f"OCIF repeated/clamped page for {license_type!r} at page {page}")
         seen_page_hashes.add(raw_hash)
@@ -201,6 +216,33 @@ def fetch_class(session: requests.Session, license_type: str, logger) -> list[di
                 raise RuntimeError(f"OCIF null institution name in {license_type!r} page {page}")
         all_rows.extend(rows)
 
+        raw_rel = ""
+        if snapshot_run is not None:
+            class_token = hashlib.sha256(license_type.encode("utf-8")).hexdigest()[:12]
+            raw_name = f"{class_token}_page_{page:04d}.html"
+            raw_path = snapshot_run / raw_name
+            raw_path.write_bytes(raw_bytes)
+            raw_rel = raw_name
+        if snapshot_entries is not None:
+            snapshot_entries.append(
+                {
+                    "license_type_filter": license_type,
+                    "page": page,
+                    "page_size": PAGE_SIZE,
+                    "url": url,
+                    "retrieved_at_utc": retrieved_at,
+                    "http_status": response.status_code,
+                    "content_type": response.headers.get("Content-Type", ""),
+                    "byte_size": len(raw_bytes),
+                    "sha256": raw_hash,
+                    "raw_file": raw_rel,
+                    "reported_page_rows": meta["page_rows"],
+                    "reported_total_rows": meta["total_rows"],
+                    "reported_total_pages": meta["total_pages"],
+                    "retained_rows": len(rows),
+                }
+            )
+
         total_pages = meta["total_pages"]
         if total_pages is None:
             raise RuntimeError(f"OCIF denominator marker missing for {license_type!r} page {page}")
@@ -233,12 +275,29 @@ def run(
         existing = pd.read_csv(out_path, dtype=str, low_memory=False)
         return {"rows": len(existing), "path": str(out_path), "errors": []}
 
+    run_started_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    snapshot_base = os.getenv("GUIDE_SOURCE_SNAPSHOT_DIR", "").strip()
+    snapshot_run: Path | None = None
+    snapshot_entries: list[dict] = []
+    if snapshot_base:
+        run_token = run_started_at.replace(":", "").replace("+00:00", "Z")
+        snapshot_run = Path(snapshot_base) / SOURCE_ID / run_token
+        snapshot_run.mkdir(parents=True, exist_ok=False)
+
     session = build_session(HTTP.user_agent, HTTP.extra_headers)
     rows: list[dict] = []
     try:
         for license_type in license_classes:
             logger.info("OCIF class: %s", license_type)
-            rows.extend(fetch_class(session, license_type, logger))
+            rows.extend(
+                fetch_class(
+                    session,
+                    license_type,
+                    logger,
+                    snapshot_run=snapshot_run,
+                    snapshot_entries=snapshot_entries,
+                )
+            )
     finally:
         session.close()
 
@@ -251,7 +310,53 @@ def run(
     df = apply_post_ingest(df, source_id=SOURCE_ID, root=root)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out_path, index=False, encoding="utf-8")
-    return {"rows": len(df), "path": str(out_path), "errors": []}
+    output_bytes = out_path.read_bytes()
+
+    manifest_path = ""
+    if snapshot_run is not None:
+        class_counts = {
+            str(key): int(value)
+            for key, value in df.groupby("license_type_raw", dropna=False).size().items()
+        }
+        missing_classes = sorted(set(license_classes) - set(class_counts))
+        if missing_classes:
+            raise RuntimeError(f"OCIF class denominator missing from output: {missing_classes}")
+        manifest = {
+            "schema_version": "guide_source_snapshot_manifest_v1",
+            "source_id": SOURCE_ID,
+            "run_started_at_utc": run_started_at,
+            "license_class_denominator": list(license_classes),
+            "license_class_row_counts": class_counts,
+            "manifestations": snapshot_entries,
+            "processed_output": {
+                "path": OUT_REL,
+                "row_count": len(df),
+                "byte_size": len(output_bytes),
+                "sha256": hashlib.sha256(output_bytes).hexdigest(),
+            },
+            "identity_note": (
+                "OCIF license class and license number are retained as authoritative source fields; "
+                "adviser, private-fund and other license classes are not identity-equivalent to a "
+                "registered investment company merely because they share investment terminology."
+            ),
+            "certification_scope_note": (
+                "This source freeze supports only the bounded guide routes explicitly adjudicated; "
+                "it does not imply ALL_PUERTO_RICO_FINANCE coverage."
+            ),
+        }
+        manifest_file = snapshot_run / "manifest.json"
+        manifest_file.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        manifest_path = str(manifest_file)
+
+    return {
+        "rows": len(df),
+        "path": str(out_path),
+        "snapshot_manifest": manifest_path,
+        "errors": [],
+    }
 
 
 def main() -> int:
