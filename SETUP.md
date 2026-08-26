@@ -90,6 +90,15 @@ cp .env.example .env
 
 Tests do not require real API keys. Credentials are needed only for explicitly authorized live data acquisition. Follow `docs/SECRET_HANDLING_POLICY.md`; never commit `.env` or key material.
 
+Instead of hand-editing `.env`, `scripts/set_api_key.py` can set individual keys:
+
+```bash
+python3 scripts/set_api_key.py --list        # show which keys are set/missing
+python3 scripts/set_api_key.py SAM_API_KEY    # prompts for the value (hidden input)
+```
+
+The diagnostic dashboard's "API Keys" tab (see `dashboard/README.md`) offers the same thing from the browser.
+
 ## 5. Run the local quality bar
 
 ```bash

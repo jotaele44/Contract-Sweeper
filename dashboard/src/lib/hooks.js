@@ -4,6 +4,7 @@ import {
   getGovernmentChanges, getGovernmentChangeCandidates, getGovernmentChangeSummary,
   getCampaignFinanceSummary, getCampaignFinanceContributions,
   getCampaignFinanceEntities, getCampaignFinanceReports,
+  getApiKeys,
 } from '@/lib/api'
 
 export const useHealth = () => useQuery({ queryKey: ['health'], queryFn: getHealth, refetchInterval: 15_000 })
@@ -39,3 +40,5 @@ export const useCampaignFinanceReports = (filters = {}) =>
     queryKey: ['campaign-finance-reports', filters],
     queryFn: () => getCampaignFinanceReports(filters),
   })
+
+export const useApiKeys = () => useQuery({ queryKey: ['api-keys'], queryFn: getApiKeys })

@@ -7,9 +7,17 @@ import RelationshipGraph from '@/components/RelationshipGraph'
 import MunicipalityAggregates from '@/components/MunicipalityAggregates'
 import CampaignFinance from '@/components/CampaignFinance'
 import GovernmentChanges from '@/components/GovernmentChanges'
+import ApiKeysPanel from '@/components/ApiKeysPanel'
 import brandMark from "@/assets/icon-64.png?inline";
 
-const TABS = ['contracts', 'entities', 'government-changes', 'graph', 'municipios', 'campaign-finance']
+// API Keys writes to a local backend .env file — no backend exists in the
+// OFFLINE/standalone export, so the tab is hidden entirely there.
+const OFFLINE = import.meta.env.VITE_OFFLINE === '1'
+
+const TABS = [
+  'contracts', 'entities', 'government-changes', 'graph', 'municipios', 'campaign-finance',
+  ...(OFFLINE ? [] : ['api-keys']),
+]
 
 export default function Dashboard() {
   const [params, setParams] = useSearchParams()
@@ -33,13 +41,14 @@ export default function Dashboard() {
 
       <div className="min-h-0 flex-1 p-3">
         <Tabs value={tab} onValueChange={setTab} className="flex h-full flex-col">
-          <TabsList className="grid w-full grid-cols-6 bg-card">
+          <TabsList className={`grid w-full ${OFFLINE ? 'grid-cols-6' : 'grid-cols-7'} bg-card`}>
             <TabsTrigger value="contracts" className="text-xs data-[state=active]:glow-border">Contracts</TabsTrigger>
             <TabsTrigger value="entities" className="text-xs data-[state=active]:glow-border">Entities</TabsTrigger>
             <TabsTrigger value="government-changes" className="text-xs data-[state=active]:glow-border">Gov Changes</TabsTrigger>
             <TabsTrigger value="graph" className="text-xs data-[state=active]:glow-border">Relationships</TabsTrigger>
             <TabsTrigger value="municipios" className="text-xs data-[state=active]:glow-border">Municipios</TabsTrigger>
             <TabsTrigger value="campaign-finance" className="text-xs data-[state=active]:glow-border">Campaign Finance</TabsTrigger>
+            {!OFFLINE && <TabsTrigger value="api-keys" className="text-xs data-[state=active]:glow-border">API Keys</TabsTrigger>}
           </TabsList>
           <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background/40">
             <TabsContent value="contracts" className="m-0 h-full"><ContractsTable /></TabsContent>
@@ -48,6 +57,7 @@ export default function Dashboard() {
             <TabsContent value="graph" className="m-0 h-full"><RelationshipGraph /></TabsContent>
             <TabsContent value="municipios" className="m-0 h-full"><MunicipalityAggregates /></TabsContent>
             <TabsContent value="campaign-finance" className="m-0 h-full"><CampaignFinance /></TabsContent>
+            {!OFFLINE && <TabsContent value="api-keys" className="m-0 h-full"><ApiKeysPanel /></TabsContent>}
           </div>
         </Tabs>
       </div>
