@@ -47,10 +47,7 @@
         "UNKNOWN"
       ]
     },
-    "direct_or_indirect": {
-      "type": "string",
-      "enum": ["DIRECT", "INDIRECT", "MIXED", "UNKNOWN"]
-    },
+    "direct_or_indirect": {"type": "string", "enum": ["DIRECT", "INDIRECT", "MIXED", "UNKNOWN"]},
     "shares": {"type": ["number", "null"], "minimum": 0},
     "principal_amount": {"type": ["number", "null"], "minimum": 0},
     "market_value": {"type": ["number", "null"], "minimum": 0},
@@ -68,13 +65,17 @@
     "report_date": {"type": "string", "format": "date"},
     "source_id": {"type": "string", "minLength": 1},
     "source_record_id": {"type": "string", "minLength": 1},
-    "source_document_sha256": {
-      "type": ["string", "null"],
-      "pattern": "^[a-f0-9]{64}$"
-    },
+    "source_document_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
     "amendment_status": {
       "type": "string",
-      "enum": ["ORIGINAL", "AMENDED", "SUPERSEDED", "UNKNOWN"]
+      "enum": [
+        "ORIGINAL",
+        "AMENDED",
+        "AMENDED_RESTATEMENT",
+        "AMENDED_ADDITION",
+        "SUPERSEDED",
+        "UNKNOWN"
+      ]
     },
     "supersedes_observation_id": {
       "type": ["string", "null"],
@@ -99,7 +100,9 @@
   "allOf": [
     {
       "if": {
-        "properties": {"amendment_status": {"const": "AMENDED"}},
+        "properties": {
+          "amendment_status": {"enum": ["AMENDED", "AMENDED_RESTATEMENT"]}
+        },
         "required": ["amendment_status"]
       },
       "then": {
