@@ -13,6 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -28,21 +29,66 @@ jobs:
       - name: Install acquisition dependency
         run: python -m pip install "requests>=2.34.2"
 
+      # PR #519 already passed authoritative SEC identity/Company Facts acquisition
+      # and froze all eight 13F archives in run 32946731464. Reuse that immutable
+      # downstream input instead of refreshing mutable SEC sources after a certifier
+      # import-path failure. Other PRs create a new versioned snapshot normally.
+      - name: Restore passed SEC snapshot for PR 519
+        id: restore
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 519 }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SNAPSHOT_ARTIFACT_ID: "9598537414"
+          SNAPSHOT_SHA256: "b815af1baf1d80e4230ce5aa2a0fae98dfcdf9ec850ca2d05fa7dc8eaadb9fa6"
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/sec-ownership-bpop-8q-audit.zip"
+          curl --fail --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o "$archive" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$SNAPSHOT_ARTIFACT_ID/zip"
+          echo "$SNAPSHOT_SHA256  $archive" | sha256sum --check --strict
+          unzip -q "$archive" -d "$GITHUB_WORKSPACE"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path.cwd()
+          freeze = root / "data/manifests/capital_control/bpop_8q_freeze_manifest.json"
+          if not freeze.is_file():
+              raise SystemExit("restored snapshot lacks bpop_8q_freeze_manifest.json")
+          payload = json.loads(freeze.read_text(encoding="utf-8"))
+          archives = payload.get("archives", [])
+          if payload.get("archive_count") != 8 or len(archives) != 8:
+              raise SystemExit("restored snapshot does not contain exact eight-archive denominator")
+          for item in archives:
+              filename = item.get("filename")
+              path = root / "data/staging/raw/sec13f_bulk/bpop_8q_v1" / str(filename)
+              if not path.is_file():
+                  raise SystemExit(f"restored frozen archive missing: {filename}")
+          print("PASS restored frozen SEC snapshot from workflow run 32946731464")
+          PY
+
       - name: Re-materialize benchmark issuer identities and denominators
         id: equity
+        if: ${{ steps.restore.outcome == 'skipped' }}
         continue-on-error: true
-        run: python scripts/download_sec_equity_v2.py --root "$GITHUB_WORKSPACE"
+        run: python -m scripts.download_sec_equity_v2 --root "$GITHUB_WORKSPACE"
 
       - name: Freeze authoritative SEC 13F archives
         id: freeze
+        if: ${{ steps.restore.outcome == 'skipped' }}
         continue-on-error: true
-        run: python scripts/acquire_sec13f_bpop_golden.py --root "$GITHUB_WORKSPACE"
+        run: python -m scripts.acquire_sec13f_bpop_golden --root "$GITHUB_WORKSPACE"
 
       - name: Certify bounded BPOP eight-quarter corpus
         id: certify
-        if: ${{ steps.equity.outcome == 'success' && steps.freeze.outcome == 'success' }}
+        if: ${{ steps.restore.outcome == 'success' || (steps.equity.outcome == 'success' && steps.freeze.outcome == 'success') }}
         continue-on-error: true
-        run: python scripts/certify_bpop_sec13f_8q.py --root "$GITHUB_WORKSPACE"
+        run: python -m scripts.certify_bpop_sec13f_8q --root "$GITHUB_WORKSPACE"
 
       - name: Record audit outcome
         if: always()
@@ -51,9 +97,13 @@ jobs:
           mkdir -p artifacts/sec-ownership-golden-data-audit
           cat > artifacts/sec-ownership-golden-data-audit/workflow-state.json <<EOF
           {
+            "restored_snapshot": "${{ steps.restore.outcome }}",
             "equity": "${{ steps.equity.outcome }}",
             "freeze": "${{ steps.freeze.outcome }}",
             "certify": "${{ steps.certify.outcome }}",
+            "snapshot_source_run_id": "32946731464",
+            "snapshot_artifact_id": "9598537414",
+            "snapshot_artifact_sha256": "b815af1baf1d80e4230ce5aa2a0fae98dfcdf9ec850ca2d05fa7dc8eaadb9fa6",
             "claim": "AUDIT_ONLY_UNTIL_CERTIFICATION_JSON_STATE_PASS"
           }
           EOF
@@ -73,6 +123,28 @@ jobs:
             data/staging/processed/pr_sec_share_denominators_v2.csv
             data/staging/processed/capital_control/sec13f_pr_golden_holdings.csv
             data/staging/processed/capital_control/sec13f_pr_golden_investors.csv
-            data/staging/raw/sec13f_bulk/bpop_8q_v1
           if-no-files-found: warn
           retention-days: 90
+
+      - name: Enforce bounded certification gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.certify.outcome }}" = "success"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("data/manifests/capital_control/bpop_sec13f_8q_certification.json")
+          if not path.is_file():
+              raise SystemExit("certification artifact missing")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          if payload.get("state") != "PASS":
+              raise SystemExit(f"certification state is {payload.get('state')!r}, expected 'PASS'")
+          gates = payload.get("gates", {})
+          failed = sorted(key for key, value in gates.items() if value is not True)
+          if failed:
+              raise SystemExit(f"certification has non-PASS gates: {failed}")
+          print("PASS BPOP_SEC13F_8Q_v1 bounded certification")
+          PY
