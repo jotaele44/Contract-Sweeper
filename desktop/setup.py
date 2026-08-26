@@ -26,7 +26,8 @@ from desktop.config import DIST_DIR, FRONTEND_DIR, REPO_ROOT, REQUIREMENT_FILES 
 
 VENV_DIR = REPO_ROOT / ".venv"
 MARKER = Path(__file__).resolve().parent / ".setup-complete"
-MIN_PYTHON = (3, 10)
+MIN_PYTHON = (3, 11)
+CONSTRAINTS_FILE = REPO_ROOT / "constraints-desktop.txt"
 
 
 def venv_python() -> Path:
@@ -46,7 +47,7 @@ def is_complete() -> bool:
 
 def setup_python() -> None:
     if sys.version_info < MIN_PYTHON:
-        raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
+        raise SystemExit(f"Python 3.11+ required, found {sys.version.split()[0]}")
     if not venv_python().exists():
         print(f"Creating virtual environment at {VENV_DIR} …")
         venv.EnvBuilder(with_pip=True, clear=False).create(VENV_DIR)
@@ -55,6 +56,8 @@ def setup_python() -> None:
     install = [str(venv_python()), "-m", "pip", "install", "--quiet"]
     for req in REQUIREMENT_FILES:
         install += ["-r", str(req)]
+    if CONSTRAINTS_FILE.exists():
+        install += ["-c", str(CONSTRAINTS_FILE)]
     run(install)
     extra = list(getattr(config, "EXTRA_PIP_SPECS", []))
     if extra:
@@ -88,12 +91,12 @@ def main() -> None:
             print("Setup already complete (use --force to redo).")
         return
     # Only the bootstrap interpreter has to satisfy this; a finished install runs
-    # from .venv and is let through above, so losing python3.10+ from PATH later
+    # from .venv and is let through above, so losing python3.11+ from PATH later
     # does not strand a working app. Checked before setup_python() because macOS
     # ships 3.9 with the Command Line Tools, and cloning the hub sibling first
     # would bury the one line that says what is actually wrong.
     if sys.version_info < MIN_PYTHON:
-        raise SystemExit(f"Python 3.10+ required, found {sys.version.split()[0]}")
+        raise SystemExit(f"Python 3.11+ required, found {sys.version.split()[0]}")
     setup_python()
     setup_frontend()
     MARKER.write_text("ok\n", encoding="utf-8")
