@@ -8,14 +8,14 @@ does not suppress candidates or modify the committed debt baseline.
 
 from __future__ import annotations
 
+import importlib
 import json
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-
-from scripts import check_gui_parity
+check_gui_parity = importlib.import_module("scripts.check_gui_parity")
 
 BASE = ROOT / ".federation" / "gui-capabilities.json"
 EXTENSIONS = ROOT / ".federation" / "gui-capabilities.extensions"
@@ -39,7 +39,9 @@ def merge_manifest() -> Path:
     manifest["capabilities"] = capabilities
     manifest["exceptions"] = exceptions
     MERGED.parent.mkdir(parents=True, exist_ok=True)
-    MERGED.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    MERGED.write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     return MERGED
 
 
