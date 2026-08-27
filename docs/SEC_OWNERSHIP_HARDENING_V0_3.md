@@ -42,6 +42,8 @@ Each denominator candidate preserves `as_of_date`, `filed_date`, form, fiscal ye
 
 `scripts/acquire_sec13f_bpop_golden.py` freezes exactly eight official bulk ZIPs spanning BPOP 2024Q2 through 2026Q1. Every archive receives an outer SHA-256 and every member receives `PATH + UNCOMPRESSED_SIZE + SHA256`. Required `SUBMISSION`, `COVERPAGE`, `SUMMARYPAGE`, and `INFOTABLE` members must exist.
 
+The GitHub Actions wrapper ZIP is transport-only and may be recompressed. Certification pins the freeze-manifest and SEC identity/denominator payload hashes, then compares every inner SEC archive's path, byte size, SHA-256, and complete member `PATH + UNCOMPRESSED_SIZE + SHA256` set. Wrapper-byte difference alone cannot change source identity.
+
 `moneysweep.capital_control.sec13f` parses the frozen archives with:
 
 - `(ACCESSION_NUMBER, INFOTABLE_SK)` duplicate rejection;
@@ -49,7 +51,7 @@ Each denominator candidate preserves `as_of_date`, `filed_date`, form, fiscal ye
 - exact target CUSIP matching;
 - source row/member/outer hash provenance;
 - additive-amendment vs restatement distinction;
-- fail-closed restatement target adjudication;
+- filing-level restatement lineage keyed by stable CIK, report period, and SEC accession;
 - provider `% Total Assets` kept separate from SEC reportable-portfolio weight.
 
 ## Certification gates
@@ -57,19 +59,33 @@ Each denominator candidate preserves `as_of_date`, `filed_date`, form, fiscal ye
 `scripts/certify_bpop_sec13f_8q.py` requires all of the following:
 
 1. exact eight archive names and hashes;
-2. row conservation and unique source records;
-3. zero unresolved restatement targets;
-4. all eight BPOP report periods present;
-5. one unique exact-date BPOP shares-outstanding denominator per period;
-6. stable CUSIP issuer bindings;
-7. stable filer-CIK holder IDs;
-8. all eligible non-option BPOP share rows receive a computed issuer percentage;
-9. at least one OFG and one EVTC target row for parser regression coverage;
-10. supersession arithmetic closes;
-11. Morningstar/provider equivalence remains `OPEN` rather than being silently promoted.
+2. exact archive/member identity against the pinned freeze manifest;
+3. row conservation and unique source records;
+4. every retained restatement filing is classified, and all prior retained target-row
+   filings for that CIK/report period are superseded as a set without synthesizing
+   row-to-row identity;
+5. all eight BPOP report periods present;
+6. one unique exact-date BPOP shares-outstanding denominator per period;
+7. stable CUSIP issuer bindings;
+8. stable filer-CIK holder IDs;
+9. all eligible non-option BPOP share rows receive a computed issuer percentage;
+10. at least one OFG and one EVTC target row for parser regression coverage;
+11. supersession arithmetic closes;
+12. Morningstar/provider equivalence remains `OPEN` rather than being silently promoted.
+
+The official filing archives are filing-date windows and can contain amendments for older `PERIODOFREPORT` values. Those rows remain preserved whole in `sec13f_pr_golden_excluded_periods.csv` with an explicit exclusion reason; they do not expand the eight-period certification denominator. The partition must satisfy `discovered = in-scope + excluded`.
+
+The [official SEC Form 13F instructions](https://www.sec.gov/files/form13f.pdf) require a restatement to restate the report in its entirety;
+an additive amendment instead contains only new holdings. Within the retained target-CUSIP
+corpus, all prior filings for the same stable filer CIK and report period are superseded as
+a set. A
+restatement with no prior retained target rows is classified
+`NO_PRIOR_TARGET_ROWS_RETAINED`; that bounded state does not claim that no prior SEC filing
+exists. Every source row remains materialized, and active plus superseded arithmetic must
+equal the in-scope source count.
 
 Only a `PASS` certification makes the dataset eligible for a **separate** Deep Dive promotion vector.
 
-## Current external blocker
+## Current certification state
 
-The code can freeze the official archives, but the current ChatGPT execution environment cannot retrieve SEC ZIP binary payloads. This is an acquisition-runtime blocker, not evidence that the public source is unavailable. No FOIA escalation is justified.
+Workflow run `32946731464` froze the authoritative SEC identity inputs and all eight official archives. Downstream runs reuse that immutable snapshot rather than redownloading mutable sources. A local replay of those exact payloads passed all certification gates on 2026-08-27 with `11,866 discovered = 11,400 in scope + 466 excluded` and `11,400 in scope = 10,743 active + 657 superseded`. Hosted exact-head certification remains required; code CI success alone does not promote the ownership data or establish provider equivalence.

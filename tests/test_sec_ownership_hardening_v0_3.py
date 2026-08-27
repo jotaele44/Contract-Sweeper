@@ -2,15 +2,28 @@ from __future__ import annotations
 
 import json
 import zipfile
+from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 import pytest
 
 from moneysweep.capital_control import ingest
-from moneysweep.capital_control.sec13f import Sec13FBulkAdapter, Sec13FError
+from moneysweep.capital_control.sec13f import (
+    Sec13FBulkAdapter,
+    Sec13FError,
+    adjudicate_sec13f_filing_restatements,
+)
 from moneysweep.sec_equity_identity import SecIdentityError, require_binding
+from scripts.download_sec import PR_DOMICILED
 from scripts.download_sec_equity_v2 import _share_denominators
 from scripts.rematerialize_sec_holdings_discovery_v2 import classify_identifier
+from scripts.certify_bpop_sec13f_8q import (
+    _freeze_identity_issues,
+    _holder_identity_cardinality_closed,
+    _partition_required_periods,
+    _serialize_filing_lineage,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,7 +33,7 @@ def _ticker_payload() -> dict[str, object]:
         "0": {"cik_str": 763901, "ticker": "BPOP", "title": "POPULAR, INC."},
         "1": {"cik_str": 1030469, "ticker": "OFG", "title": "OFG BANCORP"},
         "2": {"cik_str": 1559865, "ticker": "EVTC", "title": "EVERTEC, Inc."},
-        "3": {"cik_str": 1633931, "ticker": "EVRI", "title": "TopBuild Corp"},
+        "3": {"cik_str": 1318568, "ticker": "EVRI", "title": "EVERI HOLDINGS INC."},
     }
 
 
@@ -38,8 +51,156 @@ def test_ofg_wrong_carver_binding_fails_closed() -> None:
 
 def test_evtc_is_not_satisfied_by_evri() -> None:
     evtc = require_binding(_ticker_payload(), ticker="EVTC", expected_cik="0001559865")
-    evri = require_binding(_ticker_payload(), ticker="EVRI", expected_cik="0001633931")
+    evri = require_binding(_ticker_payload(), ticker="EVRI", expected_cik="0001318568")
     assert evtc.cik != evri.cik
+    with pytest.raises(SecIdentityError):
+        require_binding(_ticker_payload(), ticker="EVRI", expected_cik="0001633931")
+
+
+def test_legacy_sec_download_bindings_use_canonical_ciks() -> None:
+    by_ticker = {item["ticker"]: item["cik"] for item in PR_DOMICILED}
+    assert by_ticker["OFG"] == "0001030469"
+    assert by_ticker["EVRI"] == "0001318568"
+
+
+def test_certification_period_partition_preserves_every_candidate(tmp_path: Path) -> None:
+    archive = tmp_path / "sec13f.zip"
+    _write_zip(archive)
+    rows = list(
+        ingest(
+            Sec13FBulkAdapter(
+                archive,
+                target_cusips=["733174700"],
+                issuer_bindings={"733174700": "ISSUER_BPOP"},
+            )
+        ).observations
+    )
+    assert rows
+    inside = rows[0]
+    outside = replace(
+        inside, observation_id=f"{inside.observation_id}_OLD", as_of_date=date(2020, 3, 31)
+    )
+
+    scoped, excluded = _partition_required_periods([inside, outside], [inside.as_of_date])
+
+    assert scoped == (inside,)
+    assert excluded == (outside,)
+    assert len(scoped) + len(excluded) == 2
+
+
+def test_holder_cardinality_uses_only_materialized_period_partition() -> None:
+    in_scope = {"INV_CIK_0000763901"}
+    all_discovered = in_scope | {"INV_CIK_0001318568"}
+
+    assert _holder_identity_cardinality_closed(in_scope, in_scope) is True
+    assert _holder_identity_cardinality_closed(in_scope, all_discovered) is False
+
+
+def test_filing_restatement_supersedes_prior_retained_rows_as_a_set(tmp_path: Path) -> None:
+    archive = tmp_path / "sec13f.zip"
+    _write_zip(archive)
+    seed = next(
+        iter(
+            ingest(
+                Sec13FBulkAdapter(
+                    archive,
+                    target_cusips=["733174700"],
+                    issuer_bindings={"733174700": "ISSUER_BPOP"},
+                )
+            ).observations
+        )
+    )
+
+    def filing_row(suffix: str, accession: str, filed: date, raw_type: str):
+        return replace(
+            seed,
+            observation_id=f"{seed.observation_id}_{suffix}",
+            source_record_id=f"{accession}:{suffix}",
+            report_date=filed,
+            extra={
+                **seed.extra,
+                "accession_number": accession,
+                "source_amendment_type": raw_type,
+            },
+        )
+
+    original = [
+        filing_row("O1", "0000763901-25-000001", date(2025, 2, 1), "ORIGINAL"),
+        filing_row("O2", "0000763901-25-000001", date(2025, 2, 1), "ORIGINAL"),
+    ]
+    addition = [
+        filing_row("A1", "0000763901-25-000002", date(2025, 2, 15), "NEW HOLDINGS")
+    ]
+    restatement = [
+        filing_row(f"R{index}", "0000763901-25-000003", date(2025, 3, 1), "RESTATEMENT")
+        for index in range(1, 4)
+    ]
+
+    result = adjudicate_sec13f_filing_restatements([*original, *addition, *restatement])
+
+    assert result.superseded_observation_ids == frozenset(
+        row.observation_id for row in [*original, *addition]
+    )
+    assert result.active_observation_ids == frozenset(
+        row.observation_id for row in restatement
+    )
+    assert result.lineages[0].state == "PRIOR_RETAINED_FILING_SUPERSEDED"
+    assert result.lineages[0].prior_filing_accession_numbers == (
+        "0000763901-25-000001",
+        "0000763901-25-000002",
+    )
+    assert json.loads(json.dumps(_serialize_filing_lineage(result.lineages[0])))[
+        "as_of_date"
+    ] == seed.as_of_date.isoformat()
+
+
+def test_filing_restatement_can_introduce_first_retained_target_row(tmp_path: Path) -> None:
+    archive = tmp_path / "sec13f.zip"
+    _write_zip(archive)
+    seed = next(
+        iter(
+            ingest(
+                Sec13FBulkAdapter(
+                    archive,
+                    target_cusips=["733174700"],
+                    issuer_bindings={"733174700": "ISSUER_BPOP"},
+                )
+            ).observations
+        )
+    )
+    restatement = replace(
+        seed,
+        amendment_status="UNKNOWN",
+        extra={**seed.extra, "source_amendment_type": "RESTATEMENT"},
+    )
+
+    result = adjudicate_sec13f_filing_restatements([restatement])
+
+    assert result.active_observation_ids == frozenset({restatement.observation_id})
+    assert result.superseded_observation_ids == frozenset()
+    assert result.lineages[0].state == "NO_PRIOR_TARGET_ROWS_RETAINED"
+
+
+def test_freeze_identity_compares_archive_and_member_payloads() -> None:
+    member = {"path": "INFOTABLE.tsv", "uncompressed_size": 7, "sha256": "a" * 64}
+    freeze = {
+        "archive_count": 1,
+        "archives": [
+            {"filename": "quarter.zip", "byte_size": 11, "sha256": "b" * 64, "members": [member]}
+        ],
+    }
+    audit = {
+        "archive": "quarter.zip",
+        "byte_size": 11,
+        "sha256": "b" * 64,
+        "member_digests": [member],
+    }
+
+    assert _freeze_identity_issues(freeze, [audit], ["quarter.zip"]) == []
+    changed = {**audit, "member_digests": [{**member, "sha256": "c" * 64}]}
+    assert _freeze_identity_issues(freeze, [changed], ["quarter.zip"]) == [
+        "quarter.zip: member path/size/SHA payload differs from frozen manifest"
+    ]
 
 
 def test_form13f_file_number_never_promotes_to_cik() -> None:

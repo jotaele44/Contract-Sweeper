@@ -93,6 +93,24 @@ class RestatementAdjudication:
     issues: tuple[RestatementIssue, ...]
 
 
+@dataclass(frozen=True)
+class FilingRestatementLineage:
+    holder_id: str
+    as_of_date: date
+    filing_accession_number: str
+    prior_filing_accession_numbers: tuple[str, ...]
+    filing_observation_ids: tuple[str, ...]
+    superseded_observation_ids: tuple[str, ...]
+    state: str
+
+
+@dataclass(frozen=True)
+class FilingRestatementAdjudication:
+    active_observation_ids: frozenset[str]
+    superseded_observation_ids: frozenset[str]
+    lineages: tuple[FilingRestatementLineage, ...]
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -571,4 +589,93 @@ def adjudicate_sec13f_restatements(
     return RestatementAdjudication(
         tuple(replacements.get(row.observation_id, row) for row in rows),
         tuple(issues),
+    )
+
+
+def adjudicate_sec13f_filing_restatements(
+    observations: Iterable[HoldingObservation],
+) -> FilingRestatementAdjudication:
+    """Apply SEC restatements at filing scope without inventing row pairings."""
+    rows = tuple(observations)
+    by_filing: dict[tuple[str, date, str], list[HoldingObservation]] = {}
+    for row in rows:
+        accession = str(row.extra.get("accession_number") or "").strip()
+        if not accession:
+            raise Sec13FError(f"{row.observation_id}: missing SEC accession number")
+        by_filing.setdefault((row.holder_id, row.as_of_date, accession), []).append(row)
+
+    filing_metadata: dict[tuple[str, date, str], tuple[date, str]] = {}
+    for key, filing_rows in by_filing.items():
+        report_dates = {row.report_date for row in filing_rows}
+        raw_types = {
+            str(row.extra.get("source_amendment_type") or "").strip().upper()
+            for row in filing_rows
+        }
+        if len(report_dates) != 1 or len(raw_types) != 1:
+            raise Sec13FError(f"{key[2]}: inconsistent retained filing metadata")
+        filing_metadata[key] = (next(iter(report_dates)), next(iter(raw_types)))
+
+    superseded_ids: set[str] = set()
+    lineages: list[FilingRestatementLineage] = []
+    ordered = sorted(
+        by_filing,
+        key=lambda key: (
+            key[0],
+            key[1],
+            filing_metadata[key][0],
+            key[2],
+        ),
+    )
+    for key in ordered:
+        holder_id, as_of_date, accession = key
+        report_date, raw_type = filing_metadata[key]
+        if raw_type not in _RESTATEMENT:
+            continue
+        prior_keys = [
+            candidate
+            for candidate in ordered
+            if candidate[0] == holder_id
+            and candidate[1] == as_of_date
+            and (filing_metadata[candidate][0], candidate[2]) < (report_date, accession)
+        ]
+        replaced = tuple(
+            sorted(
+                row.observation_id
+                for prior_key in prior_keys
+                for row in by_filing[prior_key]
+            )
+        )
+        superseded_ids.update(replaced)
+        lineages.append(
+            FilingRestatementLineage(
+                holder_id=holder_id,
+                as_of_date=as_of_date,
+                filing_accession_number=accession,
+                prior_filing_accession_numbers=tuple(
+                    candidate[2]
+                    for candidate in sorted(
+                        prior_keys,
+                        key=lambda candidate: (
+                            filing_metadata[candidate][0],
+                            candidate[2],
+                        ),
+                    )
+                ),
+                filing_observation_ids=tuple(
+                    sorted(row.observation_id for row in by_filing[key])
+                ),
+                superseded_observation_ids=replaced,
+                state=(
+                    "PRIOR_RETAINED_FILING_SUPERSEDED"
+                    if prior_keys
+                    else "NO_PRIOR_TARGET_ROWS_RETAINED"
+                ),
+            )
+        )
+
+    all_ids = {row.observation_id for row in rows}
+    return FilingRestatementAdjudication(
+        active_observation_ids=frozenset(all_ids - superseded_ids),
+        superseded_observation_ids=frozenset(superseded_ids),
+        lineages=tuple(lineages),
     )

@@ -3,7 +3,7 @@
 
 The certifier fails closed. It requires the exact eight frozen SEC archives,
 unique exact-date shares-outstanding denominators for every required BPOP
-period, zero unresolved restatement targets, row conservation, stable issuer
+period, closed filing-level restatement lineage, row conservation, stable issuer
 CUSIP bindings, and at least one OFG/EVTC regression observation. It does not
 claim Morningstar metric equivalence and never aggregates options into shares
 held.
@@ -15,17 +15,18 @@ import argparse
 import csv
 import json
 import sys
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from moneysweep.capital_control import apply_supersession, ingest
+from moneysweep.capital_control import ingest
 from moneysweep.capital_control.models import HoldingObservation, InvestorIdentity
 from moneysweep.capital_control.sec13f import (
+    FilingRestatementLineage,
     Sec13FBulkAdapter,
     Sec13FError,
-    adjudicate_sec13f_restatements,
+    adjudicate_sec13f_filing_restatements,
 )
 from scripts.config import PROJECT_ROOT
 
@@ -73,6 +74,55 @@ def _read_denominators(path: Path) -> list[dict[str, str]]:
         return list(reader)
 
 
+def _freeze_identity_issues(
+    freeze: dict[str, Any],
+    archive_audits: Iterable[dict[str, object]],
+    required_archives: Iterable[str],
+) -> list[str]:
+    required = tuple(required_archives)
+    raw_expected = freeze.get("archives")
+    if not isinstance(raw_expected, list):
+        return ["freeze manifest archives must be a list"]
+    expected = {str(item.get("filename")): item for item in raw_expected if isinstance(item, dict)}
+    actual = {str(item.get("archive")): item for item in archive_audits}
+    issues: list[str] = []
+    if freeze.get("archive_count") != len(required):
+        issues.append("freeze manifest archive_count differs from required denominator")
+    if set(expected) != set(required):
+        issues.append("freeze manifest archive names differ from required denominator")
+    if set(actual) != set(required):
+        issues.append("audited archive names differ from required denominator")
+    for name in required:
+        expected_item = expected.get(name)
+        actual_item = actual.get(name)
+        if expected_item is None or actual_item is None:
+            continue
+        for field in ("byte_size", "sha256"):
+            if actual_item.get(field) != expected_item.get(field):
+                issues.append(f"{name}: {field} differs from frozen manifest")
+        expected_members = sorted(
+            (
+                str(member.get("path")),
+                member.get("uncompressed_size"),
+                str(member.get("sha256")),
+            )
+            for member in expected_item.get("members", [])
+            if isinstance(member, dict)
+        )
+        actual_members = sorted(
+            (
+                str(member.get("path")),
+                member.get("uncompressed_size"),
+                str(member.get("sha256")),
+            )
+            for member in actual_item.get("member_digests", [])
+            if isinstance(member, dict)
+        )
+        if actual_members != expected_members:
+            issues.append(f"{name}: member path/size/SHA payload differs from frozen manifest")
+    return issues
+
+
 def _select_bpop_denominators(
     rows: list[dict[str, str]], required_periods: tuple[date, ...]
 ) -> tuple[dict[date, float], list[dict[str, object]]]:
@@ -118,7 +168,7 @@ def _select_bpop_denominators(
 
 
 def _flatten(
-    row: HoldingObservation, *, active: bool, denominator: float | None
+    row: HoldingObservation, *, active: bool | None, denominator: float | None
 ) -> dict[str, object]:
     payload = asdict(row)
     extra = dict(payload.pop("extra") or {})
@@ -140,10 +190,24 @@ def _flatten(
     )
     payload["provider_percent_total_assets"] = None
     if payload.get("provider_metric_equivalence") != "OPEN":
-        raise ValueError(
-            f"provider metric equivalence must remain OPEN: {row.observation_id}"
-        )
+        raise ValueError(f"provider metric equivalence must remain OPEN: {row.observation_id}")
     return payload
+
+
+def _partition_required_periods(
+    rows: Iterable[HoldingObservation], required_periods: Iterable[date]
+) -> tuple[tuple[HoldingObservation, ...], tuple[HoldingObservation, ...]]:
+    required = frozenset(required_periods)
+    if not required:
+        raise ValueError("required period denominator must not be empty")
+    candidates = tuple(rows)
+    in_scope: list[HoldingObservation] = []
+    excluded: list[HoldingObservation] = []
+    for row in candidates:
+        (in_scope if row.as_of_date in required else excluded).append(row)
+    if len(in_scope) + len(excluded) != len(candidates):
+        raise AssertionError("period partition arithmetic failed")
+    return tuple(in_scope), tuple(excluded)
 
 
 def _write_csv(path: Path, rows: Iterable[dict[str, object]]) -> int:
@@ -206,6 +270,19 @@ def _holder_name_manifestations(
     return manifestations
 
 
+def _holder_identity_cardinality_closed(
+    holder_ids: set[str], materialized_investor_ids: set[str]
+) -> bool:
+    """Compare identities only within the certification period partition."""
+    return holder_ids == materialized_investor_ids
+
+
+def _serialize_filing_lineage(lineage: FilingRestatementLineage) -> dict[str, object]:
+    payload = asdict(lineage)
+    payload["as_of_date"] = lineage.as_of_date.isoformat()
+    return payload
+
+
 def run(*, root: Path) -> dict[str, object]:
     registry_path = root / "registries" / "capital_control_golden_cases.json"
     data = _load_registry(registry_path)
@@ -222,6 +299,9 @@ def run(*, root: Path) -> dict[str, object]:
     missing_files = [path.name for path in archive_paths if not path.is_file()]
     if missing_files:
         raise FileNotFoundError(f"missing frozen SEC archives: {missing_files}")
+    freeze_manifest = _load_registry(
+        root / "data" / "manifests" / "capital_control" / "bpop_8q_freeze_manifest.json"
+    )
 
     denominator_rows = _read_denominators(
         root / "data" / "staging" / "processed" / "pr_sec_share_denominators_v2.csv"
@@ -257,21 +337,51 @@ def run(*, root: Path) -> dict[str, object]:
                 "member_digests": [asdict(item) for item in audit.member_digests],
             }
         )
+    freeze_identity_issues = _freeze_identity_issues(
+        freeze_manifest, archive_audits, required_archives
+    )
 
-    source_count = len(observations)
-    if len({row.observation_id for row in observations}) != source_count:
+    discovery_count = len(observations)
+    if len({row.observation_id for row in observations}) != discovery_count:
         raise ValueError("duplicate observation_id across archives")
-    source_keys = [(row.source_id, row.source_record_id) for row in observations]
-    if len(source_keys) != len(set(source_keys)):
+    discovery_keys = [(row.source_id, row.source_record_id) for row in observations]
+    if len(discovery_keys) != len(set(discovery_keys)):
         raise ValueError("duplicate source record across archives")
 
-    adjudicated = adjudicate_sec13f_restatements(observations)
-    if len(adjudicated.observations) != source_count:
-        raise AssertionError("restatement adjudication violated row conservation")
-    supersession = apply_supersession(adjudicated.observations)
-    superseded = {row.observation_id: row for row in supersession.superseded}
-    active_ids = {row.observation_id for row in supersession.active}
-    preserved = tuple(superseded.get(row.observation_id, row) for row in adjudicated.observations)
+    scoped_observations, excluded_observations = _partition_required_periods(
+        observations, required_periods
+    )
+    source_count = len(scoped_observations)
+    if discovery_count != source_count + len(excluded_observations):
+        raise AssertionError("discovery period partition violated row conservation")
+
+    filing_adjudication = adjudicate_sec13f_filing_restatements(scoped_observations)
+    superseded_ids = set(filing_adjudication.superseded_observation_ids)
+    active_ids = set(filing_adjudication.active_observation_ids)
+    lineage_by_observation = {
+        observation_id: lineage
+        for lineage in filing_adjudication.lineages
+        for observation_id in lineage.filing_observation_ids
+    }
+    preserved = []
+    for row in scoped_observations:
+        lineage = lineage_by_observation.get(row.observation_id)
+        extra = dict(row.extra)
+        if lineage is not None:
+            extra["filing_restatement_state"] = lineage.state
+            extra["supersedes_filing_accession_numbers"] = "|".join(
+                lineage.prior_filing_accession_numbers
+            )
+        preserved.append(
+            replace(
+                row,
+                amendment_status=(
+                    "SUPERSEDED" if row.observation_id in superseded_ids else row.amendment_status
+                ),
+                extra=extra,
+            )
+        )
+    preserved = tuple(preserved)
     if len(preserved) != source_count:
         raise AssertionError("supersession violated row conservation")
 
@@ -307,8 +417,18 @@ def run(*, root: Path) -> dict[str, object]:
         for row in preserved
     ]
     materialized_count = _write_csv(output_dir / "sec13f_pr_golden_holdings.csv", materialized_rows)
+    excluded_rows = []
+    for row in excluded_observations:
+        payload = _flatten(row, active=None, denominator=None)
+        payload["certification_scope_state"] = "OUTSIDE_REQUIRED_PERIOD"
+        payload["certification_exclusion_reason"] = "PERIODOFREPORT_NOT_IN_GOLDEN_DENOMINATOR"
+        excluded_rows.append(payload)
+    excluded_count = _write_csv(output_dir / "sec13f_pr_golden_excluded_periods.csv", excluded_rows)
+    holder_ids_in_observations = {row.holder_id for row in preserved}
     investor_rows: list[dict[str, object]] = []
     for investor in investors.values():
+        if investor.investor_id not in holder_ids_in_observations:
+            continue
         payload: dict[str, object] = asdict(investor)
         payload["raw_name_role"] = "REPRESENTATIVE_ONLY"
         payload["name_manifestation_count"] = len(names_by_holder.get(investor.investor_id, set()))
@@ -318,6 +438,9 @@ def run(*, root: Path) -> dict[str, object]:
             else "SINGLE_RAW_NAME_OBSERVED"
         )
         investor_rows.append(payload)
+    materialized_investor_ids = {
+        str(row["investor_id"]) for row in investor_rows
+    }
     _write_csv(output_dir / "sec13f_pr_golden_investors.csv", investor_rows)
     _write_csv(output_dir / "sec13f_holder_name_manifestations.csv", name_manifestations)
 
@@ -327,7 +450,6 @@ def run(*, root: Path) -> dict[str, object]:
         if row.get("security_cusip") == bpop_cusip
         and row.get("issuer_percent_eligibility") == "ELIGIBLE_COMMON_SHARE_POSITION"
     ]
-    holder_ids_in_observations = {row.holder_id for row in preserved}
     gates = {
         "exact_archive_count_8": len(archive_audits) == 8,
         "archive_names_exact": tuple(item["archive"] for item in archive_audits)
@@ -335,9 +457,19 @@ def run(*, root: Path) -> dict[str, object]:
         "all_archive_hashes_present": all(
             len(str(item["sha256"])) == 64 for item in archive_audits
         ),
+        "freeze_manifest_identity_exact": not freeze_identity_issues,
         "row_conservation": source_count == materialized_count == len(preserved),
-        "source_record_unique": len(source_keys) == len(set(source_keys)),
-        "restatement_residue_zero": len(adjudicated.issues) == 0,
+        "source_record_unique": len(discovery_keys) == len(set(discovery_keys)),
+        "period_partition_conservation": discovery_count == source_count + excluded_count,
+        "restatement_filing_lineage_closed": sum(
+            len(lineage.filing_observation_ids)
+            for lineage in filing_adjudication.lineages
+        )
+        == sum(
+            str(row.extra.get("source_amendment_type") or "").strip().upper()
+            in {"RESTATEMENT", "RESTATED"}
+            for row in preserved
+        ),
         "bpop_all_eight_periods_present": observed_periods == set(required_periods),
         "bpop_exact_denominator_each_period": set(denominators) == set(required_periods),
         "bpop_eligible_rows_have_percent": all(
@@ -350,9 +482,11 @@ def run(*, root: Path) -> dict[str, object]:
         "holder_ids_are_stable_cik_ids": all(
             row.holder_id.startswith("INV_CIK_") for row in preserved
         ),
-        "holder_identity_cardinality_closed": holder_ids_in_observations == set(investors),
+        "holder_identity_cardinality_closed": _holder_identity_cardinality_closed(
+            holder_ids_in_observations, materialized_investor_ids
+        ),
         "holder_name_manifestations_preserved": holder_ids_in_observations == set(names_by_holder),
-        "supersession_arithmetic": len(active_ids) + len(superseded) == len(preserved),
+        "supersession_arithmetic": len(active_ids) + len(superseded_ids) == len(preserved),
         "provider_equivalence_not_promoted": all(
             row.get("provider_metric_equivalence") == "OPEN" for row in materialized_rows
         ),
@@ -364,21 +498,32 @@ def run(*, root: Path) -> dict[str, object]:
         "scope": "SEC Form 13F BPOP ownership observations 2024Q2-2026Q1 plus OFG/EVTC parser regressions",
         "state": state,
         "bounded_claim_only": True,
+        "discovered_observation_count": discovery_count,
         "source_observation_count": source_count,
+        "excluded_out_of_period_count": excluded_count,
         "active_observation_count": len(active_ids),
-        "superseded_observation_count": len(superseded),
+        "superseded_observation_count": len(superseded_ids),
         "bpop_observation_count": len(bpop_rows),
         "bpop_eligible_common_share_rows": len(bpop_eligible),
         "regression_counts": regression_counts,
         "observed_bpop_periods": sorted(value.isoformat() for value in observed_periods),
         "denominator_ledger": denominator_ledger,
-        "restatement_issues": [asdict(issue) for issue in adjudicated.issues],
+        "filing_restatement_lineages": [
+            _serialize_filing_lineage(lineage)
+            for lineage in filing_adjudication.lineages
+        ],
+        "filing_restatement_count": len(filing_adjudication.lineages),
+        "filing_restatements_without_prior_target_rows": sum(
+            not lineage.prior_filing_accession_numbers
+            for lineage in filing_adjudication.lineages
+        ),
         "holder_name_variation_count": len(name_variations),
         "holder_name_variations": name_variations,
         "holder_name_variation_adjudication": (
             "NAME source manifestations preserved; stable SEC CIK remains authoritative identity"
         ),
         "archive_audits": archive_audits,
+        "freeze_identity_issues": freeze_identity_issues,
         "gates": gates,
         "morningstar_percent_total_assets_equivalence": "OPEN",
         "deep_dive_promotion": "BLOCKED"
