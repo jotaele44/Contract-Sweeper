@@ -109,13 +109,17 @@ def _freeze_identity_issues(
             for member in expected_item.get("members", [])
             if isinstance(member, dict)
         )
+        raw_actual_members = actual_item.get("member_digests", [])
+        if not isinstance(raw_actual_members, list):
+            issues.append(f"{name}: member_digests must be a list")
+            raw_actual_members = []
         actual_members = sorted(
             (
                 str(member.get("path")),
                 member.get("uncompressed_size"),
                 str(member.get("sha256")),
             )
-            for member in actual_item.get("member_digests", [])
+            for member in raw_actual_members
             if isinstance(member, dict)
         )
         if actual_members != expected_members:
@@ -363,7 +367,7 @@ def run(*, root: Path) -> dict[str, object]:
         for lineage in filing_adjudication.lineages
         for observation_id in lineage.filing_observation_ids
     }
-    preserved = []
+    preserved_rows: list[HoldingObservation] = []
     for row in scoped_observations:
         lineage = lineage_by_observation.get(row.observation_id)
         extra = dict(row.extra)
@@ -372,7 +376,7 @@ def run(*, root: Path) -> dict[str, object]:
             extra["supersedes_filing_accession_numbers"] = "|".join(
                 lineage.prior_filing_accession_numbers
             )
-        preserved.append(
+        preserved_rows.append(
             replace(
                 row,
                 amendment_status=(
@@ -381,7 +385,7 @@ def run(*, root: Path) -> dict[str, object]:
                 extra=extra,
             )
         )
-    preserved = tuple(preserved)
+    preserved = tuple(preserved_rows)
     if len(preserved) != source_count:
         raise AssertionError("supersession violated row conservation")
 
@@ -419,25 +423,29 @@ def run(*, root: Path) -> dict[str, object]:
     materialized_count = _write_csv(output_dir / "sec13f_pr_golden_holdings.csv", materialized_rows)
     excluded_rows = []
     for row in excluded_observations:
-        payload = _flatten(row, active=None, denominator=None)
-        payload["certification_scope_state"] = "OUTSIDE_REQUIRED_PERIOD"
-        payload["certification_exclusion_reason"] = "PERIODOFREPORT_NOT_IN_GOLDEN_DENOMINATOR"
-        excluded_rows.append(payload)
+        excluded_payload = _flatten(row, active=None, denominator=None)
+        excluded_payload["certification_scope_state"] = "OUTSIDE_REQUIRED_PERIOD"
+        excluded_payload["certification_exclusion_reason"] = (
+            "PERIODOFREPORT_NOT_IN_GOLDEN_DENOMINATOR"
+        )
+        excluded_rows.append(excluded_payload)
     excluded_count = _write_csv(output_dir / "sec13f_pr_golden_excluded_periods.csv", excluded_rows)
     holder_ids_in_observations = {row.holder_id for row in preserved}
     investor_rows: list[dict[str, object]] = []
     for investor in investors.values():
         if investor.investor_id not in holder_ids_in_observations:
             continue
-        payload: dict[str, object] = asdict(investor)
-        payload["raw_name_role"] = "REPRESENTATIVE_ONLY"
-        payload["name_manifestation_count"] = len(names_by_holder.get(investor.investor_id, set()))
-        payload["name_variation_state"] = (
+        investor_payload: dict[str, object] = asdict(investor)
+        investor_payload["raw_name_role"] = "REPRESENTATIVE_ONLY"
+        investor_payload["name_manifestation_count"] = len(
+            names_by_holder.get(investor.investor_id, set())
+        )
+        investor_payload["name_variation_state"] = (
             "NAME_VARIATION_STABLE_ID_BOUND"
             if investor.investor_id in name_variations
             else "SINGLE_RAW_NAME_OBSERVED"
         )
-        investor_rows.append(payload)
+        investor_rows.append(investor_payload)
     materialized_investor_ids = {str(row["investor_id"]) for row in investor_rows}
     _write_csv(output_dir / "sec13f_pr_golden_investors.csv", investor_rows)
     _write_csv(output_dir / "sec13f_holder_name_manifestations.csv", name_manifestations)
