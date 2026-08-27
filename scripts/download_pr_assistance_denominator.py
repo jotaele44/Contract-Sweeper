@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import gzip
 import hashlib
 import io
 import json
@@ -24,18 +25,12 @@ import time
 import zipfile
 from datetime import date
 from pathlib import Path
-from urllib.request import urlopen
 
 import pandas as pd
 import requests
 
 BULK_DOWNLOAD_URL = "https://api.usaspending.gov/api/v2/bulk_download/awards/"
 BULK_STATUS_URL = "https://api.usaspending.gov/api/v2/bulk_download/status/"
-SAM_SOURCE_URL = (
-    "https://s3.amazonaws.com/falextracts/Assistance%20Listings/datagov/"
-    "AssistanceListings_DataGov_PUBLIC_CURRENT.csv"
-)
-
 # USAspending Advanced Search's financial-assistance filter denominator.  The
 # ontology also carries F001-F010 source/reference aliases, but those are not
 # duplicated here as filter values because the public Advanced Filter contract
@@ -216,22 +211,32 @@ def _program_number(value: object) -> str:
     return str(value).strip()
 
 
-def _load_sam_financial_programs(sam_path: Path, expected_sha256: str) -> dict[str, dict]:
+def _load_sam_financial_programs(
+    sam_path: Path,
+    expected_sha256: str,
+    expected_artifact_sha256: str | None = None,
+) -> dict[str, dict]:
     if not sam_path.exists():
-        sam_path.parent.mkdir(parents=True, exist_ok=True)
-        with urlopen(SAM_SOURCE_URL) as response, sam_path.open("wb") as output:  # noqa: S310
-            while True:
-                block = response.read(1024 * 1024)
-                if not block:
-                    break
-                output.write(block)
-    observed_hash = _sha256(sam_path)
+        raise RuntimeError(f"frozen SAM denominator source is missing: {sam_path}")
+    if expected_artifact_sha256 is not None:
+        observed_artifact_hash = _sha256(sam_path)
+        if observed_artifact_hash != expected_artifact_sha256:
+            raise RuntimeError(
+                "SAM denominator artifact drift: "
+                f"expected {expected_artifact_sha256}, observed {observed_artifact_hash}"
+            )
+    if sam_path.suffix == ".gz":
+        with gzip.open(sam_path, "rb") as source:
+            source_bytes = source.read()
+    else:
+        source_bytes = sam_path.read_bytes()
+    observed_hash = hashlib.sha256(source_bytes).hexdigest()
     if observed_hash != expected_sha256:
         raise RuntimeError(
             f"SAM denominator source drift: expected {expected_sha256}, observed {observed_hash}"
         )
     programs: dict[str, dict] = {}
-    with sam_path.open("r", encoding="cp1252", newline="") as handle:
+    with io.StringIO(source_bytes.decode("cp1252"), newline="") as handle:
         for row in csv.DictReader(handle):
             assistance = (row.get("Types of Assistance (060)") or "").upper()
             if not any(token in assistance for token in FINANCIAL_TOKENS):
@@ -256,7 +261,11 @@ def aggregate(
     output_dir.mkdir(parents=True, exist_ok=True)
     snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
     expected_sam_sha = snapshot["source"]["sha256"]
-    programs = _load_sam_financial_programs(sam_path, expected_sam_sha)
+    programs = _load_sam_financial_programs(
+        sam_path,
+        expected_sam_sha,
+        snapshot["source"].get("artifact_sha256"),
+    )
     expected_programs = int(snapshot["denominator"]["financial_program_rows"])
     if len(programs) != expected_programs:
         raise RuntimeError(
@@ -268,12 +277,22 @@ def aggregate(
     for receipt_path in sorted(input_dir.rglob("*.receipt.json")):
         receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         receipts.append(receipt)
-    expected_shards = 2 * (end_fy - start_fy + 1)
-    shard_keys = {
-        (int(r["fiscal_year"]), str(r["nexus"])) for r in receipts if r.get("status") == "complete"
+    expected_keys = {
+        (fy, nexus) for fy in range(start_fy, end_fy + 1) for nexus in ("recipient", "pop")
     }
-    if len(shard_keys) != expected_shards:
-        raise RuntimeError(f"incomplete shard denominator: {len(shard_keys)} != {expected_shards}")
+    complete_receipts = [r for r in receipts if r.get("status") == "complete"]
+    complete_keys = [(int(r["fiscal_year"]), str(r["nexus"])) for r in complete_receipts]
+    shard_keys = set(complete_keys)
+    missing_keys = expected_keys - shard_keys
+    extra_keys = shard_keys - expected_keys
+    duplicate_keys = sorted(key for key in shard_keys if complete_keys.count(key) > 1)
+    if missing_keys or extra_keys or duplicate_keys:
+        raise RuntimeError(
+            "incomplete shard denominator: "
+            f"missing={sorted(missing_keys)}, extra={sorted(extra_keys)}, "
+            f"duplicates={duplicate_keys}"
+        )
+    expected_shards = len(expected_keys)
 
     for csv_path in sorted(input_dir.rglob("pr_assistance_*_fy*.csv")):
         try:
@@ -354,7 +373,7 @@ def aggregate(
         "pr_nexus_state_counts": state_counts,
         "complete_shards": len(shard_keys),
         "expected_shards": expected_shards,
-        "native_rows_before_dedup": int(sum(int(r.get("rows", 0)) for r in receipts)),
+        "native_rows_before_dedup": int(sum(int(r.get("rows", 0)) for r in complete_receipts)),
         "deduplicated_prime_awards": int(len(awards)),
         "confirmed_program_numbers": len(confirmed),
         "orphan_observed_program_numbers": orphan_program_numbers,
@@ -392,12 +411,12 @@ def main() -> int:
     agg.add_argument(
         "--snapshot",
         type=Path,
-        default=Path("data/reference/federal_financial_program_denominator_20260810.json"),
+        default=Path("data/reference/federal_financial_program_denominator_20260827.json"),
     )
     agg.add_argument(
         "--sam-source",
         type=Path,
-        default=Path("data/raw/sam/AssistanceListings_DataGov_PUBLIC_CURRENT.csv"),
+        default=Path("data/reference/AssistanceListings_DataGov_c32925ccdefe425d.csv.gz"),
     )
     agg.add_argument("--start-fy", type=int, default=2000)
     agg.add_argument("--end-fy", type=int, default=_current_fy())

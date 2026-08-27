@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 import hashlib
+import gzip
 import json
 from pathlib import Path
 
 import pandas as pd
 import pytest
+import requests
 
-from scripts.download_pr_assistance_denominator import ASSISTANCE_FILTER_CODES, _payload, aggregate
+from scripts.download_pr_assistance_denominator import (
+    ASSISTANCE_FILTER_CODES,
+    _load_sam_financial_programs,
+    _payload,
+    aggregate,
+)
+from scripts.recover_pr_assistance_failed_shards import _wait_for_job
 
 pytestmark = pytest.mark.unit
 
@@ -60,14 +68,14 @@ def _write_sam(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _write_receipt(path: Path, *, fy: int, nexus: str, rows: int) -> None:
+def _write_receipt(path: Path, *, fy: int, nexus: str, rows: int, status: str = "complete") -> None:
     path.write_text(
         json.dumps(
             {
                 "schema_version": "pr_assistance_shard_receipt_v1",
                 "fiscal_year": fy,
                 "nexus": nexus,
-                "status": "complete",
+                "status": status,
                 "rows": rows,
             }
         ),
@@ -145,3 +153,91 @@ def test_aggregate_fails_closed_when_any_fiscal_year_nexus_shard_is_missing(tmp_
     _write_receipt(raw / "only_one.receipt.json", fy=2026, nexus="recipient", rows=0)
     with pytest.raises(RuntimeError, match="incomplete shard denominator"):
         aggregate(raw, tmp_path / "out", snapshot, sam, 2026, 2026)
+
+
+def test_aggregate_rejects_equal_sized_wrong_shard_set(tmp_path):
+    sam = tmp_path / "sam.csv"
+    sam_hash = _write_sam(sam)
+    snapshot = tmp_path / "snapshot.json"
+    snapshot.write_text(
+        json.dumps({"source": {"sha256": sam_hash}, "denominator": {"financial_program_rows": 2}}),
+        encoding="utf-8",
+    )
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    _write_receipt(raw / "recipient.receipt.json", fy=2026, nexus="recipient", rows=0)
+    _write_receipt(raw / "wrong.receipt.json", fy=2025, nexus="pop", rows=0)
+    with pytest.raises(RuntimeError, match=r"missing=.*2026.*pop.*extra=.*2025.*pop"):
+        aggregate(raw, tmp_path / "out", snapshot, sam, 2026, 2026)
+
+
+def test_aggregate_rejects_duplicate_complete_shard_receipts(tmp_path):
+    sam = tmp_path / "sam.csv"
+    sam_hash = _write_sam(sam)
+    snapshot = tmp_path / "snapshot.json"
+    snapshot.write_text(
+        json.dumps({"source": {"sha256": sam_hash}, "denominator": {"financial_program_rows": 2}}),
+        encoding="utf-8",
+    )
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    _write_receipt(raw / "recipient-a.receipt.json", fy=2026, nexus="recipient", rows=0)
+    _write_receipt(raw / "recipient-b.receipt.json", fy=2026, nexus="recipient", rows=0)
+    _write_receipt(raw / "pop.receipt.json", fy=2026, nexus="pop", rows=0)
+    with pytest.raises(RuntimeError, match=r"duplicates=.*2026.*recipient"):
+        aggregate(raw, tmp_path / "out", snapshot, sam, 2026, 2026)
+
+
+def test_aggregate_counts_rows_from_complete_receipts_only(tmp_path):
+    raw = tmp_path / "raw"
+    raw.mkdir()
+    sam = tmp_path / "sam.csv"
+    sam_hash = _write_sam(sam)
+    snapshot = tmp_path / "snapshot.json"
+    snapshot.write_text(
+        json.dumps({"source": {"sha256": sam_hash}, "denominator": {"financial_program_rows": 2}}),
+        encoding="utf-8",
+    )
+    _write_receipt(raw / "recipient.receipt.json", fy=2026, nexus="recipient", rows=3)
+    _write_receipt(raw / "pop.receipt.json", fy=2026, nexus="pop", rows=4)
+    _write_receipt(
+        raw / "failed.receipt.json", fy=2026, nexus="recipient", rows=99, status="failed"
+    )
+    coverage = aggregate(raw, tmp_path / "out", snapshot, sam, 2026, 2026)
+    assert coverage["native_rows_before_dedup"] == 7
+
+
+def test_frozen_sam_source_must_exist_and_never_falls_back_to_network(tmp_path):
+    missing = tmp_path / "missing.csv.gz"
+    with pytest.raises(RuntimeError, match="frozen SAM denominator source is missing"):
+        _load_sam_financial_programs(missing, "0" * 64)
+
+
+def test_frozen_sam_source_validates_transport_and_logical_hashes(tmp_path):
+    source = tmp_path / "sam.csv"
+    logical_hash = _write_sam(source)
+    artifact = tmp_path / "sam.csv.gz"
+    with gzip.GzipFile(filename="", mode="wb", fileobj=artifact.open("wb"), mtime=0) as output:
+        output.write(source.read_bytes())
+    artifact_hash = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    programs = _load_sam_financial_programs(artifact, logical_hash, artifact_hash)
+    assert set(programs) == {"01.001", "01.002"}
+
+    with pytest.raises(RuntimeError, match="SAM denominator artifact drift"):
+        _load_sam_financial_programs(artifact, logical_hash, "0" * 64)
+
+
+def test_recovery_404_after_registration_grace_is_terminal(monkeypatch):
+    class Session:
+        def get(self, *args, **kwargs):
+            return requests.Response()
+
+    response = requests.Response()
+    response.status_code = 404
+    monkeypatch.setattr(Session, "get", lambda self, *args, **kwargs: response)
+    times = iter((0.0, 181.0, 181.0))
+    monkeypatch.setattr(
+        "scripts.recover_pr_assistance_failed_shards.time.monotonic", lambda: next(times)
+    )
+    with pytest.raises(RuntimeError, match="remained unregistered after grace period"):
+        _wait_for_job(Session(), {"file_name": "missing-job"})

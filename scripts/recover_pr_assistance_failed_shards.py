@@ -104,6 +104,10 @@ def _wait_for_job(session: requests.Session, job: dict) -> tuple[str, dict]:
             if response.status_code == 404 and time.monotonic() < registration_deadline:
                 time.sleep(POLL_SECONDS)
                 continue
+            if response.status_code == 404:
+                raise RuntimeError(
+                    f"USAspending bulk job remained unregistered after grace period: {file_name}"
+                )
             if response.status_code in TRANSIENT_HTTP:
                 time.sleep(POLL_SECONDS)
                 continue
