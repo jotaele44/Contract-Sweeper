@@ -128,9 +128,7 @@ def test_filing_restatement_supersedes_prior_retained_rows_as_a_set(tmp_path: Pa
         filing_row("O1", "0000763901-25-000001", date(2025, 2, 1), "ORIGINAL"),
         filing_row("O2", "0000763901-25-000001", date(2025, 2, 1), "ORIGINAL"),
     ]
-    addition = [
-        filing_row("A1", "0000763901-25-000002", date(2025, 2, 15), "NEW HOLDINGS")
-    ]
+    addition = [filing_row("A1", "0000763901-25-000002", date(2025, 2, 15), "NEW HOLDINGS")]
     restatement = [
         filing_row(f"R{index}", "0000763901-25-000003", date(2025, 3, 1), "RESTATEMENT")
         for index in range(1, 4)
@@ -141,17 +139,16 @@ def test_filing_restatement_supersedes_prior_retained_rows_as_a_set(tmp_path: Pa
     assert result.superseded_observation_ids == frozenset(
         row.observation_id for row in [*original, *addition]
     )
-    assert result.active_observation_ids == frozenset(
-        row.observation_id for row in restatement
-    )
+    assert result.active_observation_ids == frozenset(row.observation_id for row in restatement)
     assert result.lineages[0].state == "PRIOR_RETAINED_FILING_SUPERSEDED"
     assert result.lineages[0].prior_filing_accession_numbers == (
         "0000763901-25-000001",
         "0000763901-25-000002",
     )
-    assert json.loads(json.dumps(_serialize_filing_lineage(result.lineages[0])))[
-        "as_of_date"
-    ] == seed.as_of_date.isoformat()
+    assert (
+        json.loads(json.dumps(_serialize_filing_lineage(result.lineages[0])))["as_of_date"]
+        == seed.as_of_date.isoformat()
+    )
 
 
 def test_filing_restatement_can_introduce_first_retained_target_row(tmp_path: Path) -> None:

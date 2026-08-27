@@ -438,9 +438,7 @@ def run(*, root: Path) -> dict[str, object]:
             else "SINGLE_RAW_NAME_OBSERVED"
         )
         investor_rows.append(payload)
-    materialized_investor_ids = {
-        str(row["investor_id"]) for row in investor_rows
-    }
+    materialized_investor_ids = {str(row["investor_id"]) for row in investor_rows}
     _write_csv(output_dir / "sec13f_pr_golden_investors.csv", investor_rows)
     _write_csv(output_dir / "sec13f_holder_name_manifestations.csv", name_manifestations)
 
@@ -462,8 +460,7 @@ def run(*, root: Path) -> dict[str, object]:
         "source_record_unique": len(discovery_keys) == len(set(discovery_keys)),
         "period_partition_conservation": discovery_count == source_count + excluded_count,
         "restatement_filing_lineage_closed": sum(
-            len(lineage.filing_observation_ids)
-            for lineage in filing_adjudication.lineages
+            len(lineage.filing_observation_ids) for lineage in filing_adjudication.lineages
         )
         == sum(
             str(row.extra.get("source_amendment_type") or "").strip().upper()
@@ -509,13 +506,11 @@ def run(*, root: Path) -> dict[str, object]:
         "observed_bpop_periods": sorted(value.isoformat() for value in observed_periods),
         "denominator_ledger": denominator_ledger,
         "filing_restatement_lineages": [
-            _serialize_filing_lineage(lineage)
-            for lineage in filing_adjudication.lineages
+            _serialize_filing_lineage(lineage) for lineage in filing_adjudication.lineages
         ],
         "filing_restatement_count": len(filing_adjudication.lineages),
         "filing_restatements_without_prior_target_rows": sum(
-            not lineage.prior_filing_accession_numbers
-            for lineage in filing_adjudication.lineages
+            not lineage.prior_filing_accession_numbers for lineage in filing_adjudication.lineages
         ),
         "holder_name_variation_count": len(name_variations),
         "holder_name_variations": name_variations,

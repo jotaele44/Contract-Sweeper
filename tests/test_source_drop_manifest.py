@@ -16,20 +16,24 @@ def test_source_drop_manifest_records_hash_rows_and_stage_copy(tmp_path: Path, m
     monkeypatch.setattr(
         manifest,
         "DROP_SOURCES",
-        [{
-            "source_id": "oce",
-            "classification": "FOUND",
-            "inclusion_decision": "stage_for_existing_dropzone",
-            "path": source,
-            "target_relpath": "data/raw/OCE/rows.csv",
-            "blocker": "test blocker",
-        }],
+        [
+            {
+                "source_id": "oce",
+                "classification": "FOUND",
+                "inclusion_decision": "stage_for_existing_dropzone",
+                "path": source,
+                "target_relpath": "data/raw/OCE/rows.csv",
+                "blocker": "test blocker",
+            }
+        ],
     )
 
     records = manifest.build_records(stage=True)
     assert records[0]["logical_rows"] == 2
     assert records[0]["staged"] is True
-    assert (repo / "data/raw/OCE/rows.csv").read_text(encoding="utf-8") == source.read_text(encoding="utf-8")
+    assert (repo / "data/raw/OCE/rows.csv").read_text(encoding="utf-8") == source.read_text(
+        encoding="utf-8"
+    )
 
     out = tmp_path / "out"
     manifest.write_outputs(records, out, stage=True)

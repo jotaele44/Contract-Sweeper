@@ -608,8 +608,7 @@ def adjudicate_sec13f_filing_restatements(
     for key, filing_rows in by_filing.items():
         report_dates = {row.report_date for row in filing_rows}
         raw_types = {
-            str(row.extra.get("source_amendment_type") or "").strip().upper()
-            for row in filing_rows
+            str(row.extra.get("source_amendment_type") or "").strip().upper() for row in filing_rows
         }
         if len(report_dates) != 1 or len(raw_types) != 1:
             raise Sec13FError(f"{key[2]}: inconsistent retained filing metadata")
@@ -639,11 +638,7 @@ def adjudicate_sec13f_filing_restatements(
             and (filing_metadata[candidate][0], candidate[2]) < (report_date, accession)
         ]
         replaced = tuple(
-            sorted(
-                row.observation_id
-                for prior_key in prior_keys
-                for row in by_filing[prior_key]
-            )
+            sorted(row.observation_id for prior_key in prior_keys for row in by_filing[prior_key])
         )
         superseded_ids.update(replaced)
         lineages.append(
@@ -661,9 +656,7 @@ def adjudicate_sec13f_filing_restatements(
                         ),
                     )
                 ),
-                filing_observation_ids=tuple(
-                    sorted(row.observation_id for row in by_filing[key])
-                ),
+                filing_observation_ids=tuple(sorted(row.observation_id for row in by_filing[key])),
                 superseded_observation_ids=replaced,
                 state=(
                     "PRIOR_RETAINED_FILING_SUPERSEDED"

@@ -233,7 +233,9 @@ def _parse_df(df, source_file, logger):
     out = {}
     for out_col, candidates in COL_MAP.items():
         src = _map_col(df.columns.tolist(), candidates)
-        out[out_col] = df[src].fillna("").astype(str) if src else pd.Series([""] * len(df), index=df.index)
+        out[out_col] = (
+            df[src].fillna("").astype(str) if src else pd.Series([""] * len(df), index=df.index)
+        )
 
     result = pd.DataFrame(out)
     result["lobbyist_normalized"] = result["lobbyist_name"].apply(_normalize_name)
