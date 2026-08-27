@@ -50,6 +50,9 @@ CABILDEROS_COLUMNS = [
 # Flexible column mapping for PR Cabilderos registry formats
 COL_MAP = {
     "lobbyist_name": [
+        "lobbyist_name",
+        "lobbyist_names",
+        "registrant_name",
         "Nombre Cabildero",
         "Cabildero",
         "Lobbyist Name",
@@ -59,6 +62,7 @@ COL_MAP = {
         "nombre_cabildero",
     ],
     "client_name": [
+        "client_name",
         "Cliente",
         "Client Name",
         "Nombre Cliente",
@@ -71,6 +75,8 @@ COL_MAP = {
         "cliente",
     ],
     "registration_year": [
+        "registration_year",
+        "filing_year",
         "Año",
         "Year",
         "Año de Registro",
@@ -79,6 +85,8 @@ COL_MAP = {
         "año_registro",
     ],
     "registration_date": [
+        "registration_date",
+        "dt_posted",
         "Fecha de Registro",
         "Registration Date",
         "Fecha Registro",
@@ -96,6 +104,9 @@ COL_MAP = {
         "Expiration Date",
     ],
     "lobbying_subject": [
+        "lobbying_subject",
+        "general_issue_codes",
+        "issue_descriptions",
         "Asunto",
         "Subject",
         "Tema",
@@ -113,6 +124,9 @@ COL_MAP = {
         "Cuerpo Legislativo",
     ],
     "fee_amount": [
+        "fee_amount",
+        "income",
+        "expenses",
         "Honorarios",
         "Fee",
         "Amount",
@@ -122,6 +136,8 @@ COL_MAP = {
         "fee_amount",
     ],
     "registro_cabildero_num": [
+        "registro_cabildero_num",
+        "filing_uuid",
         "Registro de Cabildero Num",
         "Registro de Cabildero Núm",
         "Registro de Cabildero Numero",
@@ -217,7 +233,7 @@ def _parse_df(df, source_file, logger):
     out = {}
     for out_col, candidates in COL_MAP.items():
         src = _map_col(df.columns.tolist(), candidates)
-        out[out_col] = df[src].fillna("").astype(str) if src else ""
+        out[out_col] = df[src].fillna("").astype(str) if src else pd.Series([""] * len(df), index=df.index)
 
     result = pd.DataFrame(out)
     result["lobbyist_normalized"] = result["lobbyist_name"].apply(_normalize_name)

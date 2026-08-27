@@ -55,6 +55,7 @@ CONTRALOR_COLUMNS = [
 
 COL_MAP = {
     "entity_name": [
+        "entity_name",
         "Entidad",
         "Entity",
         "Nombre",
@@ -69,6 +70,7 @@ COL_MAP = {
         "Corporation",
     ],
     "audit_id": [
+        "audit_id",
         "Número de Informe",
         "Report Number",
         "Informe",
@@ -79,6 +81,7 @@ COL_MAP = {
         "Referencia",
     ],
     "audit_type": [
+        "audit_type",
         "Tipo de Informe",
         "Report Type",
         "Tipo",
@@ -87,6 +90,7 @@ COL_MAP = {
         "tipo_informe",
     ],
     "audit_year": [
+        "audit_year",
         "Año",
         "Year",
         "Fiscal Year",
@@ -96,6 +100,7 @@ COL_MAP = {
         "Period",
     ],
     "audit_date": [
+        "audit_date",
         "Fecha",
         "Date",
         "Fecha del Informe",
@@ -104,6 +109,7 @@ COL_MAP = {
         "Issue Date",
     ],
     "finding_count": [
+        "finding_count",
         "Hallazgos",
         "Findings",
         "Número de Hallazgos",
@@ -112,6 +118,7 @@ COL_MAP = {
         "Num Findings",
     ],
     "finding_type": [
+        "finding_type",
         "Tipo de Hallazgo",
         "Finding Type",
         "Categoría",
@@ -119,6 +126,7 @@ COL_MAP = {
         "tipo_hallazgo",
     ],
     "contract_amount": [
+        "contract_amount",
         "Monto",
         "Amount",
         "Valor",
@@ -128,6 +136,7 @@ COL_MAP = {
         "monto",
     ],
     "municipality": [
+        "municipality",
         "Municipio",
         "Municipality",
         "Pueblo",
@@ -135,6 +144,7 @@ COL_MAP = {
         "municipio",
     ],
     "branch": [
+        "branch",
         "Rama",
         "Branch",
         "Rama Gubernamental",
@@ -142,6 +152,7 @@ COL_MAP = {
         "rama",
     ],
     "report_url": [
+        "report_url",
         "Enlace",
         "Link",
         "URL",
@@ -150,6 +161,7 @@ COL_MAP = {
         "enlace",
     ],
     "recommendation": [
+        "recommendation",
         "Recomendación",
         "Recommendation",
         "Acción Correctiva",
@@ -157,6 +169,7 @@ COL_MAP = {
         "recomendacion",
     ],
     "status": [
+        "status",
         "Estado",
         "Status",
         "Estatus",
@@ -240,7 +253,7 @@ def _parse_df(df, source_file, logger):
     out = {}
     for out_col, candidates in COL_MAP.items():
         src = _map_col(df.columns.tolist(), candidates)
-        out[out_col] = df[src].fillna("").astype(str) if src else ""
+        out[out_col] = df[src].fillna("").astype(str) if src else pd.Series([""] * len(df), index=df.index)
 
     result = pd.DataFrame(out)
     result["entity_normalized"] = result["entity_name"].apply(_normalize_name)
