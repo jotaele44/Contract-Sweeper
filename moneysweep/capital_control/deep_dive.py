@@ -2,10 +2,27 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
+
+
+CERTIFICATION_ID = "BPOP_SEC13F_8Q_v1"
+BPOP_CIK = "0000763901"
+BPOP_CUSIP = "733174700"
+BPOP_ISSUER_ID = f"ISSUER_CIK_{BPOP_CIK}"
+BPOP_PERIODS = (
+    "2024-06-30",
+    "2024-09-30",
+    "2024-12-31",
+    "2025-03-31",
+    "2025-06-30",
+    "2025-09-30",
+    "2025-12-31",
+    "2026-03-31",
+)
 
 
 class OwnershipDeepDiveError(ValueError):
@@ -49,6 +66,13 @@ def load_materialized_holdings(path: Path | str) -> tuple[dict[str, str], ...]:
             "security_cusip",
             "amendment_status",
             "is_active",
+            "accession_number",
+            "infotable_sk",
+            "filer_cik",
+            "source_document_sha256",
+            "issuer_percent_eligibility",
+            "issuer_share_denominator",
+            "percent_issuer_shares_computed",
             "provider_metric_equivalence",
         }
         fields = set(reader.fieldnames or [])
@@ -78,25 +102,52 @@ def _number(value: object) -> float | None:
     if not text:
         return None
     try:
-        return float(text)
+        number = float(text)
     except ValueError as exc:
         raise OwnershipDeepDiveError(f"invalid numeric value: {value!r}") from exc
+    if not math.isfinite(number):
+        raise OwnershipDeepDiveError(f"non-finite numeric value: {value!r}")
+    return number
 
 
 def _certified_scope(certification: Mapping[str, Any]) -> CertifiedOwnershipScope:
     state = str(certification.get("state") or "")
     if state != "PASS":
-        raise OwnershipDeepDiveError(f"ownership certification state is {state or 'UNKNOWN'}, not PASS")
+        raise OwnershipDeepDiveError(
+            f"ownership certification state is {state or 'UNKNOWN'}, not PASS"
+        )
+    certification_id = str(certification.get("certification_id") or "")
+    if certification_id != CERTIFICATION_ID:
+        raise OwnershipDeepDiveError(
+            f"unexpected ownership certification id: {certification_id or 'MISSING'}"
+        )
     if certification.get("bounded_claim_only") is not True:
         raise OwnershipDeepDiveError("ownership certification is not explicitly bounded")
-    equivalence = str(certification.get("morningstar_percent_total_assets_equivalence") or "")
+    if certification.get("deep_dive_promotion") != "ELIGIBLE_FOR_SEPARATE_PROMOTION_VECTOR":
+        raise OwnershipDeepDiveError("upstream certification did not authorize a promotion vector")
+
+    raw_gates = certification.get("gates")
+    if not isinstance(raw_gates, Mapping) or not raw_gates:
+        raise OwnershipDeepDiveError("ownership certification gates are absent")
+    failed_gates = sorted(str(key) for key, value in raw_gates.items() if value is not True)
+    if failed_gates:
+        raise OwnershipDeepDiveError(
+            f"ownership certification contains non-PASS gates: {failed_gates}"
+        )
+
+    equivalence = str(
+        certification.get("morningstar_percent_total_assets_equivalence") or ""
+    )
     if equivalence != "OPEN":
         raise OwnershipDeepDiveError(
             "provider-equivalence state must remain OPEN for SEC ownership promotion"
         )
     periods = tuple(str(value) for value in certification.get("observed_bpop_periods", []))
-    if len(periods) != 8 or len(set(periods)) != 8:
-        raise OwnershipDeepDiveError("certified BPOP scope must contain exactly eight distinct periods")
+    if tuple(sorted(periods)) != BPOP_PERIODS:
+        raise OwnershipDeepDiveError(
+            "certified BPOP periods differ from the exact eight-quarter promotion contract"
+        )
+
     regression_raw = certification.get("regression_counts") or {}
     if not isinstance(regression_raw, Mapping):
         raise OwnershipDeepDiveError("regression_counts must be an object")
@@ -104,14 +155,64 @@ def _certified_scope(certification: Mapping[str, Any]) -> CertifiedOwnershipScop
     if regression_counts.get("OFG", 0) <= 0 or regression_counts.get("EVTC", 0) <= 0:
         raise OwnershipDeepDiveError("OFG and EVTC real-source regression coverage is required")
     return CertifiedOwnershipScope(
-        certification_id=str(certification.get("certification_id") or ""),
+        certification_id=certification_id,
         state=state,
         scope=str(certification.get("scope") or ""),
         bounded_claim_only=True,
-        required_periods=tuple(sorted(periods)),
+        required_periods=BPOP_PERIODS,
         morningstar_equivalence=equivalence,
         regression_counts=regression_counts,
     )
+
+
+def _validate_source_identity(row: Mapping[str, object]) -> None:
+    observation_id = str(row.get("observation_id") or "")
+    accession = str(row.get("accession_number") or "").strip()
+    infotable_sk = str(row.get("infotable_sk") or "").strip()
+    source_record_id = str(row.get("source_record_id") or "").strip()
+    filer_cik = str(row.get("filer_cik") or "").strip()
+    holder_id = str(row.get("holder_id") or "").strip()
+    source_hash = str(row.get("source_document_sha256") or "").strip().lower()
+    issuer_id = str(row.get("issuer_id") or "").strip()
+
+    if not observation_id or not accession or not infotable_sk:
+        raise OwnershipDeepDiveError("observation/accession/INFOTABLE_SK identity is incomplete")
+    if source_record_id != f"{accession}:{infotable_sk}":
+        raise OwnershipDeepDiveError(
+            f"{observation_id}: source_record_id does not match accession + INFOTABLE_SK"
+        )
+    if filer_cik != filer_cik.zfill(10) or not filer_cik.isdigit():
+        raise OwnershipDeepDiveError(f"{observation_id}: invalid SEC filer CIK")
+    if holder_id != f"INV_CIK_{filer_cik}":
+        raise OwnershipDeepDiveError(f"{observation_id}: holder ID is not bound to filer CIK")
+    if issuer_id != BPOP_ISSUER_ID:
+        raise OwnershipDeepDiveError(f"{observation_id}: issuer ID is outside BPOP scope")
+    if len(source_hash) != 64 or any(char not in "0123456789abcdef" for char in source_hash):
+        raise OwnershipDeepDiveError(f"{observation_id}: invalid source-document SHA256")
+
+
+def _validate_eligible_percent(row: Mapping[str, object]) -> None:
+    if row.get("issuer_percent_eligibility") != "ELIGIBLE_COMMON_SHARE_POSITION":
+        return
+    shares = row.get("shares")
+    denominator = row.get("issuer_share_denominator")
+    percent = row.get("percent_issuer_shares_computed")
+    if shares is None or denominator is None or percent is None:
+        raise OwnershipDeepDiveError(
+            f"{row.get('observation_id')}: eligible common-share position lacks denominator/percent"
+        )
+    shares_value = float(shares)
+    denominator_value = float(denominator)
+    percent_value = float(percent)
+    if shares_value < 0 or denominator_value <= 0:
+        raise OwnershipDeepDiveError(
+            f"{row.get('observation_id')}: invalid shares or issuer denominator"
+        )
+    expected = shares_value / denominator_value * 100.0
+    if not math.isclose(percent_value, expected, rel_tol=1e-9, abs_tol=1e-9):
+        raise OwnershipDeepDiveError(
+            f"{row.get('observation_id')}: issuer percentage arithmetic does not close"
+        )
 
 
 def build_ownership_deep_dive(
@@ -131,18 +232,29 @@ def build_ownership_deep_dive(
     scope = _certified_scope(certification)
     ticker = ticker.strip().upper()
     cusip = cusip.strip().upper()
-    if ticker != "BPOP" or cusip != "733174700":
+    if ticker != "BPOP" or cusip != BPOP_CUSIP:
         raise OwnershipDeepDiveError(
-            "Deep Dive promotion is currently certified only for BPOP / CUSIP 733174700"
+            f"Deep Dive promotion is currently certified only for BPOP / CUSIP {BPOP_CUSIP}"
         )
 
-    materialized = [dict(row) for row in rows if str(row.get("security_cusip") or "").upper() == cusip]
+    materialized = [
+        dict(row)
+        for row in rows
+        if str(row.get("security_cusip") or "").strip().upper() == cusip
+    ]
     if not materialized:
         raise OwnershipDeepDiveError("certified BPOP holdings contain zero matching observations")
 
     observation_ids = [str(row.get("observation_id") or "") for row in materialized]
-    if any(not value for value in observation_ids) or len(observation_ids) != len(set(observation_ids)):
+    if any(not value for value in observation_ids) or len(observation_ids) != len(
+        set(observation_ids)
+    ):
         raise OwnershipDeepDiveError("observation IDs must be present and unique")
+    source_record_ids = [str(row.get("source_record_id") or "") for row in materialized]
+    if any(not value for value in source_record_ids) or len(source_record_ids) != len(
+        set(source_record_ids)
+    ):
+        raise OwnershipDeepDiveError("source record IDs must be present and unique")
 
     periods = {str(row.get("as_of_date") or "") for row in materialized}
     if periods != set(scope.required_periods):
@@ -153,20 +265,28 @@ def build_ownership_deep_dive(
     normalized: list[dict[str, object]] = []
     active_count = 0
     superseded_count = 0
-    holder_period_rows: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
+    holder_period_rows: dict[str, dict[str, list[str]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
     for row in materialized:
+        _validate_source_identity(row)
         if str(row.get("provider_metric_equivalence") or "") != "OPEN":
             raise OwnershipDeepDiveError("provider metric equivalence was promoted unexpectedly")
         active = _as_bool(row.get("is_active"))
         amendment_status = str(row.get("amendment_status") or "")
+        if active is True and amendment_status == "SUPERSEDED":
+            raise OwnershipDeepDiveError(
+                f"observation {row.get('observation_id')} is both active and SUPERSEDED"
+            )
         if active is True:
             active_count += 1
-        elif active is False or amendment_status == "SUPERSEDED":
+        elif active is False and amendment_status == "SUPERSEDED":
             superseded_count += 1
         else:
             raise OwnershipDeepDiveError(
-                f"observation {row.get('observation_id')} lacks active/superseded adjudication"
+                f"observation {row.get('observation_id')} lacks closed active/superseded state"
             )
+
         normalized_row = dict(row)
         normalized_row["is_active"] = active
         for field in (
@@ -178,17 +298,46 @@ def build_ownership_deep_dive(
         ):
             if field in normalized_row:
                 normalized_row[field] = _number(normalized_row.get(field))
+        _validate_eligible_percent(normalized_row)
         normalized.append(normalized_row)
-        holder_period_rows[str(row.get("holder_id") or "")][str(row.get("as_of_date") or "")].append(
-            str(row.get("observation_id") or "")
-        )
+        holder_period_rows[str(row.get("holder_id") or "")][
+            str(row.get("as_of_date") or "")
+        ].append(str(row.get("observation_id") or ""))
 
     if active_count + superseded_count != len(normalized):
         raise OwnershipDeepDiveError("active + superseded arithmetic does not close")
 
+    period_ledger = []
+    for period in scope.required_periods:
+        period_rows = [row for row in normalized if row.get("as_of_date") == period]
+        active_rows = [row for row in period_rows if row["is_active"] is True]
+        denominators = {
+            float(row["issuer_share_denominator"])
+            for row in active_rows
+            if row.get("issuer_percent_eligibility") == "ELIGIBLE_COMMON_SHARE_POSITION"
+            and row.get("issuer_share_denominator") is not None
+        }
+        if len(denominators) != 1 or next(iter(denominators)) <= 0:
+            raise OwnershipDeepDiveError(
+                f"{period}: active eligible BPOP rows lack one exact positive denominator"
+            )
+        period_ledger.append(
+            {
+                "asOfDate": period,
+                "observationCount": len(period_rows),
+                "activeObservationCount": len(active_rows),
+                "holderCount": len(
+                    {str(row.get("holder_id") or "") for row in active_rows}
+                ),
+                "denominatorValues": sorted(denominators),
+            }
+        )
+
     latest_period = max(scope.required_periods)
     latest_rows = [
-        row for row in normalized if row["is_active"] is True and row.get("as_of_date") == latest_period
+        row
+        for row in normalized
+        if row["is_active"] is True and row.get("as_of_date") == latest_period
     ]
     latest_rows.sort(
         key=lambda row: (
@@ -197,26 +346,6 @@ def build_ownership_deep_dive(
             str(row.get("observation_id") or ""),
         )
     )
-
-    period_ledger = []
-    for period in scope.required_periods:
-        period_rows = [row for row in normalized if row.get("as_of_date") == period]
-        active_rows = [row for row in period_rows if row["is_active"] is True]
-        period_ledger.append(
-            {
-                "asOfDate": period,
-                "observationCount": len(period_rows),
-                "activeObservationCount": len(active_rows),
-                "holderCount": len({str(row.get("holder_id") or "") for row in active_rows}),
-                "denominatorValues": sorted(
-                    {
-                        float(row["issuer_share_denominator"])
-                        for row in active_rows
-                        if row.get("issuer_share_denominator") is not None
-                    }
-                ),
-            }
-        )
 
     return {
         "ticker": ticker,
