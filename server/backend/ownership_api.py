@@ -17,12 +17,7 @@ DEFAULT_CERTIFICATION = (
     ROOT / "data" / "manifests" / "capital_control" / "bpop_sec13f_8q_certification.json"
 )
 DEFAULT_HOLDINGS = (
-    ROOT
-    / "data"
-    / "staging"
-    / "processed"
-    / "capital_control"
-    / "sec13f_pr_golden_holdings.csv"
+    ROOT / "data" / "staging" / "processed" / "capital_control" / "sec13f_pr_golden_holdings.csv"
 )
 
 router = APIRouter(prefix="/deep-dive/ownership", tags=["ownership-and-capital"])
@@ -58,6 +53,13 @@ def ownership_status() -> dict[str, object]:
         }
     try:
         certification = load_certification(certification_path)
+        holdings = load_materialized_holdings(holdings_path)
+        view = build_ownership_deep_dive(
+            holdings,
+            certification,
+            ticker="BPOP",
+            cusip="733174700",
+        )
     except (OSError, ValueError, OwnershipDeepDiveError) as exc:
         return {
             "available": False,
@@ -67,14 +69,14 @@ def ownership_status() -> dict[str, object]:
             "blocker": str(exc),
         }
     return {
-        "available": certification.get("state") == "PASS",
-        "certificationState": certification.get("state") or "UNKNOWN",
-        "certificationId": certification.get("certification_id"),
+        "available": True,
+        "certificationState": view["certification"]["state"],
+        "certificationId": view["certification"]["certificationId"],
         "certifiedIssuer": "BPOP",
         "regressionIssuers": ["OFG", "EVTC"],
-        "providerEquivalence": certification.get(
-            "morningstar_percent_total_assets_equivalence", "OPEN"
-        ),
+        "providerEquivalence": view["providerEquivalence"],
+        "latestPeriod": view["latestPeriod"],
+        "observationCount": view["observationCount"],
     }
 
 
