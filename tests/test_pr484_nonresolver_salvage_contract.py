@@ -7,11 +7,19 @@ from scripts.gen_dashboard_snapshot import ENDPOINTS
 from server.backend import main as backend
 
 ROOT = Path(__file__).resolve().parents[1]
-MANIFEST = ROOT / "data" / "manifests" / "capital_control" / "pr484_nonresolver_salvage_v1.json"
+MANIFEST = (
+    ROOT
+    / "data"
+    / "manifests"
+    / "capital_control"
+    / "pr484_nonresolver_salvage_v1.json"
+)
 
 
 def test_offline_client_prefers_complete_query_key_before_route_fallback() -> None:
-    source = (ROOT / "dashboard" / "src" / "lib" / "api.js").read_text(encoding="utf-8")
+    source = (ROOT / "dashboard" / "src" / "lib" / "api.js").read_text(
+        encoding="utf-8"
+    )
     exact_lookup = "Object.prototype.hasOwnProperty.call(snapshot, path)"
     route_fallback = "const key = path.split('?')[0]"
     assert exact_lookup in source
@@ -28,8 +36,14 @@ def test_snapshot_generator_materializes_exact_query_key_from_canonical_route() 
 def test_salvage_manifest_keeps_multi_issuer_ui_dependency_gated() -> None:
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     items = {item["id"]: item for item in manifest["items"]}
-    assert items["multi-issuer-comparison-presentation"]["state"] == "DEFERRED_DEPENDENCY_GATED"
-    assert items["pr484-generic-backend-resolver"]["state"] == "SUPERSEDED_NONCANONICAL"
+    assert (
+        items["multi-issuer-comparison-presentation"]["state"]
+        == "DEFERRED_DEPENDENCY_GATED"
+    )
+    assert (
+        items["pr484-generic-backend-resolver"]["state"]
+        == "SUPERSEDED_NONCANONICAL"
+    )
     assert manifest["canonical_owner"] == "moneysweep.capital_control.resolution_core"
 
 
