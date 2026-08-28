@@ -8,7 +8,9 @@ import pytest
 pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).resolve().parents[1]
-VECTOR = ROOT / "data" / "manifests" / "capital_control" / "evtc_sec13f_certification_vector_v1.json"
+VECTOR = (
+    ROOT / "data" / "manifests" / "capital_control" / "evtc_sec13f_certification_vector_v1.json"
+)
 
 
 def test_evtc_vector_declares_independent_zero_residue_pass() -> None:
@@ -30,7 +32,9 @@ def test_evtc_vector_declares_independent_zero_residue_pass() -> None:
     assert payload["negative_identity_gate"]["forbidden_ticker"] == "EVRI"
     assert payload["negative_identity_gate"]["near_name_identity"] == "FORBIDDEN"
     assert payload["provider_equivalence"] == "OPEN"
-    assert payload["aggregation_policy"] == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
+    assert (
+        payload["aggregation_policy"] == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
+    )
     assert payload["synthetic_row_identity"] == "FORBIDDEN"
     assert payload["deep_dive_promotion"] == "ELIGIBLE"
     assert payload["unresolved_residue"] == []
