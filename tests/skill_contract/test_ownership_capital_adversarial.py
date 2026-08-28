@@ -9,7 +9,7 @@ pytestmark = pytest.mark.unit
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILL = ROOT / "skills" / "moneysweep-ownership-capital" / "SKILL.md"
-CASES = ROOT / "skills" / "moneysweep-ownership-capital" / "adversarial-cases.json"
+CASES = ROOT / "tests" / "skill_contract" / "fixtures" / "ownership_capital_adversarial.json"
 FREEZE = ROOT / "data" / "manifests" / "capital_control" / "bpop_deep_dive_endpoint_v1.json"
 
 
@@ -44,7 +44,7 @@ def test_skill_text_preserves_all_adversarial_boundaries() -> None:
         "duplicate `(ACCESSION_NUMBER, INFOTABLE_SK)`",
         "name-only holder/issuer identity promotion",
         "EVRI",
-        "adversarial-cases.json",
+        "ownership_capital_adversarial.json",
     )
     missing = [fragment for fragment in required if fragment not in text]
     assert not missing, f"ownership skill lost adversarial boundaries: {missing}"
@@ -55,10 +55,16 @@ def test_frozen_deep_dive_endpoint_cannot_promote_regression_issuers() -> None:
     assert payload["state"] == "PASS"
     assert payload["deep_dive_exact_green_head"] == "d90c8f629d242ed0efc11532bd551fd407e23c44"
     assert payload["deep_dive_merge_commit"] == "795fef0d208bee60a0d43b020bf4a5de59d55cec"
-    assert payload["provider_equivalence"][
-        "morningstar_percent_total_assets_vs_sec_13f_reportable_portfolio_percent"
-    ] == "OPEN"
-    assert payload["aggregation_policy"] == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
+    assert (
+        payload["provider_equivalence"][
+            "morningstar_percent_total_assets_vs_sec_13f_reportable_portfolio_percent"
+        ]
+        == "OPEN"
+    )
+    assert (
+        payload["aggregation_policy"]
+        == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
+    )
     assert payload["synthetic_row_identity"] == "FORBIDDEN"
     assert payload["issuer_promotion"] == {
         "BPOP": "PASS",
