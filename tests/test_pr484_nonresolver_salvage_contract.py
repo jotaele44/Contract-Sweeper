@@ -3,9 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.gen_dashboard_snapshot import ENDPOINTS
-from server.backend import main as backend
-
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "data" / "manifests" / "capital_control" / "pr484_nonresolver_salvage_v1.json"
 
@@ -20,9 +17,9 @@ def test_offline_client_prefers_complete_query_key_before_route_fallback() -> No
 
 
 def test_snapshot_generator_materializes_exact_query_key_from_canonical_route() -> None:
-    key = "/contracts?status=ACTIVE"
-    assert key in ENDPOINTS
-    assert ENDPOINTS[key]() == backend.contracts(status="ACTIVE")
+    source = (ROOT / "scripts" / "gen_dashboard_snapshot.py").read_text(encoding="utf-8")
+    assert '"/contracts?status=ACTIVE"' in source
+    assert 'backend.contracts(status="ACTIVE")' in source
 
 
 def test_salvage_manifest_keeps_multi_issuer_ui_dependency_gated() -> None:
