@@ -28,7 +28,9 @@ def test_ofg_vector_declares_independent_zero_residue_pass() -> None:
     }
     assert payload["negative_identity_gate"]["forbidden_cik"] == "0001016178"
     assert payload["provider_equivalence"] == "OPEN"
-    assert payload["aggregation_policy"] == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
+    assert (
+        payload["aggregation_policy"] == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
+    )
     assert payload["synthetic_row_identity"] == "FORBIDDEN"
     assert payload["deep_dive_promotion"] == "ELIGIBLE"
     assert payload["unresolved_residue"] == []
