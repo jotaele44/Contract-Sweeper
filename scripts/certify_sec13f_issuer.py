@@ -15,11 +15,14 @@ import sys
 from dataclasses import asdict, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from moneysweep.capital_control import ingest
 from moneysweep.capital_control.models import HoldingObservation, InvestorIdentity
-from moneysweep.capital_control.sec13f import Sec13FBulkAdapter, Sec13FError, adjudicate_sec13f_filing_restatements
+from moneysweep.capital_control.sec13f import (
+    Sec13FBulkAdapter,
+    Sec13FError,
+    adjudicate_sec13f_filing_restatements,
+)
 from scripts.certify_bpop_sec13f_8q import (
     _bindings,
     _flatten,
@@ -99,9 +102,7 @@ def _select_exact_denominators(
     return selected, ledger
 
 
-def _assert_profile_binding(
-    ticker: str, by_ticker: dict[str, dict[str, str]]
-) -> dict[str, str]:
+def _assert_profile_binding(ticker: str, by_ticker: dict[str, dict[str, str]]) -> dict[str, str]:
     profile = SUPPORTED_ISSUERS[ticker]
     binding = by_ticker.get(ticker)
     if binding is None:
@@ -127,10 +128,14 @@ def run(*, root: Path, ticker: str) -> dict[str, object]:
     registry = _load_registry(root / "registries" / "capital_control_golden_cases.json")
     _, all_by_ticker = _bindings(registry)
     binding = _assert_profile_binding(ticker, all_by_ticker)
-    required_periods = tuple(date.fromisoformat(value) for value in registry["bpop_required_periods"])
+    required_periods = tuple(
+        date.fromisoformat(value) for value in registry["bpop_required_periods"]
+    )
     required_archives = tuple(str(value) for value in registry["bpop_required_archives"])
     if len(required_periods) != 8 or len(required_archives) != 8:
-        raise ValueError("issuer certifier requires the frozen eight-period/eight-archive denominator")
+        raise ValueError(
+            "issuer certifier requires the frozen eight-period/eight-archive denominator"
+        )
 
     archive_dir = root / "data" / "staging" / "raw" / "sec13f_bulk" / "bpop_8q_v1"
     archive_paths = tuple(archive_dir / name for name in required_archives)
@@ -240,7 +245,9 @@ def run(*, root: Path, ticker: str) -> dict[str, object]:
     for row in excluded:
         payload = _flatten(row, active=None, denominator=None)
         payload["certification_scope_state"] = "OUTSIDE_REQUIRED_PERIOD"
-        payload["certification_exclusion_reason"] = "PERIODOFREPORT_NOT_IN_CERTIFICATION_DENOMINATOR"
+        payload["certification_exclusion_reason"] = (
+            "PERIODOFREPORT_NOT_IN_CERTIFICATION_DENOMINATOR"
+        )
         excluded_rows.append(payload)
     excluded_count = _write_csv(output_dir / "excluded_periods.csv", excluded_rows)
 
@@ -267,8 +274,11 @@ def run(*, root: Path, ticker: str) -> dict[str, object]:
     profile = SUPPORTED_ISSUERS[ticker]
     gates = {
         "exact_archive_count_8": len(archive_audits) == 8,
-        "archive_names_exact": tuple(item["archive"] for item in archive_audits) == required_archives,
-        "all_archive_hashes_present": all(len(str(item["sha256"])) == 64 for item in archive_audits),
+        "archive_names_exact": tuple(item["archive"] for item in archive_audits)
+        == required_archives,
+        "all_archive_hashes_present": all(
+            len(str(item["sha256"])) == 64 for item in archive_audits
+        ),
         "freeze_manifest_identity_exact": not freeze_identity_issues,
         "row_conservation": len(scoped) == materialized_count == len(preserved),
         "period_partition_conservation": discovery_count == len(scoped) + excluded_count,
@@ -284,7 +294,9 @@ def run(*, root: Path, ticker: str) -> dict[str, object]:
             row.issuer_id == binding["issuer_id"] and row.security_id == expected_security_id
             for row in preserved
         ),
-        "holder_ids_are_stable_cik_ids": all(row.holder_id.startswith("INV_CIK_") for row in preserved),
+        "holder_ids_are_stable_cik_ids": all(
+            row.holder_id.startswith("INV_CIK_") for row in preserved
+        ),
         "holder_identity_cardinality_closed": _holder_identity_cardinality_closed(
             holder_ids, materialized_investor_ids
         ),
@@ -340,7 +352,9 @@ def run(*, root: Path, ticker: str) -> dict[str, object]:
         "unresolved_residue": residue,
     }
     manifest_path = manifest_dir / f"{ticker.lower()}_sec13f_8q_certification_v1.json"
-    manifest_path.write_text(json.dumps(certification, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(certification, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return certification
 
 
