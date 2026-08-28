@@ -135,9 +135,7 @@ def _certified_scope(certification: Mapping[str, Any]) -> CertifiedOwnershipScop
             f"ownership certification contains non-PASS gates: {failed_gates}"
         )
 
-    equivalence = str(
-        certification.get("morningstar_percent_total_assets_equivalence") or ""
-    )
+    equivalence = str(certification.get("morningstar_percent_total_assets_equivalence") or "")
     if equivalence != "OPEN":
         raise OwnershipDeepDiveError(
             "provider-equivalence state must remain OPEN for SEC ownership promotion"
@@ -240,9 +238,7 @@ def build_ownership_deep_dive(
         )
 
     materialized = [
-        dict(row)
-        for row in rows
-        if str(row.get("security_cusip") or "").strip().upper() == cusip
+        dict(row) for row in rows if str(row.get("security_cusip") or "").strip().upper() == cusip
     ]
     if not materialized:
         raise OwnershipDeepDiveError("certified BPOP holdings contain zero matching observations")
@@ -267,9 +263,7 @@ def build_ownership_deep_dive(
     normalized: list[dict[str, object]] = []
     active_count = 0
     superseded_count = 0
-    holder_period_rows: dict[str, dict[str, list[str]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    holder_period_rows: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
     for row in materialized:
         _validate_source_identity(row)
         if str(row.get("provider_metric_equivalence") or "") != "OPEN":
@@ -334,9 +328,7 @@ def build_ownership_deep_dive(
                 "asOfDate": period,
                 "observationCount": len(period_rows),
                 "activeObservationCount": len(active_rows),
-                "holderCount": len(
-                    {str(row.get("holder_id") or "") for row in active_rows}
-                ),
+                "holderCount": len({str(row.get("holder_id") or "") for row in active_rows}),
                 "denominatorValues": sorted(denominators),
             }
         )
