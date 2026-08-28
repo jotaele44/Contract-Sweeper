@@ -87,7 +87,8 @@ binding.
 - treating deterministic behavior as evidence of identity.
 
 ## Adversarial regression gates
-The machine-readable adversarial policy is `adversarial-cases.json`. Every BLOCKED
+The machine-readable adversarial policy is
+`tests/skill_contract/fixtures/ownership_capital_adversarial.json`. Every BLOCKED
 case must fail closed before output promotion. In particular:
 
 - `OFG_REGRESSION_NOT_CERTIFICATION`: OFG regression rows never inherit BPOP PASS.
