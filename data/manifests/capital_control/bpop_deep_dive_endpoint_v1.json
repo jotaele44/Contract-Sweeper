@@ -1,0 +1,59 @@
+{
+  "schema": "moneysweep.deep-dive-endpoint-freeze/v1",
+  "certification_id": "BPOP_DEEP_DIVE_v1",
+  "state": "PASS",
+  "scope": "BPOP / CUSIP 733174700 / exactly 2024Q2-2026Q1",
+  "bounded_claim_only": true,
+  "source_data_certification": "BPOP_SEC13F_8Q_v1",
+  "certified_source_head": "ac69290ba4370a31472fa4b2884abfb182241174",
+  "upstream_integration_main": "b35ce8888d755c6be88c6715a70592541af792b0",
+  "deep_dive_pr": 521,
+  "deep_dive_exact_green_head": "d90c8f629d242ed0efc11532bd551fd407e23c44",
+  "deep_dive_merge_commit": "795fef0d208bee60a0d43b020bf4a5de59d55cec",
+  "deep_dive_merge_tree": "36d2de5c126c8a376516cd4904bb4785e51da5b3",
+  "merge_commit_signature_verified": true,
+  "required_periods": [
+    "2024-06-30",
+    "2024-09-30",
+    "2024-12-31",
+    "2025-03-31",
+    "2025-06-30",
+    "2025-09-30",
+    "2025-12-31",
+    "2026-03-31"
+  ],
+  "provider_equivalence": {
+    "morningstar_percent_total_assets_vs_sec_13f_reportable_portfolio_percent": "OPEN"
+  },
+  "aggregation_policy": "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION",
+  "synthetic_row_identity": "FORBIDDEN",
+  "issuer_promotion": {
+    "BPOP": "PASS",
+    "OFG": "NOT_CERTIFIED_REGRESSION_ONLY",
+    "EVTC": "NOT_CERTIFIED_REGRESSION_ONLY"
+  },
+  "exact_green_checks": [
+    "Lockfile drift",
+    "Federation template drift",
+    "Size guard",
+    "PR Intake Router",
+    "Top-form reproducibility",
+    "Secret scan",
+    "Skills Validation",
+    "Workflow static validation",
+    "Promotion Guard",
+    "Lint",
+    "Production Status Gate",
+    "pre-commit",
+    "Type check",
+    "Diagnostic smoke",
+    "moneysweep-federation-design-pilot",
+    "Semgrep",
+    "GUI capability parity",
+    "Contract Sweeper CI",
+    "CodeQL",
+    "Tests",
+    "SEC Ownership Golden Data Audit"
+  ],
+  "certification_rule": "This receipt certifies only the bounded BPOP Deep Dive endpoint at the recorded merge commit. Future code changes require independent re-certification. OFG and EVTC do not inherit this PASS."
+}

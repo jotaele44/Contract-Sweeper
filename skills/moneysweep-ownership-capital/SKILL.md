@@ -86,6 +86,33 @@ binding.
 - silently dropping original, additive, restated, superseded, or excluded manifestations;
 - treating deterministic behavior as evidence of identity.
 
+## Adversarial regression gates
+The machine-readable adversarial policy is
+`tests/skill_contract/fixtures/ownership_capital_adversarial.json`. Every BLOCKED
+case must fail closed before output promotion. In particular:
+
+- `OFG_REGRESSION_NOT_CERTIFICATION`: OFG regression rows never inherit BPOP PASS.
+- `EVTC_EVRI_IDENTITY_COLLISION`: EVTC must not be satisfied by ticker `EVRI`, a
+  normalized-name approximation, or any other near match; stable issuer identity
+  evidence controls.
+- `BRAND_FAMILY_AGGREGATION`: manager labels such as Vanguard do not authorize a
+  synthetic consolidated source holder row.
+- `NEAREST_DATE_DENOMINATOR` and `CURRENT_SHARE_DENOMINATOR`: only the exact
+  historical denominator bound to the observation period may support issuer-share
+  percentage certification.
+- `MORNINGSTAR_EQUIVALENCE`: provider `% Total Assets` remains `OPEN` and cannot be
+  promoted to SEC metric equivalence from numerical similarity.
+- `FAKE_ROW_LEVEL_RESTATEMENT_LINEAGE`: filing-level supersession does not create
+  row-to-row identity between original and amended information-table rows.
+- `DUPLICATE_SOURCE_RECORD`: `(ACCESSION_NUMBER, INFOTABLE_SK)` uniqueness is a hard
+  invariant regardless of display-name variation.
+- `NAME_ONLY_HOLDER_BINDING`: normalized names are discovery evidence only, never a
+  stable holder identity proof.
+
+A positive regression gate is retained for the exact BPOP certified scope; the
+negative cases above must remain blocked even if a parser or UI path would otherwise
+produce deterministic output.
+
 ## Evidence & result envelope
 Emit `{status, certification, scope, identifiers, observations, lineage,
 denominators, provider_equivalence, regression_coverage, blockers,
