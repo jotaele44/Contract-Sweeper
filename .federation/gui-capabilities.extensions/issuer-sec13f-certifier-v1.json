@@ -5,8 +5,8 @@
       "id": "issuer-sec13f-certification-runtime",
       "classification": "internal",
       "status": "active",
-      "requires_terminal": true,
-      "rationale": "The issuer-parameterized SEC 13F certifier is fail-closed audit and certification infrastructure. It intentionally remains non-GUI while BPOP parity is enforced and OFG/EVTC certification is issuer-specific. GUI or Deep Dive exposure is a separate promotion decision permitted only after the issuer reaches zero-residue PASS; mapping the certifier itself to a user-facing surface would incorrectly conflate backend certification machinery with certified issuer data.",
+      "requires_terminal": false,
+      "rationale": "The issuer-parameterized SEC 13F certifier is fail-closed audit and certification infrastructure. It intentionally remains non-GUI while BPOP parity is enforced and OFG/EVTC certification is issuer-specific. GUI or Deep Dive exposure is a separate promotion decision permitted only after the issuer reaches zero-residue PASS; mapping the certifier itself to a user-facing surface would incorrectly conflate backend certification machinery with certified issuer data. The callable CLI is an implementation surface, not a user-required terminal workflow, so the active internal capability does not require terminal access.",
       "analysis": {
         "files": [
           "scripts/certify_sec13f_issuer.py"
