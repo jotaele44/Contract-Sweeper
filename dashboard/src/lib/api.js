@@ -51,3 +51,12 @@ export const getCampaignFinanceEntities = (f = {}) =>
   fetchJSON(`/campaign-finance/entities${qs(f)}`, [])
 export const getCampaignFinanceReports = (f = {}) =>
   fetchJSON(`/campaign-finance/reports${qs(f)}`, [])
+
+export const getOwnershipDeepDiveStatus = () => fetchJSON('/deep-dive/ownership/status', {
+  available: false,
+  certificationState: 'NOT_MOUNTED',
+  certifiedIssuer: 'BPOP',
+  providerEquivalence: 'OPEN',
+})
+export const getOwnershipDeepDive = (ticker = 'BPOP') =>
+  fetchJSON(`/deep-dive/ownership/${encodeURIComponent(ticker)}`, null)
