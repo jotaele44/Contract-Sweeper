@@ -36,12 +36,12 @@ jobs:
       - name: Run parity ratchet
         if: ${{ github.event_name != 'workflow_dispatch' || !inputs.strict }}
         run: >-
-          python scripts/check_gui_parity.py
+          python .federation/check_gui_parity_with_extensions.py
           --report artifacts/gui-parity-report.json
       - name: Run strict parity audit
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.strict }}
         run: >-
-          python scripts/check_gui_parity.py
+          python .federation/check_gui_parity_with_extensions.py
           --strict
           --report artifacts/gui-parity-report.json
       - name: Test the parity validator

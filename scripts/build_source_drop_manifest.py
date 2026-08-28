@@ -26,7 +26,8 @@ DROP_SOURCES: list[dict[str, Any]] = [
         "source_id": "fema_pa_openfema_v2",
         "classification": "FOUND",
         "inclusion_decision": "manifest_only_existing_processed_input",
-        "path": FINANCIALS / "COR3_Recovery/contractdata/data/staging/processed/pr_fema_pa_master.csv",
+        "path": FINANCIALS
+        / "COR3_Recovery/contractdata/data/staging/processed/pr_fema_pa_master.csv",
         "target_relpath": None,
         "blocker": "COR3/FEMA recovery evidence found; existing producer output shape.",
     },
@@ -34,7 +35,8 @@ DROP_SOURCES: list[dict[str, Any]] = [
         "source_id": "hud_cdbg_dr_public",
         "classification": "FOUND",
         "inclusion_decision": "manifest_only_existing_processed_input",
-        "path": FINANCIALS / "COR3_Recovery/contractdata/data/staging/processed/pr_cdbg_dr_master.csv",
+        "path": FINANCIALS
+        / "COR3_Recovery/contractdata/data/staging/processed/pr_cdbg_dr_master.csv",
         "target_relpath": None,
         "blocker": "Public CDBG-DR evidence found; not equivalent to authorized DRGR.",
     },
@@ -42,7 +44,8 @@ DROP_SOURCES: list[dict[str, Any]] = [
         "source_id": "hud_cdbg_dr_public",
         "classification": "FOUND",
         "inclusion_decision": "manifest_only_raw_support",
-        "path": FINANCIALS / "COR3_Recovery/contractdata/data/staging/raw/cdbg_dr/cdbg_dr_usaspending.csv",
+        "path": FINANCIALS
+        / "COR3_Recovery/contractdata/data/staging/raw/cdbg_dr/cdbg_dr_usaspending.csv",
         "target_relpath": None,
         "blocker": "Raw CDBG-DR USAspending support.",
     },
@@ -107,7 +110,8 @@ DROP_SOURCES: list[dict[str, Any]] = [
         "source_id": "prasa",
         "classification": "PARTIAL",
         "inclusion_decision": "manifest_only_documentary_support",
-        "path": FINANCIALS / "2024/ACT/transicion2024_archive/files/by_agency/163/Informe_Inventario_de_Propiedad/Inventario_Activos_AAA_hasta_2024.xlsx",
+        "path": FINANCIALS
+        / "2024/ACT/transicion2024_archive/files/by_agency/163/Informe_Inventario_de_Propiedad/Inventario_Activos_AAA_hasta_2024.xlsx",
         "target_relpath": None,
         "blocker": "PRASA asset inventory exists; not a PRASA contract export.",
     },
@@ -158,7 +162,9 @@ def inspect_xlsx(path: Path) -> dict[str, Any]:
         for sheet in xl.sheet_names:
             df = xl.parse(sheet, dtype=str, nrows=0)
             rows = len(xl.parse(sheet, dtype=str, usecols=df.columns))
-            sheets.append({"name": sheet, "logical_rows": rows, "header": [str(c) for c in df.columns]})
+            sheets.append(
+                {"name": sheet, "logical_rows": rows, "header": [str(c) for c in df.columns]}
+            )
         return {"format": "xlsx", "sheets": sheets}
     except Exception as exc:  # noqa: BLE001
         return {"format": "xlsx", "error": f"{type(exc).__name__}: {exc}"}
@@ -179,14 +185,16 @@ def inspect_path(path: Path) -> dict[str, Any]:
         info.update(inspect_xlsx(path))
     elif suffix == ".zip":
         with zipfile.ZipFile(path) as archive:
-            info.update({
-                "format": "zip",
-                "member_count": len(archive.infolist()),
-                "members": [
-                    {"path": m.filename, "uncompressed_size": m.file_size}
-                    for m in archive.infolist()[:100]
-                ],
-            })
+            info.update(
+                {
+                    "format": "zip",
+                    "member_count": len(archive.infolist()),
+                    "members": [
+                        {"path": m.filename, "uncompressed_size": m.file_size}
+                        for m in archive.infolist()[:100]
+                    ],
+                }
+            )
     else:
         info["format"] = suffix.lstrip(".") or "unknown"
     return info
@@ -204,18 +212,22 @@ def build_records(stage: bool) -> list[dict[str, Any]]:
             if not target_path.exists() or sha256_file(path) != sha256_file(target_path):
                 shutil.copy2(path, target_path)
             staged = True
-        records.append({
-            "source_id": item["source_id"],
-            "classification": item["classification"],
-            "inclusion_decision": item["inclusion_decision"],
-            "blocker_classification_note": item["blocker"],
-            "absolute_source_path": str(path),
-            "target_relpath": target_relpath or "",
-            "target_sha256": sha256_file(target_path) if target_path and target_path.exists() else None,
-            "staged": staged,
-            "raw_normalized_canonical_policy": "Preserve raw source strings; normalization and canonical identity are downstream only.",
-            **inspect_path(path),
-        })
+        records.append(
+            {
+                "source_id": item["source_id"],
+                "classification": item["classification"],
+                "inclusion_decision": item["inclusion_decision"],
+                "blocker_classification_note": item["blocker"],
+                "absolute_source_path": str(path),
+                "target_relpath": target_relpath or "",
+                "target_sha256": sha256_file(target_path)
+                if target_path and target_path.exists()
+                else None,
+                "staged": staged,
+                "raw_normalized_canonical_policy": "Preserve raw source strings; normalization and canonical identity are downstream only.",
+                **inspect_path(path),
+            }
+        )
     return records
 
 
@@ -240,11 +252,21 @@ def write_outputs(records: list[dict[str, Any]], out_dir: Path, *, stage: bool) 
         encoding="utf-8",
     )
     fields = [
-        "source_id", "classification", "inclusion_decision", "absolute_source_path",
-        "target_relpath", "exists", "byte_size", "sha256", "logical_rows", "staged",
+        "source_id",
+        "classification",
+        "inclusion_decision",
+        "absolute_source_path",
+        "target_relpath",
+        "exists",
+        "byte_size",
+        "sha256",
+        "logical_rows",
+        "staged",
         "blocker_classification_note",
     ]
-    with (out_dir / "moneysweep_source_drop_manifest.csv").open("w", encoding="utf-8", newline="") as handle:
+    with (out_dir / "moneysweep_source_drop_manifest.csv").open(
+        "w", encoding="utf-8", newline=""
+    ) as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(records)
@@ -253,7 +275,9 @@ def write_outputs(records: list[dict[str, Any]], out_dir: Path, *, stage: bool) 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--stage", action="store_true", help="Copy stageable evidence into repo dropzones")
+    parser.add_argument(
+        "--stage", action="store_true", help="Copy stageable evidence into repo dropzones"
+    )
     parser.add_argument("--out-dir", default=str(REPO_ROOT / "reports" / "source_drops"))
     args = parser.parse_args()
     write_outputs(build_records(stage=args.stage), Path(args.out_dir), stage=args.stage)

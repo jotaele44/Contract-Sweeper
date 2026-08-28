@@ -9,9 +9,12 @@ import pytest
 from moneysweep.update_controller import cli
 from moneysweep.update_controller.executor import run_source
 from moneysweep.update_controller.models import FreshnessResult, SourceUpdatePolicy
+from moneysweep.update_controller.policy import canonical_source_ids
 from moneysweep.update_controller.validation import freshness_exit_code
 
 pytestmark = pytest.mark.unit
+
+EXPECTED_SOURCE_COUNT = len(canonical_source_ids())
 
 
 def _run_cli(argv, capsys):
@@ -29,7 +32,7 @@ def test_plan_json_is_valid_and_read_only(capsys):
     code, out = _run_cli(["plan", "--json"], capsys)
     assert code == 0
     payload = json.loads(out)
-    assert payload["selected"] == 158
+    assert payload["selected"] == EXPECTED_SOURCE_COUNT
     assert "plan" in payload
 
 
@@ -44,7 +47,7 @@ def test_state_command(capsys):
     code, out = _run_cli(["state", "--json"], capsys)
     assert code == 0
     payload = json.loads(out)
-    assert payload["registry_snapshot"]["source_count"] == 158
+    assert payload["registry_snapshot"]["source_count"] == EXPECTED_SOURCE_COUNT
 
 
 def test_run_parser_defaults_to_four_workers():
