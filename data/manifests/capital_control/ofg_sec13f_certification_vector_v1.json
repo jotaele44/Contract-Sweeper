@@ -1,10 +1,13 @@
 {
   "schema": "moneysweep.issuer-sec13f-certification-vector/v1",
   "vector_id": "OFG_SEC13F_v1",
-  "state": "OPEN",
-  "promotion_state": "BLOCKED_UNTIL_ZERO_RESIDUE_PASS",
-  "parent_main_sha": "f4b5d11806b4d0341dcb1d16bc6e17f122f01600",
+  "state": "PASS",
+  "promotion_state": "PROMOTION_ELIGIBLE",
+  "parent_main_sha": "df78f15f7c36b98bc6ecfae37c7e775ec487ead3",
+  "generalized_engine_main_sha": "df78f15f7c36b98bc6ecfae37c7e775ec487ead3",
+  "generalized_engine_pr_head_sha": "a72acf65c7bf064f9a76f483e78f89ee5cba5171",
   "parent_bpop_certification": "BPOP_SEC13F_8Q_v1_REFERENCE_ONLY_NOT_INHERITED",
+  "certification_inheritance": "FORBIDDEN",
   "issuer": {
     "ticker": "OFG",
     "canonical_name": "OFG BANCORP",
@@ -20,6 +23,14 @@
     "frozen_bpop_snapshot_may_be_reused_for_overlapping_sec13f_archive_bytes": true,
     "mutable_evidence_redownload": "FORBIDDEN_UNLESS_NEW_VERSIONED_SNAPSHOT_IS_EXPLICITLY_CREATED",
     "source_manifestation_is_not_canonical_identity": true
+  },
+  "frozen_evidence": {
+    "snapshot_artifact_id": "9598537414",
+    "freeze_manifest_sha256": "3234edd4cfe97535b462b34d89bc1e8175d0d983f4a2976de9a84acfc67d9e27",
+    "denominators_sha256": "ac773f11b5fb736c96bf64231207ddb3254cb0d2e07755eecf4a2131001498ec",
+    "generalized_audit_run_id": "33149056349",
+    "post_merge_audit_run_id": "33150067491",
+    "generalized_audit_result": "PASS"
   },
   "required_gates": [
     "define_exact_OFG_period_denominator",
@@ -40,11 +51,8 @@
   "provider_equivalence": "OPEN",
   "aggregation_policy": "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION",
   "synthetic_row_identity": "FORBIDDEN",
-  "deep_dive_promotion": "NOT_ELIGIBLE",
-  "blockers": [
-    "OFG exact certification period denominator not yet independently defined",
-    "OFG exact historical share denominators not yet independently certified",
-    "OFG filing/amendment and arithmetic residue not yet independently closed"
-  ],
-  "certification_rule": "OFG may be promoted only after this issuer-specific vector reaches PASS with zero unresolved residue. BPOP PASS and parser regression coverage are not identity or certification inheritance evidence."
+  "deep_dive_promotion": "ELIGIBLE",
+  "unresolved_residue": [],
+  "blockers": [],
+  "certification_rule": "OFG promotion is valid only if this issuer-specific vector independently reproduces PASS with zero unresolved residue on its exact PR head. BPOP PASS and parser regression coverage are reference evidence only and never certification inheritance."
 }
