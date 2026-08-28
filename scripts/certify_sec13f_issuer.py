@@ -243,12 +243,12 @@ def run(*, root: Path, ticker: str) -> dict[str, object]:
 
     excluded_rows: list[dict[str, object]] = []
     for row in excluded:
-        payload = _flatten(row, active=None, denominator=None)
-        payload["certification_scope_state"] = "OUTSIDE_REQUIRED_PERIOD"
-        payload["certification_exclusion_reason"] = (
+        excluded_payload = _flatten(row, active=None, denominator=None)
+        excluded_payload["certification_scope_state"] = "OUTSIDE_REQUIRED_PERIOD"
+        excluded_payload["certification_exclusion_reason"] = (
             "PERIODOFREPORT_NOT_IN_CERTIFICATION_DENOMINATOR"
         )
-        excluded_rows.append(payload)
+        excluded_rows.append(excluded_payload)
     excluded_count = _write_csv(output_dir / "excluded_periods.csv", excluded_rows)
 
     holder_ids = {row.holder_id for row in preserved}
@@ -256,10 +256,12 @@ def run(*, root: Path, ticker: str) -> dict[str, object]:
     for investor in investors.values():
         if investor.investor_id not in holder_ids:
             continue
-        payload: dict[str, object] = asdict(investor)
-        payload["raw_name_role"] = "REPRESENTATIVE_ONLY"
-        payload["name_manifestation_count"] = len(names_by_holder.get(investor.investor_id, set()))
-        investor_rows.append(payload)
+        investor_payload: dict[str, object] = asdict(investor)
+        investor_payload["raw_name_role"] = "REPRESENTATIVE_ONLY"
+        investor_payload["name_manifestation_count"] = len(
+            names_by_holder.get(investor.investor_id, set())
+        )
+        investor_rows.append(investor_payload)
     _write_csv(output_dir / "investors.csv", investor_rows)
     _write_csv(output_dir / "holder_name_manifestations.csv", name_manifestations)
     materialized_investor_ids = {str(row["investor_id"]) for row in investor_rows}
