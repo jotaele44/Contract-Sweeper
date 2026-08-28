@@ -31,13 +31,9 @@ def validate_vector_parent(
     if not parent:
         raise CertificationLockError("vector parent_main_sha is missing")
     if parent != base_sha:
-        raise CertificationLockError(
-            f"declared parent {parent} != pull-request base {base_sha}"
-        )
+        raise CertificationLockError(f"declared parent {parent} != pull-request base {base_sha}")
     if parent != merge_base_sha:
-        raise CertificationLockError(
-            f"declared parent {parent} != git merge-base {merge_base_sha}"
-        )
+        raise CertificationLockError(f"declared parent {parent} != git merge-base {merge_base_sha}")
 
 
 def validate_semantic_boundaries(payload: dict[str, Any]) -> None:
@@ -134,7 +130,9 @@ def verify_post_merge(
         )
     changed = {
         line
-        for line in _git_output("diff", "--name-only", expected_first_parent, merge_sha).splitlines()
+        for line in _git_output(
+            "diff", "--name-only", expected_first_parent, merge_sha
+        ).splitlines()
         if line
     }
     if changed != expected_paths:
