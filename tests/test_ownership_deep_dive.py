@@ -118,21 +118,14 @@ def test_deep_dive_refuses_provider_equivalence_promotion() -> None:
 
 def test_deep_dive_is_bounded_to_certified_bpop() -> None:
     with pytest.raises(OwnershipDeepDiveError, match="certified only for BPOP"):
-        build_ownership_deep_dive(
-            _rows(), _certification(), ticker="OFG", cusip="67103X102"
-        )
+        build_ownership_deep_dive(_rows(), _certification(), ticker="OFG", cusip="67103X102")
 
 
 def test_deep_dive_preserves_whole_rows_and_closes_states() -> None:
-    result = build_ownership_deep_dive(
-        _rows(), _certification(), ticker="BPOP", cusip="733174700"
-    )
+    result = build_ownership_deep_dive(_rows(), _certification(), ticker="BPOP", cusip="733174700")
     assert result["certification"]["state"] == "PASS"
     assert result["providerEquivalence"] == "OPEN"
-    assert (
-        result["aggregationPolicy"]
-        == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
-    )
+    assert result["aggregationPolicy"] == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
     assert result["observationCount"] == 9
     assert result["activeObservationCount"] == 8
     assert result["supersededObservationCount"] == 1
