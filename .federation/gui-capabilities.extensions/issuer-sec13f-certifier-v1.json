@@ -1,0 +1,28 @@
+{
+  "extension_id": "issuer-sec13f-certifier-v1",
+  "capabilities": [
+    {
+      "id": "issuer-sec13f-certification-runtime",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": true,
+      "rationale": "The issuer-parameterized SEC 13F certifier is fail-closed audit and certification infrastructure. It intentionally remains non-GUI while BPOP parity is enforced and OFG/EVTC certification is issuer-specific. GUI or Deep Dive exposure is a separate promotion decision permitted only after the issuer reaches zero-residue PASS; mapping the certifier itself to a user-facing surface would incorrectly conflate backend certification machinery with certified issuer data.",
+      "analysis": {
+        "files": [
+          "scripts/certify_sec13f_issuer.py"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/skill_contract/test_sec13f_issuer_certifier_contract.py"
+        ]
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/certify_sec13f_issuer.py",
+        "analysis_symbol:scripts/certify_sec13f_issuer.py:main",
+        "analysis_symbol:scripts/certify_sec13f_issuer.py:run",
+        "cli_surface:scripts/certify_sec13f_issuer.py"
+      ]
+    }
+  ]
+}
