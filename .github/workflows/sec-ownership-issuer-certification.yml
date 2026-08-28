@@ -1,0 +1,174 @@
+name: SEC Ownership Issuer Certification
+
+on:
+  pull_request:
+    paths:
+      - "scripts/certify_sec13f_issuer.py"
+      - "data/manifests/capital_control/ofg_sec13f_certification_vector_v1.json"
+      - "data/manifests/capital_control/evtc_sec13f_certification_vector_v1.json"
+      - ".github/workflows/sec-ownership-issuer-certification.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  issuer-certification:
+    name: Exact-head issuer certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6
+        with:
+          python-version: "3.11"
+
+      - name: Resolve issuer vector
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          target=""
+          vector=""
+          case "${GITHUB_HEAD_REF:-}" in
+            codex/ofg-sec13f-certification-v1)
+              target="OFG"
+              vector="data/manifests/capital_control/ofg_sec13f_certification_vector_v1.json"
+              ;;
+            codex/evtc-sec13f-certification-v1)
+              target="EVTC"
+              vector="data/manifests/capital_control/evtc_sec13f_certification_vector_v1.json"
+              ;;
+          esac
+          printf 'ticker=%s\n' "$target" >> "$GITHUB_OUTPUT"
+          printf 'vector=%s\n' "$vector" >> "$GITHUB_OUTPUT"
+          if [[ -n "$target" ]]; then
+            echo "Exact-head issuer vector: $target"
+          else
+            echo "No issuer-vector branch; exact-head issuer enforcement is not applicable."
+          fi
+
+      - name: Install dependencies
+        if: ${{ steps.target.outputs.ticker != '' }}
+        run: python -m pip install -r requirements.txt
+
+      - name: Restore pinned SEC certification snapshot
+        if: ${{ steps.target.outputs.ticker != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SNAPSHOT_ARTIFACT_ID: "9598537414"
+          FREEZE_MANIFEST_SHA256: "3234edd4cfe97535b462b34d89bc1e8175d0d983f4a2976de9a84acfc67d9e27"
+          DENOMINATORS_SHA256: "ac773f11b5fb736c96bf64231207ddb3254cb0d2e07755eecf4a2131001498ec"
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/sec-ownership-issuer-certification.zip"
+          curl --fail --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o "$archive" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$SNAPSHOT_ARTIFACT_ID/zip"
+          unzip -q "$archive" -d "$GITHUB_WORKSPACE"
+          printf '%s  %s\n' \
+            "$FREEZE_MANIFEST_SHA256" data/manifests/capital_control/bpop_8q_freeze_manifest.json \
+            "$DENOMINATORS_SHA256" data/staging/processed/pr_sec_share_denominators_v2.csv \
+            | sha256sum --check --strict
+
+      - name: Execute issuer certifier
+        id: certify
+        if: ${{ steps.target.outputs.ticker != '' }}
+        continue-on-error: true
+        shell: bash
+        env:
+          TICKER: ${{ steps.target.outputs.ticker }}
+        run: |
+          set +e
+          mkdir -p artifacts/sec-ownership-issuer-certification
+          python -m scripts.certify_sec13f_issuer "$TICKER" --root "$GITHUB_WORKSPACE" \
+            > "artifacts/sec-ownership-issuer-certification/${TICKER}.log" 2>&1
+          rc=$?
+          cat "artifacts/sec-ownership-issuer-certification/${TICKER}.log"
+          printf 'rc=%s\n' "$rc" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Enforce declared issuer state
+        if: ${{ steps.target.outputs.ticker != '' }}
+        env:
+          TICKER: ${{ steps.target.outputs.ticker }}
+          VECTOR: ${{ steps.target.outputs.vector }}
+          CERTIFIER_RC: ${{ steps.certify.outputs.rc }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          ticker = os.environ["TICKER"]
+          vector_path = Path(os.environ["VECTOR"])
+          if not vector_path.is_file():
+              raise SystemExit(f"issuer vector manifest missing: {vector_path}")
+          declared = json.loads(vector_path.read_text(encoding="utf-8"))
+
+          generated_path = Path(
+              f"data/manifests/capital_control/{ticker.lower()}_sec13f_8q_certification_v1.json"
+          )
+          if not generated_path.is_file():
+              raise SystemExit(f"generated issuer certification missing: {generated_path}")
+          generated = json.loads(generated_path.read_text(encoding="utf-8"))
+
+          declared_state = declared.get("state")
+          generated_state = generated.get("state")
+          if declared_state != generated_state:
+              raise SystemExit(
+                  f"declared issuer state {declared_state!r} != generated {generated_state!r}"
+              )
+          if generated.get("provider_equivalence") != "OPEN":
+              raise SystemExit("provider equivalence was promoted")
+          if generated.get("synthetic_row_identity") != "FORBIDDEN":
+              raise SystemExit("synthetic row identity boundary was weakened")
+          if generated.get("certification_inheritance") != "FORBIDDEN":
+              raise SystemExit("cross-issuer certification inheritance was enabled")
+
+          residue = generated.get("unresolved_residue", [])
+          rc = int(os.environ["CERTIFIER_RC"])
+          if generated_state == "PASS":
+              if rc != 0:
+                  raise SystemExit(f"PASS issuer certifier returned rc={rc}")
+              if residue:
+                  raise SystemExit(f"PASS issuer retains residue: {residue}")
+              if generated.get("deep_dive_promotion") != "ELIGIBLE":
+                  raise SystemExit("PASS issuer is not promotion eligible")
+              if declared.get("deep_dive_promotion") not in {"ELIGIBLE", "PROMOTION_ELIGIBLE"}:
+                  raise SystemExit("vector manifest does not explicitly permit PASS promotion")
+          elif generated_state == "OPEN":
+              if rc != 3:
+                  raise SystemExit(f"OPEN issuer certifier returned rc={rc}, expected 3")
+              if not residue:
+                  raise SystemExit("OPEN issuer has no explicit unresolved residue")
+              if generated.get("deep_dive_promotion") != "NOT_ELIGIBLE":
+                  raise SystemExit("OPEN issuer was made promotion eligible")
+              if declared.get("deep_dive_promotion") != "NOT_ELIGIBLE":
+                  raise SystemExit("OPEN vector manifest permits promotion")
+          else:
+              raise SystemExit(f"unsupported issuer certification state: {generated_state!r}")
+
+          print(
+              f"PASS exact-head state agreement: {ticker} {generated_state}; residue={residue}"
+          )
+          PY
+
+      - name: Upload issuer certification evidence
+        if: always() && steps.target.outputs.ticker != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sec-ownership-${{ steps.target.outputs.ticker }}-certification
+          path: |
+            artifacts/sec-ownership-issuer-certification
+            data/manifests/capital_control/${{ steps.target.outputs.ticker }}_sec13f_8q_certification_v1.json
+            data/manifests/capital_control/ofg_sec13f_8q_certification_v1.json
+            data/manifests/capital_control/evtc_sec13f_8q_certification_v1.json
+            data/staging/processed/capital_control/${{ steps.target.outputs.ticker }}
+          if-no-files-found: warn
+          retention-days: 90
