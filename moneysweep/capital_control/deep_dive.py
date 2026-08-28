@@ -194,16 +194,13 @@ def _validate_source_identity(row: Mapping[str, object]) -> None:
 def _validate_eligible_percent(row: Mapping[str, object]) -> None:
     if row.get("issuer_percent_eligibility") != "ELIGIBLE_COMMON_SHARE_POSITION":
         return
-    shares = row.get("shares")
-    denominator = row.get("issuer_share_denominator")
-    percent = row.get("percent_issuer_shares_computed")
-    if shares is None or denominator is None or percent is None:
+    shares_value = _number(row.get("shares"))
+    denominator_value = _number(row.get("issuer_share_denominator"))
+    percent_value = _number(row.get("percent_issuer_shares_computed"))
+    if shares_value is None or denominator_value is None or percent_value is None:
         raise OwnershipDeepDiveError(
             f"{row.get('observation_id')}: eligible common-share position lacks denominator/percent"
         )
-    shares_value = float(shares)
-    denominator_value = float(denominator)
-    percent_value = float(percent)
     if shares_value < 0 or denominator_value <= 0:
         raise OwnershipDeepDiveError(
             f"{row.get('observation_id')}: invalid shares or issuer denominator"
@@ -213,6 +210,11 @@ def _validate_eligible_percent(row: Mapping[str, object]) -> None:
         raise OwnershipDeepDiveError(
             f"{row.get('observation_id')}: issuer percentage arithmetic does not close"
         )
+
+
+def _sort_percent(row: Mapping[str, object]) -> float:
+    value = _number(row.get("percent_issuer_shares_computed"))
+    return value if value is not None else -1.0
 
 
 def build_ownership_deep_dive(
@@ -311,13 +313,19 @@ def build_ownership_deep_dive(
     for period in scope.required_periods:
         period_rows = [row for row in normalized if row.get("as_of_date") == period]
         active_rows = [row for row in period_rows if row["is_active"] is True]
-        denominators = {
-            float(row["issuer_share_denominator"])
-            for row in active_rows
-            if row.get("issuer_percent_eligibility") == "ELIGIBLE_COMMON_SHARE_POSITION"
-            and row.get("issuer_share_denominator") is not None
-        }
-        if len(denominators) != 1 or next(iter(denominators)) <= 0:
+        denominators: set[float] = set()
+        for row in active_rows:
+            if row.get("issuer_percent_eligibility") != "ELIGIBLE_COMMON_SHARE_POSITION":
+                continue
+            denominator = _number(row.get("issuer_share_denominator"))
+            if denominator is not None:
+                denominators.add(denominator)
+        if len(denominators) != 1:
+            raise OwnershipDeepDiveError(
+                f"{period}: active eligible BPOP rows lack one exact positive denominator"
+            )
+        denominator_value = next(iter(denominators))
+        if denominator_value <= 0:
             raise OwnershipDeepDiveError(
                 f"{period}: active eligible BPOP rows lack one exact positive denominator"
             )
@@ -341,7 +349,7 @@ def build_ownership_deep_dive(
     ]
     latest_rows.sort(
         key=lambda row: (
-            -float(row.get("percent_issuer_shares_computed") or -1.0),
+            -_sort_percent(row),
             str(row.get("holder_id") or ""),
             str(row.get("observation_id") or ""),
         )
