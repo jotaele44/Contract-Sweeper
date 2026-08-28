@@ -23,11 +23,7 @@ def test_golden_003_tamcor_bounded_arithmetic_and_zero_amendments() -> None:
     base = assertions["ocpr-base-arithmetic"]
     assert sum(base["base_amounts"]) == base["expected_total"] == 89903.0
     classes = assertions["ocpr-class-arithmetic"]
-    assert (
-        sum(classes["transfer_amounts"])
-        == classes["expected_transfer_total"]
-        == 62480.0
-    )
+    assert sum(classes["transfer_amounts"]) == classes["expected_transfer_total"] == 62480.0
     assert (
         sum(classes["material_purchase_amounts"])
         == classes["expected_material_purchase_total"]
@@ -65,9 +61,7 @@ def test_golden_003_tamcor_related_network_does_not_collapse_by_continuity() -> 
 def test_golden_003_tamcor_ddec_serial_supersession_is_preserved() -> None:
     corpus = _load("golden_003_tamcor.json")
     assertion = next(
-        item
-        for item in corpus["assertions"]
-        if item["id"] == "ddec-39084-supersession"
+        item for item in corpus["assertions"] if item["id"] == "ddec-39084-supersession"
     )
     contradiction = Contradiction(
         "TAMCOR_DDEC_39084",
@@ -87,9 +81,7 @@ def test_golden_003_tamcor_ddec_serial_supersession_is_preserved() -> None:
 def test_golden_004_prasa_jacobs_discovery_keys_stay_discovery_only() -> None:
     corpus = _load("golden_004_prasa_jacobs.json")
     assertion = next(
-        item
-        for item in corpus["assertions"]
-        if item["id"] == "contract-id-discovery-keys"
+        item for item in corpus["assertions"] if item["id"] == "contract-id-discovery-keys"
     )
     for key in assertion["discovery_keys"]:
         result = resolve_candidates(
@@ -108,9 +100,7 @@ def test_golden_004_prasa_jacobs_discovery_keys_stay_discovery_only() -> None:
 def test_golden_004_prasa_jacobs_windows_are_bounded_not_universal() -> None:
     corpus = _load("golden_004_prasa_jacobs.json")
     assertion = next(
-        item
-        for item in corpus["assertions"]
-        if item["id"] == "archive-harvester-denominator"
+        item for item in corpus["assertions"] if item["id"] == "archive-harvester-denominator"
     )
     assert assertion["expected"] == "BOUNDED_DISCOVERY_WINDOW"
     assert len(assertion["windows"]) == 3
