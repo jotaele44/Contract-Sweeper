@@ -23,6 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v6
         with:
           python-version: "3.11"
@@ -52,21 +53,27 @@ jobs:
             echo "No issuer-vector branch; exact-head issuer enforcement is not applicable."
           fi
 
-      - name: Verify issuer ancestry and write preflight lock
+      - name: Verify true PR head, issuer ancestry, and write preflight lock
         if: ${{ steps.target.outputs.ticker != '' }}
         env:
           VECTOR: ${{ steps.target.outputs.vector }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           SNAPSHOT_ARTIFACT_ID: "9598537414"
         shell: bash
         run: |
           set -euo pipefail
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$PR_HEAD_SHA" ]]; then
+            echo "FAIL: checked-out SHA $checked_out_sha != true PR head $PR_HEAD_SHA" >&2
+            exit 1
+          fi
           git fetch --no-tags origin "$GITHUB_BASE_REF"
           merge_base="$(git merge-base HEAD "origin/$GITHUB_BASE_REF")"
           mkdir -p artifacts/sec-ownership-issuer-certification
           python -m scripts.sec13f_certification_lock preflight \
             --vector "$VECTOR" \
-            --head-sha "$GITHUB_SHA" \
+            --head-sha "$PR_HEAD_SHA" \
             --base-sha "$PR_BASE_SHA" \
             --merge-base-sha "$merge_base" \
             --workflow-run-id "$GITHUB_RUN_ID" \
@@ -198,11 +205,12 @@ jobs:
           if-no-files-found: warn
           retention-days: 90
 
-      - name: Bind evidence artifact to exact head
+      - name: Bind evidence artifact to true PR head
         if: always() && steps.target.outputs.ticker != '' && steps.evidence_upload.outcome == 'success'
         env:
           EVIDENCE_ARTIFACT_ID: ${{ steps.evidence_upload.outputs['artifact-id'] }}
           EVIDENCE_ARTIFACT_URL: ${{ steps.evidence_upload.outputs['artifact-url'] }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -213,12 +221,14 @@ jobs:
 
           source = Path("artifacts/sec-ownership-issuer-certification/preflight-lock.json")
           payload = json.loads(source.read_text(encoding="utf-8"))
+          if payload.get("head_sha") != os.environ["PR_HEAD_SHA"]:
+              raise SystemExit("preflight receipt is not bound to the true PR head")
           payload.update(
               {
                   "phase": "EVIDENCE_ARTIFACT_BOUND",
                   "evidence_artifact_id": os.environ["EVIDENCE_ARTIFACT_ID"],
                   "evidence_artifact_url": os.environ["EVIDENCE_ARTIFACT_URL"],
-                  "head_sha": os.environ["GITHUB_SHA"],
+                  "head_sha": os.environ["PR_HEAD_SHA"],
                   "workflow_run_id": os.environ["GITHUB_RUN_ID"],
               }
           )
