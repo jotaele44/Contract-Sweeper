@@ -1,0 +1,75 @@
+{
+  "schema_version": "1.1.0",
+  "purpose": "Immutable golden correctness denominator for capital_control.resolution_core promotion.",
+  "base_reconciliation": {
+    "original_parent": "437d02f96699a402a328def1d266980f5ee29788",
+    "reconciled_main": "b35ce8888d755c6be88c6715a70592541af792b0",
+    "reason": "PR #519 BPOP SEC ownership golden certification merged after the original parent freeze",
+    "policy": "reuse upstream certified BPOP artifacts; do not duplicate or overwrite them"
+  },
+  "corpora": [
+    {
+      "id": "GOLDEN_001_FINCA_ZEQUEIRA",
+      "state": "ACTIVE_REGRESSION",
+      "assertions": [
+        {"type": "NEGATIVE", "subject": "FINCAS_URRUTIA", "predicate": "SAME_PROPERTY_AS", "object": "ZEQUEIRA_HELD_FARMS", "expected": "FAIL"},
+        {"type": "POSITIVE", "subject": "CFI::2020-000368", "predicate": "IDENTIFIES", "object": "AGGREGATE_INC_200K", "expected": "PASS"},
+        {"type": "POSITIVE", "subject": "CFI::2020-000358", "predicate": "IDENTIFIES", "object": "STARBRIGHT_ACADEMY_INC", "expected": "PASS"},
+        {"type": "PRESERVATION", "subject": "DDEC::FIE-2019-2020-IIP-0057", "predicate": "RAW_CONTRACT_FIELD", "object": "2020-000358", "expected": "PASS_AS_RAW"},
+        {"type": "PROVISIONAL", "subject": "DDEC::FIE-2019-2020-IIP-0057", "predicate": "SAME_EVENT_AS", "object": "CFI::2020-000368", "expected": "PROVISIONAL_1:1"},
+        {"type": "ARITHMETIC", "authorized": 200000.0, "disbursed": 183459.5, "cancelled": 16540.5, "balance": 0.0, "expected": "PASS"},
+        {"type": "BLOCKER", "subject": "ARPE", "expected": "PRIMARY_INTERFACE_REQUIRED"},
+        {"type": "BLOCKER", "subject": "SUMAC_88", "expected": "PRIMARY_INTERFACE_REQUIRED"},
+        {"type": "BLOCKER", "subject": "DOS", "expected": "PRIMARY_INTERFACE_REQUIRED"},
+        {"type": "BLOCKER", "subject": "FIE0057_CFI368_PRIMARY_AGREEMENT", "expected": "PRIMARY_ARTIFACT_NOT_FOUND"},
+        {"type": "BLOCKER", "subject": "GIS_GEODATA_DOWNLOADS", "expected": "DEMONSTRABLY_INACCESSIBLE_SCOPE_LIMITED"},
+        {"type": "FOIA", "expected": "BLOCKED"}
+      ]
+    },
+    {
+      "id": "GOLDEN_002_BPOP",
+      "state": "UPSTREAM_CERTIFIED_SOURCE_AVAILABLE_PENDING_RESOLUTION_CORE_PARITY",
+      "upstream_merge_commit": "b35ce8888d755c6be88c6715a70592541af792b0",
+      "upstream_artifacts": [
+        "registries/capital_control_golden_cases.json",
+        "tests/fixtures/capital_control/sec_upload_baseline_v0_1.json",
+        "tests/test_sec_ownership_hardening_v0_3.py",
+        "moneysweep/capital_control/sec13f.py",
+        "scripts/certify_bpop_sec13f_8q.py"
+      ],
+      "required_gates": [
+        "ticker_cik_stable_id_binding",
+        "exact_quarter_end_denominator",
+        "13f_accession_plus_infotable_key",
+        "additive_vs_restatement_amendment_separation",
+        "superseded_row_preservation",
+        "ambiguous_restatement_fail_closed",
+        "no_nearest_date_substitution",
+        "no_synthetic_financial_fallback",
+        "resolution_core_compatibility"
+      ]
+    },
+    {
+      "id": "GOLDEN_003_TAMCOR",
+      "state": "CONTRACT_ONLY_PENDING_CORPUS_BYTES",
+      "required_gates": [
+        "alias_manifestation_preservation",
+        "procurement_record_identity",
+        "historical_entity_continuity",
+        "zero_increment_amendment_preservation",
+        "source_namespace_contract_ids"
+      ]
+    },
+    {
+      "id": "GOLDEN_004_PRASA_JACOBS",
+      "state": "CONTRACT_ONLY_PENDING_CORPUS_BYTES",
+      "required_gates": [
+        "predecessor_successor_identity",
+        "acquisition_epoch_separation",
+        "decision_maker_temporal_overlap",
+        "project_contract_identity",
+        "no_name_only_company_lineage"
+      ]
+    }
+  ]
+}

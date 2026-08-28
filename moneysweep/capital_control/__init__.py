@@ -1,3 +1,4 @@
+from . import resolution_core
 from .analytics import PairwiseSetComparison, compare_sets, current_positions, rollup_positions
 from .identity import IdentityCandidate, IdentityResolution, resolve_identity_candidates
 from .ingestion import IngestionResult, ingest
@@ -26,6 +27,7 @@ __all__ = [
     "compare_sets",
     "current_positions",
     "ingest",
+    "resolution_core",
     "resolve_identity_candidates",
     "rollup_positions",
     "stable_observation_fingerprint",
