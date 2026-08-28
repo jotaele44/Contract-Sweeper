@@ -9,7 +9,14 @@
   },
   "base_main_sha": "df78f15f7c36b98bc6ecfae37c7e775ec487ead3",
   "canonical_owner": "moneysweep.capital_control.resolution_core",
+  "canonical_core_materialization": {
+    "state": "EXTERNAL_CERTIFIED_DRAFT_NOT_MERGED",
+    "pr": 520,
+    "certified_sha": "5646ad6014959baf783b66c8dd497f1f518f207e",
+    "present_on_base_main": false
+  },
   "scope": "selected non-resolver presentation, snapshot, schema-concept, and regression-assertion salvage only",
+  "promotion_state": "BLOCKED_PENDING_CANONICAL_CORE_INTEGRATION_AND_COMPLETE_RECERTIFICATION",
   "items": [
     {
       "id": "exact-query-offline-snapshot",
