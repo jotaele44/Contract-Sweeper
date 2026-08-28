@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "purpose": "Immutable golden correctness denominator for capital_control.resolution_core promotion.",
   "base_reconciliation": {
     "original_parent": "437d02f96699a402a328def1d266980f5ee29788",
@@ -11,19 +11,14 @@
     {
       "id": "GOLDEN_001_FINCA_ZEQUEIRA",
       "state": "ACTIVE_REGRESSION",
-      "assertions": [
-        {"type": "NEGATIVE", "subject": "FINCAS_URRUTIA", "predicate": "SAME_PROPERTY_AS", "object": "ZEQUEIRA_HELD_FARMS", "expected": "FAIL"},
-        {"type": "POSITIVE", "subject": "CFI::2020-000368", "predicate": "IDENTIFIES", "object": "AGGREGATE_INC_200K", "expected": "PASS"},
-        {"type": "POSITIVE", "subject": "CFI::2020-000358", "predicate": "IDENTIFIES", "object": "STARBRIGHT_ACADEMY_INC", "expected": "PASS"},
-        {"type": "PRESERVATION", "subject": "DDEC::FIE-2019-2020-IIP-0057", "predicate": "RAW_CONTRACT_FIELD", "object": "2020-000358", "expected": "PASS_AS_RAW"},
-        {"type": "PROVISIONAL", "subject": "DDEC::FIE-2019-2020-IIP-0057", "predicate": "SAME_EVENT_AS", "object": "CFI::2020-000368", "expected": "PROVISIONAL_1:1"},
-        {"type": "ARITHMETIC", "authorized": 200000.0, "disbursed": 183459.5, "cancelled": 16540.5, "balance": 0.0, "expected": "PASS"},
-        {"type": "BLOCKER", "subject": "ARPE", "expected": "PRIMARY_INTERFACE_REQUIRED"},
-        {"type": "BLOCKER", "subject": "SUMAC_88", "expected": "PRIMARY_INTERFACE_REQUIRED"},
-        {"type": "BLOCKER", "subject": "DOS", "expected": "PRIMARY_INTERFACE_REQUIRED"},
-        {"type": "BLOCKER", "subject": "FIE0057_CFI368_PRIMARY_AGREEMENT", "expected": "PRIMARY_ARTIFACT_NOT_FOUND"},
-        {"type": "BLOCKER", "subject": "GIS_GEODATA_DOWNLOADS", "expected": "DEMONSTRABLY_INACCESSIBLE_SCOPE_LIMITED"},
-        {"type": "FOIA", "expected": "BLOCKED"}
+      "fixture": "tests/fixtures/capital_control/golden_corpora_v1.json#GOLDEN_001_FINCA_ZEQUEIRA",
+      "required_gates": [
+        "namespace_collision",
+        "identifier_event_separation",
+        "property_anti_conflation",
+        "grant_arithmetic_closure",
+        "primary_interface_blockers",
+        "foia_fail_closed"
       ]
     },
     {
@@ -51,24 +46,31 @@
     },
     {
       "id": "GOLDEN_003_TAMCOR",
-      "state": "CONTRACT_ONLY_PENDING_CORPUS_BYTES",
+      "state": "MATERIALIZED_REGRESSION",
+      "fixture": "tests/fixtures/capital_control/golden_003_tamcor.json",
       "required_gates": [
-        "alias_manifestation_preservation",
-        "procurement_record_identity",
-        "historical_entity_continuity",
+        "related_network_not_1to1",
+        "alias_relationship_stays_provisional",
+        "ocpr_bounded_arithmetic",
+        "transfer_vs_purchase_semantics",
         "zero_increment_amendment_preservation",
-        "source_namespace_contract_ids"
+        "litigation_claim_not_contract_value",
+        "ddec_excel_serial_supersession",
+        "specification_not_award"
       ]
     },
     {
       "id": "GOLDEN_004_PRASA_JACOBS",
-      "state": "CONTRACT_ONLY_PENDING_CORPUS_BYTES",
+      "state": "MATERIALIZED_BOUNDED_REGRESSION",
+      "fixture": "tests/fixtures/capital_control/golden_004_prasa_jacobs.json",
       "required_gates": [
-        "predecessor_successor_identity",
-        "acquisition_epoch_separation",
-        "decision_maker_temporal_overlap",
-        "project_contract_identity",
-        "no_name_only_company_lineage"
+        "no_slash_label_legal_identity",
+        "lineage_event_separate_from_entity_identity",
+        "temporal_buckets_remain_distinct",
+        "archive_keyword_ids_are_discovery_only",
+        "archive_windows_are_bounded_not_universal",
+        "decision_maker_overlap_requires_exact_dates",
+        "project_contract_binding_requires_primary_evidence"
       ]
     }
   ]
