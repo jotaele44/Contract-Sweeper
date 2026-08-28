@@ -62,8 +62,7 @@ def test_frozen_deep_dive_endpoint_cannot_promote_regression_issuers() -> None:
         == "OPEN"
     )
     assert (
-        payload["aggregation_policy"]
-        == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
+        payload["aggregation_policy"] == "WHOLE_SOURCE_OBSERVATIONS_ONLY_NO_CROSS_HOLDER_SUMMATION"
     )
     assert payload["synthetic_row_identity"] == "FORBIDDEN"
     assert payload["issuer_promotion"] == {
