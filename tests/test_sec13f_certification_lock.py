@@ -41,7 +41,10 @@ def test_preflight_accepts_exact_parent_and_semantic_boundaries() -> None:
     assert receipt["merge_base_sha"] == "a" * 40
     assert receipt["semantic_invariants"]["provider_equivalence"] == "OPEN"
     assert "MERGE_MUST_USE_EXPECTED_HEAD_SHA" in receipt["merge_preconditions"]
-    assert "POST_MERGE_FIRST_PARENT_DIFF_MUST_EQUAL_PR_CHANGED_PATH_SET" in receipt["merge_preconditions"]
+    assert (
+        "POST_MERGE_FIRST_PARENT_DIFF_MUST_EQUAL_PR_CHANGED_PATH_SET"
+        in receipt["merge_preconditions"]
+    )
 
 
 def test_preflight_rejects_stale_or_wrong_pr_base() -> None:
@@ -107,7 +110,9 @@ def test_open_vector_requires_explicit_residue_and_nonpromotion() -> None:
     lock.validate_semantic_boundaries(payload)
 
 
-def test_post_merge_requires_exact_parent_order_and_path_set(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_post_merge_requires_exact_parent_order_and_path_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     calls: list[tuple[str, ...]] = []
 
     def fake_git_output(*args: str) -> str:
@@ -130,7 +135,9 @@ def test_post_merge_requires_exact_parent_order_and_path_set(monkeypatch: pytest
     assert calls
 
 
-def test_post_merge_rejects_unexpected_file_multiplication(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_post_merge_rejects_unexpected_file_multiplication(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     def fake_git_output(*args: str) -> str:
         if args[:3] == ("show", "-s", "--format=%P"):
             return f"{'a' * 40} {'b' * 40}"
