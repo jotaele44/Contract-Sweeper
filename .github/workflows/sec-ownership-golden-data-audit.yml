@@ -29,13 +29,14 @@ jobs:
       - name: Install acquisition dependency
         run: python -m pip install "requests>=2.34.2"
 
-      # PR #519 already passed authoritative SEC identity/Company Facts acquisition
-      # and froze all eight 13F archives in run 32946731464. Reuse that immutable
-      # downstream input instead of refreshing mutable SEC sources after a certifier
-      # import-path failure. Other PRs create a new versioned snapshot normally.
-      - name: Restore passed SEC snapshot for PR 519
+      # The authoritative identity/Company Facts inputs and all eight SEC 13F
+      # archives were already frozen in run 32946731464. Every pull-request
+      # certification reuses that immutable payload. Fresh acquisition is reserved
+      # for an explicit workflow_dispatch that creates a new versioned snapshot;
+      # PR validation must never silently refresh mutable evidence.
+      - name: Restore frozen SEC certification snapshot
         id: restore
-        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 519 }}
+        if: ${{ github.event_name == 'pull_request' }}
         env:
           GH_TOKEN: ${{ github.token }}
           SNAPSHOT_ARTIFACT_ID: "9598537414"
