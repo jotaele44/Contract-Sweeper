@@ -21,9 +21,7 @@ class BaselineDiff:
     changed_keys: tuple[str, ...]
 
 
-def diff_baseline(
-    baseline: Mapping[str, object], current: Mapping[str, object]
-) -> BaselineDiff:
+def diff_baseline(baseline: Mapping[str, object], current: Mapping[str, object]) -> BaselineDiff:
     keys = set(baseline) | set(current)
     changed = tuple(sorted(key for key in keys if baseline.get(key) != current.get(key)))
     return BaselineDiff(ChangeState.CHANGED if changed else ChangeState.UNCHANGED, changed)

@@ -40,7 +40,11 @@ def bind_property_project(
             SpatialState.UNRESOLVED,
             "authoritative property anchor required before parcel identity",
         )
-    if evidence_basis in {EvidenceBasis.PROXIMITY_ONLY, EvidenceBasis.HEURISTIC_DISCOVERY_ONLY, EvidenceBasis.NONE}:
+    if evidence_basis in {
+        EvidenceBasis.PROXIMITY_ONLY,
+        EvidenceBasis.HEURISTIC_DISCOVERY_ONLY,
+        EvidenceBasis.NONE,
+    }:
         return PropertyProjectBinding(
             CertificationState.CANDIDATE_NOT_IDENTITY,
             project_ref,

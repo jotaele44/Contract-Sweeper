@@ -2,7 +2,7 @@
 
 Discovery is offline-first and may use name similarity to generate candidates, but
 canonical identity adjudication is delegated to
-``moneysweep.capital_control.resolution_core``.  Name similarity, normalization,
+``moneysweep.capital_control.resolution_core``. Name similarity, normalization,
 proximity, or source absence never establishes identity.
 """
 
@@ -65,7 +65,7 @@ def _http_get(url: str, timeout: int = 12) -> dict | None:
 def search_recipient(vendor_name: str) -> dict | None:
     """Return the best USASpending *discovery candidate* by name similarity.
 
-    This function deliberately does not certify identity.  ``resolve_vendor``
+    This function deliberately does not certify identity. ``resolve_vendor``
     must pass the result through resolution_core before any parent is accepted.
     """
     norm = normalize_vendor(vendor_name)
@@ -159,7 +159,7 @@ def adjudicate_usaspending_candidate(vendor: dict, search: dict):
     """Adjudicate a discovery candidate without promoting name similarity.
 
     A USASpending candidate can PASS here only when the input already carries a
-    stable UEI and the candidate independently reports the same UEI.  All other
+    stable UEI and the candidate independently reports the same UEI. All other
     name-search results remain CANDIDATE_NOT_IDENTITY.
     """
     known_uei = (vendor.get("known_uei") or "").strip()
@@ -221,7 +221,7 @@ def resolve_vendor(
         "source": "none",
     }
 
-    # Existing parent fields are source-backed manifestations.  Keep them intact;
+    # Existing parent fields are source-backed manifestations. Keep them intact;
     # the canonical core remains responsible for cross-source entity federation.
     if result["parent_uei"] or result["parent_name"]:
         result["identity_status"] = "PASS"
@@ -307,9 +307,13 @@ def resolve_vendor(
             if not result["parent_uei"]:
                 result["parent_uei"] = detail.get("parent_uei", "")
                 result["parent_name"] = detail.get("parent_name", "")
-            business_types = detail.get("business_types_description") or detail.get("business_types", [])
+            business_types = detail.get("business_types_description") or detail.get(
+                "business_types", []
+            )
             result["business_types"] = (
-                "; ".join(business_types) if isinstance(business_types, list) else str(business_types)
+                "; ".join(business_types)
+                if isinstance(business_types, list)
+                else str(business_types)
             )
 
     result["source"] = "usaspending_stable_id_bound"

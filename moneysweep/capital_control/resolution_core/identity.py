@@ -41,9 +41,7 @@ def resolve_candidates(candidates: tuple[Candidate, ...] | list[Candidate]) -> R
 
     best = max(EVIDENCE_PRIORITY.get(candidate.basis, -1) for candidate in preserved)
     top = tuple(
-        candidate
-        for candidate in preserved
-        if EVIDENCE_PRIORITY.get(candidate.basis, -1) == best
+        candidate for candidate in preserved if EVIDENCE_PRIORITY.get(candidate.basis, -1) == best
     )
     distinct_ids = {candidate.candidate_id for candidate in top}
     if len(distinct_ids) != 1:

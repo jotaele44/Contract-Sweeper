@@ -13,9 +13,7 @@ class EquivalenceSets:
     symmetric_difference: frozenset[Hashable]
 
 
-def compute_equivalence_sets(
-    a: AbstractSet[Hashable], b: AbstractSet[Hashable]
-) -> EquivalenceSets:
+def compute_equivalence_sets(a: AbstractSet[Hashable], b: AbstractSet[Hashable]) -> EquivalenceSets:
     left = frozenset(a)
     right = frozenset(b)
     return EquivalenceSets(

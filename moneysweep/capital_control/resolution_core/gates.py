@@ -27,9 +27,7 @@ class DenominatorResult:
 def evaluate_unlock(
     required: tuple[str, ...], states: dict[str, CertificationState]
 ) -> UnlockResult:
-    missing = tuple(
-        name for name in required if states.get(name) not in PUBLIC_CLOSED_STATES
-    )
+    missing = tuple(name for name in required if states.get(name) not in PUBLIC_CLOSED_STATES)
     return UnlockResult(
         CertificationState.PASS if not missing else CertificationState.BLOCKED,
         missing,
@@ -52,11 +50,7 @@ def evaluate_public_denominator(
     source_states: dict[str, CertificationState],
 ) -> DenominatorResult:
     blockers = tuple(
-        sorted(
-            name
-            for name, state in source_states.items()
-            if state not in PUBLIC_CLOSED_STATES
-        )
+        sorted(name for name, state in source_states.items() if state not in PUBLIC_CLOSED_STATES)
     )
     return DenominatorResult(
         CertificationState.PASS if not blockers else CertificationState.BLOCKED,
