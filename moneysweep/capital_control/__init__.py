@@ -1,3 +1,4 @@
+from . import resolution_core
 from .analytics import PairwiseSetComparison, compare_sets, current_positions, rollup_positions
 from .deep_dive import (
     CertifiedOwnershipScope,
@@ -38,6 +39,7 @@ __all__ = [
     "ingest",
     "load_certification",
     "load_materialized_holdings",
+    "resolution_core",
     "resolve_identity_candidates",
     "rollup_positions",
     "stable_observation_fingerprint",

@@ -5,11 +5,14 @@ export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 
 const OFFLINE = import.meta.env.VITE_OFFLINE === '1'
 
+export const resolveOfflineSnapshot = (path, offlineFallback = null) => {
+  if (Object.prototype.hasOwnProperty.call(snapshot, path)) return snapshot[path]
+  const key = path.split('?')[0]
+  return Object.prototype.hasOwnProperty.call(snapshot, key) ? snapshot[key] : offlineFallback
+}
+
 async function fetchJSON(path, offlineFallback = null) {
-  if (OFFLINE) {
-    const key = path.split('?')[0]
-    return key in snapshot ? snapshot[key] : offlineFallback
-  }
+  if (OFFLINE) return resolveOfflineSnapshot(path, offlineFallback)
   const res = await fetch(`${API_BASE}${path}`, { signal: AbortSignal.timeout(8000) })
   if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`)
   return res.json()
