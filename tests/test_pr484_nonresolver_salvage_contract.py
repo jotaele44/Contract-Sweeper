@@ -33,6 +33,18 @@ def test_salvage_manifest_keeps_multi_issuer_ui_dependency_gated() -> None:
     assert manifest["canonical_owner"] == "moneysweep.capital_control.resolution_core"
 
 
+def test_manifest_fails_closed_when_certified_core_is_not_on_base_main() -> None:
+    manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    materialization = manifest["canonical_core_materialization"]
+    assert materialization["state"] == "EXTERNAL_CERTIFIED_DRAFT_NOT_MERGED"
+    assert materialization["pr"] == 520
+    assert materialization["present_on_base_main"] is False
+    assert (
+        manifest["promotion_state"]
+        == "BLOCKED_PENDING_CANONICAL_CORE_INTEGRATION_AND_COMPLETE_RECERTIFICATION"
+    )
+
+
 def test_generic_backend_does_not_receive_pr484_private_resolution_helpers() -> None:
     source = (ROOT / "server" / "backend" / "main.py").read_text(encoding="utf-8")
     forbidden = {
