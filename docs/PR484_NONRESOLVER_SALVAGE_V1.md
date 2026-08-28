@@ -6,9 +6,20 @@
 - Source lineage: PR #484 at `85dc4744173ebd26c68f2b904265c6c91497d5ad`.
 - Fresh base after change detection: current `main` at `df78f15f7c36b98bc6ecfae37c7e775ec487ead3`.
 - Canonical resolver: `moneysweep.capital_control.resolution_core`.
+- Frozen canonical-core source: PR #520 at `5646ad6014959baf783b66c8dd497f1f518f207e`.
 - Merge and production promotion remain prohibited.
 
 This branch does not merge or cherry-pick PR #484. It independently reconstructs only adjudicated non-resolver behavior on current main.
+
+## Canonical-core materialization boundary
+
+The certified `resolution_core` remains external to current main because PR #520 is intentionally frozen, draft, and unmerged. Therefore this salvage branch does not claim repository-wide canonical-core integration or complete GOLDEN_001–004 recertification.
+
+Its current promotion state is:
+
+`BLOCKED_PENDING_CANONICAL_CORE_INTEGRATION_AND_COMPLETE_RECERTIFICATION`
+
+The non-resolver snapshot change can be tested independently, but the branch cannot inherit PR #520's certification and cannot become merge-eligible merely because its local and protected CI checks pass.
 
 ## Implemented
 
@@ -56,3 +67,5 @@ Every delta on this branch requires the complete denominator from issue #526:
 10. property, federation, funding, and FOIA dependency gates;
 11. all protected CI at terminal success;
 12. zero unexplained residue.
+
+Until the canonical core is integrated onto a successor branch and that complete denominator closes, this PR must remain draft, unmerged, and non-promoted.
