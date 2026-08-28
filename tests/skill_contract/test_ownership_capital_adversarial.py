@@ -36,11 +36,12 @@ def test_adversarial_matrix_is_complete_and_fail_closed() -> None:
 def test_skill_text_preserves_all_adversarial_boundaries() -> None:
     text = SKILL.read_text(encoding="utf-8")
     required = (
-        "OFG and EVTC are real-source regression fixtures only",
+        "OFG and EVTC are real-source",
+        "do not inherit BPOP certification",
         "Morningstar/provider `% Total Assets` remains a distinct manifestation",
         "Do not sum positions across reporting managers",
         "Nearest-date, current-share",
-        "do not invent row-to-row predecessor identity",
+        "invent row-to-row predecessor identity",
         "duplicate `(ACCESSION_NUMBER, INFOTABLE_SK)`",
         "name-only holder/issuer identity promotion",
         "EVRI",
