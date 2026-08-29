@@ -52,6 +52,17 @@ def _expected_satisfied(expected_path: str, actual_paths: set[str]) -> bool:
     return expected_path in actual_paths
 
 
+def _processed_inventory(root: Path) -> set[str]:
+    processed = root / "data" / "staging" / "processed"
+    if not processed.exists():
+        return set()
+    return {
+        path.relative_to(root).as_posix()
+        for path in processed.rglob("*.csv")
+        if path.is_file()
+    }
+
+
 def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
     root = root.resolve()
     corpus_root = corpus_root.resolve()
@@ -87,6 +98,13 @@ def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
         errors.append("registry_source_ids_digest_mismatch")
     if registry.get("registry_paths") != registry_paths:
         errors.append("registry_paths_mismatch")
+
+    snapshot = manifest.get("snapshot")
+    if not isinstance(snapshot, dict):
+        snapshot = {}
+        errors.append("manifest_snapshot_missing")
+    if snapshot.get("processed_inventory_complete") is not True:
+        errors.append("processed_inventory_not_complete")
 
     manifest_sources = manifest.get("sources")
     if not isinstance(manifest_sources, list):
@@ -140,6 +158,9 @@ def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
                     source_errors.append("receipt_registry_digest_mismatch")
                 if receipt_registry.get("source_definition_sha256") != definition_digest:
                     source_errors.append("receipt_definition_digest_mismatch")
+            validation = receipt.get("validation")
+            if not isinstance(validation, dict) or validation.get("schema_valid") is not True:
+                source_errors.append("receipt_schema_validation_not_proven")
 
         outputs = entry.get("outputs")
         if not isinstance(outputs, list):
@@ -213,14 +234,27 @@ def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
         )
         errors.extend(f"{source_id}:{item}" for item in source_errors)
 
-    processed_dir = corpus_root / "mount" / "data" / "staging" / "processed"
-    processed_paths: set[str] = set()
-    if processed_dir.exists():
-        for path in processed_dir.rglob("*.csv"):
-            processed_paths.add(path.relative_to(corpus_root / "mount").as_posix())
-    orphan_processed = sorted(processed_paths - manifest_output_paths)
-    if orphan_processed:
-        errors.extend(f"orphan_processed_file:{path}" for path in orphan_processed)
+    mounted_processed = _processed_inventory(corpus_root / "mount")
+    operator_processed = _processed_inventory(root)
+    manifest_processed = {
+        path for path in manifest_output_paths if path.startswith("data/staging/processed/")
+    }
+    orphan_mounted = sorted(mounted_processed - manifest_processed)
+    unreceipted_operator = sorted(operator_processed - manifest_processed)
+    receipt_missing_operator = sorted(manifest_processed - operator_processed)
+    if orphan_mounted:
+        errors.extend(f"orphan_mounted_processed_file:{path}" for path in orphan_mounted)
+    if unreceipted_operator:
+        errors.extend(f"unreceipted_operator_processed_file:{path}" for path in unreceipted_operator)
+    if receipt_missing_operator:
+        errors.extend(f"receipt_output_missing_from_operator:{path}" for path in receipt_missing_operator)
+
+    if snapshot.get("operator_processed_csv_files") != len(operator_processed):
+        errors.append("snapshot_operator_processed_count_mismatch")
+    if snapshot.get("receipted_processed_csv_files") != len(manifest_processed):
+        errors.append("snapshot_receipted_processed_count_mismatch")
+    if snapshot.get("unreceipted_processed_files") != unreceipted_operator:
+        errors.append("snapshot_unreceipted_processed_files_mismatch")
 
     report = {
         "schema_version": VERIFICATION_SCHEMA_VERSION,
@@ -237,9 +271,12 @@ def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
         },
         "manifest_source_count": len(seen_source_ids),
         "processed_file_inventory": {
-            "total_csv_files": len(processed_paths),
-            "orphan_files": orphan_processed,
-            "orphan_file_count": len(orphan_processed),
+            "operator_csv_files": len(operator_processed),
+            "mounted_csv_files": len(mounted_processed),
+            "manifest_csv_files": len(manifest_processed),
+            "orphan_mounted_files": orphan_mounted,
+            "unreceipted_operator_files": unreceipted_operator,
+            "receipt_outputs_missing_from_operator": receipt_missing_operator,
         },
         "sources": sorted(source_results, key=lambda item: item["source_id"]),
         "errors": sorted(set(errors)),
