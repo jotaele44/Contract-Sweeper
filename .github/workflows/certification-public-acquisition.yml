@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/certification-public-acquisition.yml"
+      - "schemas/operator_evidence_receipt.schema.json"
+      - "tools/operator_corpus_common.py"
+      - "tools/write_operator_evidence_receipt.py"
       - "scripts/scrape_iapconsulta.py"
       - "scripts/download_cor3.py"
       - "scripts/ingest_cor3.py"
@@ -174,6 +177,92 @@ jobs:
           print(out.read_text())
           PY
 
+      - name: Emit registry-bound operator evidence receipts
+        if: always()
+        env:
+          CERT_IMPLEMENTATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          from pathlib import Path
+
+          lanes = [
+              {
+                  "source_id": "oficina_contralor",
+                  "producer": "scripts/scrape_iapconsulta.py",
+                  "source_url": "https://iapconsulta.ocpr.gov.pr/",
+                  "outputs": ["data/staging/processed/pr_contralor_audits.csv"],
+              },
+              {
+                  "source_id": "usaspending_prime",
+                  "producer": (
+                      "scripts/auto_download.py -> scripts/normalize_expansion_inputs.py "
+                      "-> scripts/deduplicate_master.py"
+                  ),
+                  "source_url": "https://api.usaspending.gov/",
+                  "outputs": [
+                      "data/staging/processed/pr_contracts_master.csv",
+                      "data/staging/processed/pr_all_awards_master.csv",
+                  ],
+              },
+              {
+                  "source_id": "cor3",
+                  "producer": "scripts/download_cor3.py",
+                  "source_url": "https://recovery.pr.gov/",
+                  "outputs": ["data/staging/processed/pr_cor3_projects.csv"],
+              },
+              {
+                  "source_id": "contralor_electoral",
+                  "producer": "scripts/download_oce.py",
+                  "source_url": "https://oce.pr.gov/",
+                  "outputs": ["data/staging/processed/pr_oce_donations.csv"],
+              },
+              {
+                  "source_id": "pr_cabilderos",
+                  "producer": "scripts/download_cabilderos.py",
+                  "source_url": "https://registrodecabilderos.pr.gov/Lobbyist/Details",
+                  "outputs": ["data/staging/processed/pr_cabilderos.csv"],
+              },
+              {
+                  "source_id": "prasa",
+                  "producer": "scripts/download_prasa_contracts.py",
+                  "source_url": (
+                      "https://transicion2024.pr.gov/Agencias/163/Informe%20Contratos%20Vigentes/"
+                      "Contratos%20Vigentes%20al%2024%20de%20septiembre%20de%202024%20%28Informe%29.pdf"
+                  ),
+                  "outputs": ["data/staging/processed/pr_prasa_contracts.csv"],
+              },
+          ]
+          emitted = []
+          skipped = []
+          for lane in lanes:
+              outputs = [path for path in lane["outputs"] if Path(path).is_file()]
+              if not outputs:
+                  skipped.append({"source_id": lane["source_id"], "reason": "no_output_bytes"})
+                  continue
+              command = [
+                  "python",
+                  "tools/write_operator_evidence_receipt.py",
+                  "--source-id",
+                  lane["source_id"],
+                  "--producer-sha",
+                  os.environ["CERT_IMPLEMENTATION_SHA"],
+                  "--producer",
+                  lane["producer"],
+                  "--source-url",
+                  lane["source_url"],
+                  "--coverage-contract-pass",
+                  "false",
+              ]
+              for output in outputs:
+                  command.extend(["--output", output])
+              subprocess.run(command, check=True)
+              emitted.append({"source_id": lane["source_id"], "outputs": outputs})
+          print(json.dumps({"emitted": emitted, "skipped": skipped}, indent=2))
+          PY
+
       - name: Upload public acquisition evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -181,6 +270,7 @@ jobs:
           name: certification-public-acquisition
           path: |
             reports/certification_public_acquisition.json
+            data/manifests/operator_evidence/*.json
             data/staging/processed/pr_contralor_audits.csv
             data/staging/processed/pr_contracts_master.csv
             data/staging/processed/pr_all_awards_master.csv
