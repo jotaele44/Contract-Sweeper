@@ -71,7 +71,9 @@ def committee_ids(path: Path) -> list[str]:
     frame = pd.read_csv(path, dtype=str, low_memory=False)
     if "committee_id" not in frame.columns:
         raise RuntimeError("Certified committee universe lacks committee_id")
-    values = list(dict.fromkeys(v.strip() for v in frame["committee_id"].dropna().astype(str) if v.strip()))
+    values = list(
+        dict.fromkeys(v.strip() for v in frame["committee_id"].dropna().astype(str) if v.strip())
+    )
     if not values:
         raise RuntimeError("Certified committee universe is empty")
     return values
@@ -95,8 +97,16 @@ def request_json(session: requests.Session, params: dict[str, Any], logger: Any)
             return payload
         except (requests.Timeout, requests.ConnectionError, requests.HTTPError) as exc:
             if attempt == MAX_ATTEMPTS:
-                raise RuntimeError(f"Schedule B request failed after {MAX_ATTEMPTS} attempts: {exc}") from exc
-            logger.warning("Schedule B request attempt %s/%s failed: %s; retrying in %.1fs", attempt, MAX_ATTEMPTS, type(exc).__name__, delay)
+                raise RuntimeError(
+                    f"Schedule B request failed after {MAX_ATTEMPTS} attempts: {exc}"
+                ) from exc
+            logger.warning(
+                "Schedule B request attempt %s/%s failed: %s; retrying in %.1fs",
+                attempt,
+                MAX_ATTEMPTS,
+                type(exc).__name__,
+                delay,
+            )
             time.sleep(delay)
             delay = min(delay * 2, 120.0)
     raise RuntimeError("unreachable retry state")
@@ -111,7 +121,9 @@ def normalize_rows(results: list[Any], cycle: int) -> list[dict[str, Any]]:
             {
                 "cycle": cycle,
                 "committee_id": raw.get("committee_id", ""),
-                "committee_name": raw.get("committee", {}).get("name", "") if isinstance(raw.get("committee"), dict) else raw.get("committee_name", ""),
+                "committee_name": raw.get("committee", {}).get("name", "")
+                if isinstance(raw.get("committee"), dict)
+                else raw.get("committee_name", ""),
                 "recipient_name": raw.get("recipient_name", ""),
                 "recipient_committee_id": raw.get("recipient_committee_id", ""),
                 "disbursement_amount": raw.get("disbursement_amount", ""),
@@ -131,7 +143,11 @@ def checkpoint_path(root: Path, cycle: int, committee_id: str, page: int) -> Pat
 
 
 def valid_checkpoint(path: Path, receipt: dict[str, Any]) -> bool:
-    return path.exists() and receipt.get("sha256") == sha256_file(path) and int(receipt.get("rows", -1)) == len(pd.read_csv(path, dtype=str, low_memory=False))
+    return (
+        path.exists()
+        and receipt.get("sha256") == sha256_file(path)
+        and int(receipt.get("rows", -1)) == len(pd.read_csv(path, dtype=str, low_memory=False))
+    )
 
 
 def assemble(checkpoint_dir: Path, output: Path) -> pd.DataFrame:
@@ -187,7 +203,13 @@ def run(root: Path, resume: bool) -> dict[str, Any]:
     if not api_key:
         raise RuntimeError("FEC_API_KEY is required")
     session = requests.Session()
-    session.headers.update({"User-Agent": "MoneySweep/1.0 campaign-finance materialization", "Accept": "application/json", "X-Api-Key": api_key})
+    session.headers.update(
+        {
+            "User-Agent": "MoneySweep/1.0 campaign-finance materialization",
+            "Accept": "application/json",
+            "X-Api-Key": api_key,
+        }
+    )
     completed = 0
     try:
         for cycle in cycles:
@@ -222,7 +244,9 @@ def run(root: Path, resume: bool) -> dict[str, Any]:
                     rows = normalize_rows(results, cycle)
                     path.parent.mkdir(parents=True, exist_ok=True)
                     temporary = path.with_suffix(".csv.tmp")
-                    pd.DataFrame(rows, columns=COLUMNS).to_csv(temporary, index=False, encoding="utf-8")
+                    pd.DataFrame(rows, columns=COLUMNS).to_csv(
+                        temporary, index=False, encoding="utf-8"
+                    )
                     temporary.replace(path)
                     manifest["page_receipts"][key] = {
                         "cycle": cycle,
@@ -252,7 +276,9 @@ def run(root: Path, resume: bool) -> dict[str, Any]:
             "output_sha256": sha256_file(output),
             "schema_columns": COLUMNS,
             "checkpoint_pages": len(manifest["page_receipts"]),
-            "checkpoint_rows": sum(int(item["rows"]) for item in manifest["page_receipts"].values()),
+            "checkpoint_rows": sum(
+                int(item["rows"]) for item in manifest["page_receipts"].values()
+            ),
         }
     )
     write_json(manifest_path, manifest)
