@@ -80,23 +80,31 @@ jobs:
           import re
           from pathlib import Path
 
-          report = json.loads(Path("reports/production_certification.ci.json").read_text(encoding="utf-8"))
-          lineage = json.loads(Path("reports/materialization_coverage_audit.ci.json").read_text(encoding="utf-8"))
-          assert len(report["source_universe"]["source_ledger"]) == 162
-          assert lineage["local_truth_summary"]["total_sources"] == 162
-          assert lineage["audit_scope"]["operator_corpus_authoritative"] is False
-          assert lineage["processed_file_inventory"]["orphan_rows"] is None
-          assert report["scope"]["commit_sha"] == report["scope"]["checkout_head_sha"]
-          assert re.fullmatch(r"[0-9a-f]{40}", report["scope"]["commit_sha"])
-          assert re.fullmatch(r"[0-9a-f]{40}", report["audit_implementation"]["commit_sha"])
-          assert report["production_eligible"] == (report["certification_state"] == "CERTIFIED")
-          if report["production_eligible"]:
-              assert report["nonpass_gate_ids"] == []
-          else:
-              assert report["nonpass_gate_ids"]
+          report = json.loads(
+              Path("reports/production_certification.ci.json").read_text(encoding="utf-8")
+          )
+          lineage = json.loads(
+              Path("reports/materialization_coverage_audit.ci.json").read_text(encoding="utf-8")
+          )
+          checks = {
+              "source_ledger_162": len(report["source_universe"]["source_ledger"]) == 162,
+              "lineage_denominator_162": lineage["local_truth_summary"]["total_sources"] == 162,
+              "ci_lineage_not_operator_authoritative": lineage["audit_scope"]["operator_corpus_authoritative"] is False,
+              "ci_lineage_orphans_fail_closed": lineage["processed_file_inventory"]["orphan_rows"] is None,
+              "scope_sha_bound_to_checkout": report["scope"]["commit_sha"] == report["scope"]["checkout_head_sha"],
+              "scope_sha_valid": bool(re.fullmatch(r"[0-9a-f]{40}", report["scope"]["commit_sha"])),
+              "implementation_sha_valid": bool(re.fullmatch(r"[0-9a-f]{40}", report["audit_implementation"]["commit_sha"])),
+              "eligibility_matches_state": report["production_eligible"] == (report["certification_state"] == "CERTIFIED"),
+              "nonpass_ledger_consistent": (report["nonpass_gate_ids"] == []) if report["production_eligible"] else bool(report["nonpass_gate_ids"]),
+          }
+          failed = [name for name, ok in checks.items() if not ok]
+          print(json.dumps({"checks": checks, "failed": failed}, indent=2, sort_keys=True))
+          if failed:
+              raise SystemExit("Certification consistency checks failed: " + ", ".join(failed))
           PY
 
       - name: Upload certification evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: production-certification-audit
