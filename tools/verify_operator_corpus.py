@@ -63,7 +63,19 @@ def _processed_inventory(root: Path) -> set[str]:
     }
 
 
-def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
+def verify(
+    *,
+    root: Path,
+    corpus_root: Path,
+    require_operator_snapshot: bool = True,
+) -> dict[str, Any]:
+    """Verify corpus bytes and, by default, the complete operator snapshot.
+
+    ``require_operator_snapshot=False`` is only for later content revalidation of
+    an already-issued full verification receipt. It can prove that the immutable
+    corpus still matches its manifest, but it can never independently award
+    operator-corpus authority.
+    """
     root = root.resolve()
     corpus_root = corpus_root.resolve()
     errors: list[str] = []
@@ -105,6 +117,8 @@ def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
         errors.append("manifest_snapshot_missing")
     if snapshot.get("processed_inventory_complete") is not True:
         errors.append("processed_inventory_not_complete")
+    if snapshot.get("unreceipted_processed_files") not in ([], None):
+        errors.append("manifest_records_unreceipted_processed_files")
 
     manifest_sources = manifest.get("sources")
     if not isinstance(manifest_sources, list):
@@ -235,32 +249,45 @@ def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
         errors.extend(f"{source_id}:{item}" for item in source_errors)
 
     mounted_processed = _processed_inventory(corpus_root / "mount")
-    operator_processed = _processed_inventory(root)
     manifest_processed = {
         path for path in manifest_output_paths if path.startswith("data/staging/processed/")
     }
     orphan_mounted = sorted(mounted_processed - manifest_processed)
-    unreceipted_operator = sorted(operator_processed - manifest_processed)
-    receipt_missing_operator = sorted(manifest_processed - operator_processed)
     if orphan_mounted:
         errors.extend(f"orphan_mounted_processed_file:{path}" for path in orphan_mounted)
-    if unreceipted_operator:
-        errors.extend(f"unreceipted_operator_processed_file:{path}" for path in unreceipted_operator)
-    if receipt_missing_operator:
-        errors.extend(f"receipt_output_missing_from_operator:{path}" for path in receipt_missing_operator)
 
-    if snapshot.get("operator_processed_csv_files") != len(operator_processed):
-        errors.append("snapshot_operator_processed_count_mismatch")
-    if snapshot.get("receipted_processed_csv_files") != len(manifest_processed):
-        errors.append("snapshot_receipted_processed_count_mismatch")
-    if snapshot.get("unreceipted_processed_files") != unreceipted_operator:
-        errors.append("snapshot_unreceipted_processed_files_mismatch")
+    operator_processed: set[str] = set()
+    unreceipted_operator: list[str] = []
+    receipt_missing_operator: list[str] = []
+    if require_operator_snapshot:
+        operator_processed = _processed_inventory(root)
+        unreceipted_operator = sorted(operator_processed - manifest_processed)
+        receipt_missing_operator = sorted(manifest_processed - operator_processed)
+        if unreceipted_operator:
+            errors.extend(
+                f"unreceipted_operator_processed_file:{path}" for path in unreceipted_operator
+            )
+        if receipt_missing_operator:
+            errors.extend(
+                f"receipt_output_missing_from_operator:{path}" for path in receipt_missing_operator
+            )
+        if snapshot.get("operator_processed_csv_files") != len(operator_processed):
+            errors.append("snapshot_operator_processed_count_mismatch")
+        if snapshot.get("receipted_processed_csv_files") != len(manifest_processed):
+            errors.append("snapshot_receipted_processed_count_mismatch")
+        if snapshot.get("unreceipted_processed_files") != unreceipted_operator:
+            errors.append("snapshot_unreceipted_processed_files_mismatch")
 
+    verified = not errors
     report = {
         "schema_version": VERIFICATION_SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "verified": not errors,
-        "operator_corpus_authoritative": not errors,
+        "verification_scope": {
+            "operator_snapshot_required": require_operator_snapshot,
+            "mode": "full_operator_snapshot" if require_operator_snapshot else "content_revalidation",
+        },
+        "verified": verified,
+        "operator_corpus_authoritative": verified and require_operator_snapshot,
         "corpus_id": claimed_corpus_id,
         "computed_corpus_id": computed_corpus_id,
         "registry": {
@@ -271,12 +298,16 @@ def verify(*, root: Path, corpus_root: Path) -> dict[str, Any]:
         },
         "manifest_source_count": len(seen_source_ids),
         "processed_file_inventory": {
-            "operator_csv_files": len(operator_processed),
+            "operator_csv_files": len(operator_processed) if require_operator_snapshot else None,
             "mounted_csv_files": len(mounted_processed),
             "manifest_csv_files": len(manifest_processed),
             "orphan_mounted_files": orphan_mounted,
-            "unreceipted_operator_files": unreceipted_operator,
-            "receipt_outputs_missing_from_operator": receipt_missing_operator,
+            "unreceipted_operator_files": (
+                unreceipted_operator if require_operator_snapshot else None
+            ),
+            "receipt_outputs_missing_from_operator": (
+                receipt_missing_operator if require_operator_snapshot else None
+            ),
         },
         "sources": sorted(source_results, key=lambda item: item["source_id"]),
         "errors": sorted(set(errors)),
@@ -293,13 +324,14 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    report = verify(root=args.root, corpus_root=args.corpus_root)
+    report = verify(root=args.root, corpus_root=args.corpus_root, require_operator_snapshot=True)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(
         json.dumps(
             {
                 "verified": report["verified"],
+                "operator_corpus_authoritative": report["operator_corpus_authoritative"],
                 "corpus_id": report["corpus_id"],
                 "errors": len(report["errors"]),
             },
