@@ -135,12 +135,14 @@ def test_current_completeness_is_not_promoted() -> None:
     }
 
     assert gates["G8_PROVENANCE_AND_LINEAGE"]["state"] == "BLOCKED"
-    assert gates["G9_CANONICAL_MASTER_INVARIANTS"]["evidence"][
-        "canonical_graph_gate"
-    ] == "NON_PRODUCTION_DIAGNOSTIC"
-    assert gates["G11_PRODUCTION_EXPORT_AND_FEDERATION"]["evidence"][
-        "production_status"
-    ] == "NON_PRODUCTION_DIAGNOSTIC"
+    assert (
+        gates["G9_CANONICAL_MASTER_INVARIANTS"]["evidence"]["canonical_graph_gate"]
+        == "NON_PRODUCTION_DIAGNOSTIC"
+    )
+    assert (
+        gates["G11_PRODUCTION_EXPORT_AND_FEDERATION"]["evidence"]["production_status"]
+        == "NON_PRODUCTION_DIAGNOSTIC"
+    )
 
 
 def test_lineage_auditor_includes_core_and_extension_registries() -> None:
@@ -153,11 +155,9 @@ def test_lineage_auditor_includes_core_and_extension_registries() -> None:
     registry_paths = set(audit["audit_scope"]["registry_paths"])
     assert "registries/source_registry.yaml" in registry_paths
     assert (
-        "registries/source_registry_extensions/campaign_finance_completion.json"
-        in registry_paths
+        "registries/source_registry_extensions/campaign_finance_completion.json" in registry_paths
     )
     assert "registries/source_registry_extensions/nara_nextgen.json" in registry_paths
     assert (
-        "registries/source_registry_extensions/sec_ownership_hardening_v0_3.json"
-        in registry_paths
+        "registries/source_registry_extensions/sec_ownership_hardening_v0_3.json" in registry_paths
     )
