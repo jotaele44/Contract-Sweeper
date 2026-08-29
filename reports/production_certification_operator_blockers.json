@@ -1,0 +1,90 @@
+{
+  "schema_version": "moneysweep.production_certification_operator_blockers/v1",
+  "certification_scope_sha": "ba0c0d11a011669a5d487dc116274491449d4b72",
+  "status": "NON_PRODUCTION_DIAGNOSTIC",
+  "rules": {
+    "source_substitution_allowed": false,
+    "name_only_identity_resolution_allowed": false,
+    "threshold_weakening_allowed": false,
+    "operator_corpus_authority_may_be_asserted_on_ci_checkout": false
+  },
+  "proven_public_acquisition_evidence": {
+    "oficina_contralor": {
+      "output": "data/staging/processed/pr_contralor_audits.csv",
+      "data_rows": 4129,
+      "bytes": 971672,
+      "sha256": "815fcc496856061951982f1102b635fe8ee08f6281d5dfc6cc2939153077d47e"
+    },
+    "oce_donations": {
+      "output": "data/staging/processed/pr_oce_donations.csv",
+      "data_rows": 155770,
+      "bytes": 68601302,
+      "sha256": "b4fe7eaa60829aa00e87f831f2dfa5eb727576955e5fb137afcbf9e5ce2c22b2",
+      "manifest_sha256": "2cf847b4c3ece8c247ce5aafd1772d66bd35d3e47a1954a2e03c980e0c9aa5a0"
+    }
+  },
+  "required_source_blockers": {
+    "usaspending_prime": {
+      "state": "ACQUISITION_CHAIN_REPAIRED_PENDING_EVIDENCE",
+      "required_outputs": [
+        "data/staging/processed/pr_contracts_master.csv",
+        "data/staging/processed/pr_all_awards_master.csv"
+      ],
+      "note": "Certification workflow now restores historical acquisition chain auto_download -> normalize_expansion_inputs -> deduplicate_master. pr_all_awards_master remains a cross-source operator-workspace derivative and must be built with its real upstream corpus."
+    },
+    "cor3": {
+      "state": "OPERATOR_CORPUS_BYTES_MISSING",
+      "required_output": "data/staging/processed/pr_cor3_projects.csv",
+      "known_authoritative_inputs": [
+        {"file": "COR3 PA_110726_0836.xlsx", "rows": 24163, "sha256": "141f6231624117e7d130369b05d67ac432c40eec80152d7f4a0c4e14085ea57e"},
+        {"file": "COR3 HMGP_110726_0836.xlsx", "rows": 774, "sha256": "ebcd061826239a6db97c5b04fd4f5f954f247b31008e1848dd62065853a20eba"},
+        {"file": "COR3 DISBURSEMENT_110726_0824.xlsx", "rows": 3, "sha256": "ec096274adebba20ed344069b8c26b6eda580c8debb8f1dccb684d4d9b1f1602"},
+        {"file": "COR3 Procurement Inventory_110726_0841.xlsx", "rows": 1233, "sha256": "24bb9ea212eb5d5fc984e15e12b0fe01d9b1a50f0572117581d9a35c07fb45fa"},
+        {"file": "COR3 RFP and Contracts_110726_0810.xlsx", "rows": 345, "sha256": "608efb628ef7f475127ae838660221d37dfe413d41c7eb03f2fcae328d6c30d3"}
+      ],
+      "ingester": "scripts/ingest_cor3.py",
+      "last_public_probe": {"data_rows": 0, "sha256": "e1ec85a88309bad7a56d9f9074095ef7ee8b34b0e2f481e2bd3f167cfea65c1b"}
+    },
+    "hud_drgr_authorized": {
+      "state": "AUTHORITATIVE_EXPORT_OR_EQUIVALENCE_PROOF_REQUIRED",
+      "ingester": "scripts/ingest_hud_drgr_exports.py",
+      "note": "A public HUD data surface must not replace the registered authorized DRGR activities/projects universe unless field, scope, temporal, and row-universe equivalence is proven."
+    },
+    "prasa": {
+      "state": "AUTHORITATIVE_PRASA_EXPORT_REQUIRED",
+      "ingester": "scripts/ingest_prasa.py"
+    },
+    "pr_cabilderos": {
+      "state": "AUTHORITATIVE_OEG_EXPORT_REQUIRED",
+      "ingester": "scripts/ingest_cabilderos.py",
+      "note": "Federal LDA records are not a substitute for the Puerto Rico OEG cabilderos universe."
+    },
+    "campaign_finance_entities": {
+      "state": "UPSTREAM_FEEDERS_INCOMPLETE",
+      "producer": "scripts/build_campaign_finance_entities.py",
+      "known_positive_feeder": "OCE donations: 155770 rows",
+      "missing_feeders": ["FEC Schedule B disbursements", "FEC Schedule E independent expenditures"]
+    },
+    "campaign_finance_materialization_gate": {
+      "state": "BLOCKED_BY_CAMPAIGN_FEEDERS",
+      "producer": "scripts/validate_campaign_finance_materialization.py"
+    }
+  },
+  "entity_resolution": {
+    "advisory_low_confidence_review_count": 24,
+    "advisory_rule": "person_master confidence < 0.90",
+    "canonical_graph_review_queue_open": 0,
+    "resolution_semantics_open": true,
+    "required_reconciliation": "Separate genuine unresolved/collision identity residue inside promoted relationships from advisory evidence-confidence review rows; do not delete or auto-accept the 24 rows merely to make G7 green."
+  },
+  "lineage": {
+    "required_registry_denominator": 162,
+    "ci_checkout_is_authoritative_operator_corpus": false,
+    "required_action": "Mount the complete operator corpus and run tools/audit_materialization_coverage.py --operator-corpus-authoritative. G8 may pass only with current denominator and zero certifiable orphan/unresolved promoted lineage."
+  },
+  "release": {
+    "require_certified_command": "python -m tools.certify_production --scope-sha $(git rev-parse HEAD) --implementation-sha $(git rev-parse HEAD) --run-preflight --require-certified",
+    "activation_may_be_requested_only_after_g0_g11_pass": true,
+    "production_activation_authorized": false
+  }
+}
