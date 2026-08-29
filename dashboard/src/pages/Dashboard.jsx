@@ -8,6 +8,7 @@ import MunicipalityAggregates from '@/components/MunicipalityAggregates'
 import CampaignFinance from '@/components/CampaignFinance'
 import GovernmentChanges from '@/components/GovernmentChanges'
 import ApiKeysPanel from '@/components/ApiKeysPanel'
+import OwnershipDeepDive from '@/components/OwnershipDeepDive'
 import brandMark from "@/assets/icon-64.png?inline";
 
 // API Keys writes to a local backend .env file — no backend exists in the
@@ -17,6 +18,7 @@ const OFFLINE = import.meta.env.VITE_OFFLINE === '1'
 const TABS = [
   'contracts', 'entities', 'government-changes', 'graph', 'municipios', 'campaign-finance',
   ...(OFFLINE ? [] : ['api-keys']),
+  'ownership',
 ]
 
 export default function Dashboard() {
@@ -33,7 +35,7 @@ export default function Dashboard() {
         <img src={brandMark} alt="" aria-hidden="true" className="h-6 w-6 rounded-md" />
         <div>
           <h1 className="text-sm font-semibold leading-none text-foreground">moneysweep-pr</h1>
-          <p className="mt-0.5 text-[11px] text-muted-foreground">Puerto Rico public-money contracts, entities &amp; campaign finance</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Puerto Rico public-money contracts, entities, campaign finance &amp; certified ownership</p>
         </div>
       </header>
 
@@ -41,7 +43,7 @@ export default function Dashboard() {
 
       <div className="min-h-0 flex-1 p-3">
         <Tabs value={tab} onValueChange={setTab} className="flex h-full flex-col">
-          <TabsList className={`grid w-full ${OFFLINE ? 'grid-cols-6' : 'grid-cols-7'} bg-card`}>
+          <TabsList className={`grid w-full ${OFFLINE ? 'grid-cols-7' : 'grid-cols-8'} bg-card`}>
             <TabsTrigger value="contracts" className="text-xs data-[state=active]:glow-border">Contracts</TabsTrigger>
             <TabsTrigger value="entities" className="text-xs data-[state=active]:glow-border">Entities</TabsTrigger>
             <TabsTrigger value="government-changes" className="text-xs data-[state=active]:glow-border">Gov Changes</TabsTrigger>
@@ -49,6 +51,7 @@ export default function Dashboard() {
             <TabsTrigger value="municipios" className="text-xs data-[state=active]:glow-border">Municipios</TabsTrigger>
             <TabsTrigger value="campaign-finance" className="text-xs data-[state=active]:glow-border">Campaign Finance</TabsTrigger>
             {!OFFLINE && <TabsTrigger value="api-keys" className="text-xs data-[state=active]:glow-border">API Keys</TabsTrigger>}
+            <TabsTrigger value="ownership" className="text-xs data-[state=active]:glow-border">Ownership</TabsTrigger>
           </TabsList>
           <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background/40">
             <TabsContent value="contracts" className="m-0 h-full"><ContractsTable /></TabsContent>
@@ -58,6 +61,7 @@ export default function Dashboard() {
             <TabsContent value="municipios" className="m-0 h-full"><MunicipalityAggregates /></TabsContent>
             <TabsContent value="campaign-finance" className="m-0 h-full"><CampaignFinance /></TabsContent>
             {!OFFLINE && <TabsContent value="api-keys" className="m-0 h-full"><ApiKeysPanel /></TabsContent>}
+            <TabsContent value="ownership" className="m-0 h-full"><OwnershipDeepDive /></TabsContent>
           </div>
         </Tabs>
       </div>

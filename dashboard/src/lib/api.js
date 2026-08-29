@@ -66,3 +66,12 @@ export const setApiKey = async (name, value) => {
   if (!res.ok) throw new Error(`set ${name} → HTTP ${res.status}`)
   return res.json()
 }
+
+export const getOwnershipDeepDiveStatus = () => fetchJSON('/deep-dive/ownership/status', {
+  available: false,
+  certificationState: 'NOT_MOUNTED',
+  certifiedIssuer: 'BPOP',
+  providerEquivalence: 'OPEN',
+})
+export const getOwnershipDeepDive = (ticker = 'BPOP') =>
+  fetchJSON(`/deep-dive/ownership/${encodeURIComponent(ticker)}`, null)

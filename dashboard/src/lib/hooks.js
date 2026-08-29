@@ -5,6 +5,7 @@ import {
   getCampaignFinanceSummary, getCampaignFinanceContributions,
   getCampaignFinanceEntities, getCampaignFinanceReports,
   getApiKeys,
+  getOwnershipDeepDive, getOwnershipDeepDiveStatus,
 } from '@/lib/api'
 
 export const useHealth = () => useQuery({ queryKey: ['health'], queryFn: getHealth, refetchInterval: 15_000 })
@@ -42,3 +43,12 @@ export const useCampaignFinanceReports = (filters = {}) =>
   })
 
 export const useApiKeys = () => useQuery({ queryKey: ['api-keys'], queryFn: getApiKeys })
+
+export const useOwnershipDeepDiveStatus = () =>
+  useQuery({ queryKey: ['ownership-deep-dive-status'], queryFn: getOwnershipDeepDiveStatus })
+export const useOwnershipDeepDive = (ticker = 'BPOP') =>
+  useQuery({
+    queryKey: ['ownership-deep-dive', ticker],
+    queryFn: () => getOwnershipDeepDive(ticker),
+    enabled: ticker === 'BPOP',
+  })
