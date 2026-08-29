@@ -3,8 +3,9 @@
 
 Checkout-visible evidence is useful for reconciliation, but production provenance
 is awarded only by a cryptographically bound operator-corpus manifest plus a
-successful independent verification receipt. A CLI assertion alone can never
-make a checkout authoritative.
+successful full verification receipt. A CLI assertion alone can never make a
+checkout authoritative, and the mounted corpus is revalidated before authority
+is consumed.
 """
 
 from __future__ import annotations
@@ -21,8 +22,10 @@ import yaml
 
 try:
     from tools.operator_corpus_common import manifest_digest, source_ids_digest
+    from tools.verify_operator_corpus import verify as verify_operator_corpus
 except ModuleNotFoundError:  # pragma: no cover - direct script execution fallback
     from operator_corpus_common import manifest_digest, source_ids_digest  # type: ignore[no-redef]
+    from verify_operator_corpus import verify as verify_operator_corpus  # type: ignore[no-redef]
 
 
 def _row_count(path: Path) -> int | None:
@@ -105,6 +108,7 @@ def _resolve_authority(
         "verification_path": None,
         "verification_sha256": None,
         "corpus_id": None,
+        "content_revalidation": None,
         "authority_blockers": blockers,
     }
 
@@ -171,6 +175,11 @@ def _resolve_authority(
         blockers.append("operator_corpus_verification_not_authoritative")
     if verification.get("errors") not in ([], None):
         blockers.append("operator_corpus_verification_contains_errors")
+    verification_scope = verification.get("verification_scope")
+    if not isinstance(verification_scope, dict) or (
+        verification_scope.get("operator_snapshot_required") is not True
+    ):
+        blockers.append("full_operator_snapshot_verification_required")
 
     for label, registry_evidence in (
         ("manifest", manifest_registry),
@@ -192,6 +201,34 @@ def _resolve_authority(
     evidence_root = manifest_path.parent / "mount"
     if not evidence_root.exists() or not evidence_root.is_dir():
         blockers.append("operator_corpus_mount_missing")
+
+    if not blockers:
+        try:
+            revalidation = verify_operator_corpus(
+                root=root,
+                corpus_root=manifest_path.parent,
+                require_operator_snapshot=False,
+            )
+        except (OSError, ValueError, RuntimeError, json.JSONDecodeError) as exc:
+            blockers.append("operator_corpus_content_revalidation_error")
+            evidence["content_revalidation"] = {
+                "verified": False,
+                "error_type": type(exc).__name__,
+            }
+        else:
+            evidence["content_revalidation"] = {
+                "verified": revalidation.get("verified"),
+                "corpus_id": revalidation.get("corpus_id"),
+                "computed_corpus_id": revalidation.get("computed_corpus_id"),
+                "errors": revalidation.get("errors"),
+                "mode": revalidation.get("verification_scope", {}).get("mode"),
+            }
+            if revalidation.get("verified") is not True:
+                blockers.append("operator_corpus_content_revalidation_failed")
+            if revalidation.get("corpus_id") != claimed_corpus_id:
+                blockers.append("operator_corpus_revalidation_id_mismatch")
+            if revalidation.get("operator_corpus_authoritative") is not False:
+                blockers.append("content_revalidation_must_not_self_award_authority")
 
     authority = not blockers
     return authority, evidence_root if authority else root, evidence
