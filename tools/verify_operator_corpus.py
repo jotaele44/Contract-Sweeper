@@ -9,7 +9,6 @@ from typing import Any
 try:
     from tools.operator_corpus_common import (
         CORPUS_SCHEMA_VERSION,
-        RECEIPT_SCHEMA_VERSION,
         VERIFICATION_SCHEMA_VERSION,
         csv_rows,
         expected_outputs,
@@ -19,11 +18,11 @@ try:
         sha256_file,
         source_definition_digest,
         source_ids_digest,
+        validate_receipt,
     )
 except ModuleNotFoundError:  # pragma: no cover - direct script execution fallback
     from operator_corpus_common import (  # type: ignore[no-redef]
         CORPUS_SCHEMA_VERSION,
-        RECEIPT_SCHEMA_VERSION,
         VERIFICATION_SCHEMA_VERSION,
         csv_rows,
         expected_outputs,
@@ -33,6 +32,7 @@ except ModuleNotFoundError:  # pragma: no cover - direct script execution fallba
         sha256_file,
         source_definition_digest,
         source_ids_digest,
+        validate_receipt,
     )
 
 
@@ -152,16 +152,24 @@ def verify(
 
         receipt_rel = safe_relative_path(str(entry.get("receipt_path", "")))
         receipt_path = corpus_root / receipt_rel
+        receipt_contract_errors: list[str] = []
         if not receipt_path.exists() or not receipt_path.is_file():
             source_errors.append("receipt_missing")
             receipt: dict[str, Any] = {}
+            receipt_contract_errors.append("receipt_missing")
         else:
             if sha256_file(receipt_path) != entry.get("receipt_sha256"):
                 source_errors.append("receipt_sha256_mismatch")
-            payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            try:
+                payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                payload = None
+                source_errors.append("receipt_unreadable")
             receipt = payload if isinstance(payload, dict) else {}
-            if receipt.get("schema_version") != RECEIPT_SCHEMA_VERSION:
-                source_errors.append("receipt_schema_mismatch")
+            receipt_contract_errors = validate_receipt(receipt)
+            source_errors.extend(
+                f"receipt_contract:{item}" for item in receipt_contract_errors
+            )
             if receipt.get("source_id") != source_id:
                 source_errors.append("receipt_source_id_mismatch")
             receipt_registry = receipt.get("registry")
@@ -172,9 +180,6 @@ def verify(
                     source_errors.append("receipt_registry_digest_mismatch")
                 if receipt_registry.get("source_definition_sha256") != definition_digest:
                     source_errors.append("receipt_definition_digest_mismatch")
-            validation = receipt.get("validation")
-            if not isinstance(validation, dict) or validation.get("schema_valid") is not True:
-                source_errors.append("receipt_schema_validation_not_proven")
 
         outputs = entry.get("outputs")
         if not isinstance(outputs, list):
@@ -240,9 +245,8 @@ def verify(
                     if isinstance(validation, dict)
                     else None
                 ),
-                "receipt_schema_valid": (
-                    validation.get("schema_valid") if isinstance(validation, dict) else None
-                ),
+                "receipt_schema_valid": not receipt_contract_errors,
+                "receipt_contract_errors": receipt_contract_errors,
                 "errors": sorted(set(source_errors)),
             }
         )
