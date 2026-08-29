@@ -1,4 +1,4 @@
-name: Certification public acquisition
+name: Production certification public acquisition
 
 on:
   pull_request:
@@ -13,6 +13,8 @@ on:
       - "scripts/build_unified_master.py"
       - "scripts/download_oce.py"
       - "scripts/ingest_oce.py"
+      - "scripts/download_cabilderos.py"
+      - "scripts/ingest_cabilderos.py"
   workflow_dispatch:
 
 permissions:
@@ -70,6 +72,11 @@ jobs:
         continue-on-error: true
         run: python scripts/download_oce.py --force
 
+      - name: Acquire official Justice cabilderos registry
+        id: cabilderos
+        continue-on-error: true
+        run: python scripts/download_cabilderos.py --force
+
       - name: Record acquisition evidence
         if: always()
         env:
@@ -78,6 +85,7 @@ jobs:
           UNIFIED_OUTCOME: ${{ steps.unified.outcome }}
           COR3_OUTCOME: ${{ steps.cor3.outcome }}
           OCE_OUTCOME: ${{ steps.oce.outcome }}
+          CABILDEROS_OUTCOME: ${{ steps.cabilderos.outcome }}
           CERT_SCOPE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
           CERT_IMPLEMENTATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
@@ -96,6 +104,10 @@ jobs:
               Path("data/staging/processed/pr_cor3_projects.csv"),
               Path("data/staging/processed/pr_oce_donations.csv"),
               Path("data/manifests/campaign_finance/oce_socrata_latest.json"),
+              Path("data/staging/processed/pr_cabilderos.csv"),
+              Path("data/raw/Cabilderos/justice_registry.csv"),
+              Path("data/raw/Cabilderos/justice_registry.html"),
+              Path("data/manifests/cabilderos/justice_registry_latest.json"),
           ]
           artifacts = []
           for path in paths:
@@ -124,6 +136,7 @@ jobs:
                   "all_awards_derivation_probe": os.environ["UNIFIED_OUTCOME"],
                   "cor3": os.environ["COR3_OUTCOME"],
                   "oce_socrata_live": os.environ["OCE_OUTCOME"],
+                  "pr_cabilderos_justice": os.environ["CABILDEROS_OUTCOME"],
               },
               "artifacts": artifacts,
               "semantics": {
@@ -131,6 +144,10 @@ jobs:
                   "pr_all_awards_master": (
                       "cross-source derived product; absence in clean CI is not a "
                       "USAspending acquisition failure and remains a G3/operator-corpus blocker"
+                  ),
+                  "pr_cabilderos": (
+                      "official Puerto Rico Department of Justice Registro de Cabilderos; "
+                      "not federal LDA substitution"
                   ),
               },
           }
@@ -153,6 +170,10 @@ jobs:
             data/staging/processed/pr_cor3_projects.csv
             data/staging/processed/pr_oce_donations.csv
             data/manifests/campaign_finance/oce_socrata_latest.json
+            data/staging/processed/pr_cabilderos.csv
+            data/raw/Cabilderos/justice_registry.csv
+            data/raw/Cabilderos/justice_registry.html
+            data/manifests/cabilderos/justice_registry_latest.json
           if-no-files-found: warn
 
       - name: Enforce positive-row public acquisition evidence
@@ -162,6 +183,7 @@ jobs:
           USASPENDING_OUTCOME: ${{ steps.usaspending.outcome }}
           COR3_OUTCOME: ${{ steps.cor3.outcome }}
           OCE_OUTCOME: ${{ steps.oce.outcome }}
+          CABILDEROS_OUTCOME: ${{ steps.cabilderos.outcome }}
         run: |
           python - <<'PY'
           import csv
@@ -174,6 +196,7 @@ jobs:
               "usaspending_prime_contract_acquisition": os.environ["USASPENDING_OUTCOME"],
               "cor3": os.environ["COR3_OUTCOME"],
               "oce_socrata_live": os.environ["OCE_OUTCOME"],
+              "pr_cabilderos_justice": os.environ["CABILDEROS_OUTCOME"],
           }
           failures = [
               f"{name}:step_{outcome}"
@@ -191,6 +214,7 @@ jobs:
               ],
               "cor3": [Path("data/staging/processed/pr_cor3_projects.csv")],
               "oce_socrata_live": [Path("data/staging/processed/pr_oce_donations.csv")],
+              "pr_cabilderos_justice": [Path("data/staging/processed/pr_cabilderos.csv")],
           }
 
           evidence = {}
@@ -228,6 +252,24 @@ jobs:
                   )
               except Exception as exc:
                   failures.append(f"oce_socrata_live:invalid_manifest:{exc}")
+
+          cabilderos_manifest = Path("data/manifests/cabilderos/justice_registry_latest.json")
+          if not cabilderos_manifest.exists():
+              failures.append(f"pr_cabilderos_justice:missing:{cabilderos_manifest}")
+          else:
+              try:
+                  payload = json.loads(cabilderos_manifest.read_text(encoding="utf-8"))
+                  evidence["pr_cabilderos_justice_manifest"] = payload
+                  if payload.get("status") != "complete":
+                      failures.append("pr_cabilderos_justice:manifest_not_complete")
+                  if int(payload.get("registry_rows", 0)) < 1:
+                      failures.append("pr_cabilderos_justice:manifest_zero_registry_rows")
+                  if int(payload.get("client_relationships", 0)) < 1:
+                      failures.append("pr_cabilderos_justice:manifest_zero_client_relationships")
+                  if payload.get("source_url") != "https://registrodecabilderos.pr.gov/Lobbyist/Details":
+                      failures.append("pr_cabilderos_justice:unexpected_source_url")
+              except Exception as exc:
+                  failures.append(f"pr_cabilderos_justice:invalid_manifest:{exc}")
 
           print(
               json.dumps(
