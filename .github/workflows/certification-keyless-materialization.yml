@@ -1,0 +1,138 @@
+name: Certification keyless materialization
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/certification-keyless-materialization.yml"
+      - "scripts/run_automatable_sources.py"
+      - "reports/source_recovery_matrix.csv"
+      - "reports/source_registry_status.csv"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      count: ${{ steps.matrix.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        name: Build keyless automatable source matrix
+        run: |
+          python - <<'PY'
+          import csv, json, os
+          from pathlib import Path
+          status = {}
+          with Path("reports/source_registry_status.csv").open(encoding="utf-8-sig", newline="") as fh:
+              for row in csv.DictReader(fh):
+                  status[row["source_id"]] = row
+          selected = []
+          with Path("reports/source_recovery_matrix.csv").open(encoding="utf-8-sig", newline="") as fh:
+              for row in csv.DictReader(fh):
+                  sid = row["source_id"]
+                  s = status.get(sid, {})
+                  if row.get("automatable", "").lower() != "true":
+                      continue
+                  if s.get("authentication", "") != "none":
+                      continue
+                  selected.append(sid)
+          selected = sorted(set(selected))
+          matrix = json.dumps({"source": selected}, separators=(",", ":"))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+              out.write(f"matrix={matrix}\n")
+              out.write(f"count={len(selected)}\n")
+          print(f"keyless_automatable={len(selected)}")
+          for sid in selected:
+              print(sid)
+          PY
+
+  materialize:
+    needs: prepare
+    if: needs.prepare.outputs.count != '0'
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run exact keyless source
+        id: run_source
+        continue-on-error: true
+        run: python scripts/run_automatable_sources.py --source "${{ matrix.source }}"
+      - name: Build immutable source receipt
+        if: always()
+        env:
+          SOURCE_ID: ${{ matrix.source }}
+          STEP_OUTCOME: ${{ steps.run_source.outcome }}
+          CERT_SCOPE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          CERT_IMPLEMENTATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          python - <<'PY'
+          import csv, hashlib, json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          sid = os.environ["SOURCE_ID"]
+          row = None
+          with Path("reports/source_registry_status.csv").open(encoding="utf-8-sig", newline="") as fh:
+              for item in csv.DictReader(fh):
+                  if item["source_id"] == sid:
+                      row = item
+                      break
+          assert row is not None, sid
+          outputs = [Path(p) for p in row["expected_outputs"].split(";") if p]
+          artifacts = []
+          for p in outputs:
+              item = {"path": str(p), "exists": p.exists(), "bytes": p.stat().st_size if p.exists() else 0}
+              if p.exists():
+                  item["sha256"] = hashlib.sha256(p.read_bytes()).hexdigest()
+                  if p.suffix.lower() == ".csv":
+                      try:
+                          with p.open("r", encoding="utf-8-sig", newline="") as fh:
+                              item["data_rows"] = max(sum(1 for _ in csv.reader(fh)) - 1, 0)
+                      except Exception as exc:
+                          item["row_error"] = str(exc)
+              artifacts.append(item)
+          runner_summary = Path("data/staging/materialization_run_summary.json")
+          runner = json.loads(runner_summary.read_text()) if runner_summary.exists() else None
+          receipt = {
+              "source_id": sid,
+              "authentication": row["authentication"],
+              "required": row["required"],
+              "pipeline_status_before": row["pipeline_status"],
+              "producer_script": row["producer_script"],
+              "certification_scope_sha": os.environ["CERT_SCOPE_SHA"],
+              "certification_implementation_sha": os.environ["CERT_IMPLEMENTATION_SHA"],
+              "workflow_step_outcome": os.environ["STEP_OUTCOME"],
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "runner_summary": runner,
+              "artifacts": artifacts,
+          }
+          out = Path("certification_out") / sid
+          out.mkdir(parents=True, exist_ok=True)
+          (out / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+          for p in outputs:
+              if p.exists() and p.is_file():
+                  target = out / p.name
+                  target.write_bytes(p.read_bytes())
+          print(json.dumps(receipt, indent=2))
+          PY
+      - name: Upload source certification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keyless-${{ matrix.source }}
+          path: certification_out/${{ matrix.source }}/
+          if-no-files-found: error
