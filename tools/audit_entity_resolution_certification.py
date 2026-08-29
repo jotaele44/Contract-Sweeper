@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -28,6 +29,14 @@ NON_RELATIONAL_CANONICAL = {"people.csv", "evidence.csv", "review_queue.csv"}
 def read_csv(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as fh:
         return list(csv.DictReader(fh))
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as fh:
+        for block in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def is_open(row: dict[str, str]) -> bool:
@@ -71,12 +80,20 @@ def find_references(root: Path, person_id: str) -> list[dict[str, Any]]:
 
 
 def build(root: Path) -> dict[str, Any]:
-    review_rows = read_csv(root / "reports/entity_resolution_review_queue.csv")
+    review_path = root / "reports/entity_resolution_review_queue.csv"
     canonical_review_path = root / "data/canonical_v1/review_queue.csv"
+    graph_path = root / "reports/canonical_v1_graph_summary.json"
+    review_rows = read_csv(review_path)
     canonical_review_rows = read_csv(canonical_review_path)
-    graph = json.loads(
-        (root / "reports/canonical_v1_graph_summary.json").read_text(encoding="utf-8")
-    )
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+
+    canonical_paths = sorted((root / "data/canonical_v1").glob("*.csv"))
+    input_paths = [review_path, graph_path, *canonical_paths]
+    input_manifest = {
+        path.relative_to(root).as_posix(): sha256_file(path)
+        for path in input_paths
+        if path.is_file()
+    }
 
     open_rows = [row for row in review_rows if is_open(row)]
     canonical_open = [row for row in canonical_review_rows if is_open(row)]
@@ -124,7 +141,8 @@ def build(root: Path) -> dict[str, Any]:
         )
 
     return {
-        "schema_version": "moneysweep.entity_resolution_certification_audit/v1",
+        "schema_version": "moneysweep.entity_resolution_certification_audit/v2",
+        "input_manifest": input_manifest,
         "open_entity_review_rows": len(open_rows),
         "advisory_low_confidence_rows": len(advisory),
         "blocking_review_items": len(blocking),
@@ -145,9 +163,7 @@ def build(root: Path) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=".")
-    parser.add_argument(
-        "--output", default="reports/entity_resolution_certification_audit.json"
-    )
+    parser.add_argument("--output", default="reports/entity_resolution_certification_audit.json")
     args = parser.parse_args()
     root = Path(args.root).resolve()
     output = Path(args.output)
