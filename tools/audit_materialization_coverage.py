@@ -62,7 +62,9 @@ def _load_sources(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]], lis
     source_ids = [str(source.get("source_id", "")).strip() for source in sources]
     duplicates = sorted({source_id for source_id in source_ids if source_ids.count(source_id) > 1})
     if duplicates:
-        raise RuntimeError("Duplicate source IDs across core/extension registries: " + ", ".join(duplicates))
+        raise RuntimeError(
+            "Duplicate source IDs across core/extension registries: " + ", ".join(duplicates)
+        )
     if any(not source_id for source_id in source_ids):
         raise RuntimeError("Core/extension source registry contains an empty source_id")
     return registry, sources, registry_paths
