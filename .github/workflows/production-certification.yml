@@ -21,7 +21,9 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     env:
-      CERT_SCOPE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      # On PRs the certification claim is explicitly over the frozen base/main
+      # revision. The implementation SHA is recorded separately by the certifier.
+      CERT_SCOPE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -40,7 +42,7 @@ jobs:
 
       - name: Execute exhaustive certification audit
         run: |
-          python tools/certify_production.py \
+          python -m tools.certify_production \
             --scope-sha "$CERT_SCOPE_SHA" \
             --run-preflight \
             --output reports/production_certification.ci.json
@@ -49,12 +51,17 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import re
           from pathlib import Path
 
           report = json.loads(
               Path("reports/production_certification.ci.json").read_text(encoding="utf-8")
           )
           assert len(report["source_universe"]["source_ledger"]) == 162
+          assert re.fullmatch(r"[0-9a-f]{40}", report["scope"]["commit_sha"])
+          assert re.fullmatch(
+              r"[0-9a-f]{40}", report["audit_implementation"]["commit_sha"]
+          )
           assert report["production_eligible"] == (
               report["certification_state"] == "CERTIFIED"
           )
