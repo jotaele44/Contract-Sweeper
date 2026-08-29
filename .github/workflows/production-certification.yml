@@ -4,10 +4,16 @@ on:
   pull_request:
     paths:
       - "registries/production_certification.yaml"
+      - "schemas/operator_evidence_receipt.schema.json"
       - "tools/certify_production.py"
       - "tools/audit_materialization_coverage.py"
       - "tools/audit_entity_resolution_certification.py"
+      - "tools/operator_corpus_common.py"
+      - "tools/build_operator_corpus.py"
+      - "tools/verify_operator_corpus.py"
+      - "tools/write_operator_evidence_receipt.py"
       - "tests/test_production_certification.py"
+      - "tests/test_operator_corpus.py"
       - "reports/**"
       - "registries/**"
       - "scripts/**"
@@ -51,7 +57,11 @@ jobs:
 
       - name: Run certification regression tests
         working-directory: implementation
-        run: python -m pytest tests/test_production_certification.py -q -o addopts=""
+        run: |
+          python -m pytest \
+            tests/test_production_certification.py \
+            tests/test_operator_corpus.py \
+            -q -o addopts=""
 
       - name: Regenerate current-denominator lineage evidence
         working-directory: implementation
@@ -105,10 +115,15 @@ jobs:
           g7 = json.loads(
               Path("reports/entity_resolution_certification_audit.ci.json").read_text(encoding="utf-8")
           )
+          canonical_digest = (
+              "353995f4595fde0f7643ff8d9987154bcd230abe30037cdcbe6e3abd7f4233d1"
+          )
           checks = {
               "source_ledger_162": len(report["source_universe"]["source_ledger"]) == 162,
               "lineage_denominator_162": lineage["local_truth_summary"]["total_sources"] == 162,
+              "lineage_registry_digest_canonical": lineage["audit_scope"]["registry_source_ids_sha256"] == canonical_digest,
               "ci_lineage_not_operator_authoritative": lineage["audit_scope"]["operator_corpus_authoritative"] is False,
+              "ci_lineage_proof_absent": "operator_corpus_proof_not_supplied" in lineage["audit_scope"]["authority_blockers"],
               "ci_lineage_orphans_fail_closed": lineage["processed_file_inventory"]["orphan_rows"] is None,
               "g7_policy_no_name_only_resolution": g7["policy"]["name_only_resolution_allowed"] is False,
               "g7_policy_no_threshold_lowering": g7["policy"]["confidence_threshold_lowered"] is False,
