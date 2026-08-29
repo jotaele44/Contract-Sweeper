@@ -49,7 +49,9 @@ jobs:
 
       - name: Run certification regression tests
         working-directory: implementation
-        run: python -m pytest tests/test_production_certification.py -q
+        # This is a focused gate suite. The repository's normal CI owns the global
+        # 44% coverage threshold; disabling inherited addopts here does not weaken it.
+        run: python -m pytest tests/test_production_certification.py -q -o addopts=""
 
       - name: Execute exhaustive certification audit
         working-directory: implementation
