@@ -25,16 +25,29 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
       - name: Acquire full OCPR corpus
+        id: ocpr
+        continue-on-error: true
         run: python scripts/scrape_iapconsulta.py --force
       - name: Rebuild unified USAspending-derived master from committed inputs
+        id: usaspending
+        continue-on-error: true
         run: python scripts/build_unified_master.py --force
       - name: Probe current COR3 producer fail-closed
+        id: cor3
         continue-on-error: true
         run: python scripts/download_cor3.py --force
       - name: Record acquisition evidence
+        if: always()
+        env:
+          OCPR_OUTCOME: ${{ steps.ocpr.outcome }}
+          USASPENDING_OUTCOME: ${{ steps.usaspending.outcome }}
+          COR3_OUTCOME: ${{ steps.cor3.outcome }}
+          CERT_SCOPE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+          CERT_IMPLEMENTATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           python - <<'PY'
-          import csv, hashlib, json
+          import csv, hashlib, json, os
+          from datetime import datetime, timezone
           from pathlib import Path
           paths = [
               Path("data/staging/processed/pr_contralor_audits.csv"),
@@ -53,18 +66,42 @@ jobs:
                   except Exception as exc:
                       item["row_error"] = str(exc)
               rows.append(item)
+          report = {
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "certification_scope_sha": os.environ["CERT_SCOPE_SHA"],
+              "certification_implementation_sha": os.environ["CERT_IMPLEMENTATION_SHA"],
+              "steps": {
+                  "oficina_contralor": os.environ["OCPR_OUTCOME"],
+                  "usaspending_unified_build": os.environ["USASPENDING_OUTCOME"],
+                  "cor3": os.environ["COR3_OUTCOME"],
+              },
+              "artifacts": rows,
+          }
           out = Path("reports/certification_public_acquisition.json")
           out.parent.mkdir(parents=True, exist_ok=True)
-          out.write_text(json.dumps({"artifacts": rows}, indent=2) + "\n", encoding="utf-8")
+          out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
           print(out.read_text())
           PY
       - name: Upload public acquisition evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: certification-public-acquisition
           path: |
             reports/certification_public_acquisition.json
             data/staging/processed/pr_contralor_audits.csv
+            data/staging/processed/pr_contracts_master.csv
             data/staging/processed/pr_all_awards_master.csv
             data/staging/processed/pr_cor3_projects.csv
           if-no-files-found: warn
+      - name: Enforce acquisition step outcomes
+        if: always()
+        env:
+          OCPR_OUTCOME: ${{ steps.ocpr.outcome }}
+          USASPENDING_OUTCOME: ${{ steps.usaspending.outcome }}
+          COR3_OUTCOME: ${{ steps.cor3.outcome }}
+        run: |
+          printf 'OCPR=%s USAspending=%s COR3=%s\n' "$OCPR_OUTCOME" "$USASPENDING_OUTCOME" "$COR3_OUTCOME"
+          test "$OCPR_OUTCOME" = success
+          test "$USASPENDING_OUTCOME" = success
+          test "$COR3_OUTCOME" = success
