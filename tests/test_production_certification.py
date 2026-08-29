@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -6,28 +7,47 @@ from tools.certify_production import build_report
 
 pytestmark = pytest.mark.unit
 ROOT = Path(__file__).resolve().parents[1]
-SCOPE_SHA = "ba0c0d11a011669a5d487dc116274491449d4b72"
+HISTORICAL_MAIN_SHA = "ba0c0d11a011669a5d487dc116274491449d4b72"
+
+
+def _head() -> str:
+    return subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def _report() -> dict:
+    head = _head()
+    return build_report(
+        root=ROOT,
+        scope_sha=head,
+        implementation_sha=head,
+        run_preflight=False,
+        generated_at="2026-08-28T22:30:00-04:00",
+    )
 
 
 def _gates(report: dict) -> dict[str, dict]:
     return {gate["id"]: gate for gate in report["gates"]}
 
 
-def test_current_main_audit_is_fail_closed_and_denominator_exact() -> None:
-    report = build_report(
-        root=ROOT,
-        scope_sha=SCOPE_SHA,
-        run_preflight=False,
-        generated_at="2026-08-28T22:30:00-04:00",
-    )
+def test_current_evidence_audit_is_fail_closed_and_denominator_exact() -> None:
+    report = _report()
     gates = _gates(report)
 
-    assert report["scope"]["commit_sha"] == SCOPE_SHA
+    assert report["scope"]["commit_sha"] == _head()
+    assert report["scope"]["commit_sha"] == report["scope"]["checkout_head_sha"]
+    assert report["audit_implementation"]["commit_sha"] == _head()
     assert report["scope"]["registry_total_sources"] == 162
     assert report["scope"]["registry_required_sources"] == 16
     assert report["scope"]["registry_source_ids_sha256"] == (
         "353995f4595fde0f7643ff8d9987154bcd230abe30037cdcbe6e3abd7f4233d1"
     )
+    assert "certification_config" in report["input_manifest"]
     assert len(report["source_universe"]["source_ledger"]) == 162
     assert report["certification_state"] == "NON_PRODUCTION_DIAGNOSTIC"
     assert report["production_eligible"] is False
@@ -47,8 +67,19 @@ def test_current_main_audit_is_fail_closed_and_denominator_exact() -> None:
     assert gates["G12_RELEASE_CERTIFICATION"]["state"] == "BLOCKED"
 
 
+def test_scope_mismatch_fails_closed() -> None:
+    report = build_report(
+        root=ROOT,
+        scope_sha=HISTORICAL_MAIN_SHA,
+        implementation_sha=_head(),
+        run_preflight=False,
+    )
+    assert _gates(report)["G0_SCOPE_FREEZE"]["state"] == "FAIL"
+    assert report["production_eligible"] is False
+
+
 def test_required_source_residue_is_exact_for_current_registry() -> None:
-    report = build_report(root=ROOT, scope_sha=SCOPE_SHA, run_preflight=False)
+    report = _report()
     gate = _gates(report)["G3_REQUIRED_SOURCE_MATERIALIZATION"]
 
     assert gate["evidence"]["required_status_counts"] == {
@@ -69,7 +100,7 @@ def test_required_source_residue_is_exact_for_current_registry() -> None:
 
 
 def test_current_completeness_and_entity_residue_are_not_promoted() -> None:
-    report = build_report(root=ROOT, scope_sha=SCOPE_SHA, run_preflight=False)
+    report = _report()
     gates = _gates(report)
 
     completeness = report["source_universe"]["completeness_matrix"]
