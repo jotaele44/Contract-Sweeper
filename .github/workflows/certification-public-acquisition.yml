@@ -15,6 +15,8 @@ on:
       - "scripts/ingest_oce.py"
       - "scripts/download_cabilderos.py"
       - "scripts/ingest_cabilderos.py"
+      - "scripts/download_prasa_contracts.py"
+      - "scripts/ingest_prasa.py"
   workflow_dispatch:
 
 permissions:
@@ -77,6 +79,11 @@ jobs:
         continue-on-error: true
         run: python scripts/download_cabilderos.py --force
 
+      - name: Acquire official PRASA transition contracts
+        id: prasa
+        continue-on-error: true
+        run: python scripts/download_prasa_contracts.py --force
+
       - name: Record acquisition evidence
         if: always()
         env:
@@ -86,6 +93,7 @@ jobs:
           COR3_OUTCOME: ${{ steps.cor3.outcome }}
           OCE_OUTCOME: ${{ steps.oce.outcome }}
           CABILDEROS_OUTCOME: ${{ steps.cabilderos.outcome }}
+          PRASA_OUTCOME: ${{ steps.prasa.outcome }}
           CERT_SCOPE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
           CERT_IMPLEMENTATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
@@ -108,6 +116,10 @@ jobs:
               Path("data/raw/Cabilderos/justice_registry.csv"),
               Path("data/raw/Cabilderos/justice_registry.html"),
               Path("data/manifests/cabilderos/justice_registry_latest.json"),
+              Path("data/staging/processed/pr_prasa_contracts.csv"),
+              Path("data/raw/PRASA/Contratos_Vigentes_2024-09-24.csv"),
+              Path("data/raw/PRASA/Contratos_Vigentes_2024-09-24.pdf"),
+              Path("data/manifests/prasa/contracts_vigentes_2024.json"),
           ]
           artifacts = []
           for path in paths:
@@ -137,6 +149,7 @@ jobs:
                   "cor3": os.environ["COR3_OUTCOME"],
                   "oce_socrata_live": os.environ["OCE_OUTCOME"],
                   "pr_cabilderos_justice": os.environ["CABILDEROS_OUTCOME"],
+                  "prasa_official_transition": os.environ["PRASA_OUTCOME"],
               },
               "artifacts": artifacts,
               "semantics": {
@@ -148,6 +161,10 @@ jobs:
                   "pr_cabilderos": (
                       "official Puerto Rico Department of Justice Registro de Cabilderos; "
                       "not federal LDA substitution"
+                  ),
+                  "prasa": (
+                      "official AAA/PRASA contracts-vigentes snapshot published by the "
+                      "Puerto Rico 2024 transition portal"
                   ),
               },
           }
@@ -174,6 +191,10 @@ jobs:
             data/raw/Cabilderos/justice_registry.csv
             data/raw/Cabilderos/justice_registry.html
             data/manifests/cabilderos/justice_registry_latest.json
+            data/staging/processed/pr_prasa_contracts.csv
+            data/raw/PRASA/Contratos_Vigentes_2024-09-24.csv
+            data/raw/PRASA/Contratos_Vigentes_2024-09-24.pdf
+            data/manifests/prasa/contracts_vigentes_2024.json
           if-no-files-found: warn
 
       - name: Enforce positive-row public acquisition evidence
@@ -184,6 +205,7 @@ jobs:
           COR3_OUTCOME: ${{ steps.cor3.outcome }}
           OCE_OUTCOME: ${{ steps.oce.outcome }}
           CABILDEROS_OUTCOME: ${{ steps.cabilderos.outcome }}
+          PRASA_OUTCOME: ${{ steps.prasa.outcome }}
         run: |
           python - <<'PY'
           import csv
@@ -197,6 +219,7 @@ jobs:
               "cor3": os.environ["COR3_OUTCOME"],
               "oce_socrata_live": os.environ["OCE_OUTCOME"],
               "pr_cabilderos_justice": os.environ["CABILDEROS_OUTCOME"],
+              "prasa_official_transition": os.environ["PRASA_OUTCOME"],
           }
           failures = [
               f"{name}:step_{outcome}"
@@ -215,6 +238,7 @@ jobs:
               "cor3": [Path("data/staging/processed/pr_cor3_projects.csv")],
               "oce_socrata_live": [Path("data/staging/processed/pr_oce_donations.csv")],
               "pr_cabilderos_justice": [Path("data/staging/processed/pr_cabilderos.csv")],
+              "prasa_official_transition": [Path("data/staging/processed/pr_prasa_contracts.csv")],
           }
 
           evidence = {}
@@ -270,6 +294,24 @@ jobs:
                       failures.append("pr_cabilderos_justice:unexpected_source_url")
               except Exception as exc:
                   failures.append(f"pr_cabilderos_justice:invalid_manifest:{exc}")
+
+          prasa_manifest = Path("data/manifests/prasa/contracts_vigentes_2024.json")
+          if not prasa_manifest.exists():
+              failures.append(f"prasa_official_transition:missing:{prasa_manifest}")
+          else:
+              try:
+                  payload = json.loads(prasa_manifest.read_text(encoding="utf-8"))
+                  evidence["prasa_official_transition_manifest"] = payload
+                  if payload.get("status") != "complete":
+                      failures.append("prasa_official_transition:manifest_not_complete")
+                  if int(payload.get("page_count", 0)) != 36:
+                      failures.append("prasa_official_transition:unexpected_page_count")
+                  if int(payload.get("contract_rows", 0)) < 100:
+                      failures.append("prasa_official_transition:below_contract_row_floor")
+                  if payload.get("snapshot_as_of") != "2024-09-24":
+                      failures.append("prasa_official_transition:unexpected_snapshot_date")
+              except Exception as exc:
+                  failures.append(f"prasa_official_transition:invalid_manifest:{exc}")
 
           print(
               json.dumps(
