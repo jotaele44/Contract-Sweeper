@@ -1,0 +1,33 @@
+name: OCPR formatter autofix
+
+on:
+  push:
+    branches:
+      - agent/production-certification-v1
+    paths:
+      - ".github/workflows/ocpr-autofix.yml"
+      - "scripts/scrape_iapconsulta.py"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/production-certification-v1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install ruff==0.16.4
+      - run: ruff format scripts/scrape_iapconsulta.py
+      - name: Commit mechanical formatting if needed
+        run: |
+          if git diff --quiet -- scripts/scrape_iapconsulta.py; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/scrape_iapconsulta.py
+          git commit -m "style: format OCPR scraper"
+          git push origin HEAD:agent/production-certification-v1
