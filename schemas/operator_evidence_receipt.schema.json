@@ -84,7 +84,8 @@
         "required": [
           "path",
           "sha256",
-          "bytes"
+          "bytes",
+          "rows"
         ],
         "properties": {
           "path": {
