@@ -1,14 +1,22 @@
 # Production certification
 
-`moneysweep-pr` is production-certified only when the fail-closed certification report emitted by `tools/certify_production.py` has `certification_state: CERTIFIED` and `production_eligible: true` for one exact Git commit.
+`moneysweep-pr` is production-certified only when the fail-closed certification report emitted by `tools.certify_production.py` has `certification_state: CERTIFIED` and `production_eligible: true` for one exact Git commit.
 
 The certificate is a bounded claim over a frozen repository revision and the source universe represented by the registry digest in that report. Historical audit evidence remains evidence for its historical denominator; it is never silently promoted to a newer denominator.
 
-## Run the audit
+The report separates two identities:
+
+- **certification scope** — the exact Git commit whose evidence corpus is being certified;
+- **audit implementation** — the exact Git commit containing the certifier and certification configuration.
+
+On pull requests CI checks these out separately: the PR base/current `main` is the immutable evidence scope, while the PR head is the audit implementation. A PR therefore cannot certify edited status files while claiming an older `main` SHA.
+
+## Run the audit on one checkout
 
 ```bash
-python tools/certify_production.py \
+python -m tools.certify_production \
   --scope-sha "$(git rev-parse HEAD)" \
+  --implementation-sha "$(git rev-parse HEAD)" \
   --run-preflight \
   --output reports/production_certification.json
 ```
@@ -16,8 +24,9 @@ python tools/certify_production.py \
 To use the certifier as a hard release gate:
 
 ```bash
-python tools/certify_production.py \
+python -m tools.certify_production \
   --scope-sha "$(git rev-parse HEAD)" \
+  --implementation-sha "$(git rev-parse HEAD)" \
   --run-preflight \
   --require-certified
 ```
@@ -28,7 +37,7 @@ The second command exits non-zero unless every mandatory gate passes.
 
 | Gate | Required condition |
 |---|---|
-| G0_SCOPE_FREEZE | Exact 40-character Git SHA and current source denominator frozen. |
+| G0_SCOPE_FREEZE | Exact scope SHA, implementation SHA, checkout binding, and source denominator frozen. |
 | G1_CONTROL_PLANE_RECONCILIATION | Readiness, source-status, recovery, completeness, federation, and registry digest reconcile. |
 | G2_STRICT_PREFLIGHT | Strict pipeline preflight executes with zero structural errors. |
 | G3_REQUIRED_SOURCE_MATERIALIZATION | All 16 current required sources are fully materialized. |
