@@ -5,10 +5,12 @@ import pytest
 
 from tools.audit_materialization_coverage import build as build_coverage_audit
 from tools.certify_production import build_report
+from tools.operator_corpus_common import load_sources, source_ids_digest
 
 pytestmark = pytest.mark.unit
 ROOT = Path(__file__).resolve().parents[1]
 HISTORICAL_MAIN_SHA = "ba0c0d11a011669a5d487dc116274491449d4b72"
+CANONICAL_SOURCE_IDS_SHA256 = "353995f4595fde0f7643ff8d9987154bcd230abe30037cdcbe6e3abd7f4233d1"
 
 
 def _head() -> str:
@@ -45,9 +47,7 @@ def test_current_evidence_audit_is_fail_closed_and_denominator_exact() -> None:
     assert report["audit_implementation"]["commit_sha"] == _head()
     assert report["scope"]["registry_total_sources"] == 162
     assert report["scope"]["registry_required_sources"] == 16
-    assert report["scope"]["registry_source_ids_sha256"] == (
-        "353995f4595fde0f7643ff8d9987154bcd230abe30037cdcbe6e3abd7f4233d1"
-    )
+    assert report["scope"]["registry_source_ids_sha256"] == CANONICAL_SOURCE_IDS_SHA256
     assert "certification_config" in report["input_manifest"]
     assert len(report["source_universe"]["source_ledger"]) == 162
     assert report["certification_state"] == "NON_PRODUCTION_DIAGNOSTIC"
@@ -161,3 +161,18 @@ def test_lineage_auditor_includes_core_and_extension_registries() -> None:
     assert (
         "registries/source_registry_extensions/sec_ownership_hardening_v0_3.json" in registry_paths
     )
+
+
+def test_operator_corpus_digest_matches_existing_162_source_identity() -> None:
+    sources, _ = load_sources(ROOT)
+    assert len(sources) == 162
+    assert source_ids_digest(sources) == CANONICAL_SOURCE_IDS_SHA256
+
+
+def test_bare_authority_assertion_cannot_unlock_lineage() -> None:
+    audit = build_coverage_audit(ROOT, operator_corpus_authoritative=True)
+
+    assert audit["audit_scope"]["operator_corpus_authoritative"] is False
+    assert "bare_authority_assertion_not_evidence" in audit["audit_scope"]["authority_blockers"]
+    assert audit["processed_file_inventory"]["orphan_rows"] is None
+    assert audit["processed_file_inventory"]["orphan_file_count"] is None
