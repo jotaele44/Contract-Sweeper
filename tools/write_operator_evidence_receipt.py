@@ -81,6 +81,9 @@ def build_receipt(
     if len(producer_sha) != 40 or any(char not in "0123456789abcdef" for char in producer_sha):
         raise RuntimeError("producer_sha must be a lowercase 40-character Git SHA")
 
+    producer = str(source.get("producer_script") or "").strip()
+    if not producer:
+        raise RuntimeError(f"producer_script is not registered for {source_id}")
     expected = expected_outputs(source)
     if not outputs:
         raise RuntimeError("at least one output is required")
@@ -111,25 +114,26 @@ def build_receipt(
         )
 
     expected_complete = all(_expected_satisfied(item, actual_paths) for item in expected)
-    resolved_url = (
-        source_url
-        or str(source.get("endpoint_url") or source.get("source_url") or "").strip()
-    )
+    resolved_url = source_url or str(
+        source.get("endpoint_url") or source.get("source_url") or ""
+    ).strip()
     if not resolved_url:
         raise RuntimeError(f"source URL is not available for {source_id}")
     completed_at = completed_at or datetime.now(timezone.utc).isoformat()
+    acquisition: dict[str, Any] = {
+        "producer": producer,
+        "producer_sha": producer_sha,
+        "completed_at": completed_at,
+        "source_url": resolved_url,
+        "http_status": http_status,
+    }
+    if started_at is not None:
+        acquisition["started_at"] = started_at
 
     return {
         "schema_version": RECEIPT_SCHEMA_VERSION,
         "source_id": source_id,
-        "acquisition": {
-            "producer": str(source.get("producer_script") or ""),
-            "producer_sha": producer_sha,
-            "started_at": started_at,
-            "completed_at": completed_at,
-            "source_url": resolved_url,
-            "http_status": http_status,
-        },
+        "acquisition": acquisition,
         "registry": {
             "source_ids_sha256": source_ids_digest(sources),
             "source_definition_sha256": source_definition_digest(source),
@@ -157,7 +161,9 @@ def main() -> int:
     parser.add_argument("--completed-at")
     parser.add_argument("--http-status", type=int)
     parser.add_argument("--coverage-contract-pass", type=_bool_text, default=False)
-    parser.add_argument("--receipt-dir", type=Path, default=Path("data/manifests/operator_evidence"))
+    parser.add_argument(
+        "--receipt-dir", type=Path, default=Path("data/manifests/operator_evidence")
+    )
     args = parser.parse_args()
 
     root = args.root.resolve()
