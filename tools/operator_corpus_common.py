@@ -80,8 +80,14 @@ def load_sources(root: Path) -> tuple[list[dict[str, Any]], list[str]]:
 
 
 def source_ids_digest(sources: list[dict[str, Any]]) -> str:
+    """Return the repository-canonical source-ID digest.
+
+    Keep this byte-for-byte compatible with
+    moneysweep.update_controller.policy.registry_snapshot(): sort IDs, join with
+    newlines, and include the final newline before hashing.
+    """
     source_ids = sorted(str(source["source_id"]).strip() for source in sources)
-    return sha256_bytes(canonical_json(source_ids))
+    return sha256_bytes(("\n".join(source_ids) + "\n").encode("utf-8"))
 
 
 def source_definition_digest(source: dict[str, Any]) -> str:
