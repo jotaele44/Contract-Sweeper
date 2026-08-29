@@ -1,0 +1,72 @@
+name: Production certification audit
+
+on:
+  pull_request:
+    paths:
+      - "registries/production_certification.yaml"
+      - "tools/certify_production.py"
+      - "tests/test_production_certification.py"
+      - "reports/**"
+      - "registries/**"
+      - "scripts/**"
+      - "moneysweep/**"
+      - "federation.json"
+      - ".github/workflows/production-certification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      CERT_SCOPE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run certification regression tests
+        run: python -m pytest tests/test_production_certification.py -q
+
+      - name: Execute exhaustive certification audit
+        run: |
+          python tools/certify_production.py \
+            --scope-sha "$CERT_SCOPE_SHA" \
+            --run-preflight \
+            --output reports/production_certification.ci.json
+
+      - name: Verify fail-closed result is internally consistent
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path("reports/production_certification.ci.json").read_text(encoding="utf-8")
+          )
+          assert len(report["source_universe"]["source_ledger"]) == 162
+          assert report["production_eligible"] == (
+              report["certification_state"] == "CERTIFIED"
+          )
+          if report["production_eligible"]:
+              assert report["nonpass_gate_ids"] == []
+          else:
+              assert report["nonpass_gate_ids"]
+          PY
+
+      - name: Upload certification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-certification-audit
+          path: reports/production_certification.ci.json
+          if-no-files-found: error
