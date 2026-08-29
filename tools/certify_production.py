@@ -136,22 +136,17 @@ def build_report(
     status_counts = Counter(row["pipeline_status"] for row in status_rows)
     required = [row for row in status_rows if _bool(row["required"])]
     required_counts = Counter(row["pipeline_status"] for row in required)
-    required_blockers = [
-        row for row in required if row["pipeline_status"] != "fully_materialized"
-    ]
+    required_blockers = [row for row in required if row["pipeline_status"] != "fully_materialized"]
 
     recovery_by_id = {row["source_id"]: row for row in recovery_rows}
     automatable = {
-        row["source_id"]
-        for row in recovery_rows
-        if _bool(row.get("automatable", "false"))
+        row["source_id"] for row in recovery_rows if _bool(row.get("automatable", "false"))
     }
     missing_recovery = sorted(unique_ids - set(recovery_by_id))
     automatable_unmaterialized = sorted(
         row["source_id"]
         for row in status_rows
-        if row["source_id"] in automatable
-        and row["pipeline_status"] != "fully_materialized"
+        if row["source_id"] in automatable and row["pipeline_status"] != "fully_materialized"
     )
 
     freshness_by_id = {row["source_id"]: row for row in freshness_rows}
@@ -258,11 +253,7 @@ def build_report(
             _gate(
                 "G2_STRICT_PREFLIGHT",
                 PASS if g2 else FAIL,
-                (
-                    "Strict preflight passed."
-                    if g2
-                    else "Strict preflight found structural errors."
-                ),
+                ("Strict preflight passed." if g2 else "Strict preflight found structural errors."),
                 {
                     "mode": "executed",
                     "checked_sources": pf.get("checked_sources"),
@@ -311,9 +302,7 @@ def build_report(
                         "authentication": row["authentication"],
                         "producer_script": row["producer_script"],
                         "expected_outputs": [
-                            item
-                            for item in row["expected_outputs"].split(";")
-                            if item
+                            item for item in row["expected_outputs"].split(";") if item
                         ],
                         "blocker_notes": row["blocker_notes"],
                     }
@@ -326,11 +315,7 @@ def build_report(
 
     allowed = set(config["requirements"]["allowed_pipeline_states"])
     invalid_states = sorted(
-        {
-            row["pipeline_status"]
-            for row in status_rows
-            if row["pipeline_status"] not in allowed
-        }
+        {row["pipeline_status"] for row in status_rows if row["pipeline_status"] not in allowed}
     )
     g4 = len(status_rows) == total and len(unique_ids) == total and not invalid_states
     gates.append(
@@ -422,9 +407,7 @@ def build_report(
                 "issue_types": dict(
                     sorted(Counter(row["issue_type"] for row in open_reviews).items())
                 ),
-                "advisory_low_confidence_count": entity_audit.get(
-                    "advisory_low_confidence_rows"
-                ),
+                "advisory_low_confidence_count": entity_audit.get("advisory_low_confidence_rows"),
                 "blocking_review_count": entity_audit.get("blocking_review_items"),
                 "canonical_review_queue_open_rows": entity_audit.get(
                     "canonical_review_queue_open_rows"
@@ -492,9 +475,7 @@ def build_report(
             {
                 "canonical_graph_gate": canonical_gate,
                 "review_queue_open": canonical_review,
-                "edge_evidence_coverage_pct": canonical_graph.get(
-                    "edge_evidence_coverage_pct"
-                ),
+                "edge_evidence_coverage_pct": canonical_graph.get("edge_evidence_coverage_pct"),
             },
             [] if g9 else ["certified_canonical_master_invariant_receipt_missing"],
         )
@@ -537,9 +518,7 @@ def build_report(
             {
                 "production_status": federation.get("production_status"),
                 "ready_for_hub_discovery": fg.get("ready_for_hub_discovery"),
-                "ready_for_hub_live_execution": fg.get(
-                    "ready_for_hub_live_execution"
-                ),
+                "ready_for_hub_live_execution": fg.get("ready_for_hub_live_execution"),
                 "blocking_conditions": fg.get("blocking_conditions", []),
             },
             list(fg.get("blocking_conditions") or []),
@@ -548,9 +527,7 @@ def build_report(
 
     upstream_nonpass = [gate["id"] for gate in gates if gate["state"] != PASS]
     activation = bool(
-        historical_status.get("preservation", {}).get(
-            "production_activation_authorized"
-        )
+        historical_status.get("preservation", {}).get("production_activation_authorized")
     )
     g12 = not upstream_nonpass and activation
     gates.append(
@@ -566,8 +543,7 @@ def build_report(
                 "upstream_nonpass_gates": upstream_nonpass,
                 "production_activation_authorized": activation,
             },
-            upstream_nonpass
-            + ([] if activation else ["production_activation_not_authorized"]),
+            upstream_nonpass + ([] if activation else ["production_activation_not_authorized"]),
         )
     )
 
@@ -583,9 +559,7 @@ def build_report(
                 "required": _bool(row["required"]),
                 "authentication": row["authentication"],
                 "producer_script": row["producer_script"],
-                "expected_outputs": [
-                    item for item in row["expected_outputs"].split(";") if item
-                ],
+                "expected_outputs": [item for item in row["expected_outputs"].split(";") if item],
                 "update_cadence": row["update_cadence"],
                 "pipeline_status": row["pipeline_status"],
                 "blocker_notes": row["blocker_notes"],
@@ -627,14 +601,10 @@ def build_report(
         },
         "gates": gates,
         "certification_state": (
-            config["states"]["certified"]
-            if all_pass
-            else config["states"]["non_production"]
+            config["states"]["certified"] if all_pass else config["states"]["non_production"]
         ),
         "production_eligible": all_pass,
-        "nonpass_gate_ids": [
-            gate["id"] for gate in gates if gate["state"] != PASS
-        ],
+        "nonpass_gate_ids": [gate["id"] for gate in gates if gate["state"] != PASS],
     }
 
 
