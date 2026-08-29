@@ -9,7 +9,6 @@ from typing import Any
 try:
     from tools.operator_corpus_common import (
         CORPUS_SCHEMA_VERSION,
-        RECEIPT_SCHEMA_VERSION,
         csv_rows,
         expected_outputs,
         load_sources,
@@ -18,11 +17,11 @@ try:
         sha256_file,
         source_definition_digest,
         source_ids_digest,
+        validate_receipt,
     )
 except ModuleNotFoundError:  # pragma: no cover - direct script execution fallback
     from operator_corpus_common import (  # type: ignore[no-redef]
         CORPUS_SCHEMA_VERSION,
-        RECEIPT_SCHEMA_VERSION,
         csv_rows,
         expected_outputs,
         load_sources,
@@ -31,6 +30,7 @@ except ModuleNotFoundError:  # pragma: no cover - direct script execution fallba
         sha256_file,
         source_definition_digest,
         source_ids_digest,
+        validate_receipt,
     )
 
 
@@ -49,24 +49,9 @@ def _load_receipts(receipts_dir: Path) -> list[tuple[Path, dict[str, Any]]]:
 
 
 def _validate_receipt_shape(receipt: dict[str, Any], path: Path) -> None:
-    if receipt.get("schema_version") != RECEIPT_SCHEMA_VERSION:
-        raise RuntimeError(f"unsupported receipt schema in {path}")
-    source_id = receipt.get("source_id")
-    if not isinstance(source_id, str) or not source_id.strip():
-        raise RuntimeError(f"receipt source_id is missing in {path}")
-    acquisition = receipt.get("acquisition")
-    registry = receipt.get("registry")
-    validation = receipt.get("validation")
-    outputs = receipt.get("outputs")
-    if not isinstance(acquisition, dict) or not isinstance(registry, dict):
-        raise RuntimeError(f"receipt acquisition/registry block missing in {path}")
-    if not isinstance(validation, dict) or not isinstance(outputs, list) or not outputs:
-        raise RuntimeError(f"receipt validation/outputs block missing in {path}")
-    if validation.get("schema_valid") is not True:
-        raise RuntimeError(f"receipt does not assert schema_valid=true: {path}")
-    for key in ("positive_rows", "coverage_contract_pass"):
-        if not isinstance(validation.get(key), bool):
-            raise RuntimeError(f"receipt validation.{key} must be boolean: {path}")
+    errors = validate_receipt(receipt)
+    if errors:
+        raise RuntimeError(f"invalid operator evidence receipt {path}: " + "; ".join(errors))
 
 
 def _output_allowed(output_path: str, expected: list[str]) -> bool:
@@ -133,8 +118,6 @@ def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any
         output_records: list[dict[str, Any]] = []
         seen_output_paths: set[str] = set()
         for output in receipt["outputs"]:
-            if not isinstance(output, dict):
-                raise RuntimeError(f"invalid output record in receipt: {source_id}")
             rel = safe_relative_path(str(output.get("path", ""))).as_posix()
             if rel in seen_output_paths:
                 raise RuntimeError(f"duplicate output path in receipt {source_id}: {rel}")
@@ -152,7 +135,7 @@ def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any
                 raise RuntimeError(f"sha256 mismatch for {source_id}: {rel}")
             if output.get("bytes") != actual_bytes:
                 raise RuntimeError(f"byte-count mismatch for {source_id}: {rel}")
-            if "rows" in output and output.get("rows") != actual_rows:
+            if output.get("rows") != actual_rows:
                 raise RuntimeError(f"row-count mismatch for {source_id}: {rel}")
 
             object_path = objects_dir / actual_sha[:2] / actual_sha[2:]
