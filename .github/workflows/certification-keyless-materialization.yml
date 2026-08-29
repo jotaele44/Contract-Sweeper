@@ -70,7 +70,9 @@ jobs:
       - name: Run exact keyless source
         id: run_source
         continue-on-error: true
-        run: python scripts/run_automatable_sources.py --source "${{ matrix.source }}"
+        # Each source is independently bounded by this matrix job. Do not let a
+        # representative-host egress probe suppress unrelated reachable sources.
+        run: python scripts/run_automatable_sources.py --source "${{ matrix.source }}" --no-require-egress
       - name: Build immutable source receipt
         if: always()
         env:
