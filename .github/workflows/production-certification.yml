@@ -21,33 +21,49 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     env:
-      # On PRs the certification claim is explicitly over the frozen base/main
-      # revision. The implementation SHA is recorded separately by the certifier.
       CERT_SCOPE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+      CERT_IMPLEMENTATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout audit implementation
+        uses: actions/checkout@v4
         with:
+          ref: ${{ env.CERT_IMPLEMENTATION_SHA }}
+          path: implementation
+          fetch-depth: 0
+
+      - name: Checkout frozen certification scope
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CERT_SCOPE_SHA }}
+          path: scope
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: pip
+          cache-dependency-path: implementation/requirements.txt
 
       - name: Install dependencies
-        run: python -m pip install -r requirements.txt
+        run: python -m pip install -r implementation/requirements.txt
 
       - name: Run certification regression tests
+        working-directory: implementation
         run: python -m pytest tests/test_production_certification.py -q
 
       - name: Execute exhaustive certification audit
+        working-directory: implementation
         run: |
           python -m tools.certify_production \
+            --root ../scope \
+            --config registries/production_certification.yaml \
             --scope-sha "$CERT_SCOPE_SHA" \
+            --implementation-sha "$CERT_IMPLEMENTATION_SHA" \
             --run-preflight \
             --output reports/production_certification.ci.json
 
       - name: Verify fail-closed result is internally consistent
+        working-directory: implementation
         run: |
           python - <<'PY'
           import json
@@ -58,6 +74,7 @@ jobs:
               Path("reports/production_certification.ci.json").read_text(encoding="utf-8")
           )
           assert len(report["source_universe"]["source_ledger"]) == 162
+          assert report["scope"]["commit_sha"] == report["scope"]["checkout_head_sha"]
           assert re.fullmatch(r"[0-9a-f]{40}", report["scope"]["commit_sha"])
           assert re.fullmatch(
               r"[0-9a-f]{40}", report["audit_implementation"]["commit_sha"]
@@ -75,5 +92,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: production-certification-audit
-          path: reports/production_certification.ci.json
+          path: implementation/reports/production_certification.ci.json
           if-no-files-found: error
