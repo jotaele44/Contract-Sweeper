@@ -237,7 +237,27 @@ def test_receipt_path_traversal_is_rejected(tmp_path: Path) -> None:
     receipt["outputs"][0]["path"] = "../outside.csv"
     receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="unsafe relative path"):
+    with pytest.raises(RuntimeError, match="receipt_output_0_path_unsafe"):
+        build_operator_corpus(
+            root=root,
+            receipts_dir=receipts,
+            corpus_root=root / "build" / "operator-corpus",
+        )
+
+
+def test_schema_valid_flag_cannot_hide_invalid_receipt_contract(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    source = _source("alpha", ["data/staging/processed/alpha.csv"])
+    _write_registry(root, source)
+    _write_csv(root, "data/staging/processed/alpha.csv", [("1", "a")])
+    receipts = root / "receipts"
+    receipt_path = _write_receipt(root, receipts, source, source["expected_outputs"])
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["validation"]["schema_valid"] is True
+    receipt["acquisition"]["producer_sha"] = "not-a-git-sha"
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="receipt_producer_sha_invalid"):
         build_operator_corpus(
             root=root,
             receipts_dir=receipts,
