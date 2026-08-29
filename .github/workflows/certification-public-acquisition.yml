@@ -7,6 +7,8 @@ on:
       - "scripts/scrape_iapconsulta.py"
       - "scripts/download_cor3.py"
       - "scripts/build_unified_master.py"
+      - "scripts/download_oce.py"
+      - "scripts/ingest_oce.py"
   workflow_dispatch:
 
 permissions:
@@ -36,12 +38,17 @@ jobs:
         id: cor3
         continue-on-error: true
         run: python scripts/download_cor3.py --force
+      - name: Acquire public OCE Socrata donations
+        id: oce
+        continue-on-error: true
+        run: python scripts/download_oce.py --force
       - name: Record acquisition evidence
         if: always()
         env:
           OCPR_OUTCOME: ${{ steps.ocpr.outcome }}
           USASPENDING_OUTCOME: ${{ steps.usaspending.outcome }}
           COR3_OUTCOME: ${{ steps.cor3.outcome }}
+          OCE_OUTCOME: ${{ steps.oce.outcome }}
           CERT_SCOPE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
           CERT_IMPLEMENTATION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
@@ -54,17 +61,20 @@ jobs:
               Path("data/staging/processed/pr_contracts_master.csv"),
               Path("data/staging/processed/pr_all_awards_master.csv"),
               Path("data/staging/processed/pr_cor3_projects.csv"),
+              Path("data/staging/processed/pr_oce_donations.csv"),
+              Path("data/manifests/campaign_finance/oce_socrata_latest.json"),
           ]
           rows = []
           for p in paths:
               item = {"path": str(p), "exists": p.exists(), "bytes": p.stat().st_size if p.exists() else 0}
               if p.exists():
                   item["sha256"] = hashlib.sha256(p.read_bytes()).hexdigest()
-                  try:
-                      with p.open("r", encoding="utf-8-sig", newline="") as fh:
-                          item["data_rows"] = max(sum(1 for _ in csv.reader(fh)) - 1, 0)
-                  except Exception as exc:
-                      item["row_error"] = str(exc)
+                  if p.suffix.lower() == ".csv":
+                      try:
+                          with p.open("r", encoding="utf-8-sig", newline="") as fh:
+                              item["data_rows"] = max(sum(1 for _ in csv.reader(fh)) - 1, 0)
+                      except Exception as exc:
+                          item["row_error"] = str(exc)
               rows.append(item)
           report = {
               "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -74,6 +84,7 @@ jobs:
                   "oficina_contralor": os.environ["OCPR_OUTCOME"],
                   "usaspending_unified_build": os.environ["USASPENDING_OUTCOME"],
                   "cor3": os.environ["COR3_OUTCOME"],
+                  "oce_socrata_live": os.environ["OCE_OUTCOME"],
               },
               "artifacts": rows,
           }
@@ -93,6 +104,8 @@ jobs:
             data/staging/processed/pr_contracts_master.csv
             data/staging/processed/pr_all_awards_master.csv
             data/staging/processed/pr_cor3_projects.csv
+            data/staging/processed/pr_oce_donations.csv
+            data/manifests/campaign_finance/oce_socrata_latest.json
           if-no-files-found: warn
       - name: Enforce acquisition step outcomes
         if: always()
@@ -100,8 +113,10 @@ jobs:
           OCPR_OUTCOME: ${{ steps.ocpr.outcome }}
           USASPENDING_OUTCOME: ${{ steps.usaspending.outcome }}
           COR3_OUTCOME: ${{ steps.cor3.outcome }}
+          OCE_OUTCOME: ${{ steps.oce.outcome }}
         run: |
-          printf 'OCPR=%s USAspending=%s COR3=%s\n' "$OCPR_OUTCOME" "$USASPENDING_OUTCOME" "$COR3_OUTCOME"
+          printf 'OCPR=%s USAspending=%s COR3=%s OCE=%s\n' "$OCPR_OUTCOME" "$USASPENDING_OUTCOME" "$COR3_OUTCOME" "$OCE_OUTCOME"
           test "$OCPR_OUTCOME" = success
           test "$USASPENDING_OUTCOME" = success
           test "$COR3_OUTCOME" = success
+          test "$OCE_OUTCOME" = success
