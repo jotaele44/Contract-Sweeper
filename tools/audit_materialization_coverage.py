@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Build a current-denominator materialization/lineage audit.
 
-Checkout-visible evidence is useful for reconciliation, but only an explicitly
-identified authoritative operator corpus may satisfy production provenance.
+Checkout-visible evidence is useful for reconciliation, but production provenance
+is awarded only by a cryptographically bound operator-corpus manifest plus a
+successful independent verification receipt. A CLI assertion alone can never
+make a checkout authoritative.
 """
 
 from __future__ import annotations
@@ -17,6 +19,11 @@ from typing import Any
 
 import yaml
 
+try:
+    from tools.operator_corpus_common import manifest_digest, source_ids_digest
+except ModuleNotFoundError:  # pragma: no cover - direct script execution fallback
+    from operator_corpus_common import manifest_digest, source_ids_digest  # type: ignore[no-redef]
+
 
 def _row_count(path: Path) -> int | None:
     try:
@@ -28,7 +35,11 @@ def _row_count(path: Path) -> int | None:
 
 def _sha256(path: Path) -> str | None:
     try:
-        return hashlib.sha256(path.read_bytes()).hexdigest()
+        digest = hashlib.sha256()
+        with path.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
     except OSError:
         return None
 
@@ -70,8 +81,147 @@ def _load_sources(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]], lis
     return registry, sources, registry_paths
 
 
-def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
+def _load_json(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"JSON evidence must contain an object: {path}")
+    return payload
+
+
+def _resolve_authority(
+    *,
+    root: Path,
+    sources: list[dict[str, Any]],
+    registry_paths: list[str],
+    legacy_authority_requested: bool,
+    manifest_path: Path | None,
+    verification_path: Path | None,
+) -> tuple[bool, Path, dict[str, Any]]:
+    blockers: list[str] = []
+    evidence: dict[str, Any] = {
+        "legacy_authority_requested": legacy_authority_requested,
+        "manifest_path": None,
+        "manifest_sha256": None,
+        "verification_path": None,
+        "verification_sha256": None,
+        "corpus_id": None,
+        "authority_blockers": blockers,
+    }
+
+    if manifest_path is None and verification_path is None:
+        if legacy_authority_requested:
+            blockers.append("bare_authority_assertion_not_evidence")
+        else:
+            blockers.append("operator_corpus_proof_not_supplied")
+        return False, root, evidence
+    if manifest_path is None or verification_path is None:
+        blockers.append("operator_corpus_manifest_and_verification_required_together")
+        return False, root, evidence
+
+    manifest_path = manifest_path.resolve()
+    verification_path = verification_path.resolve()
+    evidence.update(
+        {
+            "manifest_path": str(manifest_path),
+            "manifest_sha256": _sha256(manifest_path),
+            "verification_path": str(verification_path),
+            "verification_sha256": _sha256(verification_path),
+        }
+    )
+    if not manifest_path.exists():
+        blockers.append("operator_corpus_manifest_missing")
+    if not verification_path.exists():
+        blockers.append("operator_corpus_verification_missing")
+    if blockers:
+        return False, root, evidence
+
+    try:
+        manifest = _load_json(manifest_path)
+        verification = _load_json(verification_path)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, RuntimeError):
+        blockers.append("operator_corpus_proof_unreadable")
+        return False, root, evidence
+
+    current_digest = source_ids_digest(sources)
+    current_required = sum(source.get("required") is True for source in sources)
+    claimed_corpus_id = manifest.get("corpus_id")
+    computed_corpus_id = manifest_digest(manifest)
+    evidence["corpus_id"] = claimed_corpus_id
+    evidence["computed_corpus_id"] = computed_corpus_id
+    evidence["current_source_ids_sha256"] = current_digest
+
+    manifest_registry = manifest.get("registry")
+    verification_registry = verification.get("registry")
+    if not isinstance(manifest_registry, dict):
+        manifest_registry = {}
+        blockers.append("manifest_registry_missing")
+    if not isinstance(verification_registry, dict):
+        verification_registry = {}
+        blockers.append("verification_registry_missing")
+
+    if claimed_corpus_id != computed_corpus_id:
+        blockers.append("corpus_id_mismatch")
+    if verification.get("corpus_id") != claimed_corpus_id:
+        blockers.append("verification_corpus_id_mismatch")
+    if verification.get("computed_corpus_id") != claimed_corpus_id:
+        blockers.append("verification_computed_corpus_id_mismatch")
+    if verification.get("verified") is not True:
+        blockers.append("operator_corpus_verification_not_passed")
+    if verification.get("operator_corpus_authoritative") is not True:
+        blockers.append("operator_corpus_verification_not_authoritative")
+    if verification.get("errors") not in ([], None):
+        blockers.append("operator_corpus_verification_contains_errors")
+
+    for label, registry_evidence in (
+        ("manifest", manifest_registry),
+        ("verification", verification_registry),
+    ):
+        if registry_evidence.get("total_sources") != len(sources):
+            blockers.append(f"{label}_registry_total_mismatch")
+        if registry_evidence.get("required_sources") != current_required:
+            blockers.append(f"{label}_required_source_count_mismatch")
+        if registry_evidence.get("source_ids_sha256") != current_digest:
+            blockers.append(f"{label}_registry_digest_mismatch")
+        if registry_evidence.get("registry_paths") != registry_paths:
+            blockers.append(f"{label}_registry_paths_mismatch")
+
+    snapshot = manifest.get("snapshot")
+    if not isinstance(snapshot, dict) or snapshot.get("processed_inventory_complete") is not True:
+        blockers.append("manifest_processed_inventory_not_complete")
+
+    evidence_root = manifest_path.parent / "mount"
+    if not evidence_root.exists() or not evidence_root.is_dir():
+        blockers.append("operator_corpus_mount_missing")
+
+    authority = not blockers
+    return authority, evidence_root if authority else root, evidence
+
+
+def _owners_for_path(rel: str, declared: dict[str, list[str]]) -> list[str]:
+    owners: list[str] = []
+    for expected, source_ids in declared.items():
+        if rel == expected or (expected.endswith("/") and rel.startswith(expected)):
+            owners.extend(source_ids)
+    return sorted(set(owners))
+
+
+def build(
+    root: Path,
+    *,
+    operator_corpus_authoritative: bool = False,
+    operator_corpus_manifest: Path | None = None,
+    operator_corpus_verification: Path | None = None,
+) -> dict[str, Any]:
+    root = root.resolve()
     registry, sources, registry_paths = _load_sources(root)
+    authority, evidence_root, authority_evidence = _resolve_authority(
+        root=root,
+        sources=sources,
+        registry_paths=registry_paths,
+        legacy_authority_requested=operator_corpus_authoritative,
+        manifest_path=operator_corpus_manifest,
+        verification_path=operator_corpus_verification,
+    )
 
     declared: dict[str, list[str]] = {}
     source_rows: list[dict[str, Any]] = []
@@ -94,7 +244,7 @@ def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
         output_evidence: list[dict[str, Any]] = []
         for rel in outputs:
             declared.setdefault(rel, []).append(source_id)
-            path = root / rel
+            path = evidence_root / rel
             exists = path.exists()
             rows = (
                 _row_count(path)
@@ -145,7 +295,7 @@ def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
             }
         )
 
-    processed = root / "data/staging/processed"
+    processed = evidence_root / "data/staging/processed"
     inventory: list[dict[str, Any]] = []
     total_rows = 0
     accounted_rows = 0
@@ -153,10 +303,10 @@ def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
     measured_orphan_files = 0
     if processed.exists():
         for path in sorted(processed.rglob("*.csv")):
-            rel = path.relative_to(root).as_posix()
+            rel = path.relative_to(evidence_root).as_posix()
             rows = _row_count(path)
             row_count = rows if rows is not None else 0
-            owners = declared.get(rel, [])
+            owners = _owners_for_path(rel, declared)
             classification = "declared" if owners else "unclaimed"
             total_rows += row_count
             if owners:
@@ -174,27 +324,31 @@ def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
                 }
             )
 
-    certifiable_orphan_rows = measured_orphan_rows if operator_corpus_authoritative else None
-    certifiable_orphan_files = measured_orphan_files if operator_corpus_authoritative else None
+    certifiable_orphan_rows = measured_orphan_rows if authority else None
+    certifiable_orphan_files = measured_orphan_files if authority else None
+    authority_blockers = authority_evidence["authority_blockers"]
 
     return {
-        "schema_version": "coverage_audit_v3",
+        "schema_version": "coverage_audit_v4",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "audit_scope": {
             "root": str(root),
+            "evidence_root": str(evidence_root),
             "registry_path": "registries/source_registry.yaml",
             "registry_paths": registry_paths,
             "registry_schema_version": registry.get("schema_version"),
-            "operator_corpus_authoritative": operator_corpus_authoritative,
+            "registry_source_ids_sha256": source_ids_digest(sources),
+            "operator_corpus_authoritative": authority,
+            "operator_corpus_id": authority_evidence.get("corpus_id"),
+            "operator_corpus_proof": authority_evidence,
+            "authority_blockers": authority_blockers,
             "corpus_class": (
-                "authoritative_operator_corpus"
-                if operator_corpus_authoritative
-                else "checkout_visible_files_only"
+                "authoritative_operator_corpus" if authority else "checkout_visible_files_only"
             ),
             "warning": (
                 None
-                if operator_corpus_authoritative
-                else "Checkout-visible files are not the authoritative operator corpus; G8 must remain blocked."
+                if authority
+                else "Cryptographically verified operator-corpus proof is absent or invalid; G8 must remain blocked."
             ),
         },
         "local_truth_summary": {
@@ -225,7 +379,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=".")
     parser.add_argument("--output", default="reports/materialization_coverage_audit.current.json")
-    parser.add_argument("--operator-corpus-authoritative", action="store_true")
+    parser.add_argument(
+        "--operator-corpus-authoritative",
+        action="store_true",
+        help="Deprecated assertion only; cannot award authority without proof artifacts.",
+    )
+    parser.add_argument("--operator-corpus-manifest", type=Path)
+    parser.add_argument("--operator-corpus-verification", type=Path)
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
@@ -233,7 +393,12 @@ def main() -> int:
     if not output.is_absolute():
         output = Path.cwd() / output
 
-    report = build(root, operator_corpus_authoritative=args.operator_corpus_authoritative)
+    report = build(
+        root,
+        operator_corpus_authoritative=args.operator_corpus_authoritative,
+        operator_corpus_manifest=args.operator_corpus_manifest,
+        operator_corpus_verification=args.operator_corpus_verification,
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report["local_truth_summary"], sort_keys=True))
@@ -243,6 +408,7 @@ def main() -> int:
                 "operator_corpus_authoritative": report["audit_scope"][
                     "operator_corpus_authoritative"
                 ],
+                "authority_blockers": report["audit_scope"]["authority_blockers"],
                 "measured_orphan_rows": report["processed_file_inventory"]["measured_orphan_rows"],
                 "certifiable_orphan_rows": report["processed_file_inventory"]["orphan_rows"],
             },
