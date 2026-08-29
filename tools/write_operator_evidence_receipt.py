@@ -66,6 +66,7 @@ def build_receipt(
     source_id: str,
     outputs: list[str],
     producer_sha: str,
+    producer: str | None = None,
     source_url: str | None = None,
     started_at: str | None = None,
     completed_at: str | None = None,
@@ -81,9 +82,10 @@ def build_receipt(
     if len(producer_sha) != 40 or any(char not in "0123456789abcdef" for char in producer_sha):
         raise RuntimeError("producer_sha must be a lowercase 40-character Git SHA")
 
-    producer = str(source.get("producer_script") or "").strip()
-    if not producer:
-        raise RuntimeError(f"producer_script is not registered for {source_id}")
+    registered_producer = str(source.get("producer_script") or "").strip()
+    resolved_producer = (producer or registered_producer).strip()
+    if not resolved_producer:
+        raise RuntimeError(f"acquisition producer is not available for {source_id}")
     expected = expected_outputs(source)
     if not outputs:
         raise RuntimeError("at least one output is required")
@@ -121,7 +123,7 @@ def build_receipt(
         raise RuntimeError(f"source URL is not available for {source_id}")
     completed_at = completed_at or datetime.now(timezone.utc).isoformat()
     acquisition: dict[str, Any] = {
-        "producer": producer,
+        "producer": resolved_producer,
         "producer_sha": producer_sha,
         "completed_at": completed_at,
         "source_url": resolved_url,
@@ -146,6 +148,8 @@ def build_receipt(
             "expected_outputs_complete": expected_complete,
             "expected_output_count": len(expected),
             "receipted_output_count": len(actual_paths),
+            "registered_producer": registered_producer,
+            "producer_matches_registry": resolved_producer == registered_producer,
         },
     }
 
@@ -156,6 +160,7 @@ def main() -> int:
     parser.add_argument("--source-id", required=True)
     parser.add_argument("--output", action="append", required=True, dest="outputs")
     parser.add_argument("--producer-sha")
+    parser.add_argument("--producer")
     parser.add_argument("--source-url")
     parser.add_argument("--started-at")
     parser.add_argument("--completed-at")
@@ -173,6 +178,7 @@ def main() -> int:
         source_id=args.source_id,
         outputs=args.outputs,
         producer_sha=producer_sha,
+        producer=args.producer,
         source_url=args.source_url,
         started_at=args.started_at,
         completed_at=args.completed_at,
