@@ -15,6 +15,10 @@ from typing import Any
 
 import yaml
 
+from tools.audit_entity_resolution_certification import (
+    build as build_entity_resolution_audit,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "registries" / "production_certification.yaml"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
@@ -88,6 +92,15 @@ def _preflight(root: Path) -> dict[str, Any]:
     return module.run_pipeline_preflight(root, logger, strict=True, write_report=False)
 
 
+def _entity_blocker_ids(entity_audit: dict[str, Any]) -> list[str]:
+    blockers: list[str] = []
+    for item in entity_audit.get("blocking", []):
+        value = item.get("review_id") or item.get("reason")
+        if value:
+            blockers.append(str(value))
+    return blockers
+
+
 def build_report(
     *,
     root: Path = ROOT,
@@ -116,23 +129,29 @@ def build_report(
     historical_status = _json(paths["historical_current_status"])
     federation = _json(paths["federation_manifest"])
     canonical_graph = _json(paths["canonical_graph_summary"])
+    entity_audit = build_entity_resolution_audit(root)
 
     ids = [row["source_id"] for row in status_rows]
     unique_ids = set(ids)
     status_counts = Counter(row["pipeline_status"] for row in status_rows)
     required = [row for row in status_rows if _bool(row["required"])]
     required_counts = Counter(row["pipeline_status"] for row in required)
-    required_blockers = [row for row in required if row["pipeline_status"] != "fully_materialized"]
+    required_blockers = [
+        row for row in required if row["pipeline_status"] != "fully_materialized"
+    ]
 
     recovery_by_id = {row["source_id"]: row for row in recovery_rows}
     automatable = {
-        row["source_id"] for row in recovery_rows if _bool(row.get("automatable", "false"))
+        row["source_id"]
+        for row in recovery_rows
+        if _bool(row.get("automatable", "false"))
     }
     missing_recovery = sorted(unique_ids - set(recovery_by_id))
     automatable_unmaterialized = sorted(
         row["source_id"]
         for row in status_rows
-        if row["source_id"] in automatable and row["pipeline_status"] != "fully_materialized"
+        if row["source_id"] in automatable
+        and row["pipeline_status"] != "fully_materialized"
     )
 
     freshness_by_id = {row["source_id"]: row for row in freshness_rows}
@@ -180,9 +199,11 @@ def build_report(
         _gate(
             "G0_SCOPE_FREEZE",
             PASS if g0 else FAIL,
-            "Exact scope, implementation, and denominator are frozen."
-            if g0
-            else "Scope or implementation identity is not frozen.",
+            (
+                "Exact scope, implementation, and denominator are frozen."
+                if g0
+                else "Scope or implementation identity is not frozen."
+            ),
             {
                 "scope_sha": scope_sha,
                 "scope_checkout_head_sha": actual_scope_head,
@@ -210,9 +231,11 @@ def build_report(
         _gate(
             "G1_CONTROL_PLANE_RECONCILIATION",
             PASS if g1 else FAIL,
-            "Current source-control surfaces reconcile."
-            if g1
-            else "Control-plane truth is contradictory.",
+            (
+                "Current source-control surfaces reconcile."
+                if g1
+                else "Control-plane truth is contradictory."
+            ),
             {
                 "source_rows": len(status_rows),
                 "unique_ids": len(unique_ids),
@@ -235,7 +258,11 @@ def build_report(
             _gate(
                 "G2_STRICT_PREFLIGHT",
                 PASS if g2 else FAIL,
-                "Strict preflight passed." if g2 else "Strict preflight found structural errors.",
+                (
+                    "Strict preflight passed."
+                    if g2
+                    else "Strict preflight found structural errors."
+                ),
                 {
                     "mode": "executed",
                     "checked_sources": pf.get("checked_sources"),
@@ -269,9 +296,11 @@ def build_report(
         _gate(
             "G3_REQUIRED_SOURCE_MATERIALIZATION",
             PASS if g3 else FAIL,
-            "All required sources are fully materialized."
-            if g3
-            else "Required-source residue remains.",
+            (
+                "All required sources are fully materialized."
+                if g3
+                else "Required-source residue remains."
+            ),
             {
                 "required_source_count": required_total,
                 "required_status_counts": dict(sorted(required_counts.items())),
@@ -282,7 +311,9 @@ def build_report(
                         "authentication": row["authentication"],
                         "producer_script": row["producer_script"],
                         "expected_outputs": [
-                            item for item in row["expected_outputs"].split(";") if item
+                            item
+                            for item in row["expected_outputs"].split(";")
+                            if item
                         ],
                         "blocker_notes": row["blocker_notes"],
                     }
@@ -295,16 +326,22 @@ def build_report(
 
     allowed = set(config["requirements"]["allowed_pipeline_states"])
     invalid_states = sorted(
-        {row["pipeline_status"] for row in status_rows if row["pipeline_status"] not in allowed}
+        {
+            row["pipeline_status"]
+            for row in status_rows
+            if row["pipeline_status"] not in allowed
+        }
     )
     g4 = len(status_rows) == total and len(unique_ids) == total and not invalid_states
     gates.append(
         _gate(
             "G4_FULL_SOURCE_CLASSIFICATION",
             PASS if g4 else FAIL,
-            "Every source has one recognized state."
-            if g4
-            else "Unknown or duplicate source state exists.",
+            (
+                "Every source has one recognized state."
+                if g4
+                else "Unknown or duplicate source state exists."
+            ),
             {
                 "pipeline_status_counts": dict(sorted(status_counts.items())),
                 "invalid_states": invalid_states,
@@ -318,9 +355,11 @@ def build_report(
         _gate(
             "G5_AUTOMATABLE_EXECUTION",
             PASS if g5 else FAIL,
-            "All automatable sources are materialized."
-            if g5
-            else "Automatable execution is incomplete.",
+            (
+                "All automatable sources are materialized."
+                if g5
+                else "Automatable execution is incomplete."
+            ),
             {
                 "automatable_total": len(automatable),
                 "unmaterialized_count": len(automatable_unmaterialized),
@@ -344,9 +383,11 @@ def build_report(
         _gate(
             "G6_SOURCE_VALIDATION_AND_COVERAGE_CONTRACTS",
             PASS if g6 else FAIL,
-            "Every in-scope source meets a coverage contract."
-            if g6
-            else "Coverage validation remains incomplete.",
+            (
+                "Every in-scope source meets a coverage contract."
+                if g6
+                else "Coverage validation remains incomplete."
+            ),
             {
                 "contracted_sources": completeness.get("contracted_sources"),
                 "coverage_status": coverage_status,
@@ -361,44 +402,78 @@ def build_report(
         )
     )
 
-    g7 = not open_reviews
+    entity_blockers = _entity_blocker_ids(entity_audit)
+    g7 = (
+        entity_audit.get("g7_candidate_state") == PASS
+        and entity_audit.get("blocking_review_items") == 0
+    )
     gates.append(
         _gate(
             "G7_ENTITY_RESOLUTION",
             PASS if g7 else FAIL,
-            "No unresolved entity-review residue." if g7 else "Entity review residue remains.",
+            (
+                "No blocking identity-resolution residue in promoted relationships."
+                if g7
+                else "Blocking identity-resolution residue remains."
+            ),
             {
                 "open_review_count": len(open_reviews),
                 "open_review_ids": [row["review_id"] for row in open_reviews],
                 "issue_types": dict(
                     sorted(Counter(row["issue_type"] for row in open_reviews).items())
                 ),
+                "advisory_low_confidence_count": entity_audit.get(
+                    "advisory_low_confidence_rows"
+                ),
+                "blocking_review_count": entity_audit.get("blocking_review_items"),
+                "canonical_review_queue_open_rows": entity_audit.get(
+                    "canonical_review_queue_open_rows"
+                ),
+                "canonical_graph_review_queue_open": entity_audit.get(
+                    "canonical_graph_review_queue_open"
+                ),
+                "policy": entity_audit.get("policy"),
+                "input_manifest": entity_audit.get("input_manifest"),
             },
-            [row["review_id"] for row in open_reviews],
+            entity_blockers,
         )
     )
 
     coverage_total = coverage.get("local_truth_summary", {}).get("total_sources")
     orphan_rows = coverage.get("processed_file_inventory", {}).get("orphan_rows")
-    g8 = coverage_total == total and orphan_rows == 0
+    operator_authoritative = (
+        coverage.get("audit_scope", {}).get("operator_corpus_authoritative") is True
+    )
+    lineage_blockers: list[str] = []
+    if coverage_total != total:
+        lineage_blockers.append("lineage_denominator_mismatch")
+    if not operator_authoritative:
+        lineage_blockers.append("authoritative_operator_corpus_not_asserted")
+    if operator_authoritative and orphan_rows != 0:
+        lineage_blockers.append("orphan_rows_present")
+    g8 = coverage_total == total and operator_authoritative and orphan_rows == 0
     gates.append(
         _gate(
             "G8_PROVENANCE_AND_LINEAGE",
             PASS if g8 else BLOCKED,
-            "Current-denominator audit proves zero orphan rows."
-            if g8
-            else "Coverage/lineage audit is stale for current denominator.",
+            (
+                "Authoritative current-denominator audit proves zero orphan rows."
+                if g8
+                else "Authoritative operator-corpus lineage proof is incomplete."
+            ),
             {
                 "coverage_audit_total_sources": coverage_total,
                 "current_registry_total_sources": total,
                 "coverage_audit_orphan_rows": orphan_rows,
+                "operator_corpus_authoritative": operator_authoritative,
+                "registry_paths": coverage.get("audit_scope", {}).get("registry_paths"),
                 "historical_unresolved_lineage_rows": historical_status.get(
                     "materialization_coverage", {}
                 )
                 .get("local_operator_snapshot", {})
                 .get("unresolved_lineage_rows_within_derived_outputs"),
             },
-            [] if g8 else ["rerun_complete_materialization_coverage_audit"],
+            lineage_blockers,
         )
     )
 
@@ -409,13 +484,17 @@ def build_report(
         _gate(
             "G9_CANONICAL_MASTER_INVARIANTS",
             PASS if g9 else BLOCKED,
-            "Canonical master invariant receipt is certified."
-            if g9
-            else "Canonical master remains diagnostic.",
+            (
+                "Canonical master invariant receipt is certified."
+                if g9
+                else "Canonical master remains diagnostic."
+            ),
             {
                 "canonical_graph_gate": canonical_gate,
                 "review_queue_open": canonical_review,
-                "edge_evidence_coverage_pct": canonical_graph.get("edge_evidence_coverage_pct"),
+                "edge_evidence_coverage_pct": canonical_graph.get(
+                    "edge_evidence_coverage_pct"
+                ),
             },
             [] if g9 else ["certified_canonical_master_invariant_receipt_missing"],
         )
@@ -426,9 +505,11 @@ def build_report(
         _gate(
             "G10_FRESHNESS_AND_UNIVERSE_COMPLETENESS",
             PASS if g10 else FAIL,
-            "All automatable sources are explicitly fresh."
-            if g10
-            else "Freshness/universe evidence is incomplete.",
+            (
+                "All automatable sources are explicitly fresh."
+                if g10
+                else "Freshness/universe evidence is incomplete."
+            ),
             {
                 "nonfresh_count": len(freshness_nonfresh),
                 "nonfresh_automatable": freshness_nonfresh,
@@ -448,13 +529,17 @@ def build_report(
         _gate(
             "G11_PRODUCTION_EXPORT_AND_FEDERATION",
             PASS if g11 else BLOCKED,
-            "Federation production export is certified."
-            if g11
-            else "Federation manifest blocks production/live execution.",
+            (
+                "Federation production export is certified."
+                if g11
+                else "Federation manifest blocks production/live execution."
+            ),
             {
                 "production_status": federation.get("production_status"),
                 "ready_for_hub_discovery": fg.get("ready_for_hub_discovery"),
-                "ready_for_hub_live_execution": fg.get("ready_for_hub_live_execution"),
+                "ready_for_hub_live_execution": fg.get(
+                    "ready_for_hub_live_execution"
+                ),
                 "blocking_conditions": fg.get("blocking_conditions", []),
             },
             list(fg.get("blocking_conditions") or []),
@@ -463,21 +548,26 @@ def build_report(
 
     upstream_nonpass = [gate["id"] for gate in gates if gate["state"] != PASS]
     activation = bool(
-        historical_status.get("preservation", {}).get("production_activation_authorized")
+        historical_status.get("preservation", {}).get(
+            "production_activation_authorized"
+        )
     )
     g12 = not upstream_nonpass and activation
     gates.append(
         _gate(
             "G12_RELEASE_CERTIFICATION",
             PASS if g12 else BLOCKED,
-            "All gates pass and activation is authorized."
-            if g12
-            else "Release certification remains blocked.",
+            (
+                "All gates pass and activation is authorized."
+                if g12
+                else "Release certification remains blocked."
+            ),
             {
                 "upstream_nonpass_gates": upstream_nonpass,
                 "production_activation_authorized": activation,
             },
-            upstream_nonpass + ([] if activation else ["production_activation_not_authorized"]),
+            upstream_nonpass
+            + ([] if activation else ["production_activation_not_authorized"]),
         )
     )
 
@@ -493,7 +583,9 @@ def build_report(
                 "required": _bool(row["required"]),
                 "authentication": row["authentication"],
                 "producer_script": row["producer_script"],
-                "expected_outputs": [item for item in row["expected_outputs"].split(";") if item],
+                "expected_outputs": [
+                    item for item in row["expected_outputs"].split(";") if item
+                ],
                 "update_cadence": row["update_cadence"],
                 "pipeline_status": row["pipeline_status"],
                 "blocker_notes": row["blocker_notes"],
@@ -535,10 +627,14 @@ def build_report(
         },
         "gates": gates,
         "certification_state": (
-            config["states"]["certified"] if all_pass else config["states"]["non_production"]
+            config["states"]["certified"]
+            if all_pass
+            else config["states"]["non_production"]
         ),
         "production_eligible": all_pass,
-        "nonpass_gate_ids": [gate["id"] for gate in gates if gate["state"] != PASS],
+        "nonpass_gate_ids": [
+            gate["id"] for gate in gates if gate["state"] != PASS
+        ],
     }
 
 
