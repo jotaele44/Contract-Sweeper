@@ -41,10 +41,35 @@ def _as_paths(value: Any) -> list[str]:
     return [str(item) for item in value]
 
 
-def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
+def _load_sources(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]], list[str]]:
     registry_path = root / "registries/source_registry.yaml"
     registry = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
-    sources = registry.get("sources") or []
+    sources = list(registry.get("sources") or [])
+    registry_paths = ["registries/source_registry.yaml"]
+
+    extension_dir = root / "registries/source_registry_extensions"
+    if extension_dir.exists():
+        for path in sorted(extension_dir.glob("*.json")):
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            extension_sources = payload.get("sources")
+            if extension_sources is None:
+                continue
+            if not isinstance(extension_sources, list):
+                raise RuntimeError(f"Source registry extension must contain a sources list: {path}")
+            sources.extend(extension_sources)
+            registry_paths.append(path.relative_to(root).as_posix())
+
+    source_ids = [str(source.get("source_id", "")).strip() for source in sources]
+    duplicates = sorted({source_id for source_id in source_ids if source_ids.count(source_id) > 1})
+    if duplicates:
+        raise RuntimeError("Duplicate source IDs across core/extension registries: " + ", ".join(duplicates))
+    if any(not source_id for source_id in source_ids):
+        raise RuntimeError("Core/extension source registry contains an empty source_id")
+    return registry, sources, registry_paths
+
+
+def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
+    registry, sources, registry_paths = _load_sources(root)
 
     declared: dict[str, list[str]] = {}
     source_rows: list[dict[str, Any]] = []
@@ -147,19 +172,16 @@ def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
                 }
             )
 
-    certifiable_orphan_rows = (
-        measured_orphan_rows if operator_corpus_authoritative else None
-    )
-    certifiable_orphan_files = (
-        measured_orphan_files if operator_corpus_authoritative else None
-    )
+    certifiable_orphan_rows = measured_orphan_rows if operator_corpus_authoritative else None
+    certifiable_orphan_files = measured_orphan_files if operator_corpus_authoritative else None
 
     return {
-        "schema_version": "coverage_audit_v2",
+        "schema_version": "coverage_audit_v3",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "audit_scope": {
             "root": str(root),
             "registry_path": "registries/source_registry.yaml",
+            "registry_paths": registry_paths,
             "registry_schema_version": registry.get("schema_version"),
             "operator_corpus_authoritative": operator_corpus_authoritative,
             "corpus_class": (
@@ -200,9 +222,7 @@ def build(root: Path, *, operator_corpus_authoritative: bool) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default=".")
-    parser.add_argument(
-        "--output", default="reports/materialization_coverage_audit.current.json"
-    )
+    parser.add_argument("--output", default="reports/materialization_coverage_audit.current.json")
     parser.add_argument("--operator-corpus-authoritative", action="store_true")
     args = parser.parse_args()
 
@@ -211,13 +231,9 @@ def main() -> int:
     if not output.is_absolute():
         output = Path.cwd() / output
 
-    report = build(
-        root, operator_corpus_authoritative=args.operator_corpus_authoritative
-    )
+    report = build(root, operator_corpus_authoritative=args.operator_corpus_authoritative)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report["local_truth_summary"], sort_keys=True))
     print(
         json.dumps(
@@ -225,12 +241,8 @@ def main() -> int:
                 "operator_corpus_authoritative": report["audit_scope"][
                     "operator_corpus_authoritative"
                 ],
-                "measured_orphan_rows": report["processed_file_inventory"][
-                    "measured_orphan_rows"
-                ],
-                "certifiable_orphan_rows": report["processed_file_inventory"][
-                    "orphan_rows"
-                ],
+                "measured_orphan_rows": report["processed_file_inventory"]["measured_orphan_rows"],
+                "certifiable_orphan_rows": report["processed_file_inventory"]["orphan_rows"],
             },
             sort_keys=True,
         )
