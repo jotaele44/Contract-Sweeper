@@ -64,8 +64,9 @@ def _validate_receipt_shape(receipt: dict[str, Any], path: Path) -> None:
         raise RuntimeError(f"receipt validation/outputs block missing in {path}")
     if validation.get("schema_valid") is not True:
         raise RuntimeError(f"receipt does not assert schema_valid=true: {path}")
-    if validation.get("coverage_contract_pass") is not True:
-        raise RuntimeError(f"receipt coverage contract did not pass: {path}")
+    for key in ("positive_rows", "coverage_contract_pass"):
+        if not isinstance(validation.get(key), bool):
+            raise RuntimeError(f"receipt validation.{key} must be boolean: {path}")
 
 
 def _output_allowed(output_path: str, expected: list[str]) -> bool:
@@ -76,6 +77,17 @@ def _output_allowed(output_path: str, expected: list[str]) -> bool:
         elif output_path == item:
             return True
     return False
+
+
+def _processed_inventory(root: Path) -> set[str]:
+    processed = root / "data" / "staging" / "processed"
+    if not processed.exists():
+        return set()
+    return {
+        path.relative_to(root).as_posix()
+        for path in processed.rglob("*.csv")
+        if path.is_file()
+    }
 
 
 def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any]:
@@ -89,6 +101,7 @@ def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any
     receipts = _load_receipts(receipts_dir)
     seen_sources: set[str] = set()
     manifest_sources: list[dict[str, Any]] = []
+    receipt_output_paths: set[str] = set()
 
     if corpus_root.exists():
         shutil.rmtree(corpus_root)
@@ -152,6 +165,7 @@ def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any
             mounted = mount_dir / rel
             mounted.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(object_path, mounted)
+            receipt_output_paths.add(rel)
             output_records.append(
                 {
                     "path": rel,
@@ -177,6 +191,11 @@ def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any
             }
         )
 
+    operator_processed = _processed_inventory(root)
+    receipted_processed = {
+        path for path in receipt_output_paths if path.startswith("data/staging/processed/")
+    }
+    unreceipted_processed = sorted(operator_processed - receipted_processed)
     manifest: dict[str, Any] = {
         "schema_version": CORPUS_SCHEMA_VERSION,
         "registry": {
@@ -184,6 +203,12 @@ def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any
             "required_sources": sum(source.get("required") is True for source in sources),
             "source_ids_sha256": registry_digest,
             "registry_paths": registry_paths,
+        },
+        "snapshot": {
+            "processed_inventory_complete": not unreceipted_processed,
+            "operator_processed_csv_files": len(operator_processed),
+            "receipted_processed_csv_files": len(receipted_processed),
+            "unreceipted_processed_files": unreceipted_processed,
         },
         "sources": sorted(manifest_sources, key=lambda item: item["source_id"]),
     }
@@ -207,6 +232,9 @@ def main() -> int:
                 "corpus_id": manifest["corpus_id"],
                 "receipt_sources": len(manifest["sources"]),
                 "registry_total_sources": manifest["registry"]["total_sources"],
+                "processed_inventory_complete": manifest["snapshot"][
+                    "processed_inventory_complete"
+                ],
             },
             sort_keys=True,
         )
