@@ -12,9 +12,19 @@ The following surfaces must remain aligned:
 - `.python-version`: `3.11`
 - `pyproject.toml` mypy target: `3.11`
 - `pyproject.toml` Ruff target: `py311`
-- gating Python workflows: `3.11`
 - `Makefile` lock compiler baseline: `3.11`
 - `requirements.lock` generation provenance: `--python-version 3.11`
+
+Only the workflows that are meant to mirror this exact local baseline are pinned
+to `3.11`: `ci.yml`, `lint.yml`, `mypy.yml`, `lockfile.yml`. `make check` (below)
+reproduces these locally, so a clean `make check` on `.venv` is a faithful
+preview of them. The rest of the gating CI surface — `tests.yml`,
+`pre-commit.yml`, `production-status-gate.yml`, and most automation/source
+workflows — currently runs on `3.13` (`template-drift.yml` and
+`gui-capability-parity.yml` run on `3.12`); nothing enforces that these track
+`3.11`, and there is no committed rationale for the split. Contributors should
+not assume a green `make check` implies these other workflows will also pass —
+verify against actual CI on the PR.
 
 Do not use one virtual environment for the entire federation. Every repository owns a private `.venv`.
 

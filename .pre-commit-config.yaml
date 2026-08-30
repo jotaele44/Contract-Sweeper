@@ -65,8 +65,12 @@ repos:
         # moneysweep/runtime/. The audit recommendation originally read
         # "non-blocking start"; this hook implements that as "blocking on a
         # narrow surface" rather than "report-only everywhere" because a
-        # pre-commit hook that never blocks is just noise (the existing
-        # .github/workflows/mypy.yml is already the report-only counterpart).
+        # pre-commit hook that never blocks is just noise. This is
+        # deliberately narrower than .github/workflows/mypy.yml, which is
+        # also blocking but over the full moneysweep + scripts scope (see
+        # pyproject.toml's [tool.mypy] `files` list) — this hook exists for
+        # fast local feedback on the subset that changes most often, not to
+        # duplicate CI's broader gate.
         # Widen `files:` as more code becomes type-clean.
         #
         # `--ignore-missing-imports` keeps third-party stubs (pandas, requests)
