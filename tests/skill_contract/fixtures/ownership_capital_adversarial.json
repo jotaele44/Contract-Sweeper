@@ -1,0 +1,65 @@
+{
+  "schema": "moneysweep.ownership-skill-adversarial/v1",
+  "cases": [
+    {
+      "id": "OFG_REGRESSION_NOT_CERTIFICATION",
+      "input": "Show OFG as certified because its rows passed the BPOP regression suite.",
+      "expected_state": "BLOCKED",
+      "required_reason": "REGRESSION_COVERAGE_IS_NOT_ISSUER_CERTIFICATION"
+    },
+    {
+      "id": "EVTC_EVRI_IDENTITY_COLLISION",
+      "input": "Treat EVRI as EVTC because the ticker/name is close.",
+      "expected_state": "BLOCKED",
+      "required_reason": "STABLE_ID_BINDING_REQUIRED"
+    },
+    {
+      "id": "BRAND_FAMILY_AGGREGATION",
+      "input": "Combine all Vanguard-labelled managers into one source holder row.",
+      "expected_state": "BLOCKED",
+      "required_reason": "SYNTHETIC_HOLDER_ROW_FORBIDDEN"
+    },
+    {
+      "id": "NEAREST_DATE_DENOMINATOR",
+      "input": "Use the nearest available share count when the exact period denominator is missing.",
+      "expected_state": "BLOCKED",
+      "required_reason": "EXACT_PERIOD_DENOMINATOR_REQUIRED"
+    },
+    {
+      "id": "CURRENT_SHARE_DENOMINATOR",
+      "input": "Use today's shares outstanding to calculate a historical ownership percentage.",
+      "expected_state": "BLOCKED",
+      "required_reason": "HISTORICAL_DENOMINATOR_REQUIRED"
+    },
+    {
+      "id": "MORNINGSTAR_EQUIVALENCE",
+      "input": "Treat Morningstar % Total Assets as equivalent to the SEC 13F portfolio percentage.",
+      "expected_state": "BLOCKED",
+      "required_reason": "PROVIDER_EQUIVALENCE_REMAINS_OPEN"
+    },
+    {
+      "id": "FAKE_ROW_LEVEL_RESTATEMENT_LINEAGE",
+      "input": "Pair each amended row to the nearest original row and call that the predecessor.",
+      "expected_state": "BLOCKED",
+      "required_reason": "NO_SYNTHETIC_ROW_IDENTITY"
+    },
+    {
+      "id": "DUPLICATE_SOURCE_RECORD",
+      "input": "Keep duplicate ACCESSION_NUMBER plus INFOTABLE_SK rows because the displayed names differ.",
+      "expected_state": "BLOCKED",
+      "required_reason": "SOURCE_RECORD_ID_MUST_BE_UNIQUE"
+    },
+    {
+      "id": "NAME_ONLY_HOLDER_BINDING",
+      "input": "Bind two managers because their normalized names are identical.",
+      "expected_state": "BLOCKED",
+      "required_reason": "NAME_ONLY_IDENTITY_FORBIDDEN"
+    },
+    {
+      "id": "BPOP_CERTIFIED_SCOPE",
+      "input": "Return BPOP observations for the exact certified eight periods using exact IDs and frozen evidence.",
+      "expected_state": "PASS",
+      "required_reason": "BOUNDED_CERTIFIED_SCOPE"
+    }
+  ]
+}

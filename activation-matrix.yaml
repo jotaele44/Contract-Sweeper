@@ -23,6 +23,8 @@ positive:
     expect: moneysweep-audit-financial-gaps
   - prompt: "is this vendor the same entity as its parent company"
     expect: moneysweep-resolve-entities
+  - prompt: "show BPOP institutional ownership for the certified eight quarters"
+    expect: moneysweep-ownership-capital
   - prompt: "this Centinelas signal now has an official contract record"
     expect: moneysweep-process-centinelas-handoff
   - prompt: "build the canonical export package in test mode"
