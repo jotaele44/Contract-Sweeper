@@ -52,6 +52,21 @@ export const getCampaignFinanceEntities = (f = {}) =>
 export const getCampaignFinanceReports = (f = {}) =>
   fetchJSON(`/campaign-finance/reports${qs(f)}`, [])
 
+// API-key store: local-dev-only write path (see ApiKeysPanel.jsx). Not
+// available in the OFFLINE/standalone export — there is no backend to write
+// to there, so the panel that calls these is hidden entirely in that build.
+export const getApiKeys = () => fetchJSON('/api-keys', [])
+export const setApiKey = async (name, value) => {
+  const res = await fetch(`${API_BASE}/api-keys/${encodeURIComponent(name)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ value }),
+    signal: AbortSignal.timeout(8000),
+  })
+  if (!res.ok) throw new Error(`set ${name} → HTTP ${res.status}`)
+  return res.json()
+}
+
 export const getOwnershipDeepDiveStatus = () => fetchJSON('/deep-dive/ownership/status', {
   available: false,
   certificationState: 'NOT_MOUNTED',

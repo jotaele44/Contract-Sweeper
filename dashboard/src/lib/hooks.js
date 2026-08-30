@@ -4,6 +4,7 @@ import {
   getGovernmentChanges, getGovernmentChangeCandidates, getGovernmentChangeSummary,
   getCampaignFinanceSummary, getCampaignFinanceContributions,
   getCampaignFinanceEntities, getCampaignFinanceReports,
+  getApiKeys,
   getOwnershipDeepDive, getOwnershipDeepDiveStatus,
 } from '@/lib/api'
 
@@ -40,6 +41,8 @@ export const useCampaignFinanceReports = (filters = {}) =>
     queryKey: ['campaign-finance-reports', filters],
     queryFn: () => getCampaignFinanceReports(filters),
   })
+
+export const useApiKeys = () => useQuery({ queryKey: ['api-keys'], queryFn: getApiKeys })
 
 export const useOwnershipDeepDiveStatus = () =>
   useQuery({ queryKey: ['ownership-deep-dive-status'], queryFn: getOwnershipDeepDiveStatus })
