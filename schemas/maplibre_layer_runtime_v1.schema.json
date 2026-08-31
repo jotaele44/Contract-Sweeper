@@ -1,0 +1,14 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://federation.local/schemas/maplibre_layer_runtime_v1.schema.json",
+  "title":"Federation MapLibre Layer Runtime v1","type":"object","additionalProperties":false,
+  "required":["contract_version","layer_id","source","render","visibility","interaction","provenance"],
+  "properties":{
+    "contract_version":{"const":"federation-map-runtime/1.0"},"layer_id":{"type":"string"},
+    "source":{"type":"object","required":["kind"],"properties":{"kind":{"enum":["geojson","vector","raster","raster-dem"]},"url":{"type":["string","null"]},"tiles":{"type":"array","items":{"type":"string"}},"source_layer":{"type":["string","null"]},"promote_id":{"type":["string","null"]}}},
+    "render":{"type":"object","required":["type"],"properties":{"type":{"enum":["circle","line","fill","symbol","heatmap","hillshade","raster","fill-extrusion"]},"paint":{"type":"object"},"layout":{"type":"object"},"minzoom":{"type":"number"},"maxzoom":{"type":"number"}}},
+    "visibility":{"enum":["visible","none"]},"opacity":{"type":"number","minimum":0,"maximum":1},
+    "interaction":{"type":"object","properties":{"inspect":{"type":"boolean"},"select":{"type":"boolean"},"hover":{"type":"boolean"},"time_filter":{"type":"boolean"}}},
+    "provenance":{"type":"object","required":["producer_repo","layer_version","logical_sha256"],"properties":{"producer_repo":{"enum":["spiderweb-pr","moneysweep-pr","aguayluz-pr","skywatcher-pr"]},"layer_version":{"type":"string"},"logical_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"}}}
+  }
+}
