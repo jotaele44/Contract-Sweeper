@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "policy": "Source taxonomy is not canonical source identity. T1 requires status=authoritative plus stable authority identity; local authoritative manifestations also require SHA256.",
+  "bindings": [
+    {
+      "binding_key": "data/reference/pr_public_money_entities.csv",
+      "status": "noncanonical",
+      "source_class": "internal_reference_seed",
+      "stable_id": null,
+      "authority_url": null,
+      "sha256": null,
+      "reason": "Curated repository reference surface; not itself an external primary official registry. Preserve as discovery/context until independently bound."
+    }
+  ]
+}
