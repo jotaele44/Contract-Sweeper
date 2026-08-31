@@ -226,7 +226,9 @@ def load_all_tables(root: Path | None = None) -> dict[str, list[dict[str, str]]]
     return {t: _read_csv(root / DATA_DIR / TABLES[t][1]) for t in TABLES}
 
 
-def validate_denominator_headers_and_rows(report: ValidationReport, root: Path | None = None) -> None:
+def validate_denominator_headers_and_rows(
+    report: ValidationReport, root: Path | None = None
+) -> None:
     """Fail closed on canonical-table drift, malformed headers, or ragged rows."""
     root = root or REPO_ROOT
     data_dir = root / DATA_DIR
@@ -302,11 +304,7 @@ def validate_referential_integrity(
     tables: dict[str, list[dict[str, str]]], report: ValidationReport
 ) -> None:
     pks: dict[str, set[str]] = {
-        t: {
-            (r.get(TABLES[t][2]) or "").strip()
-            for r in rows
-            if (r.get(TABLES[t][2]) or "").strip()
-        }
+        t: {(r.get(TABLES[t][2]) or "").strip() for r in rows if (r.get(TABLES[t][2]) or "").strip()}
         for t, rows in tables.items()
     }
     for table, fkmap in FOREIGN_KEYS.items():
