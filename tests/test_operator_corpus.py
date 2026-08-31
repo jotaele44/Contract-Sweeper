@@ -57,7 +57,12 @@ def _write_csv(root: Path, rel: str, rows: list[tuple[str, str]]) -> Path:
     return path
 
 
-def _write_receipt(root: Path, receipts: Path, source: dict, output_paths: list[str]) -> Path:
+def _write_receipt(
+    root: Path,
+    receipts: Path,
+    source: dict,
+    output_paths: list[str],
+) -> Path:
     sources, _ = load_sources(root)
     receipt = {
         "schema_version": "moneysweep.operator_evidence/v1",
@@ -94,37 +99,58 @@ def _write_receipt(root: Path, receipts: Path, source: dict, output_paths: list[
         )
     receipts.mkdir(parents=True, exist_ok=True)
     path = receipts / f"{source['source_id']}.json"
-    path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return path
 
 
 def _save_verification(path: Path, report: dict) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return path
 
 
-def test_complete_corpus_is_deterministic_and_unlocks_authoritative_lineage(tmp_path: Path) -> None:
+def test_complete_corpus_is_deterministic_and_unlocks_authoritative_lineage(
+    tmp_path: Path,
+) -> None:
     root = tmp_path / "repo"
     source = _source("alpha", ["data/staging/processed/alpha.csv"])
     _write_registry(root, source)
-    _write_csv(root, "data/staging/processed/alpha.csv", [("1", "a"), ("2", "b")])
+    _write_csv(
+        root,
+        "data/staging/processed/alpha.csv",
+        [("1", "a"), ("2", "b")],
+    )
     receipts = root / "receipts"
     _write_receipt(root, receipts, source, source["expected_outputs"])
 
     first_root = root / "build" / "corpus-a"
     second_root = root / "build" / "corpus-b"
-    first = build_operator_corpus(root=root, receipts_dir=receipts, corpus_root=first_root)
-    second = build_operator_corpus(root=root, receipts_dir=receipts, corpus_root=second_root)
+    first = build_operator_corpus(
+        root=root,
+        receipts_dir=receipts,
+        corpus_root=first_root,
+    )
+    second = build_operator_corpus(
+        root=root,
+        receipts_dir=receipts,
+        corpus_root=second_root,
+    )
     assert first["corpus_id"] == second["corpus_id"]
     assert first["snapshot"]["processed_inventory_complete"] is True
 
     verification = verify_operator_corpus(root=root, corpus_root=first_root)
-    assert verification["verified"] is True
+    assert verification["verified"] is True, verification["errors"]
     assert verification["operator_corpus_authoritative"] is True
     assert verification["verification_scope"]["mode"] == "full_operator_snapshot"
     verification_path = _save_verification(
-        root / "reports" / "operator_corpus_verification.json", verification
+        root / "reports" / "operator_corpus_verification.json",
+        verification,
     )
 
     audit = build_coverage_audit(
@@ -157,13 +183,22 @@ def test_partial_source_can_have_authoritative_lineage_without_materialization_c
     _write_receipt(root, receipts, source, ["data/staging/processed/alpha.csv"])
 
     corpus_root = root / "build" / "operator-corpus"
-    manifest = build_operator_corpus(root=root, receipts_dir=receipts, corpus_root=corpus_root)
+    manifest = build_operator_corpus(
+        root=root,
+        receipts_dir=receipts,
+        corpus_root=corpus_root,
+    )
     verification = verify_operator_corpus(root=root, corpus_root=corpus_root)
-    assert verification["verified"] is True
+    assert verification["verified"] is True, verification["errors"]
     assert verification["operator_corpus_authoritative"] is True
     result = verification["sources"][0]
-    assert result["missing_expected_outputs"] == ["data/staging/processed/alpha_second.csv"]
-    verification_path = _save_verification(root / "reports" / "verification.json", verification)
+    assert result["missing_expected_outputs"] == [
+        "data/staging/processed/alpha_second.csv"
+    ]
+    verification_path = _save_verification(
+        root / "reports" / "verification.json",
+        verification,
+    )
 
     audit = build_coverage_audit(
         root,
@@ -176,7 +211,9 @@ def test_partial_source_can_have_authoritative_lineage_without_materialization_c
     assert audit["local_truth_summary"]["required_fully_materialized"] == 0
 
 
-def test_unreceipted_operator_processed_file_prevents_authority(tmp_path: Path) -> None:
+def test_unreceipted_operator_processed_file_prevents_authority(
+    tmp_path: Path,
+) -> None:
     root = tmp_path / "repo"
     source = _source("alpha", ["data/staging/processed/alpha.csv"])
     _write_registry(root, source)
@@ -186,7 +223,11 @@ def test_unreceipted_operator_processed_file_prevents_authority(tmp_path: Path) 
     _write_receipt(root, receipts, source, source["expected_outputs"])
 
     corpus_root = root / "build" / "operator-corpus"
-    manifest = build_operator_corpus(root=root, receipts_dir=receipts, corpus_root=corpus_root)
+    manifest = build_operator_corpus(
+        root=root,
+        receipts_dir=receipts,
+        corpus_root=corpus_root,
+    )
     assert manifest["snapshot"]["processed_inventory_complete"] is False
     assert manifest["snapshot"]["unreceipted_processed_files"] == [
         "data/staging/processed/stray.csv"
@@ -198,7 +239,9 @@ def test_unreceipted_operator_processed_file_prevents_authority(tmp_path: Path) 
     assert "processed_inventory_not_complete" in verification["errors"]
 
 
-def test_post_verification_mount_tamper_is_detected_by_lineage_revalidation(tmp_path: Path) -> None:
+def test_post_verification_mount_tamper_is_detected_by_lineage_revalidation(
+    tmp_path: Path,
+) -> None:
     root = tmp_path / "repo"
     rel = "data/staging/processed/alpha.csv"
     source = _source("alpha", [rel])
@@ -208,12 +251,22 @@ def test_post_verification_mount_tamper_is_detected_by_lineage_revalidation(tmp_
     _write_receipt(root, receipts, source, [rel])
 
     corpus_root = root / "build" / "operator-corpus"
-    build_operator_corpus(root=root, receipts_dir=receipts, corpus_root=corpus_root)
+    build_operator_corpus(
+        root=root,
+        receipts_dir=receipts,
+        corpus_root=corpus_root,
+    )
     verification = verify_operator_corpus(root=root, corpus_root=corpus_root)
-    assert verification["verified"] is True
-    verification_path = _save_verification(root / "reports" / "verification.json", verification)
+    assert verification["verified"] is True, verification["errors"]
+    verification_path = _save_verification(
+        root / "reports" / "verification.json",
+        verification,
+    )
 
-    (corpus_root / "mount" / rel).write_text("id,value\n1,tampered\n", encoding="utf-8")
+    (corpus_root / "mount" / rel).write_text(
+        "id,value\n1,tampered\n",
+        encoding="utf-8",
+    )
     audit = build_coverage_audit(
         root,
         operator_corpus_manifest=corpus_root / "manifest.json",
@@ -232,7 +285,12 @@ def test_receipt_path_traversal_is_rejected(tmp_path: Path) -> None:
     _write_registry(root, source)
     _write_csv(root, "data/staging/processed/alpha.csv", [("1", "a")])
     receipts = root / "receipts"
-    receipt_path = _write_receipt(root, receipts, source, source["expected_outputs"])
+    receipt_path = _write_receipt(
+        root,
+        receipts,
+        source,
+        source["expected_outputs"],
+    )
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["outputs"][0]["path"] = "../outside.csv"
     receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
@@ -245,13 +303,20 @@ def test_receipt_path_traversal_is_rejected(tmp_path: Path) -> None:
         )
 
 
-def test_schema_valid_flag_cannot_hide_invalid_receipt_contract(tmp_path: Path) -> None:
+def test_schema_valid_flag_cannot_hide_invalid_receipt_contract(
+    tmp_path: Path,
+) -> None:
     root = tmp_path / "repo"
     source = _source("alpha", ["data/staging/processed/alpha.csv"])
     _write_registry(root, source)
     _write_csv(root, "data/staging/processed/alpha.csv", [("1", "a")])
     receipts = root / "receipts"
-    receipt_path = _write_receipt(root, receipts, source, source["expected_outputs"])
+    receipt_path = _write_receipt(
+        root,
+        receipts,
+        source,
+        source["expected_outputs"],
+    )
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert receipt["validation"]["schema_valid"] is True
     receipt["acquisition"]["producer_sha"] = "not-a-git-sha"
