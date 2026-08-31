@@ -16,9 +16,13 @@ from scripts.manage_api_keys import InvalidKeyValueError, known_keys, key_status
 REAL_EXAMPLE = Path(__file__).resolve().parents[1] / ".env.example"
 
 
+def _expected_key_count() -> int:
+    return len(known_keys(REAL_EXAMPLE))
+
+
 def test_known_keys_parses_all_real_vars_with_expected_required_flags():
     keys = {k.name: k for k in known_keys(REAL_EXAMPLE)}
-    assert len(keys) == 16
+    assert len(keys) == _expected_key_count()
 
     for required_name in (
         "SAM_API_KEY",
@@ -117,5 +121,5 @@ def test_key_status_never_includes_a_value_field(tmp_path):
 
 def test_key_status_missing_env_reports_everything_unset(tmp_path):
     status = key_status(env_path=tmp_path / "nope.env", example_path=REAL_EXAMPLE)
-    assert len(status) == 16
+    assert len(status) == _expected_key_count()
     assert all(row["is_set"] is False for row in status)
