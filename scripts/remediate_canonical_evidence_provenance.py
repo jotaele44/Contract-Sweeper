@@ -48,10 +48,9 @@ def read_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
 
 
 def target_evidence(row: dict[str, str]) -> bool:
-    return (
-        (row.get("source_path_or_url") or "").strip() == TARGET_PATH
-        and (row.get("source_name") or "").strip() == TARGET_SOURCE
-    )
+    return (row.get("source_path_or_url") or "").strip() == TARGET_PATH and (
+        row.get("source_name") or ""
+    ).strip() == TARGET_SOURCE
 
 
 def plan(root: Path) -> dict:
