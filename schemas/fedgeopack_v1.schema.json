@@ -1,0 +1,7 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"https://federation.local/schemas/fedgeopack_v1.schema.json",
+  "title":"Federation Offline GeoPack v1","type":"object","additionalProperties":false,
+  "required":["package_version","package_id","created_at","producer_repo","crs","layers","rasters","styles","hashes","provenance"],
+  "properties":{"package_version":{"const":"fedgeopack/1.0"},"package_id":{"type":"string"},"created_at":{"type":"string","format":"date-time"},"producer_repo":{"enum":["spiderweb-pr","moneysweep-pr","aguayluz-pr","skywatcher-pr"]},"crs":{"type":"string"},"layers":{"type":"array","items":{"type":"object","required":["layer_id","path","format","sha256"],"properties":{"layer_id":{"type":"string"},"path":{"type":"string"},"format":{"enum":["geojson","fgb","pmtiles","gpkg","parquet"]},"sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"}}}},"rasters":{"type":"array","items":{"type":"object","required":["layer_id","path","format","sha256"],"properties":{"layer_id":{"type":"string"},"path":{"type":"string"},"format":{"enum":["cog","geotiff","pmtiles"]},"sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"}}}},"styles":{"type":"array","items":{"type":"object"}},"hashes":{"type":"object","additionalProperties":{"type":"string","pattern":"^[a-f0-9]{64}$"}},"provenance":{"type":"array","items":{"type":"object"}},"investigation":{"type":["object","null"]},"access_class":{"enum":["PUBLIC","AUTHENTICATED","RESTRICTED","ADMIN"]}}
+}
