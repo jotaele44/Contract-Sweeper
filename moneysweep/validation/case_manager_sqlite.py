@@ -130,7 +130,9 @@ def _check_evidence_refs(
                         {"table": table, "object_id": row[id_col], "evidence_id": evidence_id}
                     )
     if report.dangling_evidence_refs:
-        report.fail(f"{len(report.dangling_evidence_refs)} dangling canonical evidence reference(s)")
+        report.fail(
+            f"{len(report.dangling_evidence_refs)} dangling canonical evidence reference(s)"
+        )
 
 
 def _check_audit_chains(connection: sqlite3.Connection, report: SQLiteReport) -> None:
@@ -171,7 +173,9 @@ def certify_sqlite(
         return report
     wal = Path(str(database_path) + "-wal")
     if wal.exists() and wal.stat().st_size:
-        report.block("active SQLite WAL sidecar present; checkpoint/quiesce before byte certification")
+        report.block(
+            "active SQLite WAL sidecar present; checkpoint/quiesce before byte certification"
+        )
         return report
     if not canonical_evidence_path.exists():
         report.block("canonical evidence catalog is not available")
