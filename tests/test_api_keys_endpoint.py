@@ -48,7 +48,7 @@ def test_list_api_keys_never_includes_a_value(client):
     response = client.get("/api-keys")
     assert response.status_code == 200
     rows = response.json()
-    assert len(rows) == 16
+    assert len(rows) == 19
     for row in rows:
         assert set(row.keys()) == {"name", "description", "required", "is_set"}
 

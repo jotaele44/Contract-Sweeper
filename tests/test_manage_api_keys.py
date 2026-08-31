@@ -18,7 +18,7 @@ REAL_EXAMPLE = Path(__file__).resolve().parents[1] / ".env.example"
 
 def test_known_keys_parses_all_real_vars_with_expected_required_flags():
     keys = {k.name: k for k in known_keys(REAL_EXAMPLE)}
-    assert len(keys) == 16
+    assert len(keys) == 19
 
     for required_name in (
         "SAM_API_KEY",
@@ -37,9 +37,13 @@ def test_known_keys_parses_all_real_vars_with_expected_required_flags():
         "CENSUS_API_KEY",
         "FELT_API_KEY",
         "FINANCIALDATA_API_KEY",
+        "FINANCIALDATA_LICENSE_APPROVED",
         "X_API_KEY",
         "PROPUBLICA_API_KEY",
         "CMS_APP_TOKEN",
+        "SOCRATA_APP_TOKEN",
+        "MONEYSWEEP_CORS_ORIGINS",
+        "MONEYSWEEP_CASE_DB",
     ):
         assert keys[optional_name].required is False, optional_name
 
@@ -117,5 +121,5 @@ def test_key_status_never_includes_a_value_field(tmp_path):
 
 def test_key_status_missing_env_reports_everything_unset(tmp_path):
     status = key_status(env_path=tmp_path / "nope.env", example_path=REAL_EXAMPLE)
-    assert len(status) == 16
+    assert len(status) == 19
     assert all(row["is_set"] is False for row in status)

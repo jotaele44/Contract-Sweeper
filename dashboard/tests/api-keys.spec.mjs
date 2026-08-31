@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 // api-key-management: the "API Keys" tab (ApiKeysPanel.jsx) and its backend
 // (server/backend/api_keys.py, GET/POST /api-keys). Verifies the tab is
 // reachable through the real UI, GET /api-keys is genuinely wired (not
-// stubbed — 16 real entries parsed from .env.example), and that saving a
+// stubbed — 19 real entries parsed from .env.example), and that saving a
 // value round-trips through a real POST without ever echoing the value back
 // in any response body, matching docs/SECRET_HANDLING_POLICY.md.
 
@@ -18,7 +18,7 @@ test("API Keys tab reaches the real backend and lists all known keys", async ({ 
   await expect(page.getByTestId("api-keys-panel")).toBeVisible();
 
   const rows = await (await listResponse).json();
-  expect(rows, "GET /api-keys did not return the expected shape").toHaveLength(16);
+  expect(rows, "GET /api-keys did not return the expected shape").toHaveLength(19);
   for (const row of rows) {
     expect(Object.keys(row).sort()).toEqual(["description", "is_set", "name", "required"]);
   }
