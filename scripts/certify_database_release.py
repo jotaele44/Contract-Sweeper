@@ -6,7 +6,7 @@ Independent vectors:
   B. evidence authority bindings + federation package byte/count identity
   C. Case Manager SQLite runtime bytes/integrity/FKs/audit/evidence references
 
-A CERTIFIED release requires all three vectors to PASS.  Missing runtime SQLite
+A CERTIFIED release requires all three vectors to PASS. Missing runtime SQLite
 bytes are BLOCKED, never silently converted into a pass.
 """
 
@@ -84,9 +84,7 @@ def _release_digest(
 ) -> str:
     payload = {
         "git_head": git_head,
-        "canonical": [
-            [row["csv"], row["sha256"], row["schema_sha256"]] for row in canonical_files
-        ],
+        "canonical": [[row["csv"], row["sha256"], row["schema_sha256"]] for row in canonical_files],
         "federation_package_id": federation.get("package_id"),
         "federation_files": [
             [row.get("filename"), row.get("actual_sha256")] for row in federation.get("files", [])
@@ -143,8 +141,14 @@ def build_report(root: Path, sqlite_path: Path) -> dict[str, Any]:
     vector_a = "PASS" if canonical.ok else "FAIL"
     vector_b = "PASS" if evidence.ok and federation["ok"] else "FAIL"
     vector_c = sqlite_report["status"]
-    status = "CERTIFIED" if (vector_a, vector_b, vector_c) == ("PASS", "PASS", "PASS") else (
-        "BLOCKED" if vector_c == "BLOCKED" and vector_a == "PASS" and vector_b == "PASS" else "FAIL"
+    status = (
+        "CERTIFIED"
+        if (vector_a, vector_b, vector_c) == ("PASS", "PASS", "PASS")
+        else (
+            "BLOCKED"
+            if vector_c == "BLOCKED" and vector_a == "PASS" and vector_b == "PASS"
+            else "FAIL"
+        )
     )
     digest = _release_digest(git_head, canonical_files, federation, sqlite_report)
     release_id = f"dbrel_{digest[:24]}"
