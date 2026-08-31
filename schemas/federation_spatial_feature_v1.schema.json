@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://federation.local/schemas/federation_spatial_feature_v1.schema.json",
+  "title": "Federation Spatial Feature v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version","feature_id","producer_repo","domain","feature_class","geometry","crs","properties","geometry_source","coordinate_method","coordinate_confidence","logical_sha256","source_manifestation_sha256","provenance","evidence_state","review_state","identity_semantics"],
+  "properties": {
+    "contract_version": {"const": "federation-spatial-contract/1.0"},
+    "feature_id": {"type":"string","minLength":1},
+    "producer_repo": {"enum":["spiderweb-pr","moneysweep-pr","aguayluz-pr","skywatcher-pr"]},
+    "domain": {"type":"string","minLength":1},
+    "feature_class": {"type":"string","minLength":1},
+    "geometry": {"type":["object","null"]},
+    "bbox": {"type":["array","null"],"minItems":4,"maxItems":6,"items":{"type":"number"}},
+    "crs": {"type":"string","pattern":"^(EPSG:[0-9]+|OGC:CRS84)$"},
+    "altitude": {"type":["object","null"]},
+    "valid_time": {"type":["object","null"]},
+    "properties": {"type":"object"},
+    "geometry_source": {"type":"string","minLength":1},
+    "coordinate_method": {"enum":["EXACT","SURVEYED","AUTHORITATIVE","SOURCE_REPORTED","GEOCODED_ROOFTOP","GEOCODED_PARCEL","GEOCODED_STREET","GEOCODED_LOCALITY","LINKED_ASSET","DERIVED_CENTROID","DERIVED_AVERAGE","INTERPOLATED","INFERRED","UNKNOWN"]},
+    "coordinate_confidence": {"enum":["HIGH","MEDIUM","LOW","UNKNOWN"]},
+    "logical_sha256": {"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "source_manifestation_sha256": {"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "provenance": {"type":"array","items":{"type":"object","required":["source_id"]}},
+    "evidence_state": {"enum":["FACT","COMPUTED","BINDING","INFERENCE","ASSUMPTION","HYPOTHESIS","UNKNOWN"]},
+    "review_state": {"enum":["UNREVIEWED","REVIEW","ACCEPTED","REJECTED","CERTIFIED"]},
+    "identity_semantics": {"enum":["CANDIDATE_NOT_IDENTITY","IDENTITY_BINDING","NOT_APPLICABLE"]}
+  }
+}
