@@ -1,0 +1,28 @@
+name: HAF Contract Gate
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  haf-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate HAF federation contract
+        shell: python
+        run: |
+          import json, os, pathlib
+          p=pathlib.Path('.federation/haf_contract.json'); d=json.loads(p.read_text()) if p.exists() else (_ for _ in ()).throw(SystemExit('missing HAF contract'))
+          req=['schema_version','haf_contract_version','program_id','repository_full_name','federation_role','certification_required','raw_snapshot_policy','identity_policy','unresolved_policy','adapter_state']
+          m=[k for k in req if k not in d]
+          if m: raise SystemExit(f'missing keys: {m}')
+          assert d['schema_version']=='haf_repo_contract_v2'
+          assert d['certification_required'] is True
+          assert d['raw_snapshot_policy']=='PRESERVE_OR_IMMUTABLE_REFERENCE'
+          assert d['identity_policy']=='EVIDENCE_PRIORITY_FAIL_CLOSED' and d['unresolved_policy']=='FAIL_CLOSED'
+          assert d['repository_full_name']==os.environ['GITHUB_REPOSITORY']
+          f=pathlib.Path('federation.json')
+          if f.exists(): assert json.loads(f.read_text()).get('program_id')==d['program_id']
+          print('HAF CONTRACT PASS', d['program_id'])
