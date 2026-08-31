@@ -33,8 +33,7 @@ class SQLiteCaseManagerRepository:
         *,
         canonical_evidence_path: str | Path | None = None,
     ):
-        is_connection = isinstance(database, sqlite3.Connection)
-        if is_connection:
+        if isinstance(database, sqlite3.Connection):
             self.connection = database
             self._owns_connection = False
         else:
