@@ -1,0 +1,4 @@
+-- Bounded Mapbox Vector Tile serving for federation_spatial.features.
+CREATE OR REPLACE FUNCTION federation_spatial.layer_mvt(p_layer_id text,p_z integer,p_x integer,p_y integer) RETURNS bytea LANGUAGE sql STABLE PARALLEL SAFE AS $$
+WITH bounds AS (SELECT ST_TileEnvelope(p_z,p_x,p_y) AS webmerc,ST_Transform(ST_TileEnvelope(p_z,p_x,p_y),4326) AS wgs84),tile_rows AS (SELECT f.feature_id,f.feature_class,f.domain,f.coordinate_confidence,f.evidence_state,f.review_state,f.identity_semantics,ST_AsMVTGeom(ST_Transform(f.geom,3857),b.webmerc,4096,64,true) AS geom FROM federation_spatial.features f CROSS JOIN bounds b WHERE f.layer_id=p_layer_id AND f.geom IS NOT NULL AND f.geom && b.wgs84 AND ST_Intersects(f.geom,b.wgs84) ORDER BY f.feature_id LIMIT 100000) SELECT COALESCE(ST_AsMVT(tile_rows,'features',4096,'geom'),'\x'::bytea) FROM tile_rows;
+$$;
