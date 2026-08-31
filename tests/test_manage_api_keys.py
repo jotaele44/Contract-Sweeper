@@ -14,11 +14,32 @@ import pytest
 from scripts.manage_api_keys import InvalidKeyValueError, known_keys, key_status, set_key
 
 REAL_EXAMPLE = Path(__file__).resolve().parents[1] / ".env.example"
+EXPECTED_REAL_KEY_NAMES = {
+    "SAM_API_KEY",
+    "LDA_API_KEY",
+    "FEC_API_KEY",
+    "FAC_API_KEY",
+    "HIGHERGOV_API_KEY",
+    "DATA_GOV_API_KEY",
+    "CENSUS_API_KEY",
+    "EIA_API_KEY",
+    "FRED_API_KEY",
+    "FELT_API_KEY",
+    "FINANCIALDATA_API_KEY",
+    "FINANCIALDATA_LICENSE_APPROVED",
+    "X_API_KEY",
+    "PROPUBLICA_API_KEY",
+    "CMS_APP_TOKEN",
+    "SOCRATA_APP_TOKEN",
+    "OPENSTATES_API_KEY",
+}
 
 
 def test_known_keys_parses_all_real_vars_with_expected_required_flags():
-    keys = {k.name: k for k in known_keys(REAL_EXAMPLE)}
-    assert len(keys) == 16
+    parsed_keys = known_keys(REAL_EXAMPLE)
+    assert len(parsed_keys) == len(EXPECTED_REAL_KEY_NAMES)
+    keys = {k.name: k for k in parsed_keys}
+    assert set(keys) == EXPECTED_REAL_KEY_NAMES
 
     for required_name in (
         "SAM_API_KEY",
@@ -55,6 +76,14 @@ def test_set_key_rejects_unknown_name(tmp_path):
     env = tmp_path / ".env"
     with pytest.raises(ValueError, match="unknown key"):
         set_key("NOT_A_REAL_KEY", "value", env_path=env, example_path=REAL_EXAMPLE)
+    assert not env.exists()
+
+
+@pytest.mark.parametrize("name", ["MONEYSWEEP_CORS_ORIGINS", "MONEYSWEEP_CASE_DB"])
+def test_set_key_rejects_noncredential_configuration(tmp_path, name):
+    env = tmp_path / ".env"
+    with pytest.raises(ValueError, match="unknown key"):
+        set_key(name, "unsafe-remote-override", env_path=env, example_path=REAL_EXAMPLE)
     assert not env.exists()
 
 
@@ -117,5 +146,5 @@ def test_key_status_never_includes_a_value_field(tmp_path):
 
 def test_key_status_missing_env_reports_everything_unset(tmp_path):
     status = key_status(env_path=tmp_path / "nope.env", example_path=REAL_EXAMPLE)
-    assert len(status) == 16
+    assert {row["name"] for row in status} == EXPECTED_REAL_KEY_NAMES
     assert all(row["is_set"] is False for row in status)

@@ -23,6 +23,26 @@ if str(REPO_ROOT) not in sys.path:
 pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
 
+EXPECTED_KEY_NAMES = {
+    "SAM_API_KEY",
+    "LDA_API_KEY",
+    "FEC_API_KEY",
+    "FAC_API_KEY",
+    "HIGHERGOV_API_KEY",
+    "DATA_GOV_API_KEY",
+    "CENSUS_API_KEY",
+    "EIA_API_KEY",
+    "FRED_API_KEY",
+    "FELT_API_KEY",
+    "FINANCIALDATA_API_KEY",
+    "FINANCIALDATA_LICENSE_APPROVED",
+    "X_API_KEY",
+    "PROPUBLICA_API_KEY",
+    "CMS_APP_TOKEN",
+    "SOCRATA_APP_TOKEN",
+    "OPENSTATES_API_KEY",
+}
+
 
 @pytest.fixture
 def isolated_env(tmp_path, monkeypatch):
@@ -48,7 +68,8 @@ def test_list_api_keys_never_includes_a_value(client):
     response = client.get("/api-keys")
     assert response.status_code == 200
     rows = response.json()
-    assert len(rows) == 16
+    assert {row["name"] for row in rows} == EXPECTED_KEY_NAMES
+    assert len(rows) == len(EXPECTED_KEY_NAMES)
     for row in rows:
         assert set(row.keys()) == {"name", "description", "required", "is_set"}
 
@@ -57,6 +78,12 @@ def test_post_unknown_key_returns_404(client):
     response = client.post("/api-keys/NOT_A_REAL_KEY", json={"value": "x"})
     assert response.status_code == 404
     assert "x" not in response.text
+
+
+@pytest.mark.parametrize("name", ["MONEYSWEEP_CORS_ORIGINS", "MONEYSWEEP_CASE_DB"])
+def test_post_noncredential_configuration_returns_404(client, name):
+    response = client.post(f"/api-keys/{name}", json={"value": "unsafe-remote-override"})
+    assert response.status_code == 404
 
 
 def test_post_known_key_sets_it_and_never_echoes_the_value(client):

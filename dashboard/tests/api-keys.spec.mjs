@@ -3,9 +3,29 @@ import { expect, test } from "@playwright/test";
 // api-key-management: the "API Keys" tab (ApiKeysPanel.jsx) and its backend
 // (server/backend/api_keys.py, GET/POST /api-keys). Verifies the tab is
 // reachable through the real UI, GET /api-keys is genuinely wired (not
-// stubbed — 16 real entries parsed from .env.example), and that saving a
+// stubbed — exact credential membership parsed from .env.example), and that saving a
 // value round-trips through a real POST without ever echoing the value back
 // in any response body, matching docs/SECRET_HANDLING_POLICY.md.
+
+const EXPECTED_KEY_NAMES = [
+  "CENSUS_API_KEY",
+  "CMS_APP_TOKEN",
+  "DATA_GOV_API_KEY",
+  "EIA_API_KEY",
+  "FAC_API_KEY",
+  "FEC_API_KEY",
+  "FELT_API_KEY",
+  "FINANCIALDATA_API_KEY",
+  "FINANCIALDATA_LICENSE_APPROVED",
+  "FRED_API_KEY",
+  "HIGHERGOV_API_KEY",
+  "LDA_API_KEY",
+  "OPENSTATES_API_KEY",
+  "PROPUBLICA_API_KEY",
+  "SAM_API_KEY",
+  "SOCRATA_APP_TOKEN",
+  "X_API_KEY",
+];
 
 test("API Keys tab reaches the real backend and lists all known keys", async ({ page }) => {
   const listResponse = page.waitForResponse(
@@ -18,7 +38,8 @@ test("API Keys tab reaches the real backend and lists all known keys", async ({ 
   await expect(page.getByTestId("api-keys-panel")).toBeVisible();
 
   const rows = await (await listResponse).json();
-  expect(rows, "GET /api-keys did not return the expected shape").toHaveLength(16);
+  expect(rows.map((row) => row.name).sort()).toEqual(EXPECTED_KEY_NAMES);
+  expect(new Set(rows.map((row) => row.name)).size).toBe(rows.length);
   for (const row of rows) {
     expect(Object.keys(row).sort()).toEqual(["description", "is_set", "name", "required"]);
   }
