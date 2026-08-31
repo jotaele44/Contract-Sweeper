@@ -22,9 +22,9 @@ class CaseManagerNotFound(LookupError):
 class SQLiteCaseManagerRepository:
     """Explicit SQLite repository with no canonical-evidence write capability.
 
-    ``canonical_evidence_path`` is optional for isolated/unit use. Production
-    configuration supplies it so cross-store evidence references are checked
-    against the current canonical evidence denominator before a command writes.
+    File-backed production repositories automatically bind the read-only
+    canonical evidence catalog. In-memory repositories leave it unconfigured so
+    unit tests can remain isolated unless they opt in explicitly.
     """
 
     def __init__(
@@ -33,12 +33,17 @@ class SQLiteCaseManagerRepository:
         *,
         canonical_evidence_path: str | Path | None = None,
     ):
-        if isinstance(database, sqlite3.Connection):
+        is_connection = isinstance(database, sqlite3.Connection)
+        if is_connection:
             self.connection = database
             self._owns_connection = False
         else:
             self.connection = sqlite3.connect(str(database), check_same_thread=False)
             self._owns_connection = True
+            if canonical_evidence_path is None:
+                canonical_evidence_path = (
+                    Path(__file__).resolve().parents[2] / "data" / "canonical_v1" / "evidence.csv"
+                )
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA foreign_keys = ON")
         self.canonical_evidence_path = (
