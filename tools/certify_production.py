@@ -23,10 +23,19 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "registries" / "production_certification.yaml"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 PASS, FAIL, BLOCKED, OPEN = "PASS", "FAIL", "BLOCKED", "OPEN"
+TRUTH_INPUTS = {
+    "materialization_readiness",
+    "source_registry_status",
+    "completeness_matrix",
+    "source_freshness",
+}
 
 
 def _json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"{path} must contain a JSON object")
+    return value
 
 
 def _csv(path: Path) -> list[dict[str, str]]:
@@ -80,16 +89,24 @@ def _gate(
 
 
 def _preflight(root: Path) -> dict[str, Any]:
-    """Load strict preflight from the frozen evidence checkout, not implementation."""
+    """Load strict preflight from the frozen evidence checkout."""
     path = root / "scripts" / "pipeline_preflight.py"
-    spec = importlib.util.spec_from_file_location("cert_scope_pipeline_preflight", path)
+    spec = importlib.util.spec_from_file_location(
+        "cert_scope_pipeline_preflight",
+        path,
+    )
     if spec is None or spec.loader is None:
         raise RuntimeError(f"cannot load strict preflight from {path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     logger = logging.getLogger("production-certification-preflight")
     logger.addHandler(logging.NullHandler())
-    return module.run_pipeline_preflight(root, logger, strict=True, write_report=False)
+    return module.run_pipeline_preflight(
+        root,
+        logger,
+        strict=True,
+        write_report=False,
+    )
 
 
 def _entity_blocker_ids(entity_audit: dict[str, Any]) -> list[str]:
@@ -101,10 +118,90 @@ def _entity_blocker_ids(entity_audit: dict[str, Any]) -> list[str]:
     return blockers
 
 
+def _resolve_input_paths(
+    *,
+    root: Path,
+    config: dict[str, Any],
+    truth_root: Path | None,
+) -> tuple[dict[str, Path], dict[str, str]]:
+    paths: dict[str, Path] = {}
+    identities: dict[str, str] = {}
+    for name, configured in config["inputs"].items():
+        configured_path = Path(configured)
+        if truth_root is not None and name in TRUTH_INPUTS:
+            path = truth_root / "reports" / configured_path.name
+            identity = "DERIVED_CERTIFICATION_SCOPE_TRUTH"
+        else:
+            path = root / configured_path
+            identity = "CERTIFICATION_SCOPE_EVIDENCE"
+        paths[name] = path
+        identities[name] = identity
+    return paths, identities
+
+
+def _validate_truth_scope(
+    *,
+    truth_root: Path | None,
+    paths: dict[str, Path],
+) -> tuple[dict[str, Any] | None, list[str]]:
+    if truth_root is None:
+        return None, []
+
+    blockers: list[str] = []
+    manifest_path = truth_root / "scope_manifest.json"
+    if not manifest_path.is_file():
+        return None, ["truth_scope_manifest_missing"]
+    try:
+        manifest = _json(manifest_path)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        return None, ["truth_scope_manifest_unreadable"]
+
+    if manifest.get("schema_version") != "moneysweep.certification_scope/v1":
+        blockers.append("truth_scope_schema_mismatch")
+    scope_id = manifest.get("scope_id")
+    if not isinstance(scope_id, str) or not re.fullmatch(r"[0-9a-f]{64}", scope_id):
+        blockers.append("truth_scope_id_invalid")
+
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, dict):
+        artifacts = {}
+        blockers.append("truth_scope_artifact_manifest_missing")
+
+    for name in sorted(TRUTH_INPUTS):
+        path = paths[name]
+        rel = f"reports/{path.name}"
+        record = artifacts.get(rel)
+        if not path.is_file():
+            blockers.append(f"truth_input_missing:{name}")
+            continue
+        if not isinstance(record, dict):
+            blockers.append(f"truth_artifact_unbound:{name}")
+            continue
+        if record.get("sha256") != _sha256(path):
+            blockers.append(f"truth_artifact_sha256_mismatch:{name}")
+        if record.get("bytes") != path.stat().st_size:
+            blockers.append(f"truth_artifact_bytes_mismatch:{name}")
+
+    truth_path = truth_root / "reports" / "certification_truth.json"
+    truth_record = artifacts.get("reports/certification_truth.json")
+    if not truth_path.is_file():
+        blockers.append("certification_truth_missing")
+    elif not isinstance(truth_record, dict):
+        blockers.append("certification_truth_unbound")
+    else:
+        if truth_record.get("sha256") != _sha256(truth_path):
+            blockers.append("certification_truth_sha256_mismatch")
+        if truth_record.get("bytes") != truth_path.stat().st_size:
+            blockers.append("certification_truth_bytes_mismatch")
+
+    return manifest, sorted(set(blockers))
+
+
 def build_report(
     *,
     root: Path = ROOT,
     config_path: Path = DEFAULT_CONFIG,
+    truth_root: Path | None = None,
     scope_sha: str | None = None,
     implementation_sha: str | None = None,
     run_preflight: bool = False,
@@ -112,12 +209,21 @@ def build_report(
 ) -> dict[str, Any]:
     root = root.resolve()
     config_path = config_path.resolve()
+    truth_root = truth_root.resolve() if truth_root is not None else None
     config = _yaml(config_path)
     actual_scope_head = _head(root)
     scope_sha = scope_sha or actual_scope_head
     implementation_sha = implementation_sha or _head(ROOT)
     generated_at = generated_at or datetime.now(timezone.utc).isoformat()
-    paths = {name: root / path for name, path in config["inputs"].items()}
+    paths, path_identities = _resolve_input_paths(
+        root=root,
+        config=config,
+        truth_root=truth_root,
+    )
+    truth_scope, truth_scope_blockers = _validate_truth_scope(
+        truth_root=truth_root,
+        paths=paths,
+    )
 
     readiness = _json(paths["materialization_readiness"])
     status_rows = _csv(paths["source_registry_status"])
@@ -136,17 +242,24 @@ def build_report(
     status_counts = Counter(row["pipeline_status"] for row in status_rows)
     required = [row for row in status_rows if _bool(row["required"])]
     required_counts = Counter(row["pipeline_status"] for row in required)
-    required_blockers = [row for row in required if row["pipeline_status"] != "fully_materialized"]
+    required_blockers = [
+        row
+        for row in required
+        if row["pipeline_status"] != "fully_materialized"
+    ]
 
     recovery_by_id = {row["source_id"]: row for row in recovery_rows}
     automatable = {
-        row["source_id"] for row in recovery_rows if _bool(row.get("automatable", "false"))
+        row["source_id"]
+        for row in recovery_rows
+        if _bool(row.get("automatable", "false"))
     }
     missing_recovery = sorted(unique_ids - set(recovery_by_id))
     automatable_unmaterialized = sorted(
         row["source_id"]
         for row in status_rows
-        if row["source_id"] in automatable and row["pipeline_status"] != "fully_materialized"
+        if row["source_id"] in automatable
+        and row["pipeline_status"] != "fully_materialized"
     )
 
     freshness_by_id = {row["source_id"]: row for row in freshness_rows}
@@ -161,7 +274,8 @@ def build_report(
     open_reviews = [
         row
         for row in entity_reviews
-        if row.get("status", "").lower() not in {"closed", "resolved", "accepted"}
+        if row.get("status", "").lower()
+        not in {"closed", "resolved", "accepted"}
     ]
 
     total = readiness["total_sources"]
@@ -175,29 +289,53 @@ def build_report(
         },
         **{
             name: {
-                "path": str(path.relative_to(root)),
+                "path": str(path),
                 "sha256": _sha256(path),
-                "identity": "CERTIFICATION_SCOPE_EVIDENCE",
+                "identity": path_identities[name],
             }
             for name, path in paths.items()
         },
     }
+    if truth_root is not None:
+        manifest_path = truth_root / "scope_manifest.json"
+        input_manifest["truth_scope_manifest"] = {
+            "path": str(manifest_path),
+            "sha256": _sha256(manifest_path) if manifest_path.is_file() else None,
+            "identity": "DERIVED_CERTIFICATION_SCOPE_MANIFEST",
+        }
+
     gates: list[dict[str, Any]] = []
 
+    truth_scope_id = truth_scope.get("scope_id") if truth_scope else None
+    truth_identity = truth_scope.get("scope_identity") if truth_scope else {}
+    truth_digest_match = (
+        truth_root is None
+        or truth_identity.get("registry_source_ids_sha256") == digest
+    )
     g0 = (
         bool(HEX40.fullmatch(scope_sha))
         and bool(HEX40.fullmatch(implementation_sha))
         and scope_sha == actual_scope_head
         and total == len(status_rows)
+        and not truth_scope_blockers
+        and truth_digest_match
     )
+    g0_blockers: list[str] = []
+    if not g0:
+        if truth_scope_blockers:
+            g0_blockers.extend(truth_scope_blockers)
+        if not truth_digest_match:
+            g0_blockers.append("truth_scope_registry_digest_mismatch")
+        if not g0_blockers:
+            g0_blockers.append("scope_implementation_or_denominator_mismatch")
     gates.append(
         _gate(
             "G0_SCOPE_FREEZE",
             PASS if g0 else FAIL,
             (
-                "Exact scope, implementation, and denominator are frozen."
+                "Exact scope, implementation, denominator, and truth scope are frozen."
                 if g0
-                else "Scope or implementation identity is not frozen."
+                else "Scope, truth, or implementation identity is not frozen."
             ),
             {
                 "scope_sha": scope_sha,
@@ -206,8 +344,12 @@ def build_report(
                 "registry_total": total,
                 "status_rows": len(status_rows),
                 "digest": digest,
+                "truth_scope_enabled": truth_root is not None,
+                "truth_scope_id": truth_scope_id,
+                "truth_scope_blockers": truth_scope_blockers,
+                "truth_scope_registry_digest_match": truth_digest_match,
             },
-            [] if g0 else ["scope_implementation_or_denominator_mismatch"],
+            g0_blockers,
         )
     )
 
@@ -219,7 +361,8 @@ def build_report(
         and federation.get("source_truth", {}).get("total_sources") == total
         and historical_registry.get("total_sources") == total
         and historical_registry.get("source_ids_sha256") == digest
-        and readiness.get("automatable_total") == readiness.get("automatable_ready")
+        and readiness.get("automatable_total")
+        == readiness.get("automatable_ready")
         and not missing_recovery
     )
     gates.append(
@@ -241,6 +384,7 @@ def build_report(
                 "missing_recovery_rows": missing_recovery,
                 "historical_status_main_sha": historical_status.get("main_sha"),
                 "historical_status_is_scope_authority": False,
+                "truth_scope_id": truth_scope_id,
             },
             [] if g1 else ["control_plane_reconciliation_mismatch"],
         )
@@ -253,7 +397,11 @@ def build_report(
             _gate(
                 "G2_STRICT_PREFLIGHT",
                 PASS if g2 else FAIL,
-                ("Strict preflight passed." if g2 else "Strict preflight found structural errors."),
+                (
+                    "Strict preflight passed."
+                    if g2
+                    else "Strict preflight found structural errors."
+                ),
                 {
                     "mode": "executed",
                     "checked_sources": pf.get("checked_sources"),
@@ -261,7 +409,8 @@ def build_report(
                     "status_counts": pf.get("status_counts"),
                     "structural_errors": pf.get("structural_errors"),
                     "missing_key_source_ids": [
-                        item["source_id"] for item in pf.get("missing_keys", [])
+                        item["source_id"]
+                        for item in pf.get("missing_keys", [])
                     ],
                 },
                 list(pf.get("structural_errors") or []),
@@ -302,12 +451,15 @@ def build_report(
                         "authentication": row["authentication"],
                         "producer_script": row["producer_script"],
                         "expected_outputs": [
-                            item for item in row["expected_outputs"].split(";") if item
+                            item
+                            for item in row["expected_outputs"].split(";")
+                            if item
                         ],
                         "blocker_notes": row["blocker_notes"],
                     }
                     for row in required_blockers
                 ],
+                "truth_scope_id": truth_scope_id,
             },
             [row["source_id"] for row in required_blockers],
         )
@@ -315,7 +467,11 @@ def build_report(
 
     allowed = set(config["requirements"]["allowed_pipeline_states"])
     invalid_states = sorted(
-        {row["pipeline_status"] for row in status_rows if row["pipeline_status"] not in allowed}
+        {
+            row["pipeline_status"]
+            for row in status_rows
+            if row["pipeline_status"] not in allowed
+        }
     )
     g4 = len(status_rows) == total and len(unique_ids) == total and not invalid_states
     gates.append(
@@ -350,6 +506,7 @@ def build_report(
                 "unmaterialized_count": len(automatable_unmaterialized),
                 "unmaterialized": automatable_unmaterialized,
                 "freshness_missing": freshness_missing,
+                "truth_scope_id": truth_scope_id,
             },
             automatable_unmaterialized + freshness_missing,
         )
@@ -378,6 +535,7 @@ def build_report(
                 "coverage_status": coverage_status,
                 "materiality": materiality,
                 "queued_excluded_total": excluded,
+                "truth_scope_id": truth_scope_id,
             },
             [
                 key
@@ -405,10 +563,18 @@ def build_report(
                 "open_review_count": len(open_reviews),
                 "open_review_ids": [row["review_id"] for row in open_reviews],
                 "issue_types": dict(
-                    sorted(Counter(row["issue_type"] for row in open_reviews).items())
+                    sorted(
+                        Counter(
+                            row["issue_type"] for row in open_reviews
+                        ).items()
+                    )
                 ),
-                "advisory_low_confidence_count": entity_audit.get("advisory_low_confidence_rows"),
-                "blocking_review_count": entity_audit.get("blocking_review_items"),
+                "advisory_low_confidence_count": entity_audit.get(
+                    "advisory_low_confidence_rows"
+                ),
+                "blocking_review_count": entity_audit.get(
+                    "blocking_review_items"
+                ),
                 "canonical_review_queue_open_rows": entity_audit.get(
                     "canonical_review_queue_open_rows"
                 ),
@@ -431,7 +597,7 @@ def build_report(
     if coverage_total != total:
         lineage_blockers.append("lineage_denominator_mismatch")
     if not operator_authoritative:
-        lineage_blockers.append("authoritative_operator_corpus_not_asserted")
+        lineage_blockers.append("authoritative_operator_corpus_not_verified")
     if operator_authoritative and orphan_rows != 0:
         lineage_blockers.append("orphan_rows_present")
     g8 = coverage_total == total and operator_authoritative and orphan_rows == 0
@@ -449,7 +615,12 @@ def build_report(
                 "current_registry_total_sources": total,
                 "coverage_audit_orphan_rows": orphan_rows,
                 "operator_corpus_authoritative": operator_authoritative,
-                "registry_paths": coverage.get("audit_scope", {}).get("registry_paths"),
+                "operator_corpus_id": coverage.get("audit_scope", {}).get(
+                    "operator_corpus_id"
+                ),
+                "registry_paths": coverage.get("audit_scope", {}).get(
+                    "registry_paths"
+                ),
                 "historical_unresolved_lineage_rows": historical_status.get(
                     "materialization_coverage", {}
                 )
@@ -475,9 +646,15 @@ def build_report(
             {
                 "canonical_graph_gate": canonical_gate,
                 "review_queue_open": canonical_review,
-                "edge_evidence_coverage_pct": canonical_graph.get("edge_evidence_coverage_pct"),
+                "edge_evidence_coverage_pct": canonical_graph.get(
+                    "edge_evidence_coverage_pct"
+                ),
             },
-            [] if g9 else ["certified_canonical_master_invariant_receipt_missing"],
+            (
+                []
+                if g9
+                else ["certified_canonical_master_invariant_receipt_missing"]
+            ),
         )
     )
 
@@ -495,6 +672,7 @@ def build_report(
                 "nonfresh_count": len(freshness_nonfresh),
                 "nonfresh_automatable": freshness_nonfresh,
                 "freshness_missing": freshness_missing,
+                "truth_scope_id": truth_scope_id,
             },
             freshness_nonfresh + freshness_missing,
         )
@@ -518,16 +696,22 @@ def build_report(
             {
                 "production_status": federation.get("production_status"),
                 "ready_for_hub_discovery": fg.get("ready_for_hub_discovery"),
-                "ready_for_hub_live_execution": fg.get("ready_for_hub_live_execution"),
+                "ready_for_hub_live_execution": fg.get(
+                    "ready_for_hub_live_execution"
+                ),
                 "blocking_conditions": fg.get("blocking_conditions", []),
             },
             list(fg.get("blocking_conditions") or []),
         )
     )
 
-    upstream_nonpass = [gate["id"] for gate in gates if gate["state"] != PASS]
+    upstream_nonpass = [
+        gate["id"] for gate in gates if gate["state"] != PASS
+    ]
     activation = bool(
-        historical_status.get("preservation", {}).get("production_activation_authorized")
+        historical_status.get("preservation", {}).get(
+            "production_activation_authorized"
+        )
     )
     g12 = not upstream_nonpass and activation
     gates.append(
@@ -543,7 +727,8 @@ def build_report(
                 "upstream_nonpass_gates": upstream_nonpass,
                 "production_activation_authorized": activation,
             },
-            upstream_nonpass + ([] if activation else ["production_activation_not_authorized"]),
+            upstream_nonpass
+            + ([] if activation else ["production_activation_not_authorized"]),
         )
     )
 
@@ -559,7 +744,11 @@ def build_report(
                 "required": _bool(row["required"]),
                 "authentication": row["authentication"],
                 "producer_script": row["producer_script"],
-                "expected_outputs": [item for item in row["expected_outputs"].split(";") if item],
+                "expected_outputs": [
+                    item
+                    for item in row["expected_outputs"].split(";")
+                    if item
+                ],
                 "update_cadence": row["update_cadence"],
                 "pipeline_status": row["pipeline_status"],
                 "blocker_notes": row["blocker_notes"],
@@ -569,7 +758,9 @@ def build_report(
                 "freshness_status": fresh.get("freshness_status", ""),
                 "last_status": fresh.get("last_status", ""),
                 "last_success_at": fresh.get("last_success_at", ""),
-                "last_materialized_at": fresh.get("last_materialized_at", ""),
+                "last_materialized_at": fresh.get(
+                    "last_materialized_at", ""
+                ),
             }
         )
 
@@ -589,10 +780,13 @@ def build_report(
             "registry_total_sources": total,
             "registry_required_sources": required_total,
             "registry_source_ids_sha256": digest,
+            "truth_scope_id": truth_scope_id,
         },
         "source_universe": {
             "pipeline_status_counts": dict(sorted(status_counts.items())),
-            "required_pipeline_status_counts": dict(sorted(required_counts.items())),
+            "required_pipeline_status_counts": dict(
+                sorted(required_counts.items())
+            ),
             "automatable_total": len(automatable),
             "queued_excluded_total": excluded,
             "queued_excluded": readiness.get("queued_excluded"),
@@ -601,10 +795,14 @@ def build_report(
         },
         "gates": gates,
         "certification_state": (
-            config["states"]["certified"] if all_pass else config["states"]["non_production"]
+            config["states"]["certified"]
+            if all_pass
+            else config["states"]["non_production"]
         ),
         "production_eligible": all_pass,
-        "nonpass_gate_ids": [gate["id"] for gate in gates if gate["state"] != PASS],
+        "nonpass_gate_ids": [
+            gate["id"] for gate in gates if gate["state"] != PASS
+        ],
     }
 
 
@@ -614,6 +812,14 @@ def main() -> int:
     )
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument(
+        "--truth-root",
+        type=Path,
+        help=(
+            "Use regenerated certification-scope truth for G3/G5/G6/G10; "
+            "scope_manifest.json is required and hash-verified."
+        ),
+    )
     parser.add_argument("--scope-sha")
     parser.add_argument("--implementation-sha")
     parser.add_argument("--run-preflight", action="store_true")
@@ -627,18 +833,23 @@ def main() -> int:
     report = build_report(
         root=args.root,
         config_path=args.config,
+        truth_root=args.truth_root,
         scope_sha=args.scope_sha,
         implementation_sha=args.implementation_sha,
         run_preflight=args.run_preflight,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    args.output.write_text(
+        json.dumps(report, indent=2) + "\n",
+        encoding="utf-8",
+    )
     print(
         json.dumps(
             {
                 "certification_state": report["certification_state"],
                 "production_eligible": report["production_eligible"],
                 "nonpass_gate_ids": report["nonpass_gate_ids"],
+                "truth_scope_id": report["scope"].get("truth_scope_id"),
                 "output": str(args.output),
             },
             indent=2,
