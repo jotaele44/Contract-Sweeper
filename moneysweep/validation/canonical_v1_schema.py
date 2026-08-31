@@ -147,11 +147,6 @@ class ValidationReport:
         }
 
 
-# --------------------------------------------------------------------------- #
-# JSON-Schema subset interpreter
-# --------------------------------------------------------------------------- #
-
-
 def load_schema(table: str, root: Path | None = None) -> dict[str, Any]:
     root = root or REPO_ROOT
     schema_file = TABLES[table][0]
@@ -159,7 +154,6 @@ def load_schema(table: str, root: Path | None = None) -> dict[str, Any]:
 
 
 def _check_value(value: str, prop: dict[str, Any]) -> str | None:
-    """Validate a single non-empty CSV cell against a property schema."""
     declared = prop.get("type")
     if declared in ("number", "integer"):
         try:
@@ -187,7 +181,6 @@ def _check_value(value: str, prop: dict[str, Any]) -> str | None:
 
 
 def validate_row(row: dict[str, str], schema: dict[str, Any]) -> list[str]:
-    """Return a list of error strings for one row (empty == valid)."""
     errors: list[str] = []
     required = set(schema.get("required", []))
     props = schema.get("properties", {})
@@ -209,11 +202,6 @@ def validate_row(row: dict[str, str], schema: dict[str, Any]) -> list[str]:
     return errors
 
 
-# --------------------------------------------------------------------------- #
-# CSV loading + table-level validation
-# --------------------------------------------------------------------------- #
-
-
 def _read_csv(path: Path) -> list[dict[str, str]]:
     if not path.exists():
         return []
@@ -229,7 +217,6 @@ def load_all_tables(root: Path | None = None) -> dict[str, list[dict[str, str]]]
 def validate_denominator_headers_and_rows(
     report: ValidationReport, root: Path | None = None
 ) -> None:
-    """Fail closed on canonical-table drift, malformed headers, or ragged rows."""
     root = root or REPO_ROOT
     data_dir = root / DATA_DIR
     expected_files = {csv_name for _schema, csv_name, _pk in TABLES.values()}
@@ -283,7 +270,6 @@ def validate_schema(
 def validate_primary_key_uniqueness(
     tables: dict[str, list[dict[str, str]]], report: ValidationReport
 ) -> None:
-    """Require non-empty, unique stable IDs inside every canonical table."""
     for table, rows in tables.items():
         pk = TABLES[table][2]
         seen: dict[str, int] = {}
@@ -304,7 +290,11 @@ def validate_referential_integrity(
     tables: dict[str, list[dict[str, str]]], report: ValidationReport
 ) -> None:
     pks: dict[str, set[str]] = {
-        t: {(r.get(TABLES[t][2]) or "").strip() for r in rows if (r.get(TABLES[t][2]) or "").strip()}
+        t: {
+            (r.get(TABLES[t][2]) or "").strip()
+            for r in rows
+            if (r.get(TABLES[t][2]) or "").strip()
+        }
         for t, rows in tables.items()
     }
     for table, fkmap in FOREIGN_KEYS.items():
@@ -344,7 +334,6 @@ def validate_controlled_vocab(
 def validate_evidence_presence(
     tables: dict[str, list[dict[str, str]]], report: ValidationReport
 ) -> None:
-    """Enforce 'no provenance -> no edge'."""
     evidence_ids = {(r.get("evidence_id") or "").strip() for r in tables.get("evidence", [])}
     for i, row in enumerate(tables.get("edges", []), start=1):
         ev = (row.get("evidence_id") or "").strip()
@@ -367,11 +356,6 @@ def validate_all(root: Path | None = None) -> ValidationReport:
     return report
 
 
-# --------------------------------------------------------------------------- #
-# CLI
-# --------------------------------------------------------------------------- #
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Validate Canonical Entity Relationship Model v1 tables."
@@ -384,7 +368,6 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     report = validate_all(Path(args.root).resolve())
-
     if args.json:
         print(json.dumps(report.to_dict(), indent=2))
     else:
@@ -396,7 +379,6 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {err}")
         if len(report.errors) > 200:
             print(f"  ... and {len(report.errors) - 200} more")
-
     if report.ok or args.allow_failed:
         return 0
     return 1
