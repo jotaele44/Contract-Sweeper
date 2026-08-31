@@ -1,0 +1,12 @@
+{
+  "contract_version":"federation-spatial-manifest/1.0",
+  "producer_repo":"moneysweep-pr",
+  "authority":"capital contracts ownership projects and financial-flow geography",
+  "frozen_base_sha":"ffdc781bc2196fc5e35903573f3948137e18bb1b",
+  "branch":"feat/federation-gis-max-v1",
+  "contracts":{"feature":"schemas/federation_spatial_feature_v1.schema.json","layer":"schemas/federation_spatial_layer_v1.schema.json","map_runtime":"schemas/maplibre_layer_runtime_v1.schema.json","offline_package":"schemas/fedgeopack_v1.schema.json","impact_report":"schemas/federation_spatial_impact_report_v1.schema.json"},
+  "storage":{"postgis_migration":"migrations/20260831_federation_spatial_v1.sql","mvt_migration":"migrations/20260831_federation_mvt_v1.sql","ownership":"REPO_LOCAL"},
+  "domain_extensions":["federation/spatial_core.py","federation/fedgeopack.py","moneysweep/runtime/geo_attribution.py","moneysweep/runtime/spatial_materializer.py","scripts/build_gis_layer_manifest.py"],
+  "cross_repo":{"identity_default":"CANDIDATE_NOT_IDENTITY","hub_correlation_authority":"thehub-pr","consumer_contract":"federation-spatial-contract/1.0"},
+  "gates":{"schema":"OPEN","geometry":"OPEN","tests":"OPEN","postgis":"OPEN","security":"OPEN","performance":"OPEN","desktop":"N/A","ios":"N/A","federation":"BLOCKED"}
+}
