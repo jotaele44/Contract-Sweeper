@@ -17,7 +17,6 @@ try:
         load_sources,
         safe_relative_path,
         sha256_file,
-        source_definition_digest,
         source_ids_digest,
         validate_receipt,
     )
@@ -28,13 +27,16 @@ except ModuleNotFoundError:  # pragma: no cover - direct script execution fallba
         load_sources,
         safe_relative_path,
         sha256_file,
-        source_definition_digest,
         source_ids_digest,
         validate_receipt,
     )
 
 from moneysweep.update_controller.models import CADENCE_SLA_HOURS
-from scripts.build_source_recovery_matrix import PATH_TYPES, QUEUED_PATH_TYPES, _classify
+from scripts.build_source_recovery_matrix import (
+    PATH_TYPES,
+    QUEUED_PATH_TYPES,
+    _classify,
+)
 
 TRUTH_SCHEMA_VERSION = "moneysweep.certification_truth/v1"
 SCOPE_SCHEMA_VERSION = "moneysweep.certification_scope/v1"
@@ -275,6 +277,7 @@ def _freshness_state(
         "source_id": source["source_id"],
         "path_type": path_type,
         "required": source.get("required") is True,
+        "enabled": automatable,
         "update_cadence": cadence,
         "freshness_sla_hours": float(sla or 0),
         "last_materialized_at": (
@@ -385,7 +388,9 @@ def derive(
                 "coverage_blockers": coverage_blockers,
                 "materiality_label": materiality,
                 "receipt_present": receipt is not None,
-                "receipt_valid": bool(receipt is not None and not validate_receipt(receipt)),
+                "receipt_valid": bool(
+                    receipt is not None and not validate_receipt(receipt)
+                ),
                 "outputs": outputs,
             }
         )
@@ -395,20 +400,30 @@ def derive(
         for path_type, count in path_counts.items()
         if PATH_TYPES.get(path_type, (False, ""))[0]
     )
-    queued = {path_type: path_counts.get(path_type, 0) for path_type in QUEUED_PATH_TYPES}
+    queued = {
+        path_type: path_counts.get(path_type, 0)
+        for path_type in QUEUED_PATH_TYPES
+    }
     queued_total = sum(queued.values())
 
+    evidence_class = (
+        "verified_operator_corpus_mount"
+        if operator_corpus_id
+        else "checkout_or_operator_workspace"
+    )
     truth = {
         "schema_version": TRUTH_SCHEMA_VERSION,
         "as_of": as_of.isoformat(),
         "registry": {
             "total_sources": len(sources),
-            "required_sources": sum(source.get("required") is True for source in sources),
+            "required_sources": sum(
+                source.get("required") is True for source in sources
+            ),
             "source_ids_sha256": registry_digest,
             "registry_paths": registry_paths,
         },
         "evidence": {
-            "root": str(evidence_root),
+            "class": evidence_class,
             "operator_corpus_id": operator_corpus_id,
             "receipt_count": len(receipts),
         },
@@ -512,6 +527,7 @@ def derive(
             "source_id",
             "required",
             "path_type",
+            "enabled",
             "update_cadence",
             "freshness_sla_hours",
             "last_materialized_at",
@@ -521,7 +537,9 @@ def derive(
         ]
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(sorted(freshness_rows, key=lambda item: item["source_id"]))
+        writer.writerows(
+            sorted(freshness_rows, key=lambda item: item["source_id"])
+        )
 
     truth_path = scope_reports / "certification_truth.json"
     truth_path.write_text(
@@ -586,7 +604,11 @@ def main() -> int:
     root = args.root.resolve()
     evidence_root = (args.evidence_root or root).resolve()
     receipts_dir = args.receipts_dir.resolve() if args.receipts_dir else None
-    as_of = _parse_datetime(args.as_of) if args.as_of else datetime.now(timezone.utc)
+    as_of = (
+        _parse_datetime(args.as_of)
+        if args.as_of
+        else datetime.now(timezone.utc)
+    )
     if as_of is None:
         raise SystemExit("--as-of must be an ISO-8601 timestamp")
 
@@ -606,7 +628,9 @@ def main() -> int:
                 "required_fully_materialized": result["truth"]["summary"][
                     "required_fully_materialized"
                 ],
-                "automatable_total": result["truth"]["summary"]["automatable_total"],
+                "automatable_total": result["truth"]["summary"][
+                    "automatable_total"
+                ],
                 "queued_excluded_total": result["truth"]["summary"][
                     "queued_excluded_total"
                 ],
