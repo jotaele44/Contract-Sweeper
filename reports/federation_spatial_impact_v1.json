@@ -1,0 +1,23 @@
+{
+  "contract_version":"federation-spatial-impact/1.0",
+  "producer_repo":"moneysweep-pr",
+  "branch":"feat/federation-gis-max-v1",
+  "base_sha":"ffdc781bc2196fc5e35903573f3948137e18bb1b",
+  "head_sha":null,
+  "changes":{
+    "contracts":["federation-spatial-contract/1.0","federation-map-runtime/1.0","fedgeopack/1.0","federation-spatial-manifest/1.0"],
+    "schemas":["feature","layer","map runtime","offline package","impact report","spatial sidecar"],
+    "geometry_semantics":["source-coordinate-only point materialization","two-endpoint contract-flow LineString","CANDIDATE_NOT_IDENTITY default"],
+    "crs":["OGC:CRS84 canonical interchange","EPSG:4326 PostGIS storage","EPSG:3857 MVT rendering"],
+    "api":["additive spatial_materializer point_feature and flow_feature"]
+  },
+  "affected_consumers":[
+    {"repo":"spiderweb-pr","impact":"OPTIONAL","reason":"can consume new MoneySweep spatial features without identity binding","migration":null},
+    {"repo":"moneysweep-pr","impact":"REQUIRED","reason":"adds evidence-safe materialization path for previously blocked geometry classes","migration":"use spatial_materializer only when source/enriched coordinates exist; do not centroid-fill missing records"},
+    {"repo":"aguayluz-pr","impact":"NONE","reason":"no utility-domain API changed","migration":null},
+    {"repo":"skywatcher-pr","impact":"NONE","reason":"no aviation-domain API changed","migration":null}
+  ],
+  "backward_compatible":true,
+  "rollback":"revert branch commits; no PostGIS migration has been executed and no missing coordinate has been fabricated",
+  "gates":{"schema":"OPEN","geometry":"OPEN","tests":"OPEN","security":"OPEN","performance":"OPEN","desktop":"N/A","ios":"N/A","federation":"BLOCKED"}
+}
