@@ -1012,6 +1012,66 @@
       ]
     },
     {
+      "id": "api-key-management",
+      "classification": "operator",
+      "status": "active",
+      "requires_terminal": false,
+      "backend": {
+        "files": [
+          "server/backend/api_keys.py"
+        ],
+        "endpoints": [
+          "GET /api-keys",
+          "POST /api-keys/{name}"
+        ]
+      },
+      "frontend": {
+        "routes": [
+          "/"
+        ],
+        "e2e_routes": [
+          "/"
+        ],
+        "components": [
+          "dashboard/src/lib/api.js",
+          "dashboard/src/lib/hooks.js",
+          "dashboard/src/pages/Dashboard.jsx",
+          "dashboard/src/components/ApiKeysPanel.jsx"
+        ],
+        "discoverability": [
+          "dashboard/src/pages/Dashboard.jsx"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_api_keys_endpoint.py",
+          "tests/test_manage_api_keys.py"
+        ],
+        "contract": [
+          "tests/test_gui_parity.py"
+        ],
+        "e2e": [
+          "dashboard/tests/api-keys.spec.mjs"
+        ]
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/manage_api_keys.py",
+        "analysis_module:scripts/set_api_key.py",
+        "analysis_symbol:scripts/manage_api_keys.py:KeyInfo",
+        "analysis_symbol:scripts/manage_api_keys.py:InvalidKeyValueError",
+        "analysis_symbol:scripts/manage_api_keys.py:UnknownKeyError",
+        "analysis_symbol:scripts/manage_api_keys.py:key_status",
+        "analysis_symbol:scripts/manage_api_keys.py:known_keys",
+        "analysis_symbol:scripts/manage_api_keys.py:set_key",
+        "analysis_symbol:scripts/set_api_key.py:main",
+        "cli_surface:scripts/set_api_key.py",
+        "python_module:server/backend/api_keys.py",
+        "python_symbol:server/backend/api_keys.py:SetKeyRequest",
+        "python_symbol:server/backend/api_keys.py:list_api_keys",
+        "python_symbol:server/backend/api_keys.py:set_api_key"
+      ]
+    },
+    {
       "id": "pr-assistance-denominator-pipeline",
       "classification": "internal",
       "status": "active",

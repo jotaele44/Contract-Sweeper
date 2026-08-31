@@ -25,7 +25,7 @@ const backendCommand = fs.existsSync(seedScript)
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: ["gui-parity.spec.mjs", "campaign-finance.spec.mjs"],
+  testMatch: ["gui-parity.spec.mjs", "campaign-finance.spec.mjs", "api-keys.spec.mjs"],
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   workers: 1,

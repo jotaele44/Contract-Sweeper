@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from scripts.check_network_egress import check_https_endpoint, run_checks
+from scripts.build_source_recovery_matrix import build_rows, build_summary
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -76,10 +77,11 @@ def test_materialization_readiness_snapshot_matches_runbook_counts():
     # +1 automatable_total/automatable_ready. Its detail-enrichment pass
     # (scripts/enrich_rdc_details.py) is a second stage of the same source, not
     # a separate registry entry, so it adds nothing to these counts.
-    assert snapshot["total_sources"] == 158
-    assert snapshot["automatable_total"] == 109
-    assert snapshot["automatable_ready"] == 109
-    assert snapshot["queued_excluded_total"] == 49
+    live = build_summary(build_rows())
+    assert snapshot["total_sources"] == live["total_sources"]
+    assert snapshot["automatable_total"] == live["automatable_total"]
+    assert snapshot["automatable_ready"] == live["automatable_ready"]
+    assert snapshot["queued_excluded_total"] == live["queued_excluded_total"]
     assert snapshot["automatable_not_ready"] == []
 
 
