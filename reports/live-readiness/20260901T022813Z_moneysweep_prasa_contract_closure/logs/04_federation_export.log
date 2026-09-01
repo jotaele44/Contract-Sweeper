@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "package_id": "pkg_9642c2a411343e9c0c20891ac84f4f08",
+  "mode": "test",
+  "out": "/Users/jotaele/fed-repos/moneysweep-pr/data/exports/canonical_v1_federation",
+  "stream_counts": {
+    "sources": 4508,
+    "entities": 207,
+    "relationships": 66
+  }
+}

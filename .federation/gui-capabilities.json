@@ -1012,46 +1012,17 @@
       ]
     },
     {
-      "id": "desktop-data-materialization",
+      "id": "api-key-management",
       "classification": "operator",
       "status": "active",
       "requires_terminal": false,
       "backend": {
         "files": [
-          "desktop/secrets.py",
-          "desktop/workspace.py",
-          "server/backend/desktop_app.py",
-          "server/backend/materialization.py"
+          "server/backend/api_keys.py"
         ],
         "endpoints": [
-          "GET /status",
-          "GET /sources",
-          "GET /credentials",
-          "PUT /credentials/{key_name}",
-          "DELETE /credentials/{key_name}",
-          "POST /offline/upload",
-          "POST /offline/{source_id}/run",
-          "POST /api/run"
-        ],
-        "symbols": [
-          "desktop/secrets.py:activated_credentials",
-          "desktop/secrets.py:delete_secret",
-          "desktop/secrets.py:get_secret",
-          "desktop/secrets.py:presence",
-          "desktop/secrets.py:set_secret",
-          "desktop/workspace.py:bootstrap_workspace",
-          "desktop/workspace.py:resource_root",
-          "desktop/workspace.py:workspace_root",
-          "server/backend/materialization.py:ApiRunRequest",
-          "server/backend/materialization.py:CredentialWriteRequest",
-          "server/backend/materialization.py:credential_delete",
-          "server/backend/materialization.py:credential_status",
-          "server/backend/materialization.py:credential_write",
-          "server/backend/materialization.py:materialization_sources",
-          "server/backend/materialization.py:materialization_status",
-          "server/backend/materialization.py:run_api_sources",
-          "server/backend/materialization.py:run_offline_source",
-          "server/backend/materialization.py:upload_offline_file"
+          "GET /api-keys",
+          "POST /api-keys/{name}"
         ]
       },
       "frontend": {
@@ -1063,8 +1034,9 @@
         ],
         "components": [
           "dashboard/src/lib/api.js",
+          "dashboard/src/lib/hooks.js",
           "dashboard/src/pages/Dashboard.jsx",
-          "dashboard/src/components/DataSources.jsx"
+          "dashboard/src/components/ApiKeysPanel.jsx"
         ],
         "discoverability": [
           "dashboard/src/pages/Dashboard.jsx"
@@ -1072,16 +1044,32 @@
       },
       "tests": {
         "backend": [
-          "tests/test_desktop_workspace.py",
-          "tests/test_desktop_materialization_runtime.py"
+          "tests/test_api_keys_endpoint.py",
+          "tests/test_manage_api_keys.py"
         ],
         "contract": [
           "tests/test_gui_parity.py"
         ],
         "e2e": [
-          "dashboard/tests/data-sources.spec.mjs"
+          "dashboard/tests/api-keys.spec.mjs"
         ]
-      }
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/manage_api_keys.py",
+        "analysis_module:scripts/set_api_key.py",
+        "analysis_symbol:scripts/manage_api_keys.py:KeyInfo",
+        "analysis_symbol:scripts/manage_api_keys.py:InvalidKeyValueError",
+        "analysis_symbol:scripts/manage_api_keys.py:UnknownKeyError",
+        "analysis_symbol:scripts/manage_api_keys.py:key_status",
+        "analysis_symbol:scripts/manage_api_keys.py:known_keys",
+        "analysis_symbol:scripts/manage_api_keys.py:set_key",
+        "analysis_symbol:scripts/set_api_key.py:main",
+        "cli_surface:scripts/set_api_key.py",
+        "python_module:server/backend/api_keys.py",
+        "python_symbol:server/backend/api_keys.py:SetKeyRequest",
+        "python_symbol:server/backend/api_keys.py:list_api_keys",
+        "python_symbol:server/backend/api_keys.py:set_api_key"
+      ]
     }
   ],
   "exceptions": [

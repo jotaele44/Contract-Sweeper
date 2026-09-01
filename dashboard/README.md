@@ -40,3 +40,27 @@ Reads `data/canonical_v1/*.csv` with pandas (no legacy-pipeline import). Resolve
 agency/contractor via `entities.csv` and municipality via `edges.csv`
 (`LOCATED_IN`). Validates CSV headers at startup and fails loud on drift. CORS
 allows `:5173`.
+
+## API Keys tab — the one deliberate write path
+
+Every other route here is read-only, matching the diagnostic-only framing
+above. `/api-keys` (`server/backend/api_keys.py`) is a single, explicit
+exception: it lets an operator set pipeline credentials from the browser
+instead of hand-editing `.env`, backed by the same `scripts/manage_api_keys.py`
+module `scripts/set_api_key.py` (CLI) uses.
+
+What it does and doesn't do:
+- It writes to this machine's local `.env` file only. `.env` stays gitignored
+  and local-only, per `docs/SECRET_HANDLING_POLICY.md`.
+- The pipeline (`run_all.py`) and this backend are separate process
+  lifetimes — this endpoint cannot start, feed, or reach a running pipeline.
+  A saved key is picked up automatically the next time the pipeline (or a
+  producer script) is manually invoked, because its config loader re-reads
+  `.env` from disk on every call.
+- `GET /api-keys` and the UI only ever report set/not-set per key — never a
+  value, matching the secret-handling policy's audit-output rules.
+- Saving a key does **not** itself authorize or unfreeze anything; the
+  pipeline's existing preflight and pause-lock gates are unaffected.
+- Not covered here: real access control. This assumes the backend only ever
+  runs on a trusted local dev machine, same as the rest of this dashboard —
+  if it's ever exposed beyond localhost, this endpoint needs auth first.
