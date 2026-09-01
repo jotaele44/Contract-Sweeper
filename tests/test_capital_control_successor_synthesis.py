@@ -72,7 +72,15 @@ def test_successor_source_lineage_and_hold_are_exact() -> None:
     assert sources["pr520"]["head_sha"] == "5646ad6014959baf783b66c8dd497f1f518f207e"
     assert sources["pr527"]["head_sha"] == "f484a226f73f7f366a88ad9e051bba0d0150da54"
     assert sources["pr484"]["head_sha"] == "85dc4744173ebd26c68f2b904265c6c91497d5ad"
+    assert sources["pr484"]["identity_scope"] == "HISTORICAL_SOURCE_COMMIT_NOT_LIVE_PR_HEAD"
+    assert sources["pr484"]["archive_ref"] == "archive/pr-484-historical-partial-salvage-85dc474"
     assert sources["pr484"]["resolver_disposition"] == "SUPERSEDED_NONCANONICAL"
+    assert sources["pr484"]["live_pr_observation"] == {
+        "head_sha": "39d06ec63aba3e212f19f96881e5185b03787881",
+        "base_sha": "b5661dd29b5905015016041057136b6c945ddf5a",
+        "state": "OPEN_DRAFT_UNMERGED_REVIEW_REQUIRED",
+        "historical_source_relation": "DISTINCT_NON_ANCESTOR_AFTER_REBASE",
+    }
     assert manifest["state"] == "CANDIDATE_REQUIRES_COMPLETE_RECERTIFICATION"
     assert manifest["draft_required"] is True
     assert manifest["merge_authorized"] is False

@@ -7,10 +7,11 @@
 - Base main: `df78f15f7c36b98bc6ecfae37c7e775ec487ead3`.
 - Certified canonical-core input: PR #520 at `5646ad6014959baf783b66c8dd497f1f518f207e`.
 - CI-green bounded non-resolver input: PR #527 at `f484a226f73f7f366a88ad9e051bba0d0150da54`.
-- Historical lineage: PR #484 at `85dc4744173ebd26c68f2b904265c6c91497d5ad` remains `PARTIAL_SALVAGE`; its resolver/domain implementation remains `SUPERSEDED / NONCANONICAL`.
+- Historical lineage source: PR #484 commit `85dc4744173ebd26c68f2b904265c6c91497d5ad`, frozen at `archive/pr-484-historical-partial-salvage-85dc474`, remains `PARTIAL_SALVAGE`; its resolver/domain implementation remains `SUPERSEDED / NONCANONICAL`.
+- Live PR #484 observation: repaired head `39d06ec63aba3e212f19f96881e5185b03787881` on current main is a distinct rebased lineage. It does not replace the immutable historical source commit and is not an additional successor payload.
 - This successor must remain **DRAFT**. Merge, ready-for-review transition, and production promotion are prohibited.
 
-The immutable source commit SHAs and source blob map are recorded in `data/manifests/capital_control/capital_control_successor_synthesis_v1.json`.
+The immutable source commit SHAs, archive refs, live-versus-historical identity scope, and source blob map are recorded in `data/manifests/capital_control/capital_control_successor_synthesis_v1.json`.
 
 ## Integration result
 

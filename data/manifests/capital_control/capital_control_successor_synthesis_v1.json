@@ -66,8 +66,16 @@
     "pr484": {
       "pr": 484,
       "head_sha": "85dc4744173ebd26c68f2b904265c6c91497d5ad",
+      "identity_scope": "HISTORICAL_SOURCE_COMMIT_NOT_LIVE_PR_HEAD",
+      "archive_ref": "archive/pr-484-historical-partial-salvage-85dc474",
       "role": "HISTORICAL_PARTIAL_SALVAGE_LINEAGE",
-      "resolver_disposition": "SUPERSEDED_NONCANONICAL"
+      "resolver_disposition": "SUPERSEDED_NONCANONICAL",
+      "live_pr_observation": {
+        "head_sha": "39d06ec63aba3e212f19f96881e5185b03787881",
+        "base_sha": "b5661dd29b5905015016041057136b6c945ddf5a",
+        "state": "OPEN_DRAFT_UNMERGED_REVIEW_REQUIRED",
+        "historical_source_relation": "DISTINCT_NON_ANCESTOR_AFTER_REBASE"
+      }
     }
   },
   "overlap_adjudication": {
