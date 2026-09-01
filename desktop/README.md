@@ -91,5 +91,6 @@ somewhere else in Finder. Moving it defeats translocation on its own, which is
 why dragging the folder out of Downloads (or the Trash) is usually quickest.
 
 Genuine setup failures — no internet on the first run, or Node.js missing —
-write their output to `$TMPDIR/prii-moneysweep-pr-setup.log`, and the failure
-message names that file.
+retain their output in a unique
+`$TMPDIR/prii-moneysweep-pr-setup.XXXXXX` file, and the failure message names
+that file. Successful setup logs are removed before the desktop process starts.
