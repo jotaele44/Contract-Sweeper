@@ -4,8 +4,8 @@
       "id": "database-certification-operator-workflow",
       "classification": "internal",
       "status": "active",
-      "requires_terminal": true,
-      "rationale": "Database release certification and provenance remediation are explicit operator/audit workflows. They produce immutable manifests and certification bundles consumed by governance and release processes; they are not interactive end-user dashboard capabilities and should not be exposed as ordinary GUI actions.",
+      "requires_terminal": false,
+      "rationale": "Database release certification and provenance remediation are automatable operator/audit workflows. They produce immutable manifests and certification bundles consumed by governance and release processes; they are not interactive end-user dashboard capabilities and do not depend on an interactive terminal.",
       "candidate_ids": [
         "analysis_module:scripts/certify_database_release.py",
         "analysis_module:scripts/remediate_canonical_evidence_provenance.py",

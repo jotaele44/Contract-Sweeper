@@ -291,9 +291,7 @@ def validate_referential_integrity(
 ) -> None:
     pks: dict[str, set[str]] = {
         t: {
-            (r.get(TABLES[t][2]) or "").strip()
-            for r in rows
-            if (r.get(TABLES[t][2]) or "").strip()
+            (r.get(TABLES[t][2]) or "").strip() for r in rows if (r.get(TABLES[t][2]) or "").strip()
         }
         for t, rows in tables.items()
     }
