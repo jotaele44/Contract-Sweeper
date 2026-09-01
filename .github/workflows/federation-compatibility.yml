@@ -22,23 +22,4 @@ jobs:
           EXPECTED_REPO: moneysweep-pr
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: |
-          python - <<'PY'
-          import json, os, subprocess, sys
-          from pathlib import Path
-
-          p = 'governance/federation_compatibility.json'
-          d = json.loads(Path(p).read_text(encoding='utf-8'))
-          allowed={'UNAFFECTED','COMPATIBLE','UPDATED','BLOCKED'}
-          if d.get('repo') != os.environ['EXPECTED_REPO']: sys.exit('wrong repo in compatibility receipt')
-          if d.get('disposition') not in allowed: sys.exit('unknown compatibility disposition')
-          if d.get('disposition') == 'BLOCKED': sys.exit('federation compatibility is BLOCKED')
-          base = os.environ.get('BASE_SHA')
-          head = os.environ.get('HEAD_SHA')
-          if not base or not head or set(base) == {'0'}:
-              sys.exit('missing authoritative event commit range')
-          changed=subprocess.check_output(['git','diff','--name-only',base+'..'+head],text=True).splitlines()
-          if 'federation.json' in changed and p not in changed:
-              sys.exit('federation.json changed without compatibility receipt update')
-          print('FEDERATION_COMPATIBILITY_PASS')
-          PY
+        run: python .federation/check_federation_compatibility.py
