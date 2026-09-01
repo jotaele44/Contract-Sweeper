@@ -183,7 +183,13 @@ def run(source: Path = DEFAULT_SOURCE, root: Path = PROJECT_ROOT, force: bool = 
         raise FileNotFoundError(f"PRASA transition contract source not found: {source}")
 
     out_path = root / "data" / "staging" / "processed" / "pr_prasa_contracts.csv"
-    receipt_path = root / "data" / "manifests" / "prasa" / f"{_utc_now().replace(':', '').replace('-', '')}.transition_contracts.json"
+    receipt_path = (
+        root
+        / "data"
+        / "manifests"
+        / "prasa"
+        / f"{_utc_now().replace(':', '').replace('-', '')}.transition_contracts.json"
+    )
     if out_path.exists() and not force:
         existing = pd.read_csv(out_path, dtype=str, na_filter=False, low_memory=False)
         if not existing.empty:
@@ -194,9 +200,16 @@ def run(source: Path = DEFAULT_SOURCE, root: Path = PROJECT_ROOT, force: bool = 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(out_path, index=False, encoding="utf-8")
     receipt_path.parent.mkdir(parents=True, exist_ok=True)
-    receipt_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    receipt_path.write_text(
+        json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     logger.info("  Parsed %s PRASA transition contract rows", len(frame))
-    return {"rows": len(frame), "path": str(out_path), "receipt": str(receipt_path), "skipped": False}
+    return {
+        "rows": len(frame),
+        "path": str(out_path),
+        "receipt": str(receipt_path),
+        "skipped": False,
+    }
 
 
 def main() -> int:
