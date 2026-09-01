@@ -1,9 +1,9 @@
 """Pre-submission readiness validator for the FOIA request program.
 
-Checks every condition that must be satisfied before the 9 FOIA requests can be
+Checks every condition that must be satisfied before the preserved FOIA requests can be
 submitted:
 
-  1. All 9 letter files exist in ``docs/foia_letters/``.
+  1. Every queue row has a letter in ``docs/foia_letters/``.
   2. ``data/reference/foia_requester.json`` contains no literal ``{{...}}``
      placeholder values (requester name and contact must be filled by the operator).
   3. Every request row has a non-empty ``priority`` and a valid ``request_status``.

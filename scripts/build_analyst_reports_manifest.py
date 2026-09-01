@@ -161,69 +161,6 @@ CATALOG: list[tuple[str, str, str, str, str]] = [
         "csv",
         "scripts/build_foia_yield_tracking.py",
     ),
-    (
-        "docs/foia_letters/FOIA_c509296376f145b1.md",
-        "FOIA Letter — HUD DRGR",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
-    (
-        "docs/foia_letters/FOIA_3429122f5837fd47.md",
-        "FOIA Letter — PRASA",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
-    (
-        "docs/foia_letters/FOIA_aef916ac9b8ed071.md",
-        "FOIA Letter — OCPR",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
-    (
-        "docs/foia_letters/FOIA_f7d5acaf207ff8a5.md",
-        "FOIA Letter — COR3",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
-    (
-        "docs/foia_letters/FOIA_64d22dfe3108f7b1.md",
-        "FOIA Letter — GSA FSRS",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
-    (
-        "docs/foia_letters/FOIA_95021847de4153af.md",
-        "FOIA Letter — SAM.gov",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
-    (
-        "docs/foia_letters/FOIA_7ef254a89545013c.md",
-        "FOIA Letter — OEG (Cabilderos)",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
-    (
-        "docs/foia_letters/FOIA_220df26653119d96.md",
-        "FOIA Letter — CEE (Donaciones)",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
-    (
-        "docs/foia_letters/FOIA_7fef81739082ae00.md",
-        "FOIA Letter — compras.pr.gov",
-        "foia",
-        "md",
-        "scripts/build_foia_letters.py",
-    ),
 ]
 
 
@@ -250,11 +187,29 @@ def _row_count(path: Path, fmt: str) -> int:
     return 0
 
 
+def _catalog(root: Path) -> list[tuple[str, str, str, str, str]]:
+    """Return the fixed reports plus one letter entry per preserved FOIA request."""
+    catalog = list(CATALOG)
+    queue_path = root / "reports/foia_priority_queue.csv"
+    with queue_path.open(newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            catalog.append(
+                (
+                    f"docs/foia_letters/{row['request_id']}.md",
+                    f"FOIA Letter — {row['target_source_id']}",
+                    "foia",
+                    "md",
+                    "scripts/build_foia_letters.py",
+                )
+            )
+    return catalog
+
+
 def build_rows(root: Path | None = None) -> list[dict[str, Any]]:
     """Return the analyst-report catalog entries with live row counts."""
     root = root or REPO_ROOT
     rows: list[dict[str, Any]] = []
-    for path, title, gate, fmt, producer in CATALOG:
+    for path, title, gate, fmt, producer in _catalog(root):
         p = root / path
         rows.append(
             {
@@ -305,7 +260,7 @@ def build(root: Path | None = None) -> dict[str, Any]:
         "producer_script": "scripts/build_analyst_reports_manifest.py",
         "producer_phase": "TOP_FORM_ANALYST_REPORTS",
         "schema": SCHEMA,
-        "source_inputs": [p for p, *_ in CATALOG],
+        "source_inputs": [p for p, *_ in _catalog(root)],
         "output": OUT,
         "row_count": len(rows),
         "gates": sorted({r["gate"] for r in rows}),
