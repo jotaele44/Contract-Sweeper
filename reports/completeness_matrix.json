@@ -11,14 +11,14 @@
     "wired_producer": 72
   },
   "by_acquisition_status": {
-    "acquired_ingested": 6,
+    "acquired_ingested": 7,
     "automated": 112,
-    "not_acquired": 44
+    "not_acquired": 43
   },
   "by_materialization_status": {
-    "fully_materialized": 17,
-    "not_materialized": 142,
-    "partially_materialized": 3
+    "fully_materialized": 19,
+    "not_materialized": 141,
+    "partially_materialized": 2
   },
   "by_coverage_status": {
     "below_contract": 3,
@@ -32,12 +32,12 @@
   },
   "by_certification_status": {
     "certified_complete": 1,
-    "provisional": 16,
-    "uncertified": 145
+    "provisional": 18,
+    "uncertified": 143
   },
   "by_materiality_label": {
-    "empty": 144,
-    "partial": 1,
+    "empty": 142,
+    "partial": 3,
     "seed": 2,
     "substantial": 12,
     "validated_complete": 3
