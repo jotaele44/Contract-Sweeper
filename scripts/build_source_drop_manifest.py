@@ -102,6 +102,14 @@ DROP_SOURCES: list[dict[str, Any]] = [
         "source_id": "prasa",
         "classification": "PARTIAL",
         "inclusion_decision": "manifest_only_documentary_support",
+        "path": FINANCIALS / "Documents/contractdata/data/staging/processed/pr_prasa_contracts.csv",
+        "target_relpath": None,
+        "blocker": "External PRASA contract master exists but is header-only; does not close PRASA contract export.",
+    },
+    {
+        "source_id": "prasa",
+        "classification": "PARTIAL",
+        "inclusion_decision": "manifest_only_documentary_support",
         "path": FINANCIALS / "2024/CER/FY2024 PRASA CER_Final.pdf",
         "target_relpath": None,
         "blocker": "PRASA support exists; vendor-level contract master remains header-only.",
@@ -122,6 +130,23 @@ DROP_SOURCES: list[dict[str, Any]] = [
         "path": FINANCIALS / "Documents/contractdata/data/normalized/hud_drgr_projects.parquet",
         "target_relpath": None,
         "blocker": "DRGR-shaped artifact is zero-row and does not prove authorized export delivery.",
+    },
+    {
+        "source_id": "hud_drgr_authorized",
+        "classification": "PARTIAL_UNRESOLVED",
+        "inclusion_decision": "manifest_only_not_authorized_export",
+        "path": FINANCIALS
+        / "Documents/contractdata/data/normalized/hud_drgr_responsible_orgs_resolved.parquet",
+        "target_relpath": None,
+        "blocker": "DRGR responsible-org artifact is zero-row and does not prove authorized export delivery.",
+    },
+    {
+        "source_id": "hud_drgr_authorized",
+        "classification": "PARTIAL_UNRESOLVED",
+        "inclusion_decision": "manifest_only_not_authorized_export",
+        "path": FINANCIALS / "Documents/contractdata/data/staging/processed/pr_hud_hcv.csv",
+        "target_relpath": None,
+        "blocker": "HUD HCV/Section 8 rows exist; this is not an authorized DRGR activity/project export.",
     },
 ]
 
