@@ -1,7 +1,7 @@
 {
   "edges_federated_pct": 100.0,
   "gate": "NON_PRODUCTION_DIAGNOSTIC",
-  "generated_at": "2026-08-31T23:59:01.899343+00:00",
+  "generated_at": "2026-09-01T00:05:27.933009+00:00",
   "not_yet_federated_count": 0,
   "producer": "moneysweep-pr",
   "source_feeds": {

@@ -1,7 +1,7 @@
 {
-  "created_at": "2026-08-31T23:59:01.899343+00:00",
+  "created_at": "2026-09-01T00:05:27.933009+00:00",
   "export_contract_version": "1.0.0",
-  "extracted_at": "2026-08-31T23:59:01.899343+00:00",
+  "extracted_at": "2026-09-01T00:05:27.933009+00:00",
   "federation": {
     "hub_parent": "thehub-pr",
     "producer_repo": "moneysweep-pr"
@@ -11,25 +11,25 @@
       "filename": "sources.jsonl",
       "record_count": 4508,
       "schema_id": "federation_source.schema.json",
-      "sha256": "0cd4e0e372edd95a73f5750e50bb3a580b2d315d81c83857645eafd56120c86e",
+      "sha256": "94ce927182e4cb68de82c5a8c0bb2413e6abda6a9c43ac3bde661fb720536c65",
       "stream": "sources"
     },
     {
       "filename": "entities.jsonl",
       "record_count": 207,
       "schema_id": "federation_entity.schema.json",
-      "sha256": "33ad86f47d285359c64cc3e2d28e3edfd816ad0e8d436fb887275e44a78c39a8",
+      "sha256": "c671a02ff6100424dbf13df83ea4d0a9b84c61d3590cd0786523bb094b65d8ae",
       "stream": "entities"
     },
     {
       "filename": "relationships.jsonl",
       "record_count": 66,
       "schema_id": "federation_relationship.schema.json",
-      "sha256": "16213082537df7021c0f3f7ff20e7f2eb88aaa421536c47e41bf9a35bd8443c8",
+      "sha256": "372c37754d2eba999cb41fe1b6e9de4954b7198dad9f938c3ffdc2b58137eb42",
       "stream": "relationships"
     }
   ],
   "mode": "test",
-  "package_id": "pkg_8681896196dbbbb839609c65fcc47f64",
+  "package_id": "pkg_975ccd9332f7d2ee2d33a508ac6d7c57",
   "producer": "moneysweep-pr"
 }
