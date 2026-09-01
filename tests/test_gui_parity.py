@@ -126,7 +126,7 @@ export default function Items() {
             if item["kind"] == "python_symbol"
             and item["path"] == "server/backend/main.py"
         }
-        self.assertTrue(symbol_ids <= mapped)
+        self.assertLessEqual(symbol_ids, mapped)
 
     def test_backend_without_gui_is_rejected(self) -> None:
         manifest = self._manifest()
@@ -206,7 +206,7 @@ export default function Items() {
             for item in candidates
             if item["path"] == "server/backend/main.py"
         }
-        self.assertTrue(backend_ids <= covered)
+        self.assertLessEqual(backend_ids, covered)
 
 
 if __name__ == "__main__":
