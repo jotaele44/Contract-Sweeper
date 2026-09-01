@@ -100,20 +100,41 @@ DROP_SOURCES: list[dict[str, Any]] = [
     },
     {
         "source_id": "prasa",
-        "classification": "PARTIAL",
-        "inclusion_decision": "manifest_only_documentary_support",
-        "path": FINANCIALS / "2024/CER/FY2024 PRASA CER_Final.pdf",
+        "classification": "SUPERSEDED_PARTIAL",
+        "inclusion_decision": "manifest_only_superseded_header_only",
+        "path": FINANCIALS / "Documents/contractdata/data/staging/processed/pr_prasa_contracts.csv",
         "target_relpath": None,
-        "blocker": "PRASA support exists; vendor-level contract master remains header-only.",
+        "blocker": "External legacy PRASA contract master is header-only; superseded by the ACT agency 163 transition contract PDF parser.",
     },
     {
         "source_id": "prasa",
-        "classification": "PARTIAL",
+        "classification": "FOUND",
+        "inclusion_decision": "parse_authoritative_transition_pdf",
+        "path": FINANCIALS
+        / "2024/ACT/transicion2024_archive/files/by_agency/163/Informe_de_Contratos_Vigentes/Contratos_Vigentes_al_24_de_septiembre_de_2024_Informe.pdf",
+        "target_relpath": None,
+        "blocker": "Authoritative PRASA transition contract PDF parsed into pr_prasa_contracts.csv and prasa_contracts_master.csv.",
+        "generated_outputs": [
+            "data/staging/processed/pr_prasa_contracts.csv",
+            "data/staging/processed/prasa_contracts_master.csv",
+        ],
+    },
+    {
+        "source_id": "prasa",
+        "classification": "FOUND_SUPPORTING",
+        "inclusion_decision": "manifest_only_documentary_support",
+        "path": FINANCIALS / "2024/CER/FY2024 PRASA CER_Final.pdf",
+        "target_relpath": None,
+        "blocker": "PRASA CER support exists; not the contract source, but no longer holds the source blocker open.",
+    },
+    {
+        "source_id": "prasa",
+        "classification": "FOUND_SUPPORTING",
         "inclusion_decision": "manifest_only_documentary_support",
         "path": FINANCIALS
         / "2024/ACT/transicion2024_archive/files/by_agency/163/Informe_Inventario_de_Propiedad/Inventario_Activos_AAA_hasta_2024.xlsx",
         "target_relpath": None,
-        "blocker": "PRASA asset inventory exists; not a PRASA contract export.",
+        "blocker": "PRASA asset inventory exists; not the contract source, but no longer holds the source blocker open.",
     },
     {
         "source_id": "hud_drgr_authorized",
@@ -122,6 +143,23 @@ DROP_SOURCES: list[dict[str, Any]] = [
         "path": FINANCIALS / "Documents/contractdata/data/normalized/hud_drgr_projects.parquet",
         "target_relpath": None,
         "blocker": "DRGR-shaped artifact is zero-row and does not prove authorized export delivery.",
+    },
+    {
+        "source_id": "hud_drgr_authorized",
+        "classification": "PARTIAL_UNRESOLVED",
+        "inclusion_decision": "manifest_only_not_authorized_export",
+        "path": FINANCIALS
+        / "Documents/contractdata/data/normalized/hud_drgr_responsible_orgs_resolved.parquet",
+        "target_relpath": None,
+        "blocker": "DRGR responsible-org artifact is zero-row and does not prove authorized export delivery.",
+    },
+    {
+        "source_id": "hud_drgr_authorized",
+        "classification": "PARTIAL_UNRESOLVED",
+        "inclusion_decision": "manifest_only_not_authorized_export",
+        "path": FINANCIALS / "Documents/contractdata/data/staging/processed/pr_hud_hcv.csv",
+        "target_relpath": None,
+        "blocker": "HUD HCV/Section 8 rows exist; this is not an authorized DRGR activity/project export.",
     },
 ]
 
@@ -223,6 +261,7 @@ def build_records(stage: bool) -> list[dict[str, Any]]:
                 "target_sha256": sha256_file(target_path)
                 if target_path and target_path.exists()
                 else None,
+                "generated_outputs": item.get("generated_outputs", []),
                 "staged": staged,
                 "raw_normalized_canonical_policy": "Preserve raw source strings; normalization and canonical identity are downstream only.",
                 **inspect_path(path),
@@ -241,8 +280,12 @@ def write_outputs(records: list[dict[str, Any]], out_dir: Path, *, stage: bool) 
         "records": records,
         "arithmetic": {
             "total": len(records),
-            "found": sum(1 for r in records if r["classification"] == "FOUND"),
-            "partial_or_unresolved": sum(1 for r in records if r["classification"] != "FOUND"),
+            "found": sum(1 for r in records if r["classification"].startswith("FOUND")),
+            "partial_or_unresolved": sum(
+                1
+                for r in records
+                if not r["classification"].startswith("FOUND")
+            ),
             "missing_files": sum(1 for r in records if not r.get("exists")),
             "staged": sum(1 for r in records if r.get("staged")),
         },
@@ -267,7 +310,9 @@ def write_outputs(records: list[dict[str, Any]], out_dir: Path, *, stage: bool) 
     with (out_dir / "moneysweep_source_drop_manifest.csv").open(
         "w", encoding="utf-8", newline=""
     ) as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer = csv.DictWriter(
+            handle, fieldnames=fields, extrasaction="ignore", lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(records)
     print(json.dumps(payload["arithmetic"], sort_keys=True))

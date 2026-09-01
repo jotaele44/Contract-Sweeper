@@ -1,0 +1,377 @@
+{
+  "branch": "audit/moneysweep-startup-setup-unblock-20260831",
+  "carta_skill_status": "Skill tool unavailable after select:Skill discovery; Carta not applicable to MoneySweep repo closure",
+  "certification_summary": {
+    "certified_complete": 1,
+    "provisional": 16,
+    "uncertified": 145
+  },
+  "closed_source_drop_materialization": {
+    "contralor_electoral": "FOUND_STAGED_INGESTED_PROVISIONAL_PARTIAL_AMOUNTS_ALLOWED",
+    "cor3": "FOUND_STAGED_INGESTED_PROVISIONAL",
+    "donaciones_pr": "FOUND_STAGED_INGESTED_CERTIFIED_COMPLETE_BY_LOCAL_CONTRACT",
+    "oce_socrata_live": "FOUND_STAGED_INGESTED_PROVISIONAL_PARTIAL_AMOUNTS_ALLOWED",
+    "oficina_contralor": "FOUND_STAGED_INGESTED_PROVISIONAL",
+    "pr_cabilderos": "FOUND_STAGED_INGESTED_PROVISIONAL"
+  },
+  "command_receipts": [
+    {
+      "command": "ingest_cabilderos",
+      "exit_code": null,
+      "raw": [
+        "ingest_cabilderos",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "ingest_contralor",
+      "exit_code": null,
+      "raw": [
+        "ingest_contralor",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "ingest_oce",
+      "exit_code": null,
+      "raw": [
+        "ingest_oce",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "ingest_donaciones",
+      "exit_code": null,
+      "raw": [
+        "ingest_donaciones",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "downstream_export",
+      "exit_code": null,
+      "raw": [
+        "downstream_export",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "test_ingest_oce",
+      "exit_code": null,
+      "raw": [
+        "test_ingest_oce",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "oce_fixed_downstream_export",
+      "exit_code": null,
+      "raw": [
+        "oce_fixed_downstream_export",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "test_ingest_oce_no_cov",
+      "exit_code": null,
+      "raw": [
+        "test_ingest_oce_no_cov",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "focused_live_readiness_tests_no_cov",
+      "exit_code": null,
+      "raw": [
+        "focused_live_readiness_tests_no_cov",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    },
+    {
+      "command": "regenerate_lf_receipts",
+      "exit_code": null,
+      "raw": [
+        "regenerate_lf_receipts",
+        ""
+      ],
+      "state": "UNPARSEABLE_EXIT_CODE_ROW"
+    }
+  ],
+  "command_receipts_note": "command_exit_codes.csv preserves malformed zsh PIPESTATUS capture rows; normalized_command_exit_codes.csv records adjudicated exit states from logs and CLI semantics.",
+  "completion_claim": "Bounded MoneySweep source-drop/materialization closure for found files only; not full product/live readiness.",
+  "coverage_local_truth_summary": {
+    "coverage_rate_fully": 0.1049,
+    "fully_materialized": 17,
+    "materialized_any_data": 18,
+    "no_outputs_declared": 0,
+    "not_materialized": 142,
+    "partially_materialized": 3,
+    "required_fully_materialized": 11,
+    "required_sources": 16,
+    "tier_bulk": 14,
+    "tier_empty": 144,
+    "tier_moderate": 2,
+    "tier_seed_stub": 2,
+    "total_local_rows": 81662,
+    "total_sources": 162
+  },
+  "federation_export": {
+    "manifest_path": "data/exports/canonical_v1_federation/manifest.json",
+    "mode": "test",
+    "ok": true,
+    "package_id": "pkg_9208fb0b7dc71cd0b24a44ac5a126e46",
+    "stream_counts": {
+      "entities": 207,
+      "relationships": 66,
+      "sources": 4508
+    }
+  },
+  "generated_at_utc": "2026-09-01T01:08:48Z",
+  "head_sha": "3176beeb0d9a23e17df81f3a780170a7eb7fe3cc",
+  "known_negative_evidence": [
+    {
+      "gate": "tests/test_ingest_oce.py default coverage invocation",
+      "reason": "All OCE tests passed, but global fail-under=44 coverage threshold failed for focused invocation; rerun with --no-cov passed.",
+      "state": "FAIL_COVERAGE_THRESHOLD"
+    },
+    {
+      "gate": "first shell bookkeeping",
+      "reason": "zsh read-only variable `status` stopped the first batch after successful COR3 ingest; remaining gates reran separately.",
+      "state": "INTERRUPTED_AFTER_COR3_PASS"
+    },
+    {
+      "gate": "PRASA contract materialization",
+      "reason": "Header-only local contract master; supporting CER/asset documents are not contract rows.",
+      "state": "OPEN_PARTIAL"
+    },
+    {
+      "gate": "HUD authorized DRGR materialization",
+      "reason": "Zero-row DRGR-shaped parquet; authorized export not proven.",
+      "state": "OPEN_PARTIAL_UNRESOLVED"
+    }
+  ],
+  "lumen_status": "LUMEN_UNAVAILABLE_OR_UNHEALTHY; bounded local inspection used",
+  "materialization_summary": {
+    "fully_materialized": 17,
+    "not_materialized": 142,
+    "partially_materialized": 3
+  },
+  "normalized_command_receipts": [
+    {
+      "command": "source_drop_stage",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "ingest_cor3",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "first_shell_bookkeeping",
+      "exit_code": 1,
+      "state": "FAIL_SCRIPT_BOOKKEEPING_AFTER_COR3_PASS"
+    },
+    {
+      "command": "ingest_cabilderos",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "ingest_contralor",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "ingest_oce_initial",
+      "exit_code": 1,
+      "state": "FAIL_EMPTY_BEFORE_PARTIAL_ROW_FIX"
+    },
+    {
+      "command": "ingest_donaciones",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "downstream_export_after_initial_oce",
+      "exit_code": 0,
+      "state": "PASS_WITH_WRITE_SOURCE_MANIFEST_ARG_ERROR_PRESERVED"
+    },
+    {
+      "command": "test_ingest_oce_default",
+      "exit_code": 1,
+      "state": "FAIL_COVERAGE_THRESHOLD_TESTS_PASSED"
+    },
+    {
+      "command": "oce_fixed_downstream_export",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "test_ingest_oce_no_cov",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "focused_live_readiness_tests_no_cov",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "regenerate_lf_receipts",
+      "exit_code": 0,
+      "state": "PASS"
+    }
+  ],
+  "origin_main_sha": "3176beeb0d9a23e17df81f3a780170a7eb7fe3cc",
+  "preserved_blockers": {
+    "hud_drgr_authorized": {
+      "byte_size": 6220,
+      "reason": "DRGR-shaped parquet exists but contains zero rows; public CDBG evidence is not an authorized DRGR export.",
+      "source_path": "/Users/jotaele/Documents/Financials/Documents/contractdata/data/normalized/hud_drgr_projects.parquet",
+      "state": "PARTIAL_UNRESOLVED"
+    },
+    "prasa": {
+      "contract_rows": 0,
+      "reason": "PRASA CER/asset evidence exists but pr_prasa_contracts.csv has zero data rows; no non-empty authoritative contract master found in this run.",
+      "state": "PARTIAL",
+      "supporting_evidence_count": 2
+    }
+  },
+  "processed_file_inventory": {
+    "files": [
+      {
+        "claimed_by": "donaciones_pr",
+        "classification": "declared",
+        "file": "pr_donaciones.csv",
+        "rows": 9156
+      },
+      {
+        "claimed_by": "contralor_electoral;oce_socrata_live",
+        "classification": "declared",
+        "file": "pr_oce_donations.csv",
+        "rows": 6474
+      },
+      {
+        "claimed_by": "pr_cabilderos",
+        "classification": "declared",
+        "file": "pr_cabilderos.csv",
+        "rows": 2668
+      },
+      {
+        "claimed_by": "cor3",
+        "classification": "declared",
+        "file": "pr_cor3_projects.csv",
+        "rows": 1481
+      },
+      {
+        "claimed_by": "act_transition_contracts",
+        "classification": "declared",
+        "file": "pr_act_transition_contracts.csv",
+        "rows": 656
+      },
+      {
+        "claimed_by": "",
+        "classification": "orphan",
+        "file": "pr_report_builder_master.csv",
+        "rows": 238
+      },
+      {
+        "claimed_by": "oficina_contralor",
+        "classification": "declared",
+        "file": "pr_contralor_audits.csv",
+        "rows": 85
+      },
+      {
+        "claimed_by": "",
+        "classification": "empty",
+        "file": "dcaa_active_contractors.csv",
+        "rows": 0
+      },
+      {
+        "claimed_by": "",
+        "classification": "empty",
+        "file": "pr_oce_reports.csv",
+        "rows": 0
+      },
+      {
+        "claimed_by": "prasa",
+        "classification": "declared",
+        "file": "pr_prasa_contracts.csv",
+        "rows": 0
+      }
+    ],
+    "intermediate_file_count": 0,
+    "intermediate_rows": 0,
+    "orphan_file_count": 1,
+    "orphan_rows": 238,
+    "processed_dir": "data/staging/processed",
+    "registry_accounted_rows": 20520,
+    "total_csv_files": 10,
+    "total_rows_on_disk": 20758
+  },
+  "repo_id": "moneysweep-pr",
+  "result_state": "PROVISIONAL_LIVE_READINESS_IMPROVED",
+  "row_counts": {
+    "contralor_electoral": {
+      "byte_size": 554203,
+      "exists": true,
+      "path": "data/staging/processed/pr_oce_donations.csv",
+      "rows": 6474
+    },
+    "cor3": {
+      "byte_size": 196718,
+      "exists": true,
+      "path": "data/staging/processed/pr_cor3_projects.csv",
+      "rows": 1481
+    },
+    "donaciones_pr": {
+      "byte_size": 1122141,
+      "exists": true,
+      "path": "data/staging/processed/pr_donaciones.csv",
+      "rows": 9156
+    },
+    "oce_socrata_live": {
+      "byte_size": 554203,
+      "exists": true,
+      "path": "data/staging/processed/pr_oce_donations.csv",
+      "rows": 6474
+    },
+    "oficina_contralor": {
+      "byte_size": 4090,
+      "exists": true,
+      "path": "data/staging/processed/pr_contralor_audits.csv",
+      "rows": 85
+    },
+    "pr_cabilderos": {
+      "byte_size": 522002,
+      "exists": true,
+      "path": "data/staging/processed/pr_cabilderos.csv",
+      "rows": 2668
+    },
+    "prasa": {
+      "byte_size": 146,
+      "exists": true,
+      "path": "data/staging/processed/pr_prasa_contracts.csv",
+      "rows": 0
+    }
+  },
+  "run_id": "20260901T005414Z_moneysweep_live_readiness",
+  "schema_version": "moneysweep_live_readiness_closure_v1",
+  "source_drop_arithmetic": {
+    "found": 12,
+    "missing_files": 0,
+    "partial_or_unresolved": 3,
+    "staged": 9,
+    "total": 15
+  }
+}

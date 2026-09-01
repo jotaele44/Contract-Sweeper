@@ -16,7 +16,10 @@ from pathlib import Path
 
 import pytest
 
+from scripts.manage_api_keys import known_keys
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
+REAL_EXAMPLE = REPO_ROOT / ".env.example"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -48,7 +51,7 @@ def test_list_api_keys_never_includes_a_value(client):
     response = client.get("/api-keys")
     assert response.status_code == 200
     rows = response.json()
-    assert len(rows) == 16
+    assert len(rows) == len(known_keys(REAL_EXAMPLE))
     for row in rows:
         assert set(row.keys()) == {"name", "description", "required", "is_set"}
 
