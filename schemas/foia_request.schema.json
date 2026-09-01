@@ -10,6 +10,7 @@
     "record_type",
     "statute",
     "request_status",
+    "tracking_state",
     "priority",
     "rationale",
     "evidence_tier",
@@ -35,6 +36,9 @@
         "appealed"
       ]
     },
+    "tracking_state": {"type": "string", "enum": ["OPEN", "SUPERSEDED"]},
+    "residual_gap": {"type": "string"},
+    "resolution_evidence": {"type": "string"},
     "priority": {"type": "string", "enum": ["P0", "P1", "P2", "P3"]},
     "rationale": {"type": "string", "minLength": 1},
     "evidence_tier": {"type": "string", "enum": ["T1", "T2", "T3", "T4"]},

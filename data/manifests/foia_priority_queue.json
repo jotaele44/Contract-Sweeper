@@ -7,7 +7,7 @@
     "reports/source_registry_status.csv"
   ],
   "output": "reports/foia_priority_queue.csv",
-  "row_count": 15,
+  "row_count": 17,
   "jurisdictions": [
     "PR",
     "US"
@@ -17,5 +17,5 @@
     "P1",
     "P2"
   ],
-  "generated_at": "2026-07-13T06:12:31.988933+00:00"
+  "generated_at": "2026-09-01T05:36:11.316405+00:00"
 }

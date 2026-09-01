@@ -57,6 +57,7 @@ COLUMNS = [
     "request_id",
     "target_source_id",
     "request_status",
+    "tracking_state",
     "records_received",
     "yield_status",
     "unresolved_gap",
@@ -94,18 +95,35 @@ def build_rows(root: Path | None = None) -> list[dict[str, Any]]:
     for req in _read(root, PRIORITY_QUEUE):
         source_id = req["target_source_id"]
         req_status = req["request_status"]
-        gap = blockers.get(source_id) or f"source {source_id} unmaterialized"
+        tracking = (req.get("tracking_state") or "OPEN").strip()
+        residual = (req.get("residual_gap") or "").strip()
+        evidence = (req.get("resolution_evidence") or "").strip()
+        superseded = tracking == "SUPERSEDED"
+        gap = (
+            "NONE: target gap closed by alternate materialization; request history preserved"
+            if superseded
+            else residual or blockers.get(source_id) or f"source {source_id} unmaterialized"
+        )
         rows.append(
             {
                 "request_id": req["request_id"],
                 "target_source_id": source_id,
                 "request_status": req_status,
+                "tracking_state": tracking,
                 "records_received": 0,
-                "yield_status": YIELD_BY_REQUEST_STATUS.get(req_status, "pending"),
+                "yield_status": (
+                    "gap_closed"
+                    if superseded
+                    else YIELD_BY_REQUEST_STATUS.get(req_status, "pending")
+                ),
                 "unresolved_gap": gap,
                 "evidence_tier": req.get("evidence_tier") or "T2",
                 "confidence": float(req.get("confidence") or 0.0),
-                "notes": "",
+                "notes": (
+                    f"Superseded by alternate acquisition; evidence={evidence}"
+                    if superseded
+                    else ""
+                ),
             }
         )
     return rows
@@ -134,7 +152,7 @@ def check(rows: list[dict[str, Any]], root: Path | None = None) -> list[str]:
 def _write(rows: list[dict[str, Any]], out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=COLUMNS, extrasaction="ignore")
+        writer = csv.DictWriter(fh, fieldnames=COLUMNS, extrasaction="ignore", lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 
