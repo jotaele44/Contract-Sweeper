@@ -1,0 +1,116 @@
+name: CEE OCPR mirror discovery v0.4
+
+on:
+  push:
+    branches: [cee-ocpr-row-denominator-v0-4]
+    paths: [.github/workflows/cee-ocpr-mirror-discovery-v0-4.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Compare archived FY22-23 export to authoritative live graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet requests beautifulsoup4
+          python - <<'PY'
+          from __future__ import annotations
+          import csv, io, json, re, unicodedata
+          from datetime import datetime, timezone
+          import requests
+          from bs4 import BeautifulSoup
+
+          MIR='https://raw.githubusercontent.com/en-he/ocpr-transparency/main/data/raw/contratos_2022-2023.csv'
+          BASE='https://consultacontratos.ocpr.gov.pr'; EID='1410'
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4'})
+          mr=s.get(MIR,timeout=120); mr.raise_for_status(); b=mr.content
+          print('MIRROR_BYTES',len(b))
+          text=None; enc=None
+          for e in ('utf-8-sig','utf-8','cp1252','latin-1'):
+              try: text=b.decode(e); enc=e; break
+              except UnicodeDecodeError: pass
+          if text is None: raise SystemExit('DECODE_FAIL')
+          sample=text[:50000]
+          try: d=csv.Sniffer().sniff(sample,delimiters=',;\t|')
+          except csv.Error: d=csv.excel
+          rows=list(csv.DictReader(io.StringIO(text),dialect=d)); fields=list(rows[0].keys()) if rows else []
+          print('ENC',enc,'DELIM',repr(d.delimiter),'FIELDS',json.dumps(fields,ensure_ascii=False),'ROWS',len(rows))
+          def norm(x):
+              x=unicodedata.normalize('NFKD',x or ''); x=''.join(c for c in x if not unicodedata.combining(c))
+              return re.sub(r'[^A-Z0-9]+',' ',x.upper()).strip()
+          # report likely entity/code/name columns and unique values matching CEE
+          candidate_cols=[]
+          for f in fields:
+              vals={str(r.get(f) or '').strip() for r in rows}
+              hits=[v for v in vals if v=='1410' or norm(v)=='COMISION ESTATAL DE ELECCIONES' or 'COMISION ESTATAL DE ELECCIONES' in norm(v)]
+              if hits:
+                  candidate_cols.append((f,hits[:10]))
+          print('ENTITY_CANDIDATE_COLS',json.dumps(candidate_cols,ensure_ascii=False))
+          if not candidate_cols: raise SystemExit('NO_ENTITY_COLUMN')
+          # Prefer exact stable entity code; otherwise exact authoritative name only for discovery.
+          col=None; mode=None
+          for f,h in candidate_cols:
+              if '1410' in h: col=f; mode='CODE'; break
+          if not col: col=candidate_cols[0][0]; mode='NAME'
+          cee=[]
+          for r in rows:
+              v=str(r.get(col) or '').strip()
+              if (mode=='CODE' and v=='1410') or (mode=='NAME' and norm(v)=='COMISION ESTATAL DE ELECCIONES'): cee.append(r)
+          print('MIRROR_CEE_ROWS',len(cee),'FILTER_COL',col,'MODE',mode)
+          for i,r in enumerate(cee[:5]): print('MIRROR_SAMPLE',i,json.dumps(r,ensure_ascii=False,sort_keys=True))
+          open('mirror_cee_rows.jsonl','w',encoding='utf-8').write(''.join(json.dumps(r,ensure_ascii=False,sort_keys=True)+'\n' for r in cee))
+          # Field discovery for contract number / amendment.
+          def pick(tokens):
+              for f in fields:
+                  n=norm(f)
+                  if all(t in n for t in tokens): return f
+              return None
+          cn=pick(['CONTRAT']) or pick(['CONTRACT'])
+          amend=None
+          for f in fields:
+              if 'ENMIEND' in norm(f) or 'AMEND' in norm(f): amend=f; break
+          print('MIRROR_ID_FIELDS',cn,amend)
+          if not cn: raise SystemExit('NO_CONTRACT_NUMBER_FIELD')
+          mirror_keys=[]
+          for r in cee:
+              mirror_keys.append({'contract_number':str(r.get(cn) or '').strip(),'amendment':str(r.get(amend) or '').strip() if amend else '', 'row':r})
+          # Authoritative current original rows, same live query contract.
+          boot=s.get(BASE+'/contract',timeout=60); boot.raise_for_status(); soup=BeautifulSoup(boot.text,'html.parser'); token=soup.find('input',{'name':'__RequestVerificationToken'}).get('value')
+          hdr={'Accept':'application/json, text/javascript, */*; q=0.01','Content-Type':'application/json; charset=utf-8','Referer':BASE+'/contract','X-Requested-With':'XMLHttpRequest','__RequestVerificationToken':token}
+          payload={'draw':1,'start':0,'length':5000,'order':[{'column':1,'dir':'desc'}],'search':{'value':'','regex':False},'EntityId':EID,'ContractNumber':None,'ContractorName':None,'DateOfGrantFrom':None,'DateOfGrantTo':None,'EffectiveDateFrom':None,'EffectiveDateTo':None,'AmountFrom':None,'AmountTo':None,'ServiceGroupId':None,'ServiceId':None,'FundId':None,'ContractingFormId':None,'PCONumber':None}
+          ar=s.post(BASE+'/contract/search',headers=hdr,json=payload,timeout=120); ar.raise_for_status(); orig=ar.json().get('data') or []
+          # Candidate FY22 original families by number prefix/date semantics from archived rows; enumerate child amendments for every mirror contract number, not only HasAmendments current.
+          auth_keys={}
+          for x in orig:
+              n=str(x.get('ContractNumber') or '').strip();
+              if n: auth_keys[(n,'')]={'kind':'ORIGINAL','ContractId':x.get('ContractId'),'raw':x}
+          mirror_numbers=sorted({k['contract_number'] for k in mirror_keys if k['contract_number']})
+          for n in mirror_numbers:
+              rr=s.post(BASE+'/contract/getamendments',headers=hdr,json={'model':{'ContractNumber':n,'EntityId':EID}},timeout=60)
+              if rr.status_code!=200: continue
+              data=rr.json()
+              if isinstance(data,list):
+                  for x in data:
+                      auth_keys[(n,str(x.get('Amendment') or '').strip())]={'kind':'AMENDMENT','ContractId':x.get('ContractId'),'raw':x}
+          missing=[]; matched=[]
+          for k in mirror_keys:
+              key=(k['contract_number'],k['amendment'])
+              if key in auth_keys: matched.append({'key':key,'authoritative':auth_keys[key]})
+              else: missing.append(k)
+          print('MATCHED_KEYS',len(matched),'MISSING_KEYS',len(missing),'AUTH_KEY_COUNT',len(auth_keys))
+          for x in missing: print('MISSING_CANDIDATE',json.dumps(x,ensure_ascii=False,sort_keys=True))
+          receipt={'mirror_source':MIR,'mirror_encoding':enc,'mirror_total_rows':len(rows),'mirror_cee_rows':len(cee),'entity_filter_column':col,'entity_filter_mode':mode,'contract_number_field':cn,'amendment_field':amend,'matched_key_count':len(matched),'missing_candidate_count':len(missing),'missing_candidates':missing,'note':'Mirror is NONCANONICAL discovery only; candidates require authoritative rebinding.'}
+          open('mirror_discovery_receipt.json','w',encoding='utf-8').write(json.dumps(receipt,ensure_ascii=False,indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cee-ocpr-v04-mirror-discovery
+          path: |
+            mirror_cee_rows.jsonl
+            mirror_discovery_receipt.json
+          retention-days: 30
