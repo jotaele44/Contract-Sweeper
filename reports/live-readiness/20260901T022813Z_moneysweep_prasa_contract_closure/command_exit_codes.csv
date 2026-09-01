@@ -1,0 +1,7 @@
+build_prasa_contracts_master,
+build_source_drop_manifest,
+audit_materialization_coverage,
+federation_export,
+validate_export,
+focused_tests,
+hub_validate_package,

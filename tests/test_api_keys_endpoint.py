@@ -16,32 +16,15 @@ from pathlib import Path
 
 import pytest
 
+from scripts.manage_api_keys import known_keys
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
+REAL_EXAMPLE = REPO_ROOT / ".env.example"
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 pytest.importorskip("fastapi")
 pytest.importorskip("httpx")
-
-EXPECTED_KEY_NAMES = {
-    "SAM_API_KEY",
-    "LDA_API_KEY",
-    "FEC_API_KEY",
-    "FAC_API_KEY",
-    "HIGHERGOV_API_KEY",
-    "DATA_GOV_API_KEY",
-    "CENSUS_API_KEY",
-    "EIA_API_KEY",
-    "FRED_API_KEY",
-    "FELT_API_KEY",
-    "FINANCIALDATA_API_KEY",
-    "FINANCIALDATA_LICENSE_APPROVED",
-    "X_API_KEY",
-    "PROPUBLICA_API_KEY",
-    "CMS_APP_TOKEN",
-    "SOCRATA_APP_TOKEN",
-    "OPENSTATES_API_KEY",
-}
 
 
 @pytest.fixture
@@ -68,8 +51,12 @@ def test_list_api_keys_never_includes_a_value(client):
     response = client.get("/api-keys")
     assert response.status_code == 200
     rows = response.json()
-    assert {row["name"] for row in rows} == EXPECTED_KEY_NAMES
-    assert len(rows) == len(EXPECTED_KEY_NAMES)
+    registry = known_keys(REAL_EXAMPLE)
+    expected_names = {key.name for key in registry}
+    actual_names = [row["name"] for row in rows]
+    assert len(expected_names) == len(registry)
+    assert len(actual_names) == len(expected_names)
+    assert set(actual_names) == expected_names
     for row in rows:
         assert set(row.keys()) == {"name", "description", "required", "is_set"}
 
