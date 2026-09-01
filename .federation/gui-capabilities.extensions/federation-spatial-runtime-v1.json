@@ -1,0 +1,36 @@
+{
+  "extension_id": "federation-spatial-runtime-v1",
+  "capabilities": [
+    {
+      "id": "federation-spatial-contract-runtime",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": false,
+      "rationale": "Evidence-safe point and flow materialization plus the federation spatial contract validator are internal interoperability machinery. They intentionally remain non-GUI because materialization does not establish physical identity, resolve missing coordinates, or certify downstream map consumption. The callable validator is a CI gate rather than a user-required terminal workflow.",
+      "backend": {
+        "files": [
+          "moneysweep/runtime/spatial_materializer.py"
+        ]
+      },
+      "analysis": {
+        "files": [
+          "scripts/validate_federation_spatial.py"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_spatial_materializer.py",
+          "tests/test_federation_spatial_core.py",
+          "tests/test_fedgeopack.py"
+        ]
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/validate_federation_spatial.py",
+        "analysis_symbol:scripts/validate_federation_spatial.py:main",
+        "python_module:moneysweep/runtime/spatial_materializer.py",
+        "python_symbol:moneysweep/runtime/spatial_materializer.py:flow_feature",
+        "python_symbol:moneysweep/runtime/spatial_materializer.py:point_feature"
+      ]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 """Federation Spatial Core v1: deterministic WGS84 geometry primitives."""
+
 from __future__ import annotations
 
 import hashlib
@@ -72,37 +73,24 @@ def geodesic_distance_m(lon1: float, lat1: float, lon2: float, lat2: float) -> f
     for _ in range(200):
         sin_lam = math.sin(lam)
         cos_lam = math.cos(lam)
-        sin_sigma = math.sqrt(
-            (math.cos(u2) * sin_lam) ** 2
-            + (
-                math.cos(u1) * math.sin(u2)
-                - math.sin(u1) * math.cos(u2) * cos_lam
-            )
-            ** 2
+        sin_sigma = math.hypot(
+            math.cos(u2) * sin_lam,
+            math.cos(u1) * math.sin(u2) - math.sin(u1) * math.cos(u2) * cos_lam,
         )
         if sin_sigma == 0:
             return 0.0
-        cos_sigma = (
-            math.sin(u1) * math.sin(u2)
-            + math.cos(u1) * math.cos(u2) * cos_lam
-        )
+        cos_sigma = math.sin(u1) * math.sin(u2) + math.cos(u1) * math.cos(u2) * cos_lam
         sigma = math.atan2(sin_sigma, cos_sigma)
         sin_alpha = math.cos(u1) * math.cos(u2) * sin_lam / sin_sigma
         cos_sq_alpha = 1 - sin_alpha**2
         cos_2sigma_m = (
-            0.0
-            if cos_sq_alpha == 0
-            else cos_sigma - 2 * math.sin(u1) * math.sin(u2) / cos_sq_alpha
+            0.0 if cos_sq_alpha == 0 else cos_sigma - 2 * math.sin(u1) * math.sin(u2) / cos_sq_alpha
         )
         c = WGS84_F / 16 * cos_sq_alpha * (4 + WGS84_F * (4 - 3 * cos_sq_alpha))
         next_lam = longitude_delta + (1 - c) * WGS84_F * sin_alpha * (
-            sigma
-            + c
-            * sin_sigma
-            * (cos_2sigma_m + c * cos_sigma * (-1 + 2 * cos_2sigma_m**2))
+            sigma + c * sin_sigma * (cos_2sigma_m + c * cos_sigma * (-1 + 2 * cos_2sigma_m**2))
         )
         if abs(next_lam - lam) < 1e-12:
-            lam = next_lam
             break
         lam = next_lam
     else:
@@ -111,17 +99,17 @@ def geodesic_distance_m(lon1: float, lat1: float, lon2: float, lat2: float) -> f
     reduced = cos_sq_alpha * (WGS84_A**2 - WGS84_B**2) / WGS84_B**2
     coef_a = 1 + reduced / 16384 * (4096 + reduced * (-768 + reduced * (320 - 175 * reduced)))
     coef_b = reduced / 1024 * (256 + reduced * (-128 + reduced * (74 - 47 * reduced)))
-    delta_sigma = coef_b * sin_sigma * (
-        cos_2sigma_m
-        + coef_b
-        / 4
+    delta_sigma = (
+        coef_b
+        * sin_sigma
         * (
-            cos_sigma * (-1 + 2 * cos_2sigma_m**2)
-            - coef_b
-            / 6
-            * cos_2sigma_m
-            * (-3 + 4 * sin_sigma**2)
-            * (-3 + 4 * cos_2sigma_m**2)
+            cos_2sigma_m
+            + coef_b
+            / 4
+            * (
+                cos_sigma * (-1 + 2 * cos_2sigma_m**2)
+                - coef_b / 6 * cos_2sigma_m * (-3 + 4 * sin_sigma**2) * (-3 + 4 * cos_2sigma_m**2)
+            )
         )
     )
     return WGS84_B * coef_a * (sigma - delta_sigma)
@@ -160,9 +148,7 @@ def segment_metrics_4d(a: TrackPoint4D, b: TrackPoint4D) -> dict[str, float | No
     )
     distance_3d = math.hypot(horizontal, vertical or 0.0)
     elapsed = (
-        None
-        if a.epoch_s is None or b.epoch_s is None
-        else float(b.epoch_s) - float(a.epoch_s)
+        None if a.epoch_s is None or b.epoch_s is None else float(b.epoch_s) - float(a.epoch_s)
     )
     if elapsed is not None and elapsed < 0:
         raise ValueError("track time must be non-decreasing")
