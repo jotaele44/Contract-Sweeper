@@ -5,7 +5,7 @@ on: [push, pull_request]
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,8 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -35,81 +33,3 @@ jobs:
 
       - name: Run mypy
         run: python -m mypy
-
-      - name: Sync canonical guide-audit capability
-        if: ${{ (github.event_name == 'push' && github.ref_name == 'audit/guide-financial-avenue-coverage-v1') || (github.event_name == 'pull_request' && github.head_ref == 'audit/guide-financial-avenue-coverage-v1') }}
-        shell: bash
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          path = Path('.federation/gui-capabilities.json')
-          manifest = json.loads(path.read_text(encoding='utf-8'))
-          capability_id = 'guide-financial-avenue-audit-pipeline'
-          if any(item.get('id') == capability_id for item in manifest.get('capabilities', [])):
-              print(f'{capability_id} already present; no change')
-              raise SystemExit(0)
-
-          manifest['capabilities'].append({
-              'id': capability_id,
-              'classification': 'internal',
-              'status': 'active',
-              'requires_terminal': False,
-              'rationale': (
-                  'Bounded source-audit and authoritative-source materialization pipeline used to '
-                  'generate certified financial-avenue evidence and reports; it is CI/operator '
-                  'plumbing, not a separate human-facing dashboard workflow.'
-              ),
-              'analysis': {
-                  'files': [
-                      'scripts/audit_guide_financial_avenues.py',
-                      'scripts/scrape_ftz_board_pr.py',
-                      'scripts/scrape_ocif_guide_financial_classes.py',
-                      'scripts/scrape_ocs_insurers.py',
-                  ],
-                  'symbols': [
-                      'scripts/audit_guide_financial_avenues.py:compute',
-                      'scripts/audit_guide_financial_avenues.py:load_inputs',
-                      'scripts/audit_guide_financial_avenues.py:main',
-                      'scripts/audit_guide_financial_avenues.py:metrics_payload',
-                      'scripts/audit_guide_financial_avenues.py:run',
-                      'scripts/audit_guide_financial_avenues.py:validate_inputs',
-                      'scripts/audit_guide_financial_avenues.py:write_outputs',
-                      'scripts/scrape_ftz_board_pr.py:main',
-                      'scripts/scrape_ftz_board_pr.py:parse_zone',
-                      'scripts/scrape_ftz_board_pr.py:run',
-                      'scripts/scrape_ocif_guide_financial_classes.py:fetch_class',
-                      'scripts/scrape_ocif_guide_financial_classes.py:main',
-                      'scripts/scrape_ocif_guide_financial_classes.py:parse_page',
-                      'scripts/scrape_ocif_guide_financial_classes.py:run',
-                      'scripts/scrape_ocs_insurers.py:main',
-                      'scripts/scrape_ocs_insurers.py:parse_annual_reports',
-                      'scripts/scrape_ocs_insurers.py:parse_insurers',
-                      'scripts/scrape_ocs_insurers.py:run',
-                  ],
-              },
-              'tests': {
-                  'backend': [
-                      'tests/test_guide_financial_avenue_audit.py',
-                      'tests/test_guide_financial_source_parsers.py',
-                  ]
-              },
-          })
-          path.write_text(
-              json.dumps(manifest, indent=2, ensure_ascii=False) + '\n',
-              encoding='utf-8',
-          )
-          print(f'added {capability_id} to canonical manifest')
-          PY
-
-          if git diff --quiet -- .federation/gui-capabilities.json; then
-            echo "No canonical manifest change required."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .federation/gui-capabilities.json
-          git commit -m "ci: classify guide audit pipeline as internal"
-          target_branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          git push origin "HEAD:${target_branch}"
