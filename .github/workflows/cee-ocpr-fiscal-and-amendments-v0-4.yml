@@ -1,0 +1,144 @@
+name: CEE OCPR fiscal CSV and amendments v0.4
+
+on:
+  push:
+    branches: [cee-ocpr-row-denominator-v0-4]
+    paths: [.github/workflows/cee-ocpr-fiscal-and-amendments-v0-4.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Freeze fiscal CSV manifestations and amendment families
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet requests beautifulsoup4
+          python - <<'PY'
+          from __future__ import annotations
+          import csv, hashlib, io, json, re, unicodedata
+          from datetime import datetime, timezone
+          from pathlib import Path
+          import requests
+          from bs4 import BeautifulSoup
+
+          BASE='https://consultacontratos.ocpr.gov.pr'
+          ENTITY_ID='1410'
+          OUT=Path('cee_ocpr_v04_supplement')
+          RAW=OUT/'raw'
+          RAW.mkdir(parents=True,exist_ok=True)
+          captured=datetime.now(timezone.utc).isoformat()
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4 (+bounded public-source recovery)'})
+
+          # Bootstrap same authoritative session/token contract.
+          boot=s.get(BASE+'/contract',timeout=60); boot.raise_for_status()
+          (RAW/'search_bootstrap.html').write_bytes(boot.content)
+          soup=BeautifulSoup(boot.text,'html.parser')
+          token=soup.find('input',{'name':'__RequestVerificationToken'}).get('value')
+          headers={'Accept':'application/json, text/javascript, */*; q=0.01','Content-Type':'application/json; charset=utf-8','Referer':BASE+'/contract','X-Requested-With':'XMLHttpRequest','__RequestVerificationToken':token}
+
+          def sha(b): return hashlib.sha256(b).hexdigest()
+          def norm(s):
+              x=unicodedata.normalize('NFKD',s or '')
+              x=''.join(c for c in x if not unicodedata.combining(c))
+              return re.sub(r'[^A-Z0-9]+',' ',x.upper()).strip()
+          def decode_csv(b):
+              attempts=[]
+              for enc in ('utf-8-sig','utf-8','cp1252','latin-1'):
+                  try: return b.decode(enc),enc,attempts
+                  except UnicodeDecodeError as e: attempts.append({'encoding':enc,'error':str(e)})
+              raise RuntimeError('CSV_DECODE_FAIL')
+          def detect_entity_col(fields):
+              # Never select from normalized-name alone unless column semantics themselves bind entity code/name.
+              preferred=['EntityId','Entity ID','EntityCode','Entity Code','Código Entidad','Codigo Entidad','Número Entidad','Numero Entidad']
+              for p in preferred:
+                  for f in fields:
+                      if norm(f)==norm(p): return f,'CODE'
+              for f in fields:
+                  n=norm(f)
+                  if ('ENTIDAD' in n or 'ENTITY' in n) and ('NUM' in n or 'COD' in n or 'ID' in n): return f,'CODE'
+              for f in fields:
+                  if norm(f) in ('ENTIDAD','ENTITY','NOMBRE ENTIDAD','ENTITY NAME'): return f,'NAME'
+              return None,None
+
+          fiscal_receipts={}
+          for fy in ('2022-2023','2023-2024'):
+              url=BASE+'/contract/downloadfrequentsearchfiscalyeardocument'
+              r=s.get(url,params={'q':fy},timeout=120); r.raise_for_status()
+              b=r.content
+              raw_path=RAW/f'contratos_{fy}.csv'; raw_path.write_bytes(b)
+              text,enc,attempts=decode_csv(b)
+              sample=text[:10000]
+              try: dialect=csv.Sniffer().sniff(sample,delimiters=',;\t|')
+              except csv.Error: dialect=csv.excel
+              reader=csv.DictReader(io.StringIO(text),dialect=dialect)
+              fields=reader.fieldnames or []
+              rows=list(reader)
+              entity_col,entity_mode=detect_entity_col(fields)
+              if not entity_col: raise SystemExit(f'ENTITY_COLUMN_UNRESOLVED {fy} {fields}')
+              if entity_mode=='CODE':
+                  cee=[row for row in rows if re.sub(r'\D','',str(row.get(entity_col) or ''))=='1410']
+              else:
+                  # Fallback only for discovery if no code exists; report as non-ID filter in receipt.
+                  cee=[row for row in rows if norm(row.get(entity_col))=='COMISION ESTATAL DE ELECCIONES']
+              # Whole-row preservation; do not aggregate/synthesize.
+              out_csv=OUT/f'cee_1410_{fy}_whole_rows.csv'
+              with out_csv.open('w',encoding='utf-8',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(cee)
+              with (OUT/f'cee_1410_{fy}_whole_rows.jsonl').open('w',encoding='utf-8') as f:
+                  for row in cee: f.write(json.dumps(row,ensure_ascii=False,sort_keys=True)+'\n')
+              fiscal_receipts[fy]={
+                  'url':r.url,'status_code':r.status_code,'content_type':r.headers.get('Content-Type'),
+                  'raw_size':len(b),'raw_sha256':sha(b),'encoding':enc,'decode_failures':attempts,
+                  'delimiter':getattr(dialect,'delimiter',None),'fieldnames':fields,'source_row_count':len(rows),
+                  'entity_column':entity_col,'entity_filter_mode':entity_mode,'cee_row_count':len(cee),
+                  'cee_unique_exact_rows':len({json.dumps(x,ensure_ascii=False,sort_keys=True) for x in cee}),
+              }
+
+          # Frozen amendment target families derived from the already-frozen successful 2,880-row search snapshot.
+          targets={
+            '2022-2023':['2023-000001','2023-000002','2023-000003','2023-000004','2023-000005','2023-000006','2023-000008','2023-000015','2023-000017','2023-000021','2023-000024','2023-000025','2023-000027','2023-000028','2023-000035','2023-000037','2023-000044','2023-000048','2023-000049','2023-000053','2023-000072','2023-000073'],
+            '2023-2024':['2024-000004','2024-000007','2024-000008','2024-000009','2024-000010','2024-000011','2024-000012','2024-000014','2024-000016','2024-000017','2024-000019','2024-000024','2024-000025','2024-000032','2024-000036','2024-000037','2024-000040','2024-000041','2024-000042','2024-000046','2024-000049','2024-000051','2024-000053','2024-000054','2024-000055','2024-000057','2024-000061','2024-000064','2024-000104']}
+          amend_receipts={}; all_amend=[]
+          for fy,nums in targets.items():
+              fy_rows=[]
+              for n in nums:
+                  rr=s.post(BASE+'/contract/getamendments',headers=headers,json={'model':{'ContractNumber':n,'EntityId':ENTITY_ID}},timeout=60)
+                  rr.raise_for_status(); data=rr.json()
+                  (RAW/f'amendments_{n}.json').write_text(json.dumps(data,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+                  if not isinstance(data,list): raise SystemExit(f'AMEND_RESPONSE_NOT_LIST {n}')
+                  for x in data:
+                      z=dict(x); z['_parent_contract_number']=n; z['_target_fiscal_year']=fy; fy_rows.append(z); all_amend.append(z)
+                  amend_receipts[n]={'row_count':len(data),'raw_sha256':sha(json.dumps(data,ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()),'contract_ids':[x.get('ContractId') for x in data],'amendments':[x.get('Amendment') for x in data]}
+              with (OUT/f'cee_1410_{fy}_amendments.jsonl').open('w',encoding='utf-8') as f:
+                  for x in fy_rows: f.write(json.dumps(x,ensure_ascii=False,sort_keys=True)+'\n')
+
+          summary={
+              'status':'PASS','captured_at_utc':captured,'entity_id':ENTITY_ID,
+              'fiscal_csv':fiscal_receipts,
+              'amendment_family_target_counts':{fy:len(v) for fy,v in targets.items()},
+              'amendment_child_counts':{fy:sum(amend_receipts[n]['row_count'] for n in nums) for fy,nums in targets.items()},
+              'amendment_receipts':amend_receipts,
+          }
+          (OUT/'supplement_receipt.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+          files=[]
+          for p in sorted(OUT.rglob('*')):
+              if p.is_file():
+                  b=p.read_bytes(); files.append({'path':str(p.relative_to(OUT)),'size':len(b),'sha256':sha(b)})
+          (OUT/'SHA256_MANIFEST.json').write_text(json.dumps({'files':files},indent=2,sort_keys=True),encoding='utf-8')
+          print(json.dumps(summary,ensure_ascii=False,indent=2))
+          PY
+          tar -czf cee_ocpr_v04_supplement.tar.gz cee_ocpr_v04_supplement
+          sha256sum cee_ocpr_v04_supplement.tar.gz | tee cee_ocpr_v04_supplement.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cee-ocpr-v04-fiscal-and-amendments
+          path: |
+            cee_ocpr_v04_supplement/
+            cee_ocpr_v04_supplement.tar.gz
+            cee_ocpr_v04_supplement.tar.gz.sha256
+          retention-days: 30
