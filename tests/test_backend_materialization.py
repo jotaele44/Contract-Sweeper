@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 
-from server.backend.materialization import _public_run_summary, _write_offline_receipt
+from server.backend.materialization_security import public_run_summary, write_offline_receipt
 
 
 def test_offline_receipt_path_is_independent_of_source_metadata(tmp_path):
-    receipt = _write_offline_receipt(
+    receipt = write_offline_receipt(
         tmp_path,
         {
             "source_id": "../../outside",
@@ -22,7 +22,7 @@ def test_offline_receipt_path_is_independent_of_source_metadata(tmp_path):
 
 
 def test_public_run_summary_excludes_internal_paths_and_exception_details():
-    public = _public_run_summary(
+    public = public_run_summary(
         {
             "schema_version": "1.0.0",
             "selected_count": 1,
