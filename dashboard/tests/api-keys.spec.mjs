@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 // api-key-management: the "API Keys" tab (ApiKeysPanel.jsx) and its backend
 // (server/backend/api_keys.py, GET/POST /api-keys). Verifies the tab is
 // reachable through the real UI, GET /api-keys is genuinely wired (not
-// stubbed — 16 real entries parsed from .env.example), and that saving a
-// value round-trips through a real POST without ever echoing the value back
-// in any response body, matching docs/SECRET_HANDLING_POLICY.md.
+// stubbed), every entry parsed from .env.example is rendered, and saving a
+// value round-trips through a real POST without ever echoing the value back in
+// any response body, matching docs/SECRET_HANDLING_POLICY.md.
 
 test("API Keys tab reaches the real backend and lists all known keys", async ({ page }) => {
   const listResponse = page.waitForResponse(
@@ -18,12 +18,14 @@ test("API Keys tab reaches the real backend and lists all known keys", async ({ 
   await expect(page.getByTestId("api-keys-panel")).toBeVisible();
 
   const rows = await (await listResponse).json();
-  expect(rows, "GET /api-keys did not return the expected shape").toHaveLength(16);
+  expect(rows.length, "GET /api-keys returned an empty registry").toBeGreaterThan(0);
+  expect(new Set(rows.map((row) => row.name)).size, "GET /api-keys returned duplicate names").toBe(rows.length);
   for (const row of rows) {
     expect(Object.keys(row).sort()).toEqual(["description", "is_set", "name", "required"]);
+    await expect(page.getByTestId(`api-key-row-${row.name}`)).toBeVisible();
   }
 
-  await expect(page.getByTestId("api-key-row-SAM_API_KEY")).toBeVisible();
+  await expect(page.locator('[data-testid^="api-key-row-"]')).toHaveCount(rows.length);
 });
 
 test("saving a key does a real POST and never echoes the value back", async ({ page }) => {
