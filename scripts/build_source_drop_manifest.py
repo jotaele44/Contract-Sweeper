@@ -267,7 +267,9 @@ def write_outputs(records: list[dict[str, Any]], out_dir: Path, *, stage: bool) 
     with (out_dir / "moneysweep_source_drop_manifest.csv").open(
         "w", encoding="utf-8", newline=""
     ) as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
+        writer = csv.DictWriter(
+            handle, fieldnames=fields, extrasaction="ignore", lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(records)
     print(json.dumps(payload["arithmetic"], sort_keys=True))
