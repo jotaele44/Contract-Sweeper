@@ -11,26 +11,34 @@ jobs:
     name: federation-compatibility
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
       - name: Validate compatibility receipt
         env:
           EXPECTED_REPO: moneysweep-pr
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
           python - <<'PY'
           import json, os, subprocess, sys
-          p='governance/federation_compatibility.json'
-          d=json.load(open(p))
+          from pathlib import Path
+
+          p = 'governance/federation_compatibility.json'
+          d = json.loads(Path(p).read_text(encoding='utf-8'))
           allowed={'UNAFFECTED','COMPATIBLE','UPDATED','BLOCKED'}
           if d.get('repo') != os.environ['EXPECTED_REPO']: sys.exit('wrong repo in compatibility receipt')
           if d.get('disposition') not in allowed: sys.exit('unknown compatibility disposition')
           if d.get('disposition') == 'BLOCKED': sys.exit('federation compatibility is BLOCKED')
-          if os.environ.get('BASE_SHA') and os.environ.get('HEAD_SHA'):
-              changed=subprocess.check_output(['git','diff','--name-only',os.environ['BASE_SHA']+'...'+os.environ['HEAD_SHA']],text=True).splitlines()
-              if 'federation.json' in changed and p not in changed:
-                  sys.exit('federation.json changed without compatibility receipt update')
+          base = os.environ.get('BASE_SHA')
+          head = os.environ.get('HEAD_SHA')
+          if not base or not head or set(base) == {'0'}:
+              sys.exit('missing authoritative event commit range')
+          changed=subprocess.check_output(['git','diff','--name-only',base+'..'+head],text=True).splitlines()
+          if 'federation.json' in changed and p not in changed:
+              sys.exit('federation.json changed without compatibility receipt update')
           print('FEDERATION_COMPATIBILITY_PASS')
           PY
