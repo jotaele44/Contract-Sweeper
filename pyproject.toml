@@ -22,11 +22,12 @@ files = ["moneysweep", "scripts"]
 exclude = "(^archive/|tests/)"
 
 [tool.ruff]
-# Lint adoption is INTENTIONALLY NON-GATING to start (see .github/workflows/lint.yml,
-# which sets continue-on-error). The current tree has a known lint backlog; it is
-# cleaned up incrementally per docs/BUILD_EXECUTION_SEQUENCE.md (Wave B) before the
-# CI job is flipped to blocking (Wave B, task 13). Keep the rule set here aligned
-# with ruff's defaults so the measured baseline stays stable.
+# Lint is GATING: .github/workflows/lint.yml runs `ruff check .` and
+# `ruff format --check .` with no continue-on-error (see Makefile's
+# `lint`/`format-check` targets, which mirror it exactly). This comment used
+# to describe that as a future "Wave B, task 13" flip from a non-gating
+# start; that flip has already happened. Keep the rule set here aligned with
+# ruff's defaults so the measured baseline stays stable.
 line-length = 100
 target-version = "py311"
 extend-exclude = ["archive"]

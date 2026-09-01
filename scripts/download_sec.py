@@ -51,9 +51,9 @@ RETRY_BACKOFF = [5, 15, 30]
 PR_DOMICILED = [
     {"cik": "0000763901", "ticker": "BPOP", "name": "Popular Inc", "sector": "Banking"},
     {"cik": "0000834494", "ticker": "FBP", "name": "First BanCorp PR", "sector": "Banking"},
-    {"cik": "0001016178", "ticker": "OFG", "name": "OFG Bancorp", "sector": "Banking"},
+    {"cik": "0001030469", "ticker": "OFG", "name": "OFG Bancorp", "sector": "Banking"},
     {"cik": "0000072778", "ticker": "GTS", "name": "Triple-S Management", "sector": "Insurance"},
-    {"cik": "0001633931", "ticker": "EVRI", "name": "Everi Holdings", "sector": "Gaming"},
+    {"cik": "0001318568", "ticker": "EVRI", "name": "Everi Holdings", "sector": "Gaming"},
     {"cik": "0001001233", "ticker": "PRSC", "name": "Providence Service", "sector": "Healthcare"},
 ]
 

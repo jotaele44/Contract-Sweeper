@@ -5,6 +5,7 @@ base_registry_snapshot:
   ref: 6ccd83fbb0ef7ad33d692cc36b27a94433500fcd
   expected_source_count: 158
   source_ids_sha256: 673659d9c53e8428e21052d95819ff35023e90142756686e73a9c9f1b326bbf2
+  source_ids_file: reports/guide_financial_avenue_source_audit_v1.csv
 
 allowed_binding_states:
   - AUTHORITATIVE_ROUTE

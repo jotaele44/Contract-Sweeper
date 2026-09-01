@@ -1,0 +1,19 @@
+started_utc=2026-09-01T00:54:44Z
+2026-08-31 20:54:46 [INFO]   Found 6 COR3 Excel file(s) in /Users/jotaele/fed-repos/moneysweep-pr/data/raw/COR3
+2026-08-31 20:54:46 [INFO]   Reading COR3 DISBURSEMENT_110726_0824.xlsx...
+2026-08-31 20:54:46 [WARNING]     Sheet 'Asistencia Pública' error: type NAType doesn't define __round__ method
+2026-08-31 20:54:46 [INFO]   Reading COR3 HMGP_110726_0836.xlsx...
+2026-08-31 20:54:46 [WARNING]     Sheet 'HMGP' error: type NAType doesn't define __round__ method
+2026-08-31 20:54:46 [INFO]   Reading COR3 PA_110726_0836.xlsx...
+2026-08-31 20:54:51 [WARNING]     Sheet 'PA' error: type NAType doesn't define __round__ method
+2026-08-31 20:54:51 [INFO]   Reading COR3 Procurement Inventory_110726_0841.xlsx...
+2026-08-31 20:54:51 [INFO]     Sheet 'Procurement Inventory': 1,233 rows
+2026-08-31 20:54:51 [INFO]   Reading COR3 RFP and Contracts_110726_0810.xlsx...
+2026-08-31 20:54:52 [INFO]     Sheet 'RFP and Contracts': 345 rows
+2026-08-31 20:54:52 [INFO]   Reading COR3 Transparency Portal_HMGP_110726_0836.xlsx...
+2026-08-31 20:54:52 [WARNING]     Sheet 'HMGP' error: type NAType doesn't define __round__ method
+2026-08-31 20:54:52 [INFO]   Removed 97 duplicate project-version rows
+2026-08-31 20:54:52 [INFO]   Written: pr_cor3_projects.csv (1,481 rows)
+
+COR3 ingest: 1,481 rows — OK
+finished_utc=2026-09-01T00:54:52Z

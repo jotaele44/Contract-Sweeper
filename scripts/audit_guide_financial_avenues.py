@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import sys
 from collections import Counter, defaultdict
@@ -70,6 +71,10 @@ def _status_rows(path: Path) -> list[dict[str, str]]:
 def load_inputs(root: Path = PROJECT_ROOT) -> dict:
     guide = _yaml(root / GUIDE_REL)
     bindings = _yaml(root / BINDINGS_REL)
+    snapshot = bindings.get("base_registry_snapshot") or {}
+    snapshot_path = (root / str(snapshot.get("source_ids_file", ""))).resolve()
+    if not snapshot_path.is_relative_to(root.resolve()):
+        raise RuntimeError(f"base source snapshot escapes repository root: {snapshot_path}")
     # The canonical MoneySweep source denominator is the effective registry,
     # including source-registry extensions and scoped metadata overrides. Reading
     # only registries/source_registry.yaml silently drops extension sources and
@@ -77,12 +82,14 @@ def load_inputs(root: Path = PROJECT_ROOT) -> dict:
     registry = load_source_registry(root)
     overlay = _yaml(root / OVERLAY_REL)
     statuses = _status_rows(root / SOURCE_STATUS_REL)
+    snapshot_rows = _status_rows(snapshot_path)
     return {
         "guide": guide,
         "bindings": bindings,
         "registry": registry,
         "overlay": overlay,
         "statuses": statuses,
+        "snapshot_rows": snapshot_rows,
     }
 
 
@@ -103,23 +110,33 @@ def validate_inputs(inputs: dict) -> dict:
     if len(canonicals) != len(set(canonicals)) or any(not x for x in canonicals):
         raise RuntimeError("duplicate/null guide canonical avenue")
 
-    source_ids = _source_ids(registry)
+    live_source_ids = _source_ids(registry)
     snapshot = bindings.get("base_registry_snapshot") or {}
+    snapshot_rows = inputs["snapshot_rows"]
+    source_ids = [str(row.get("source_id", "")).strip() for row in snapshot_rows]
     expected_count = int(snapshot.get("expected_source_count", 0))
     if len(source_ids) != expected_count:
         raise RuntimeError(
             f"base source denominator drift: expected={expected_count} observed={len(source_ids)}"
         )
+    if any(not source_id for source_id in source_ids) or len(source_ids) != len(set(source_ids)):
+        raise RuntimeError("base source snapshot contains null/duplicate source_id")
+    observed_hash = hashlib.sha256(("\n".join(sorted(source_ids)) + "\n").encode()).hexdigest()
+    expected_hash = str(snapshot.get("source_ids_sha256", ""))
+    if observed_hash != expected_hash:
+        raise RuntimeError(
+            f"base source snapshot hash drift: expected={expected_hash} observed={observed_hash}"
+        )
+    missing_live = sorted(set(source_ids) - set(live_source_ids))
+    if missing_live:
+        raise RuntimeError(f"frozen base sources missing from live registry: {missing_live}")
 
     status_ids = [str(row.get("source_id", "")).strip() for row in statuses]
     if len(status_ids) != len(set(status_ids)):
         raise RuntimeError("source_registry_status duplicate source_id")
-    if set(status_ids) != set(source_ids):
+    if not set(source_ids) <= set(status_ids):
         missing_status = sorted(set(source_ids) - set(status_ids))
-        extra_status = sorted(set(status_ids) - set(source_ids))
-        raise RuntimeError(
-            f"source_registry_status mismatch: missing={missing_status} extra={extra_status}"
-        )
+        raise RuntimeError(f"source_registry_status missing frozen sources: {missing_status}")
 
     mapping = bindings.get("bindings") or {}
     if set(mapping) != set(avenue_ids):
@@ -155,6 +172,7 @@ def validate_inputs(inputs: dict) -> dict:
         "avenue_ids": avenue_ids,
         "canonical_by_id": {str(x["avenue_id"]): str(x["canonical"]) for x in avenues},
         "source_ids": source_ids,
+        "live_source_ids": live_source_ids,
         "status_by_id": {str(row["source_id"]): row for row in statuses},
         "overlay_ids": overlay_ids,
     }
@@ -210,7 +228,8 @@ def metrics_payload(inputs: dict, validated: dict, computed: dict) -> dict:
         str(binding["state"]) for binding in inputs["bindings"]["bindings"].values()
     )
     pipeline_counts = Counter(
-        str(row.get("pipeline_status", "UNKNOWN")) for row in inputs["statuses"]
+        str(validated["status_by_id"][source_id].get("pipeline_status", "UNKNOWN"))
+        for source_id in validated["source_ids"]
     )
     return {
         "schema_version": "guide_financial_avenue_set_metrics_v1",

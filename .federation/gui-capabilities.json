@@ -1012,26 +1012,64 @@
       ]
     },
     {
-      "id": "guide-financial-avenue-audit-pipeline",
-      "classification": "internal",
+      "id": "api-key-management",
+      "classification": "operator",
       "status": "active",
       "requires_terminal": false,
-      "rationale": "Bounded source-audit, immutable public-source materialization, and certification receipt generation are CI/operator pipeline infrastructure rather than a separate human-facing dashboard workflow.",
-      "analysis": {
+      "backend": {
         "files": [
-          "scripts/audit_guide_financial_avenues.py",
-          "scripts/finalize_guide_financial_freeze.py",
-          "scripts/scrape_ftz_board_pr.py",
-          "scripts/scrape_ocif_guide_financial_classes.py",
-          "scripts/scrape_ocs_insurers.py"
+          "server/backend/api_keys.py"
+        ],
+        "endpoints": [
+          "GET /api-keys",
+          "POST /api-keys/{name}"
+        ]
+      },
+      "frontend": {
+        "routes": [
+          "/"
+        ],
+        "e2e_routes": [
+          "/"
+        ],
+        "components": [
+          "dashboard/src/lib/api.js",
+          "dashboard/src/lib/hooks.js",
+          "dashboard/src/pages/Dashboard.jsx",
+          "dashboard/src/components/ApiKeysPanel.jsx"
+        ],
+        "discoverability": [
+          "dashboard/src/pages/Dashboard.jsx"
         ]
       },
       "tests": {
         "backend": [
-          "tests/test_guide_financial_avenue_audit.py",
-          "tests/test_guide_financial_source_parsers.py"
+          "tests/test_api_keys_endpoint.py",
+          "tests/test_manage_api_keys.py"
+        ],
+        "contract": [
+          "tests/test_gui_parity.py"
+        ],
+        "e2e": [
+          "dashboard/tests/api-keys.spec.mjs"
         ]
-      }
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/manage_api_keys.py",
+        "analysis_module:scripts/set_api_key.py",
+        "analysis_symbol:scripts/manage_api_keys.py:KeyInfo",
+        "analysis_symbol:scripts/manage_api_keys.py:InvalidKeyValueError",
+        "analysis_symbol:scripts/manage_api_keys.py:UnknownKeyError",
+        "analysis_symbol:scripts/manage_api_keys.py:key_status",
+        "analysis_symbol:scripts/manage_api_keys.py:known_keys",
+        "analysis_symbol:scripts/manage_api_keys.py:set_key",
+        "analysis_symbol:scripts/set_api_key.py:main",
+        "cli_surface:scripts/set_api_key.py",
+        "python_module:server/backend/api_keys.py",
+        "python_symbol:server/backend/api_keys.py:SetKeyRequest",
+        "python_symbol:server/backend/api_keys.py:list_api_keys",
+        "python_symbol:server/backend/api_keys.py:set_api_key"
+      ]
     }
   ],
   "exceptions": [

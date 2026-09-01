@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import copy
+
+import pytest
+
 from scripts.audit_guide_financial_avenues import (
     compute,
     load_inputs,
@@ -56,3 +60,22 @@ def test_binding_states_never_promote_discovery_to_identity():
     assert bindings["GFAV-004"]["state"] == "ABSENT"
     assert bindings["GFAV-005"]["state"] == "ABSENT"
     assert bindings["GFAV-020"]["state"] == "ABSENT"
+
+
+def test_frozen_source_membership_hash_fails_closed():
+    inputs = copy.deepcopy(load_inputs())
+    inputs["snapshot_rows"][0]["source_id"] = "substituted-source"
+
+    with pytest.raises(RuntimeError, match="snapshot hash drift"):
+        validate_inputs(inputs)
+
+
+def test_frozen_source_missing_from_live_registry_fails_closed():
+    inputs = copy.deepcopy(load_inputs())
+    missing = inputs["snapshot_rows"][0]["source_id"]
+    inputs["registry"]["sources"] = [
+        row for row in inputs["registry"]["sources"] if row["source_id"] != missing
+    ]
+
+    with pytest.raises(RuntimeError, match="missing from live registry"):
+        validate_inputs(inputs)
