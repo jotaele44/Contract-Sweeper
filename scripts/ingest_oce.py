@@ -180,7 +180,18 @@ def _parse_df(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
     ]
     donor = out_df["donor_name"].fillna("").astype(str).str.strip()
     amount = out_df["amount"].fillna("").astype(str).str.strip()
-    out_df = out_df[(donor != "") & (donor.str.lower() != "nan") & (amount != "")]
+    evidence_fields = [
+        "amount",
+        "contribution_date",
+        "candidate_or_committee",
+        "party",
+        "event_name",
+    ]
+    has_evidence = pd.Series(False, index=out_df.index)
+    for field in evidence_fields:
+        values = out_df[field].fillna("").astype(str).str.strip()
+        has_evidence = has_evidence | ((values != "") & (values.str.lower() != "nan"))
+    out_df = out_df[(donor != "") & (donor.str.lower() != "nan") & has_evidence]
     for col in OUTPUT_COLUMNS:
         if col not in out_df.columns:
             out_df[col] = ""
