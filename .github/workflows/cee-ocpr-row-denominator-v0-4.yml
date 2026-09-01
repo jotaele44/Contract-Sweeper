@@ -1,0 +1,192 @@
+name: CEE OCPR row denominator v0.4
+
+on:
+  push:
+    branches:
+      - cee-ocpr-row-denominator-v0-4
+    paths:
+      - .github/workflows/cee-ocpr-row-denominator-v0-4.yml
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Recover authoritative CEE rows from OCPR
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet requests beautifulsoup4
+          cat > /tmp/recover.py <<'PY'
+          from __future__ import annotations
+          import csv, hashlib, json, re, sys, time
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from urllib.parse import urlencode
+          import requests
+          from bs4 import BeautifulSoup
+
+          BASE='https://consultacontratos.ocpr.gov.pr'
+          SEARCH_PAGE=f'{BASE}/contract'
+          SEARCH_API=f'{BASE}/contract/search'
+          ENTITY_LOOKUP=f'{BASE}/entity/findby'
+          ENTITY_ID='1410'
+          ENTITY_EXPECTED='COMISION ESTATAL DE ELECCIONES'
+          OUT=Path('cee_ocpr_v04')
+          RAW=OUT/'raw_pages'
+          RAW.mkdir(parents=True, exist_ok=True)
+          captured=datetime.now(timezone.utc).isoformat()
+          s=requests.Session()
+          s.headers.update({'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4 (+research; bounded public-source recovery)'})
+
+          def norm(x):
+              return re.sub(r'[^A-Z0-9]+',' ',(x or '').upper()).strip()
+
+          # Bind the requested OCPR entity identifier independently.
+          r=s.get(ENTITY_LOOKUP,params={'name':'Comision Estatal de Elecciones','pageIndex':1,'pageSize':80},timeout=60)
+          r.raise_for_status()
+          entity_payload=r.json()
+          (OUT/'entity_lookup_raw.json').write_text(json.dumps(entity_payload,ensure_ascii=False,indent=2),encoding='utf-8')
+          candidates=entity_payload.get('Results') or []
+          bound=[x for x in candidates if str(x.get('Code'))==ENTITY_ID]
+          if len(bound)!=1 or 'COMISION ESTATAL DE ELECCIONES' not in norm(bound[0].get('Name')):
+              print('ENTITY_BINDING_FAIL', candidates[:10], file=sys.stderr)
+              raise SystemExit(41)
+          print('ENTITY_BINDING_PASS', bound[0])
+
+          # Bootstrap anti-forgery token and preserve the exact search-page snapshot.
+          r=s.get(SEARCH_PAGE,timeout=60)
+          r.raise_for_status()
+          (OUT/'search_bootstrap.html').write_bytes(r.content)
+          soup=BeautifulSoup(r.text,'html.parser')
+          node=soup.find('input',{'name':'__RequestVerificationToken'})
+          if not node or not node.get('value'):
+              raise SystemExit('ANTI_FORGERY_TOKEN_MISSING')
+          token=str(node['value'])
+
+          headers={
+              'Accept':'application/json, text/javascript, */*; q=0.01',
+              'Content-Type':'application/json; charset=utf-8',
+              'Referer':SEARCH_PAGE,
+              'X-Requested-With':'XMLHttpRequest',
+              '__RequestVerificationToken':token,
+          }
+          page_size=100
+          start=0
+          draw=1
+          all_rows=[]
+          filtered_expected=None
+          while True:
+              payload={
+                  'draw':draw,'start':start,'length':page_size,
+                  'order':[{'column':1,'dir':'desc'}],
+                  'search':{'value':'','regex':False},
+                  'EntityId':ENTITY_ID,'ContractNumber':None,'ContractorName':None,
+                  'DateOfGrantFrom':None,'DateOfGrantTo':None,
+                  'EffectiveDateFrom':None,'EffectiveDateTo':None,
+                  'AmountFrom':None,'AmountTo':None,
+                  'ServiceGroupId':None,'ServiceId':None,'FundId':None,
+                  'ContractingFormId':None,'PCONumber':None,
+              }
+              rr=s.post(SEARCH_API,headers=headers,json=payload,timeout=60)
+              rr.raise_for_status()
+              data=rr.json()
+              (RAW/f'page_{start:06d}.json').write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8')
+              rows=data.get('data') or []
+              if filtered_expected is None:
+                  filtered_expected=int(data.get('recordsFiltered') or 0)
+                  print('recordsFiltered',filtered_expected)
+              all_rows.extend(rows)
+              if not rows:
+                  break
+              start += page_size
+              draw += 1
+              if start >= filtered_expected:
+                  break
+              time.sleep(0.15)
+
+          if filtered_expected is None or len(all_rows)!=filtered_expected:
+              raise SystemExit(f'ROW_COUNT_MISMATCH expected={filtered_expected} got={len(all_rows)}')
+
+          def msdate(v):
+              if not v: return None
+              m=re.search(r'/Date\((-?\d+)',str(v))
+              if not m: return str(v)
+              return datetime.fromtimestamp(int(m.group(1))/1000,tz=timezone.utc).date().isoformat()
+          def fy(date_text):
+              if not date_text or not re.match(r'^\d{4}-\d{2}-\d{2}$',date_text): return None
+              y,m,_=map(int,date_text.split('-'))
+              return f'{y}-{y+1}' if m>=7 else f'{y-1}-{y}'
+
+          whole=[]
+          for x in all_rows:
+              contractors=[(c or {}).get('Name') for c in (x.get('Contractors') or []) if (c or {}).get('Name')]
+              grant=msdate(x.get('DateOfGrant'))
+              whole.append({
+                  'source_contract_id':x.get('ContractId'),
+                  'contract_number':x.get('ContractNumber'),
+                  'amendment':x.get('Amendment'),
+                  'entity_id':x.get('EntityId'),
+                  'entity_name':x.get('EntityName'),
+                  'contractors_raw_json':json.dumps(contractors,ensure_ascii=False,separators=(',',':')),
+                  'service_group':x.get('ServiceGroup'),
+                  'service_type':x.get('Service'),
+                  'amount_to_pay_raw':x.get('AmountToPay'),
+                  'amount_to_receive_raw':x.get('AmountToReceive'),
+                  'date_of_grant':grant,
+                  'effective_from':msdate(x.get('EffectiveDateFrom')),
+                  'effective_to':msdate(x.get('EffectiveDateTo')),
+                  'cancellation_date':msdate(x.get('CancellationDate')),
+                  'document_code':x.get('DocumentWithoutSocialSecurityId'),
+                  'fiscal_year':fy(grant),
+                  'captured_at_utc':captured,
+                  'raw_row_json':json.dumps(x,ensure_ascii=False,separators=(',',':'),sort_keys=True),
+              })
+
+          # Exact stable ID uniqueness gate inside this response population.
+          ids=[str(r['source_contract_id']) for r in whole if r['source_contract_id'] is not None]
+          if len(ids)!=len(set(ids)):
+              raise SystemExit('DUPLICATE_SOURCE_CONTRACT_ID')
+
+          fields=list(whole[0].keys()) if whole else []
+          with (OUT/'cee_1410_all_rows.csv').open('w',encoding='utf-8',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(whole)
+          with (OUT/'cee_1410_all_rows.jsonl').open('w',encoding='utf-8') as f:
+              for row in whole: f.write(json.dumps(row,ensure_ascii=False,sort_keys=True)+'\n')
+
+          byfy={}
+          for row in whole: byfy.setdefault(row['fiscal_year'] or 'UNKNOWN',[]).append(row)
+          summaries={k:{'row_count':len(v),'source_contract_id_unique':len({str(r['source_contract_id']) for r in v})} for k,v in sorted(byfy.items())}
+          receipt={
+              'status':'PASS','captured_at_utc':captured,'source':BASE,'entity_id':ENTITY_ID,
+              'entity_binding':bound[0],'records_filtered':filtered_expected,'rows_recovered':len(whole),
+              'fiscal_year_counts':summaries,'raw_page_count':len(list(RAW.glob('*.json'))),
+              'query_contract':{'endpoint':SEARCH_API,'EntityId':ENTITY_ID,'start':'paged','length':page_size,'other_filters':None},
+          }
+          (OUT/'recovery_receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+
+          # File-level SHA256 manifest; token value itself is intentionally not logged.
+          files=[]
+          for p in sorted(OUT.rglob('*')):
+              if p.is_file():
+                  b=p.read_bytes(); files.append({'path':str(p.relative_to(OUT)),'size':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+          (OUT/'SHA256_MANIFEST.json').write_text(json.dumps({'files':files},indent=2,sort_keys=True),encoding='utf-8')
+          print(json.dumps(receipt,indent=2))
+          PY
+          python /tmp/recover.py
+          tar -czf cee_ocpr_v04_authoritative_rows.tar.gz cee_ocpr_v04
+          sha256sum cee_ocpr_v04_authoritative_rows.tar.gz | tee cee_ocpr_v04_authoritative_rows.tar.gz.sha256
+
+      - name: Upload authoritative recovery artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cee-ocpr-v04-authoritative-rows
+          path: |
+            cee_ocpr_v04/
+            cee_ocpr_v04_authoritative_rows.tar.gz
+            cee_ocpr_v04_authoritative_rows.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 30
