@@ -161,7 +161,7 @@ def write_status_csv(root: Path, sources: list[dict] | None = None) -> Path:
     out = root / "reports" / "source_registry_status.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=STATUS_CSV_FIELDS)
+        w = csv.DictWriter(f, fieldnames=STATUS_CSV_FIELDS, lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
     return out
