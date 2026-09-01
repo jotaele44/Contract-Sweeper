@@ -22,10 +22,9 @@ jobs:
           python -m pip install --quiet requests beautifulsoup4
           cat > /tmp/recover.py <<'PY'
           from __future__ import annotations
-          import csv, hashlib, json, re, sys, time
+          import csv, hashlib, json, re, sys, time, unicodedata
           from datetime import datetime, timezone
           from pathlib import Path
-          from urllib.parse import urlencode
           import requests
           from bs4 import BeautifulSoup
 
@@ -43,7 +42,9 @@ jobs:
           s.headers.update({'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4 (+research; bounded public-source recovery)'})
 
           def norm(x):
-              return re.sub(r'[^A-Z0-9]+',' ',(x or '').upper()).strip()
+              decomposed=unicodedata.normalize('NFKD', x or '')
+              asciiish=''.join(ch for ch in decomposed if not unicodedata.combining(ch))
+              return re.sub(r'[^A-Z0-9]+',' ',asciiish.upper()).strip()
 
           # Bind the requested OCPR entity identifier independently.
           r=s.get(ENTITY_LOOKUP,params={'name':'Comision Estatal de Elecciones','pageIndex':1,'pageSize':80},timeout=60)
@@ -52,12 +53,12 @@ jobs:
           (OUT/'entity_lookup_raw.json').write_text(json.dumps(entity_payload,ensure_ascii=False,indent=2),encoding='utf-8')
           candidates=entity_payload.get('Results') or []
           bound=[x for x in candidates if str(x.get('Code'))==ENTITY_ID]
-          if len(bound)!=1 or 'COMISION ESTATAL DE ELECCIONES' not in norm(bound[0].get('Name')):
+          if len(bound)!=1 or norm(bound[0].get('Name')) != ENTITY_EXPECTED:
               print('ENTITY_BINDING_FAIL', candidates[:10], file=sys.stderr)
               raise SystemExit(41)
           print('ENTITY_BINDING_PASS', bound[0])
 
-          # Bootstrap anti-forgery token and preserve the exact search-page snapshot.
+          # Bootstrap anti-forgery token and preserve exact search-page bytes.
           r=s.get(SEARCH_PAGE,timeout=60)
           r.raise_for_status()
           (OUT/'search_bootstrap.html').write_bytes(r.content)
@@ -146,10 +147,13 @@ jobs:
                   'raw_row_json':json.dumps(x,ensure_ascii=False,separators=(',',':'),sort_keys=True),
               })
 
-          # Exact stable ID uniqueness gate inside this response population.
+          # Stable-ID uniqueness and entity-conservation gates.
           ids=[str(r['source_contract_id']) for r in whole if r['source_contract_id'] is not None]
           if len(ids)!=len(set(ids)):
               raise SystemExit('DUPLICATE_SOURCE_CONTRACT_ID')
+          bad_entity=[r for r in whole if str(r.get('entity_id')) != ENTITY_ID]
+          if bad_entity:
+              raise SystemExit(f'ENTITY_LEAKAGE rows={len(bad_entity)}')
 
           fields=list(whole[0].keys()) if whole else []
           with (OUT/'cee_1410_all_rows.csv').open('w',encoding='utf-8',newline='') as f:
@@ -168,7 +172,6 @@ jobs:
           }
           (OUT/'recovery_receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
 
-          # File-level SHA256 manifest; token value itself is intentionally not logged.
           files=[]
           for p in sorted(OUT.rglob('*')):
               if p.is_file():
