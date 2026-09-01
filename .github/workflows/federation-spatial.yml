@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install validator dependencies
-        run: python -m pip install jsonschema pytest
+        run: python -m pip install jsonschema pytest pytest-cov
       - name: Validate spatial contracts
         run: python scripts/validate_federation_spatial.py
       - name: Run spatial contract tests

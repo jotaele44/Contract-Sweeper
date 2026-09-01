@@ -21,12 +21,14 @@
         "backend": [
           "tests/test_spatial_materializer.py",
           "tests/test_federation_spatial_core.py",
-          "tests/test_fedgeopack.py"
+          "tests/test_fedgeopack.py",
+          "tests/test_validate_federation_spatial.py"
         ]
       },
       "candidate_ids": [
         "analysis_module:scripts/validate_federation_spatial.py",
         "analysis_symbol:scripts/validate_federation_spatial.py:main",
+        "analysis_symbol:scripts/validate_federation_spatial.py:validate",
         "python_module:moneysweep/runtime/spatial_materializer.py",
         "python_symbol:moneysweep/runtime/spatial_materializer.py:flow_feature",
         "python_symbol:moneysweep/runtime/spatial_materializer.py:point_feature"
