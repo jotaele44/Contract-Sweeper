@@ -11,7 +11,8 @@
           "desktop/secrets.py",
           "desktop/workspace.py",
           "server/backend/desktop_app.py",
-          "server/backend/materialization.py"
+          "server/backend/materialization.py",
+          "server/backend/materialization_security.py"
         ],
         "endpoints": [
           "GET /status",
@@ -41,7 +42,9 @@
           "server/backend/materialization.py:materialization_status",
           "server/backend/materialization.py:run_api_sources",
           "server/backend/materialization.py:run_offline_source",
-          "server/backend/materialization.py:upload_offline_file"
+          "server/backend/materialization.py:upload_offline_file",
+          "server/backend/materialization_security.py:public_run_summary",
+          "server/backend/materialization_security.py:write_offline_receipt"
         ]
       },
       "frontend": {
@@ -62,6 +65,7 @@
       },
       "tests": {
         "backend": [
+          "tests/test_backend_materialization.py",
           "tests/test_desktop_workspace.py",
           "tests/test_desktop_materialization_runtime.py"
         ],
