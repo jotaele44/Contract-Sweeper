@@ -116,7 +116,7 @@ def check_coverage(rows: list[dict[str, Any]]) -> list[str]:
     fips = [r["county_fips"] for r in rows if r["county_fips"]]
     if len(set(fips)) != len(fips):
         problems.append("duplicate county_fips values present")
-    if any(r["review_status"] != "pending" for r in rows):
+    if any(r.get("review_status") != "pending" for r in rows):
         problems.append("noncanonical municipality reference unexpectedly promoted")
     return problems
 
