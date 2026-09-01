@@ -6,11 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = (
-    ROOT
-    / "data"
-    / "manifests"
-    / "capital_control"
-    / "capital_control_successor_synthesis_v1.json"
+    ROOT / "data" / "manifests" / "capital_control" / "capital_control_successor_synthesis_v1.json"
 )
 
 
@@ -31,7 +27,8 @@ def test_successor_preserves_exact_source_payload_blobs() -> None:
         for relative, expected_sha in source["files"].items():
             if relative == "moneysweep/capital_control/__init__.py":
                 continue
-            path = ROOT / relative
+            overlap = manifest["overlap_adjudication"].get(relative, {})
+            path = ROOT / overlap.get("source_snapshot", relative)
             assert path.is_file(), f"missing imported source path: {relative}"
             assert _git_blob_sha(path) == expected_sha, relative
 
@@ -43,6 +40,9 @@ def test_only_material_overlap_is_adjudicated_whole_file() -> None:
     assert adjudication["pr520_vs_current_main_material_intersection"] == [
         "moneysweep/capital_control/__init__.py"
     ]
+    assert adjudication["pr527_vs_current_main_material_intersection"] == [
+        "dashboard/src/lib/api.js"
+    ]
 
     merged = ROOT / "moneysweep" / "capital_control" / "__init__.py"
     record = adjudication["moneysweep/capital_control/__init__.py"]
@@ -53,6 +53,15 @@ def test_only_material_overlap_is_adjudicated_whole_file() -> None:
     assert "from .deep_dive import (" in source
     assert '"resolution_core"' in source
     assert '"build_ownership_deep_dive"' in source
+
+    api = ROOT / "dashboard" / "src" / "lib" / "api.js"
+    api_record = adjudication["dashboard/src/lib/api.js"]
+    api_snapshot = ROOT / api_record["source_snapshot"]
+    assert _git_blob_sha(api_snapshot) == api_record["pr527_blob"]
+    assert _git_blob_sha(api) == api_record["derived_merged_blob"]
+    api_source = api.read_text(encoding="utf-8")
+    assert "resolveOfflineSnapshot" in api_source
+    assert "setApiKey" in api_source
 
 
 def test_successor_source_lineage_and_hold_are_exact() -> None:
@@ -71,10 +80,13 @@ def test_successor_source_lineage_and_hold_are_exact() -> None:
 
 
 def test_legacy_identity_and_generic_backend_do_not_become_second_resolvers() -> None:
-    identity_source = (
-        ROOT / "moneysweep" / "capital_control" / "identity.py"
-    ).read_text(encoding="utf-8")
-    assert "from .resolution_core import Candidate, EvidenceBasis, resolve_candidates" in identity_source
+    identity_source = (ROOT / "moneysweep" / "capital_control" / "identity.py").read_text(
+        encoding="utf-8"
+    )
+    assert (
+        "from .resolution_core import Candidate, EvidenceBasis, resolve_candidates"
+        in identity_source
+    )
     assert "Compatibility wrapper over the canonical resolution_core" in identity_source
 
     backend_source = (ROOT / "server" / "backend" / "main.py").read_text(encoding="utf-8")

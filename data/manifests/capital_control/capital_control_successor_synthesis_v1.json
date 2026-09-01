@@ -75,14 +75,24 @@
     "pr520_vs_current_main_material_intersection": [
       "moneysweep/capital_control/__init__.py"
     ],
+    "pr527_vs_current_main_material_intersection": [
+      "dashboard/src/lib/api.js"
+    ],
     "moneysweep/capital_control/__init__.py": {
       "main_blob": "923d73c1a0c11cd81f0568aa2a499b286d3175dd",
       "pr520_blob": "d44d8fe1e09f893da40d2d341d9c3dc69441f9ef",
       "derived_merged_blob": "3c0628ce39f28a796f8303e3e72d2c748bc91ada",
       "decision": "PRESERVE_CURRENT_MAIN_DEEP_DIVE_EXPORTS_AND_ADD_RESOLUTION_CORE_EXPORT"
     },
+    "dashboard/src/lib/api.js": {
+      "pr527_blob": "5bc01270635d1da05919c0bd91517ff24636df8b",
+      "current_main_blob": "aaf39f91c9b63d092fa6b3105ca87e91fa9a8fa2",
+      "derived_merged_blob": "d578a35a091d44a34d3c4623b73f226de9f04534",
+      "source_snapshot": "data/manifests/capital_control/source_inputs/pr527/dashboard/src/lib/api.js",
+      "decision": "PRESERVE_PR527_OFFLINE_SNAPSHOT_RESOLUTION_AND_CURRENT_MAIN_API_KEY_CLIENT"
+    },
     "all_other_pr520_paths": "EXACT_BLOB_REUSE",
-    "all_pr527_paths": "EXACT_BLOB_REUSE"
+    "all_other_pr527_paths": "EXACT_BLOB_REUSE"
   },
   "invariants": {
     "no_raw_mutation": true,

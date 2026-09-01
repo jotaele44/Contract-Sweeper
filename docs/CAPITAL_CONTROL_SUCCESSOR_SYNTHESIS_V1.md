@@ -16,20 +16,23 @@ The immutable source commit SHAs and source blob map are recorded in `data/manif
 
 The synthesis imports the exact PR #520 payload and the exact PR #527 bounded payload onto current main. No file path overlaps between PR #520 and PR #527.
 
-The only material overlap between PR #520 and changes already present on current main is:
+The material overlaps between imported payloads and changes already present on current main are:
 
 ```text
 moneysweep/capital_control/__init__.py
+dashboard/src/lib/api.js
 ```
 
-That file was adjudicated as a derived whole-file merge:
+Those files were adjudicated as derived whole-file merges:
 
 - preserve current-main ownership Deep Dive exports;
 - add `resolution_core` as the canonical resolution package export;
 - preserve all existing capital-control exports;
 - introduce no second resolver.
+- preserve PR #527 offline snapshot lookup behavior;
+- preserve current-main API-key client behavior.
 
-Every other PR #520 path and every PR #527 path reuses the exact source blob recorded in the synthesis manifest.
+Every other PR #520 and PR #527 path reuses the exact source blob recorded in the synthesis manifest. The exact PR #527 `api.js` source bytes are retained at the manifest-recorded snapshot path so shallow CI can verify the immutable input independently of the derived active file.
 
 ## Historical source artifacts
 

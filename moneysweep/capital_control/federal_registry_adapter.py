@@ -184,9 +184,7 @@ def candidate_record(
         "candidate_cage": _text(candidate.get("cage")),
         "candidate_duns": _text(candidate.get("duns")),
         "candidate_name": _text(
-            candidate.get("sam_name")
-            or candidate.get("name")
-            or candidate.get("recipient_name")
+            candidate.get("sam_name") or candidate.get("name") or candidate.get("recipient_name")
         ),
         "candidate_source": source,
         "candidate_set_json": candidate_set_json,
