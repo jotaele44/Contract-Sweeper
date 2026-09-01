@@ -16,6 +16,7 @@ from moneysweep.validation import canonical_v1_schema as cv1
 from moneysweep.validation.case_manager_sqlite import certify_sqlite
 from moneysweep.validation.evidence_provenance import audit_evidence
 from moneysweep.validation.federation_package import certify_federation_package
+from scripts import remediate_canonical_evidence_provenance as remediation
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -26,6 +27,25 @@ def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) ->
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def test_atomic_csv_preserves_write_failure_when_temp_file_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(remediation.tempfile, "mkstemp", lambda **_kwargs: (99, "missing"))
+
+    def fail_write(*_args, **_kwargs):
+        raise RuntimeError("primary write failure")
+
+    monkeypatch.setattr(remediation.os, "fdopen", fail_write)
+    monkeypatch.setattr(
+        remediation.os,
+        "unlink",
+        lambda _path: (_ for _ in ()).throw(FileNotFoundError()),
+    )
+
+    with pytest.raises(RuntimeError, match="primary write failure"):
+        remediation.atomic_csv(tmp_path / "target.csv", ["id"], [{"id": "one"}])
 
 
 def test_revenue_stream_is_inside_canonical_denominator():

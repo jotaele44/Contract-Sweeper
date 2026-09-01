@@ -91,6 +91,7 @@ def atomic_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) ->
         try:
             os.unlink(tmp_name)
         except FileNotFoundError:
+            # Preserve the original write failure if the temp file is already gone.
             pass
         raise
 
