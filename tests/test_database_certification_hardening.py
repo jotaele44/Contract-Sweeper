@@ -4,6 +4,8 @@ import csv
 import hashlib
 import json
 import sqlite3
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -16,9 +18,39 @@ from moneysweep.validation import canonical_v1_schema as cv1
 from moneysweep.validation.case_manager_sqlite import certify_sqlite
 from moneysweep.validation.evidence_provenance import audit_evidence
 from moneysweep.validation.federation_package import certify_federation_package
+from scripts.certify_database_release import build_report
 from scripts import remediate_canonical_evidence_provenance as remediation
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def test_database_release_certifier_direct_entrypoint_is_cwd_independent(tmp_path: Path):
+    result = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts/certify_database_release.py"), "--help"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "--allow-blocked-sqlite" in result.stdout
+
+
+def test_repo_database_release_preserves_all_current_blockers():
+    report = build_report(REPO_ROOT, REPO_ROOT / "data/case_manager.sqlite3")
+
+    assert report["vectors"] == {
+        "A_CANONICAL_DATABASE": "PASS",
+        "B_PROVENANCE_AND_FEDERATION": "FAIL",
+        "C_SQLITE_RUNTIME": "BLOCKED",
+    }
+    assert report["evidence_provenance"]["t1_state_counts"] == {
+        "noncanonical": 127,
+        "unresolved": 36,
+    }
+    assert report["evidence_provenance"]["unbound_t1_count"] == 163
+    assert report["status"] == "FAIL"
+    assert report["zero_unresolved_residue"] is False
 
 
 def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:

@@ -19,17 +19,23 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from moneysweep.validation.canonical_v1_schema import TABLES, validate_all
-from moneysweep.validation.case_manager_sqlite import certify_sqlite
-from moneysweep.validation.evidence_provenance import audit_evidence
-from moneysweep.validation.federation_package import certify_federation_package
-
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from moneysweep.validation.canonical_v1_schema import TABLES, validate_all  # noqa: E402
+from moneysweep.validation.case_manager_sqlite import certify_sqlite  # noqa: E402
+from moneysweep.validation.evidence_provenance import audit_evidence  # noqa: E402
+from moneysweep.validation.federation_package import (  # noqa: E402
+    certify_federation_package,
+)
+
 RELEASES_DIR = Path("data/manifests/database_releases")
 DEFAULT_SQLITE = Path("data/case_manager.sqlite3")
 DEFAULT_EVIDENCE = Path("data/canonical_v1/evidence.csv")
