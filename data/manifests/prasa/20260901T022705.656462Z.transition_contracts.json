@@ -1,0 +1,18 @@
+{
+  "schema_version": "moneysweep_prasa_transition_contracts_ingest_v1",
+  "generated_at_utc": "2026-09-01T02:27:06.587776Z",
+  "source_path": "/Users/jotaele/Documents/Financials/2024/ACT/transicion2024_archive/files/by_agency/163/Informe_de_Contratos_Vigentes/Contratos_Vigentes_al_24_de_septiembre_de_2024_Informe.pdf",
+  "source_sha256": "c54b7b1cf4ac5cd9a7c82c1fac2d85673c98a99b94daefc8040a2fcb983dd6db",
+  "source_bytes": 670649,
+  "rows_parsed": 642,
+  "unique_contract_ids": 642,
+  "duplicate_contract_ids": 0,
+  "rejected_line_count": 2,
+  "rejected_line_samples": [
+    "3/0 Construction, S.E. a/k/a Three O                                                                  Construcción y reparación de",
+    "3/0 Construction, S.E. a/k/a Three O                                                                  Construcción y reparación de"
+  ],
+  "parser_scope": "ACT agency 163 PRASA 2024 transition Contratos Vigentes PDF only",
+  "classification": "FOUND_STRUCTURED_FROM_AUTHORITY_TRANSITION_PDF",
+  "raw_canonical_separation": "Original PDF remains outside repo; generated CSV stores source path and hash."
+}

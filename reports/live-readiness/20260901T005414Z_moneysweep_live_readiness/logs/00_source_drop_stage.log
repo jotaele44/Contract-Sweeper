@@ -1,0 +1,3 @@
+run_id=20260901T005414Z_moneysweep_live_readiness
+started_utc=2026-09-01T00:54:14Z
+{"found": 12, "missing_files": 0, "partial_or_unresolved": 3, "staged": 9, "total": 15}
