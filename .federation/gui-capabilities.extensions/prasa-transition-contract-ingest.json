@@ -1,0 +1,29 @@
+{
+  "extension_id": "prasa-transition-contract-ingest",
+  "capabilities": [
+    {
+      "id": "prasa-transition-contract-ingest",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": false,
+      "rationale": "The narrow PRASA transition-report parser is offline ingestion infrastructure for a frozen source document. It is not a general PDF parser or an interactive dashboard capability, and its callable CLI is an implementation surface rather than a user-required terminal workflow.",
+      "analysis": {
+        "files": [
+          "scripts/ingest_prasa_transition_contracts.py"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_ingest_prasa_transition_contracts.py"
+        ]
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/ingest_prasa_transition_contracts.py",
+        "analysis_symbol:scripts/ingest_prasa_transition_contracts.py:main",
+        "analysis_symbol:scripts/ingest_prasa_transition_contracts.py:parse_prasa_transition_contracts",
+        "analysis_symbol:scripts/ingest_prasa_transition_contracts.py:run",
+        "cli_surface:scripts/ingest_prasa_transition_contracts.py"
+      ]
+    }
+  ]
+}
