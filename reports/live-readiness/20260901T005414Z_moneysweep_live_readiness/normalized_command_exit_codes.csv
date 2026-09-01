@@ -1,0 +1,14 @@
+command,exit_code,state
+source_drop_stage,0,PASS
+ingest_cor3,0,PASS
+first_shell_bookkeeping,1,FAIL_SCRIPT_BOOKKEEPING_AFTER_COR3_PASS
+ingest_cabilderos,0,PASS
+ingest_contralor,0,PASS
+ingest_oce_initial,1,FAIL_EMPTY_BEFORE_PARTIAL_ROW_FIX
+ingest_donaciones,0,PASS
+downstream_export_after_initial_oce,0,PASS_WITH_WRITE_SOURCE_MANIFEST_ARG_ERROR_PRESERVED
+test_ingest_oce_default,1,FAIL_COVERAGE_THRESHOLD_TESTS_PASSED
+oce_fixed_downstream_export,0,PASS
+test_ingest_oce_no_cov,0,PASS
+focused_live_readiness_tests_no_cov,0,PASS
+regenerate_lf_receipts,0,PASS

@@ -6,22 +6,33 @@
       "classification": "internal",
       "status": "active",
       "requires_terminal": false,
-      "rationale": "The issuer-parameterized SEC 13F certifier is fail-closed audit and certification infrastructure. It intentionally remains non-GUI while BPOP parity is enforced and OFG/EVTC certification is issuer-specific. GUI or Deep Dive exposure is a separate promotion decision permitted only after the issuer reaches zero-residue PASS; mapping the certifier itself to a user-facing surface would incorrectly conflate backend certification machinery with certified issuer data. The callable CLI is an implementation surface, not a user-required terminal workflow, so the active internal capability does not require terminal access.",
+      "rationale": "The issuer-parameterized SEC 13F certifier and its exact-head certification lock are fail-closed audit/certification infrastructure. They intentionally remain non-GUI while issuer certification is independently gated. GUI or Deep Dive exposure is a separate promotion decision permitted only after an issuer reaches zero-residue PASS; mapping the certifier or lock itself to a user-facing surface would incorrectly conflate backend certification machinery with certified issuer data. Their callable CLIs are implementation surfaces, not user-required terminal workflows.",
       "analysis": {
         "files": [
-          "scripts/certify_sec13f_issuer.py"
+          "scripts/certify_sec13f_issuer.py",
+          "scripts/sec13f_certification_lock.py"
         ]
       },
       "tests": {
         "backend": [
-          "tests/skill_contract/test_sec13f_issuer_certifier_contract.py"
+          "tests/skill_contract/test_sec13f_issuer_certifier_contract.py",
+          "tests/test_sec13f_certification_lock.py"
         ]
       },
       "candidate_ids": [
         "analysis_module:scripts/certify_sec13f_issuer.py",
+        "analysis_module:scripts/sec13f_certification_lock.py",
         "analysis_symbol:scripts/certify_sec13f_issuer.py:main",
         "analysis_symbol:scripts/certify_sec13f_issuer.py:run",
-        "cli_surface:scripts/certify_sec13f_issuer.py"
+        "analysis_symbol:scripts/sec13f_certification_lock.py:CertificationLockError",
+        "analysis_symbol:scripts/sec13f_certification_lock.py:build_parser",
+        "analysis_symbol:scripts/sec13f_certification_lock.py:build_preflight_receipt",
+        "analysis_symbol:scripts/sec13f_certification_lock.py:main",
+        "analysis_symbol:scripts/sec13f_certification_lock.py:validate_semantic_boundaries",
+        "analysis_symbol:scripts/sec13f_certification_lock.py:validate_vector_parent",
+        "analysis_symbol:scripts/sec13f_certification_lock.py:verify_post_merge",
+        "cli_surface:scripts/certify_sec13f_issuer.py",
+        "cli_surface:scripts/sec13f_certification_lock.py"
       ]
     }
   ]
