@@ -1,0 +1,70 @@
+name: CEE OCPR amendments only v0.4
+
+on:
+  push:
+    branches: [cee-ocpr-row-denominator-v0-4]
+    paths: [.github/workflows/cee-ocpr-amendments-only-v0-4.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Recover frozen-target amendment families
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet requests beautifulsoup4
+          python - <<'PY'
+          import hashlib,json
+          from datetime import datetime,timezone
+          from pathlib import Path
+          import requests
+          from bs4 import BeautifulSoup
+          BASE='https://consultacontratos.ocpr.gov.pr'; ENTITY_ID='1410'
+          OUT=Path('cee_ocpr_v04_amendments'); RAW=OUT/'raw'; RAW.mkdir(parents=True,exist_ok=True)
+          captured=datetime.now(timezone.utc).isoformat()
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4'})
+          boot=s.get(BASE+'/contract',timeout=60); boot.raise_for_status(); (RAW/'search_bootstrap.html').write_bytes(boot.content)
+          token=BeautifulSoup(boot.text,'html.parser').find('input',{'name':'__RequestVerificationToken'}).get('value')
+          headers={'Accept':'application/json, text/javascript, */*; q=0.01','Content-Type':'application/json; charset=utf-8','Referer':BASE+'/contract','X-Requested-With':'XMLHttpRequest','__RequestVerificationToken':token}
+          targets={
+            '2022-2023':['2023-000001','2023-000002','2023-000003','2023-000004','2023-000005','2023-000006','2023-000008','2023-000015','2023-000017','2023-000021','2023-000024','2023-000025','2023-000027','2023-000028','2023-000035','2023-000037','2023-000044','2023-000048','2023-000049','2023-000053','2023-000072','2023-000073'],
+            '2023-2024':['2024-000004','2024-000007','2024-000008','2024-000009','2024-000010','2024-000011','2024-000012','2024-000014','2024-000016','2024-000017','2024-000019','2024-000024','2024-000025','2024-000032','2024-000036','2024-000037','2024-000040','2024-000041','2024-000042','2024-000046','2024-000049','2024-000051','2024-000053','2024-000054','2024-000055','2024-000057','2024-000061','2024-000064','2024-000104']}
+          receipt={'status':'PASS','captured_at_utc':captured,'endpoint':BASE+'/contract/getamendments','entity_id':ENTITY_ID,'families':{},'fy':{}}
+          all_ids=[]
+          for fy,nums in targets.items():
+              rows=[]
+              for n in nums:
+                  rr=s.post(BASE+'/contract/getamendments',headers=headers,json={'model':{'ContractNumber':n,'EntityId':ENTITY_ID}},timeout=60); rr.raise_for_status(); data=rr.json()
+                  if not isinstance(data,list): raise SystemExit('NON_LIST '+n)
+                  raw=json.dumps(data,ensure_ascii=False,indent=2,sort_keys=True); (RAW/f'{n}.json').write_text(raw,encoding='utf-8')
+                  ids=[str(x.get('ContractId')) for x in data if x.get('ContractId') is not None]; all_ids+=ids
+                  receipt['families'][n]={'count':len(data),'contract_ids':ids,'amendments':[x.get('Amendment') for x in data],'raw_file_sha256':hashlib.sha256(raw.encode()).hexdigest()}
+                  for x in data:
+                      z=dict(x); z['_parent_contract_number']=n; z['_target_fiscal_year']=fy; rows.append(z)
+              with (OUT/f'{fy}_amendments.jsonl').open('w',encoding='utf-8') as f:
+                  for z in rows: f.write(json.dumps(z,ensure_ascii=False,sort_keys=True)+'\n')
+              receipt['fy'][fy]={'target_family_count':len(nums),'amendment_row_count':len(rows),'families_with_rows':sum(receipt['families'][n]['count']>0 for n in nums),'unique_child_contract_ids':len({str(z.get('ContractId')) for z in rows})}
+          receipt['all_child_contract_ids_unique']=(len(all_ids)==len(set(all_ids)))
+          if not receipt['all_child_contract_ids_unique']: raise SystemExit('DUPLICATE_CHILD_CONTRACT_ID')
+          (OUT/'receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+          files=[]
+          for p in sorted(OUT.rglob('*')):
+              if p.is_file(): b=p.read_bytes(); files.append({'path':str(p.relative_to(OUT)),'size':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+          (OUT/'SHA256_MANIFEST.json').write_text(json.dumps({'files':files},indent=2,sort_keys=True),encoding='utf-8')
+          print(json.dumps(receipt,ensure_ascii=False,indent=2))
+          PY
+          tar -czf cee_ocpr_v04_amendments.tar.gz cee_ocpr_v04_amendments
+          sha256sum cee_ocpr_v04_amendments.tar.gz | tee cee_ocpr_v04_amendments.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cee-ocpr-v04-amendments
+          path: |
+            cee_ocpr_v04_amendments/
+            cee_ocpr_v04_amendments.tar.gz
+            cee_ocpr_v04_amendments.tar.gz.sha256
+          retention-days: 30
