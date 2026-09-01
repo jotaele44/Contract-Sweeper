@@ -1,0 +1,16 @@
+{
+  "committed_ci_fully_materialized": 11,
+  "local_fully_materialized": 19,
+  "local_partially_materialized": 2,
+  "local_sources_with_any_data": 20,
+  "total_sources": 162,
+  "registry_accounted_local_rows": 82613,
+  "total_rows_on_disk": 21709,
+  "orphan_rows_not_in_registry": 238,
+  "orphan_file_count": 1,
+  "probe_ran": false,
+  "outputs": [
+    "/Users/jotaele/fed-repos/moneysweep-pr/reports/materialization_coverage_audit.json",
+    "/Users/jotaele/fed-repos/moneysweep-pr/reports/materialization_coverage_audit.csv"
+  ]
+}

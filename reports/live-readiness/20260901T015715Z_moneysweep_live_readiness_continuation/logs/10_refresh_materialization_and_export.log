@@ -1,0 +1,123 @@
+run_id=20260901T015715Z_moneysweep_live_readiness_continuation
+started_utc=2026-09-01T01:57:15Z
+{"found": 12, "missing_files": 0, "partial_or_unresolved": 6, "staged": 9, "total": 18}
+{
+  "cor3": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/cor3/20260901T015748Z.json"
+  },
+  "hud_drgr_authorized": {
+    "file_count": 0,
+    "manifest_path": null
+  },
+  "prasa": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/prasa/20260901T015748Z.json"
+  },
+  "oficina_contralor": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/oficina_contralor/20260901T015748Z.json"
+  },
+  "pr_cabilderos": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/pr_cabilderos/20260901T015748Z.json"
+  },
+  "donaciones_pr": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/donaciones_pr/20260901T015748Z.json"
+  },
+  "contralor_electoral": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/contralor_electoral/20260901T015748Z.json"
+  },
+  "oce_socrata_live": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/oce_socrata_live/20260901T015749Z.json"
+  },
+  "_canonical": {
+    "json": "data/manifests/source_manifest.json",
+    "csv": "data/manifests/source_manifest.csv",
+    "total_files": 528
+  }
+}
+wrote reports/source_recovery_matrix.csv (162 rows)
+wrote reports/source_recovery_matrix.md
+wrote reports/materialization_readiness.json
+  automatable_ready=113/113  queued=49
+{
+  "schema_version": "completeness_matrix_v1",
+  "total_sources": 162,
+  "contracted_sources": 23,
+  "by_wired_status": {
+    "deferred": 2,
+    "manual_dropzone": 42,
+    "scraper_stub": 2,
+    "semantic_duplicate": 3,
+    "wired_adapter": 41,
+    "wired_producer": 72
+  },
+  "by_acquisition_status": {
+    "acquired_ingested": 6,
+    "automated": 112,
+    "not_acquired": 44
+  },
+  "by_materialization_status": {
+    "fully_materialized": 17,
+    "not_materialized": 142,
+    "partially_materialized": 3
+  },
+  "by_coverage_status": {
+    "below_contract": 3,
+    "meets_contract": 3,
+    "uncontracted": 139,
+    "unverifiable": 17
+  },
+  "by_reconciliation_status": {
+    "not_applicable": 160,
+    "not_evaluated": 2
+  },
+  "by_certification_status": {
+    "certified_complete": 1,
+    "provisional": 16,
+    "uncertified": 145
+  },
+  "by_materiality_label": {
+    "empty": 144,
+    "partial": 1,
+    "seed": 2,
+    "substantial": 12,
+    "validated_complete": 3
+  },
+  "outputs": [
+    "reports/completeness_matrix.csv",
+    "reports/completeness_matrix.json"
+  ]
+}
+{
+  "committed_ci_fully_materialized": 11,
+  "local_fully_materialized": 17,
+  "local_partially_materialized": 3,
+  "local_sources_with_any_data": 18,
+  "total_sources": 162,
+  "registry_accounted_local_rows": 81662,
+  "total_rows_on_disk": 20758,
+  "orphan_rows_not_in_registry": 238,
+  "orphan_file_count": 1,
+  "probe_ran": false,
+  "outputs": [
+    "/Users/jotaele/fed-repos/moneysweep-pr/reports/materialization_coverage_audit.json",
+    "/Users/jotaele/fed-repos/moneysweep-pr/reports/materialization_coverage_audit.csv"
+  ]
+}
+{
+  "ok": true,
+  "package_id": "pkg_be6ec7c2a3b0cd5fe98ea99862f6f374",
+  "mode": "test",
+  "out": "/Users/jotaele/fed-repos/moneysweep-pr/data/exports/canonical_v1_federation",
+  "stream_counts": {
+    "sources": 4508,
+    "entities": 207,
+    "relationships": 66
+  }
+}
+finished_utc=2026-09-01T02:00:23Z
