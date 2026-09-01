@@ -79,9 +79,7 @@ def test_legal_holder_family_and_parent_are_distinct_identity_levels():
     assert family["intersection"] == ["BLACKROCK"]
     assert family["aOnly"] == []
     assert parent["intersection"] == ["BLK"]
-    assert legal["union"] == sorted(
-        set(legal["intersection"] + legal["aOnly"] + legal["bOnly"])
-    )
+    assert legal["union"] == sorted(set(legal["intersection"] + legal["aOnly"] + legal["bOnly"]))
     assert legal["symmetricDifference"] == sorted(legal["aOnly"] + legal["bOnly"])
 
 

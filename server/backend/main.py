@@ -150,9 +150,7 @@ def _capital_data() -> pd.DataFrame:
     )
     missing = sorted(CAPITAL_REQUIRED - set(frame.columns))
     if missing:
-        raise RuntimeError(
-            f"{CAPITAL_CONTROL_PATH.name} missing required columns: {missing}"
-        )
+        raise RuntimeError(f"{CAPITAL_CONTROL_PATH.name} missing required columns: {missing}")
     _CAPITAL_CACHE = (mtime, frame)
     return frame
 
@@ -397,16 +395,13 @@ def edges(
             if cols:
                 mask = pd.Series(False, index=frame.index)
                 for col in cols:
-                    mask |= frame[col].astype(str).str.contains(
-                        q, case=False, na=False, regex=False
+                    mask |= (
+                        frame[col].astype(str).str.contains(q, case=False, na=False, regex=False)
                     )
                 frame = frame[mask]
         if "as_of_date" in frame:
             frame = frame.sort_values("as_of_date", ascending=False, kind="stable")
-        return [
-            _capital_record(row)
-            for _, row in frame.head(max(1, min(limit, 5000))).iterrows()
-        ]
+        return [_capital_record(row) for _, row in frame.head(max(1, min(limit, 5000))).iterrows()]
 
     names = _entity_name_map()
     munis = _muni_name_map()
