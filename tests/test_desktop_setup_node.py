@@ -17,6 +17,17 @@ def test_desktop_node_engine_matches_dashboard_metadata() -> None:
     assert (REPO_ROOT / "dashboard/.npmrc").read_text(encoding="utf-8") == ("engine-strict=true\n")
 
 
+def test_node_guard_is_classified_as_internal_capability() -> None:
+    extension = json.loads(
+        (
+            REPO_ROOT / ".federation/gui-capabilities.extensions/dashboard-node-runtime.json"
+        ).read_text(encoding="utf-8")
+    )
+    capability = extension["capabilities"][0]
+    assert capability["classification"] == "internal"
+    assert capability["candidate_ids"] == ["python_symbol:desktop/setup.py:node_version_supported"]
+
+
 @pytest.mark.parametrize(
     "version",
     ("v22.22.2", "22.99.0", "v24.15.0", "24.99.1", "v26.0.0", "27.1.0"),
