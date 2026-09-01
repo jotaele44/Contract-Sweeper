@@ -1,0 +1,2 @@
+usage: validate_export.py [-h] --package PACKAGE [--mode {test,production}]
+validate_export.py: error: the following arguments are required: --package
