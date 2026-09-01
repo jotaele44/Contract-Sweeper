@@ -14,6 +14,8 @@ cor3,territorial,True,none,1,1,1481,fully_materialized,bulk,substantial,unverifi
 acuden_2024_transition,manual_export,False,manual_export,1,1,1147,fully_materialized,bulk,validated_complete,meets_contract,provisional,data/staging/processed/pr_acuden_transition.csv
 fec,political_finance,True,api_key:FEC_API_KEY,1,1,1049,fully_materialized,bulk,substantial,unverifiable,provisional,data/staging/processed/pr_fec_contributions.csv
 act_transition_contracts,manual_export,False,manual_export,1,1,656,fully_materialized,moderate,validated_complete,meets_contract,provisional,data/staging/processed/pr_act_transition_contracts.csv
+prasa,infrastructure,True,manual_export,1,1,642,fully_materialized,moderate,partial,uncontracted,provisional,data/staging/processed/pr_prasa_contracts.csv
+prasa_contracts_master,infrastructure,False,none,1,1,309,fully_materialized,moderate,partial,uncontracted,provisional,data/staging/processed/prasa_contracts_master.csv
 oficina_contralor,territorial,True,none,1,1,85,fully_materialized,moderate,partial,unverifiable,provisional,data/staging/processed/pr_contralor_audits.csv
 emma_bonds,bonds,True,none,2,2,35,fully_materialized,seed_stub,seed,unverifiable,provisional,data/staging/processed/pr_emma_bonds.csv
 act_transition_ppp,infrastructure,False,none,1,1,25,fully_materialized,seed_stub,seed,uncontracted,provisional,data/reference/pr_ppp_concession_contracts.csv
@@ -116,13 +118,11 @@ pr_corporate_registry,manual_export,False,manual_export,1,0,0,not_materialized,e
 pr_general_fund_revenues,territorial,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_general_fund_revenues.csv
 pr_income_tax_collections,territorial,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_income_tax_collections.csv
 pr_pensions,territorial,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_pension_funds.csv
-prasa,infrastructure,True,manual_export,1,0,0,partially_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_prasa_contracts.csv
 prasa_cer,infrastructure,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_prasa_cer.csv
 prasa_cip,infrastructure,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_prasa_cip.csv
 prasa_completed_projects,infrastructure,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_prasa_completed_projects.csv
 prasa_completed_projects_ppp,infrastructure,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_ports_airports_contracts.csv
 prasa_consulting_engineer_ppp,infrastructure,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_ports_airports_contracts.csv
-prasa_contracts_master,infrastructure,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/prasa_contracts_master.csv
 prasa_rate_revenue,infrastructure_revenue,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_prasa_rate_revenue.csv
 prepa_luma_genera,infrastructure,False,none,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_prepa_contracts.csv
 prepa_luma_rate_revenue,infrastructure_revenue,False,manual_export,1,0,0,not_materialized,empty,empty,uncontracted,uncertified,data/staging/processed/pr_prepa_rate_revenue.csv

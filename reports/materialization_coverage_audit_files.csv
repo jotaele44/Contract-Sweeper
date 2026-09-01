@@ -4,8 +4,9 @@ pr_oce_donations.csv,6474,declared,contralor_electoral;oce_socrata_live
 pr_cabilderos.csv,2668,declared,pr_cabilderos
 pr_cor3_projects.csv,1481,declared,cor3
 pr_act_transition_contracts.csv,656,declared,act_transition_contracts
+pr_prasa_contracts.csv,642,declared,prasa
+prasa_contracts_master.csv,309,declared,prasa_contracts_master
 pr_report_builder_master.csv,238,orphan,
 pr_contralor_audits.csv,85,declared,oficina_contralor
 dcaa_active_contractors.csv,0,empty,
 pr_oce_reports.csv,0,empty,
-pr_prasa_contracts.csv,0,declared,prasa

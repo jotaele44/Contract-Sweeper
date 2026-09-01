@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T02:00:22.985414+00:00",
+  "generated_at": "2026-09-01T02:29:04.439421+00:00",
   "schema_version": "coverage_audit_v1",
   "root": ".",
   "committed_ci_view": {
@@ -13,24 +13,24 @@
   "local_truth_summary": {
     "total_sources": 162,
     "required_sources": 16,
-    "fully_materialized": 17,
-    "partially_materialized": 3,
-    "not_materialized": 142,
+    "fully_materialized": 19,
+    "partially_materialized": 2,
+    "not_materialized": 141,
     "no_outputs_declared": 0,
-    "required_fully_materialized": 11,
+    "required_fully_materialized": 12,
     "tier_bulk": 14,
-    "tier_moderate": 2,
+    "tier_moderate": 4,
     "tier_seed_stub": 2,
-    "tier_empty": 144,
-    "total_local_rows": 81662,
-    "coverage_rate_fully": 0.1049,
-    "materialized_any_data": 18
+    "tier_empty": 142,
+    "total_local_rows": 82613,
+    "coverage_rate_fully": 0.1173,
+    "materialized_any_data": 20
   },
   "processed_file_inventory": {
     "processed_dir": "data/staging/processed",
-    "total_csv_files": 10,
-    "total_rows_on_disk": 20758,
-    "registry_accounted_rows": 20520,
+    "total_csv_files": 11,
+    "total_rows_on_disk": 21709,
+    "registry_accounted_rows": 21471,
     "orphan_rows": 238,
     "orphan_file_count": 1,
     "intermediate_rows": 0,
@@ -67,6 +67,18 @@
         "classification": "declared"
       },
       {
+        "file": "pr_prasa_contracts.csv",
+        "rows": 642,
+        "claimed_by": "prasa",
+        "classification": "declared"
+      },
+      {
+        "file": "prasa_contracts_master.csv",
+        "rows": 309,
+        "claimed_by": "prasa_contracts_master",
+        "classification": "declared"
+      },
+      {
         "file": "pr_report_builder_master.csv",
         "rows": 238,
         "claimed_by": "",
@@ -89,12 +101,6 @@
         "rows": 0,
         "claimed_by": "",
         "classification": "empty"
-      },
-      {
-        "file": "pr_prasa_contracts.csv",
-        "rows": 0,
-        "claimed_by": "prasa",
-        "classification": "declared"
       }
     ]
   },
@@ -337,6 +343,38 @@
       "first_expected_output": "data/staging/processed/pr_act_transition_contracts.csv",
       "materiality_label": "validated_complete",
       "coverage_status": "meets_contract",
+      "certification_status": "provisional"
+    },
+    {
+      "source_id": "prasa",
+      "family": "infrastructure",
+      "required": true,
+      "authentication": "manual_export",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 642,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/pr_prasa_contracts.csv",
+      "materiality_label": "partial",
+      "coverage_status": "uncontracted",
+      "certification_status": "provisional"
+    },
+    {
+      "source_id": "prasa_contracts_master",
+      "family": "infrastructure",
+      "required": false,
+      "authentication": "none",
+      "expected_output_count": 1,
+      "present_count": 1,
+      "local_rows": 309,
+      "min_rows_threshold": 1,
+      "local_status": "fully_materialized",
+      "materiality_tier": "moderate",
+      "first_expected_output": "data/staging/processed/prasa_contracts_master.csv",
+      "materiality_label": "partial",
+      "coverage_status": "uncontracted",
       "certification_status": "provisional"
     },
     {
@@ -1972,22 +2010,6 @@
       "certification_status": "uncertified"
     },
     {
-      "source_id": "prasa",
-      "family": "infrastructure",
-      "required": true,
-      "authentication": "manual_export",
-      "expected_output_count": 1,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "partially_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/pr_prasa_contracts.csv",
-      "materiality_label": "empty",
-      "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
-    },
-    {
       "source_id": "prasa_cer",
       "family": "infrastructure",
       "required": false,
@@ -2063,22 +2085,6 @@
       "local_status": "not_materialized",
       "materiality_tier": "empty",
       "first_expected_output": "data/staging/processed/pr_ports_airports_contracts.csv",
-      "materiality_label": "empty",
-      "coverage_status": "uncontracted",
-      "certification_status": "uncertified"
-    },
-    {
-      "source_id": "prasa_contracts_master",
-      "family": "infrastructure",
-      "required": false,
-      "authentication": "none",
-      "expected_output_count": 1,
-      "present_count": 0,
-      "local_rows": 0,
-      "min_rows_threshold": 1,
-      "local_status": "not_materialized",
-      "materiality_tier": "empty",
-      "first_expected_output": "data/staging/processed/prasa_contracts_master.csv",
       "materiality_label": "empty",
       "coverage_status": "uncontracted",
       "certification_status": "uncertified"
