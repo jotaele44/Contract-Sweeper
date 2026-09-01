@@ -90,6 +90,53 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _write_offline_receipt(root: Path, receipt: dict[str, Any]) -> dict[str, Any]:
+    """Atomically persist a receipt without deriving its path from request data."""
+    receipt_id = uuid.uuid4().hex
+    public_receipt = {**receipt, "receipt_id": receipt_id}
+    receipt_dir = root / "receipts" / "offline_ingest"
+    receipt_dir.mkdir(parents=True, exist_ok=True)
+    receipt_path = receipt_dir / f"{receipt_id}.json"
+    temp_path = receipt_dir / f".{receipt_id}.tmp"
+    payload = json.dumps(public_receipt, indent=2) + "\n"
+    try:
+        temp_path.write_text(payload, encoding="utf-8")
+        temp_path.replace(receipt_path)
+    except Exception:
+        temp_path.unlink(missing_ok=True)
+        raise
+    return public_receipt
+
+
+def _public_run_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    """Project a local runner receipt onto the non-sensitive API contract."""
+    public: dict[str, Any] = {
+        key: summary[key]
+        for key in (
+            "schema_version",
+            "started_utc",
+            "selected_count",
+            "selected",
+            "egress_ok",
+            "dry_run",
+            "status",
+            "ok_count",
+            "error_count",
+        )
+        if key in summary
+    }
+    public["ran"] = []
+    for row in summary.get("ran") or []:
+        if not isinstance(row, dict):
+            continue
+        projected = {key: row[key] for key in ("source", "status", "rows", "seconds") if key in row}
+        status = projected.get("status")
+        if status in {"ERROR", "IMPORT_ERROR", "NO_ENTRYPOINT"}:
+            projected["error_code"] = status
+        public["ran"].append(projected)
+    return public
+
+
 def _manual_target(source_id: str, raw_filename: str) -> tuple[Path, dict[str, Any]]:
     manual = _manual_registry().get(source_id)
     if manual is None:
@@ -270,11 +317,7 @@ async def upload_offline_file(
         "received_utc": datetime.now(timezone.utc).isoformat(),
         "promotion_state": "STAGED_NOT_PROMOTED",
     }
-    receipt_dir = root / "receipts" / "offline_ingest" / source_id
-    receipt_dir.mkdir(parents=True, exist_ok=True)
-    receipt_path = receipt_dir / f"{digest}.json"
-    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
-    return receipt
+    return _write_offline_receipt(root, receipt)
 
 
 @router.post("/offline/{source_id}/run")
@@ -287,7 +330,8 @@ def run_offline_source(source_id: str):
         raise HTTPException(
             409, f"source {source_id!r} is not registered for offline/manual ingestion"
         )
-    return run_automatable(root=_workspace(), source=source_id, require_egress=False)
+    summary = run_automatable(root=_workspace(), source=source_id, require_egress=False)
+    return _public_run_summary(summary)
 
 
 @router.post("/api/run")
@@ -319,19 +363,23 @@ def run_api_sources(request: ApiRunRequest):
         raise HTTPException(409, f"source {request.source!r} is not classified automatable")
 
     if request.dry_run:
-        return run_automatable(
-            root=_workspace(),
-            source=request.source,
-            family=request.family,
-            dry_run=True,
-            require_egress=False,
+        return _public_run_summary(
+            run_automatable(
+                root=_workspace(),
+                source=request.source,
+                family=request.family,
+                dry_run=True,
+                require_egress=False,
+            )
         )
 
     with activated_credentials():
-        return run_automatable(
-            root=_workspace(),
-            source=request.source,
-            family=request.family,
-            dry_run=False,
-            require_egress=True,
+        return _public_run_summary(
+            run_automatable(
+                root=_workspace(),
+                source=request.source,
+                family=request.family,
+                dry_run=False,
+                require_egress=True,
+            )
         )
