@@ -243,7 +243,9 @@ def materialized_projection(audit: dict[str, Any], freeze_report: dict[str, Any]
     }
 
 
-def build_certification(root: Path, freeze_report: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any]:
+def build_certification(
+    root: Path, freeze_report: dict[str, Any], audit: dict[str, Any]
+) -> dict[str, Any]:
     public_adj = _load_yaml(root / PUBLIC_ADJ_REL)
     adjudications = public_adj.get("adjudications") or {}
     public_open = sorted(
@@ -284,7 +286,9 @@ def build_certification(root: Path, freeze_report: dict[str, Any], audit: dict[s
         "public_denominator_registry": str(PUBLIC_ADJ_REL),
         "public_denominator_registry_sha256": sha256_file(root / PUBLIC_ADJ_REL),
         "act60_crosswalk_registry": str(ACT60_CROSSWALK_REL) if crosswalk_path.is_file() else "",
-        "act60_crosswalk_registry_sha256": sha256_file(crosswalk_path) if crosswalk_path.is_file() else "",
+        "act60_crosswalk_registry_sha256": sha256_file(crosswalk_path)
+        if crosswalk_path.is_file()
+        else "",
         "residue": residue,
         "unresolved_residue_count": sum(len(value) for value in residue.values()),
         "certification_state": "PASS" if zero_residue else "OPEN",
@@ -313,12 +317,16 @@ def run(root: Path = PROJECT_ROOT, *, snapshot_dir: str) -> dict[str, Any]:
     }
     report_path = root / REPORT_REL
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(json.dumps(freeze_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    report_path.write_text(
+        json.dumps(freeze_report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     audit = run_guide_audit(root, write=True)
     certification = build_certification(root, freeze_report, audit)
     cert_path = root / CERT_REL
-    cert_path.write_text(json.dumps(certification, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    cert_path.write_text(
+        json.dumps(certification, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return {
         "freeze_report": freeze_report,
         "audit_metrics": audit["metrics_payload"],
