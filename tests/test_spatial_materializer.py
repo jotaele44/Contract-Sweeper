@@ -21,6 +21,7 @@ def test_point_materializes_source_reported_geometry():
     assert f["geometry"]["coordinates"] == [-66.1, 18.45]
     assert f["identity_semantics"] == "CANDIDATE_NOT_IDENTITY"
     assert f["coordinate_method"] == "SOURCE_REPORTED"
+    assert f["coordinate_confidence"] == "UNKNOWN"
 
 
 def test_flow_requires_both_endpoints():
@@ -28,4 +29,13 @@ def test_flow_requires_both_endpoints():
     b = {"geo_lat": 18.1, "geo_lon": -66.5}
     f = flow_feature(a, b, feature_id="contract:1", source_id="award")
     assert f is not None and f["geometry"]["type"] == "LineString"
+    assert f["coordinate_confidence"] == "UNKNOWN"
     assert flow_feature(a, {}, feature_id="contract:2", source_id="award") is None
+
+
+def test_flow_confidence_uses_weakest_endpoint():
+    high = {"geo_lat": 18.45, "geo_lon": -66.1, "coordinate_confidence": "HIGH"}
+    low = {"geo_lat": 18.1, "geo_lon": -66.5, "coordinate_confidence": "LOW"}
+    feature = flow_feature(high, low, feature_id="contract:3", source_id="award")
+    assert feature is not None
+    assert feature["coordinate_confidence"] == "LOW"

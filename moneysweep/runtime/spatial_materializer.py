@@ -28,17 +28,16 @@ def _finite(value: Any) -> float | None:
 
 
 def _confidence(row: Mapping[str, Any]) -> str:
-    raw = str(row.get("geo_attribution_confidence") or "unknown").lower()
-    if raw in {"exact_fips", "exact_name"}:
-        return "HIGH"
-    if raw in {"normalized_name"}:
-        return "MEDIUM"
-    if raw in {"fuzzy_name"}:
-        return "LOW"
-    # direct coordinates with no municipality attribution are still source-reported
-    if _finite(row.get("geo_lat")) is not None and _finite(row.get("geo_lon")) is not None:
-        return "HIGH"
+    for key in ("coordinate_confidence", "geo_coordinate_confidence"):
+        value = str(row.get(key) or "").upper()
+        if value in {"HIGH", "MEDIUM", "LOW", "UNKNOWN"}:
+            return value
     return "UNKNOWN"
+
+
+def _combined_confidence(*values: str) -> str:
+    rank = {"UNKNOWN": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3}
+    return min(values, key=rank.__getitem__)
 
 
 def point_feature(
@@ -135,9 +134,9 @@ def flow_feature(
         "properties": dict(properties or {}),
         "geometry_source": source_id,
         "coordinate_method": "SOURCE_REPORTED",
-        "coordinate_confidence": "LOW"
-        if "LOW" in {a["coordinate_confidence"], b["coordinate_confidence"]}
-        else "MEDIUM",
+        "coordinate_confidence": _combined_confidence(
+            a["coordinate_confidence"], b["coordinate_confidence"]
+        ),
         "logical_sha256": canonical_json_sha256(logical),
         "source_manifestation_sha256": manifestation,
         "provenance": [{"source_id": source_id, "sha256": manifestation}],

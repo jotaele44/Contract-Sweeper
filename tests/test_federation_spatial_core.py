@@ -59,3 +59,9 @@ def test_4d_metrics_reject_time_reversal():
             TrackPoint4D(-66.0, 18.0, epoch_s=10.0),
             TrackPoint4D(-66.0, 18.01, epoch_s=9.0),
         )
+
+
+@pytest.mark.parametrize(("field", "value"), [("altitude_m", math.nan), ("epoch_s", math.inf)])
+def test_track_point_rejects_non_finite_4d_values(field, value):
+    with pytest.raises(ValueError, match="must be finite"):
+        TrackPoint4D(-66.0, 18.0, **{field: value})

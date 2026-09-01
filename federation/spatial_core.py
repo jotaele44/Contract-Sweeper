@@ -138,6 +138,18 @@ class TrackPoint4D:
     altitude_m: float | None = None
     epoch_s: float | None = None
 
+    def __post_init__(self) -> None:
+        lon, lat = validate_lon_lat(self.lon, self.lat)
+        object.__setattr__(self, "lon", lon)
+        object.__setattr__(self, "lat", lat)
+        for field in ("altitude_m", "epoch_s"):
+            value = getattr(self, field)
+            if value is not None:
+                value = float(value)
+                if not math.isfinite(value):
+                    raise ValueError(f"{field} must be finite")
+                object.__setattr__(self, field, value)
+
 
 def segment_metrics_4d(a: TrackPoint4D, b: TrackPoint4D) -> dict[str, float | None]:
     horizontal = geodesic_distance_m(a.lon, a.lat, b.lon, b.lat)

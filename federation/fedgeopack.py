@@ -8,6 +8,7 @@ manifest records the current UTC time by design.
 from __future__ import annotations
 import hashlib
 import json
+import re
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -17,6 +18,9 @@ from .spatial_core import canonical_json_sha256
 
 PACKAGE_VERSION = "fedgeopack/1.0"
 ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)
+SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
+MAX_MEMBER_BYTES = 2 * 1024**3
+MAX_TOTAL_BYTES = 8 * 1024**3
 
 
 def _sha(path: Path) -> str:
@@ -39,6 +43,34 @@ def _write_fixed(z: zipfile.ZipFile, name: str, data: bytes) -> None:
     info.compress_type = zipfile.ZIP_DEFLATED
     info.external_attr = 0o644 << 16
     z.writestr(info, data)
+
+
+def _manifest_id(manifest: dict) -> str:
+    core = {
+        key: value for key, value in manifest.items() if key not in {"package_id", "created_at"}
+    }
+    return canonical_json_sha256(core)[:32]
+
+
+def _load_manifest(data: bytes) -> dict:
+    def object_pairs(pairs: list[tuple[str, object]]) -> dict:
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f"duplicate manifest key: {key}")
+            result[key] = value
+        return result
+
+    def reject_constant(value: str) -> None:
+        raise ValueError(f"invalid JSON constant in manifest: {value}")
+
+    try:
+        manifest = json.loads(data, object_pairs_hook=object_pairs, parse_constant=reject_constant)
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid manifest JSON: {exc}") from exc
+    if not isinstance(manifest, dict):
+        raise ValueError("manifest root must be an object")
+    return manifest
 
 
 def build_package(
@@ -99,7 +131,7 @@ def build_package(
         "investigation": investigation,
         "access_class": "PUBLIC",
     }
-    core["package_id"] = canonical_json_sha256(core)[:32]
+    core["package_id"] = _manifest_id(core)
     core["created_at"] = created_at or datetime.now(timezone.utc).isoformat()
     out.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out, "w") as z:
@@ -124,9 +156,17 @@ def verify_package(path: Path | str) -> dict:
             p = PurePosixPath(name)
             if p.is_absolute() or ".." in p.parts:
                 raise ValueError(f"unsafe package member: {name}")
-        manifest = json.loads(z.read("manifest.json"))
+        infos = z.infolist()
+        if any(info.file_size > MAX_MEMBER_BYTES for info in infos):
+            raise ValueError("package member exceeds size limit")
+        if sum(info.file_size for info in infos) > MAX_TOTAL_BYTES:
+            raise ValueError("package exceeds total size limit")
+        manifest = _load_manifest(z.read("manifest.json"))
         if manifest.get("package_version") != PACKAGE_VERSION:
             raise ValueError("unsupported package version")
+        package_id = manifest.get("package_id")
+        if not isinstance(package_id, str) or package_id != _manifest_id(manifest):
+            raise ValueError("package_id does not match canonical manifest identity")
         hashes = manifest.get("hashes")
         if not isinstance(hashes, dict):
             raise ValueError("manifest hashes must be an object")
@@ -134,6 +174,8 @@ def verify_package(path: Path | str) -> dict:
         if set(names) != expected_members:
             raise ValueError("package members do not match manifest hashes")
         for name, expected in hashes.items():
+            if not isinstance(expected, str) or not SHA256_RE.fullmatch(expected):
+                raise ValueError(f"invalid manifest hash: {name}")
             if hashlib.sha256(z.read(name)).hexdigest() != expected:
                 raise ValueError(f"hash mismatch: {name}")
     return manifest
