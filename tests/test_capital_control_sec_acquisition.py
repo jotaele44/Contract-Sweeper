@@ -13,6 +13,8 @@ from moneysweep.capital_control import (
     SECAcquisitionError,
     SECFairAccessClient,
     SECRequestPolicy,
+    SECTransport,
+    SECTransportResponse,
     SECUserAgent,
 )
 
@@ -106,6 +108,15 @@ def test_policy_never_allows_more_than_sec_fair_access_limit() -> None:
     SECRequestPolicy(max_requests_per_second=10).validate()
     with pytest.raises(SECAcquisitionError, match="fair-access"):
         SECRequestPolicy(max_requests_per_second=10.01).validate()
+
+
+def test_protocol_placeholders_fail_explicitly() -> None:
+    for name in ("status_code", "headers", "content", "url"):
+        descriptor = vars(SECTransportResponse)[name]
+        with pytest.raises(NotImplementedError):
+            descriptor.fget(object())
+    with pytest.raises(NotImplementedError):
+        SECTransport.get(object(), "https://www.sec.gov/example", headers={}, timeout=1.0)
 
 
 def test_user_agent_requires_declared_application_and_contact() -> None:

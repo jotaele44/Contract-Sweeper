@@ -106,16 +106,20 @@ class _SECRequestPolicy:
 
 class _SECTransportResponse(Protocol):
     @property
-    def status_code(self) -> int: ...
+    def status_code(self) -> int:
+        raise NotImplementedError
 
     @property
-    def headers(self) -> Mapping[str, str]: ...
+    def headers(self) -> Mapping[str, str]:
+        raise NotImplementedError
 
     @property
-    def content(self) -> bytes: ...
+    def content(self) -> bytes:
+        raise NotImplementedError
 
     @property
-    def url(self) -> str: ...
+    def url(self) -> str:
+        raise NotImplementedError
 
 
 class _SECTransport(Protocol):
@@ -125,7 +129,8 @@ class _SECTransport(Protocol):
         *,
         headers: Mapping[str, str],
         timeout: float,
-    ) -> _SECTransportResponse: ...
+    ) -> _SECTransportResponse:
+        raise NotImplementedError
 
 
 class _RequestsSECTransport:
