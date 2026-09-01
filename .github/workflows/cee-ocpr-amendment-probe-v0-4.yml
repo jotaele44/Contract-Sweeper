@@ -13,37 +13,42 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Probe one authoritative detail page
+      - name: Probe authoritative amendment navigation
         shell: bash
         run: |
           set -euo pipefail
           python -m pip install --quiet requests beautifulsoup4
           python - <<'PY'
-          import json,re
-          import requests
+          import re, requests
           from bs4 import BeautifulSoup
-          u='https://consultacontratos.ocpr.gov.pr/contract/details?contractid=5275332'
-          r=requests.get(u,headers={'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4'},timeout=60)
-          r.raise_for_status()
-          open('detail_5275332.html','wb').write(r.content)
-          s=BeautifulSoup(r.text,'html.parser')
-          print('STATUS',r.status_code,'BYTES',len(r.content),'TITLE',s.title.get_text(' ',strip=True) if s.title else None)
-          for tag in s.find_all(['h1','h2','h3','h4','h5','h6','label','button','a']):
-              t=' '.join(tag.get_text(' ',strip=True).split())
-              blob=' '.join([t,str(tag.get('id') or ''),str(tag.get('name') or ''),str(tag.get('href') or '')])
-              if re.search(r'enmiend|amend',blob,re.I): print('NODE',tag.name,repr(t),tag.attrs)
-          for i,table in enumerate(s.find_all('table')):
-              prev=table.find_previous(['h1','h2','h3','h4','h5','h6'])
-              heading=prev.get_text(' ',strip=True) if prev else ''
-              headers=[x.get_text(' ',strip=True) for x in table.find_all('th')]
-              rows=[]
-              for tr in table.find_all('tr'):
-                  cells=[x.get_text(' ',strip=True) for x in tr.find_all(['td','th'])]
-                  if cells: rows.append(cells)
-              print('TABLE',i,'HEADING',repr(heading),'HEADERS',headers,'ROWCOUNT',len(rows),'FIRSTROWS',json.dumps(rows[:5],ensure_ascii=False))
+          base='https://consultacontratos.ocpr.gov.pr'
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4'})
+          search=s.get(base+'/contract',timeout=60); search.raise_for_status()
+          open('search.html','wb').write(search.content)
+          soup=BeautifulSoup(search.text,'html.parser')
+          srcs=[x.get('src') for x in soup.find_all('script') if x.get('src')]
+          targets=[x for x in srcs if '/scripts/contract/search' in x or '/scripts/contract/plugins/search' in x]
+          print('TARGET_BUNDLES',targets)
+          for i,src in enumerate(targets):
+              u=src if src.startswith('http') else base+src
+              r=s.get(u,timeout=60); r.raise_for_status(); fn=f'bundle_{i}.js'; open(fn,'wb').write(r.content)
+              text=r.text
+              print('BUNDLE',i,'STATUS',r.status_code,'BYTES',len(r.content),'URL',u)
+              for m in re.finditer(r'(?i).{0,220}(?:amend|enmiend|HasAmendments).{0,350}',text):
+                  print('MATCH',i,repr(m.group(0)[:900]))
+          u=base+'/contract/details?contractid=5275332'
+          r=s.get(u,timeout=60); r.raise_for_status(); open('detail_5275332.html','wb').write(r.content)
+          d=BeautifulSoup(r.text,'html.parser')
+          node=d.find(id='Amendment'); print('DETAIL_AMENDMENT_VALUE', node.get('value') if node else None)
+          for tag in d.find_all(['a','form']):
+              blob=' '.join(str(tag.get(k) or '') for k in ('href','action','id','class'))
+              if re.search(r'(?i)amend|enmiend|contract',blob): print('DETAIL_NAV',tag.name,blob)
           PY
       - uses: actions/upload-artifact@v4
         with:
           name: cee-ocpr-amendment-probe-v0-4
-          path: detail_5275332.html
+          path: |
+            search.html
+            detail_5275332.html
+            bundle_*.js
           retention-days: 7
