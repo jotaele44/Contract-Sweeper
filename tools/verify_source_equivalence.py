@@ -50,25 +50,22 @@ def validate_claim_shape(claim: dict[str, Any]) -> list[str]:
         errors.append("unexpected_top_level_keys:" + ",".join(extra))
     if claim.get("schema_version") != SCHEMA_VERSION:
         errors.append("schema_version_mismatch")
-    if not isinstance(claim.get("source_id"), str) or not str(
-        claim.get("source_id")
-    ).strip():
+    if not isinstance(claim.get("source_id"), str) or not str(claim.get("source_id")).strip():
         errors.append("source_id_missing")
 
     candidate = claim.get("candidate_source")
     if not isinstance(candidate, dict):
         errors.append("candidate_source_missing")
         candidate = {}
-    candidate_extra = sorted(
-        set(candidate) - {"name", "source_url", "authoritative"}
-    )
+    candidate_extra = sorted(set(candidate) - {"name", "source_url", "authoritative"})
     if candidate_extra:
         errors.append("unexpected_candidate_keys:" + ",".join(candidate_extra))
     if not isinstance(candidate.get("name"), str) or not candidate.get("name", "").strip():
         errors.append("candidate_name_missing")
-    if not isinstance(candidate.get("source_url"), str) or not candidate.get(
-        "source_url", ""
-    ).strip():
+    if (
+        not isinstance(candidate.get("source_url"), str)
+        or not candidate.get("source_url", "").strip()
+    ):
         errors.append("candidate_source_url_missing")
     if not isinstance(candidate.get("authoritative"), bool):
         errors.append("candidate_authoritative_invalid")
@@ -105,9 +102,7 @@ def validate_claim_shape(claim: dict[str, Any]) -> list[str]:
             errors.append(f"{prefix}_unexpected_keys:" + ",".join(extra_item))
         if not isinstance(item.get("kind"), str) or not item.get("kind", "").strip():
             errors.append(f"{prefix}_kind_missing")
-        if not isinstance(item.get("locator"), str) or not item.get(
-            "locator", ""
-        ).strip():
+        if not isinstance(item.get("locator"), str) or not item.get("locator", "").strip():
             errors.append(f"{prefix}_locator_missing")
         if not _hex64(item.get("sha256")):
             errors.append(f"{prefix}_sha256_invalid")
@@ -179,9 +174,7 @@ def verify(*, root: Path, claim: dict[str, Any]) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Verify a source-equivalence claim fail-closed."
-    )
+    parser = argparse.ArgumentParser(description="Verify a source-equivalence claim fail-closed.")
     parser.add_argument("claim", type=Path)
     parser.add_argument("--root", type=Path, default=Path("."))
     parser.add_argument("--output", type=Path)

@@ -199,7 +199,9 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def run(root: Path | None = None, *, force: bool = False) -> dict[str, Any]:
-    del force  # retained for producer compatibility; this fixed authoritative snapshot is re-fetched
+    del (
+        force
+    )  # retained for producer compatibility; this fixed authoritative snapshot is re-fetched
     root = Path(root) if root is not None else PROJECT_ROOT
     logger = setup_logging("download_prasa_contracts")
     raw_dir = root / "data/raw/PRASA"

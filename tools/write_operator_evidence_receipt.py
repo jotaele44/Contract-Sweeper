@@ -42,10 +42,7 @@ def _head(root: Path) -> str:
 
 
 def _declared(rel: str, expected: list[str]) -> bool:
-    return any(
-        rel == item or (item.endswith("/") and rel.startswith(item))
-        for item in expected
-    )
+    return any(rel == item or (item.endswith("/") and rel.startswith(item)) for item in expected)
 
 
 def _expected_satisfied(expected_path: str, actual_paths: set[str]) -> bool:
@@ -82,19 +79,13 @@ def build_receipt(
     source = source_by_id.get(source_id)
     if source is None:
         raise RuntimeError(f"unknown source_id: {source_id}")
-    if len(producer_sha) != 40 or any(
-        char not in "0123456789abcdef" for char in producer_sha
-    ):
-        raise RuntimeError(
-            "producer_sha must be a lowercase 40-character Git SHA"
-        )
+    if len(producer_sha) != 40 or any(char not in "0123456789abcdef" for char in producer_sha):
+        raise RuntimeError("producer_sha must be a lowercase 40-character Git SHA")
 
     registered_producer = str(source.get("producer_script") or "").strip()
     resolved_producer = (producer or registered_producer).strip()
     if not resolved_producer:
-        raise RuntimeError(
-            f"acquisition producer is not available for {source_id}"
-        )
+        raise RuntimeError(f"acquisition producer is not available for {source_id}")
     expected = expected_outputs(source)
     if not outputs:
         raise RuntimeError("at least one output is required")
@@ -108,34 +99,26 @@ def build_receipt(
             raise RuntimeError(f"duplicate output path: {rel}")
         actual_paths.add(rel)
         if not _declared(rel, expected):
-            raise RuntimeError(
-                f"output is not declared for {source_id}: {rel}"
-            )
+            raise RuntimeError(f"output is not declared for {source_id}: {rel}")
         path = root / rel
         if not path.exists() or not path.is_file():
             raise RuntimeError(f"output is missing for {source_id}: {rel}")
         rows = csv_rows(path)
-        positive_checks.append(
-            rows > 0 if rows is not None else path.stat().st_size > 0
-        )
+        positive_checks.append(rows > 0 if rows is not None else path.stat().st_size > 0)
         output_records.append(
             {
                 "path": rel,
                 "sha256": sha256_file(path),
                 "bytes": path.stat().st_size,
                 "rows": rows,
-                "content_type": (
-                    "text/csv" if path.suffix.lower() == ".csv" else None
-                ),
+                "content_type": ("text/csv" if path.suffix.lower() == ".csv" else None),
             }
         )
 
-    expected_complete = all(
-        _expected_satisfied(item, actual_paths) for item in expected
+    expected_complete = all(_expected_satisfied(item, actual_paths) for item in expected)
+    resolved_url = (
+        source_url or str(source.get("endpoint_url") or source.get("source_url") or "").strip()
     )
-    resolved_url = source_url or str(
-        source.get("endpoint_url") or source.get("source_url") or ""
-    ).strip()
     if not resolved_url:
         raise RuntimeError(f"source URL is not available for {source_id}")
     completed_at = completed_at or datetime.now(timezone.utc).isoformat()
@@ -166,9 +149,7 @@ def build_receipt(
             "expected_output_count": len(expected),
             "receipted_output_count": len(actual_paths),
             "registered_producer": registered_producer,
-            "producer_matches_registry": (
-                resolved_producer == registered_producer
-            ),
+            "producer_matches_registry": (resolved_producer == registered_producer),
         },
     }
 

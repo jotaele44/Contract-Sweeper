@@ -115,6 +115,36 @@ def _save_verification(path: Path, report: dict) -> Path:
     return path
 
 
+def test_csv_rows_uses_logical_path_for_extensionless_corpus_object(
+    tmp_path: Path,
+) -> None:
+    object_path = tmp_path / "objects" / "sha256" / "ab" / "cdef"
+    object_path.parent.mkdir(parents=True)
+    object_path.write_text("id,value\n1,a\n2,b\n", encoding="utf-8")
+
+    assert csv_rows(object_path) is None
+    assert csv_rows(object_path, logical_path="data/staging/processed/alpha.csv") == 2
+
+
+def test_malformed_csv_cannot_enter_operator_corpus(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    rel = "data/staging/processed/alpha.csv"
+    source = _source("alpha", [rel])
+    _write_registry(root, source)
+    malformed = root / rel
+    malformed.parent.mkdir(parents=True, exist_ok=True)
+    malformed.write_text('id,value\n1,"unterminated\n', encoding="utf-8")
+    receipts = root / "receipts"
+    _write_receipt(root, receipts, source, [rel])
+
+    with pytest.raises(RuntimeError, match="unreadable CSV for alpha"):
+        build_operator_corpus(
+            root=root,
+            receipts_dir=receipts,
+            corpus_root=root / "build" / "operator-corpus",
+        )
+
+
 def test_complete_corpus_is_deterministic_and_unlocks_authoritative_lineage(
     tmp_path: Path,
 ) -> None:
@@ -192,9 +222,7 @@ def test_partial_source_can_have_authoritative_lineage_without_materialization_c
     assert verification["verified"] is True, verification["errors"]
     assert verification["operator_corpus_authoritative"] is True
     result = verification["sources"][0]
-    assert result["missing_expected_outputs"] == [
-        "data/staging/processed/alpha_second.csv"
-    ]
+    assert result["missing_expected_outputs"] == ["data/staging/processed/alpha_second.csv"]
     verification_path = _save_verification(
         root / "reports" / "verification.json",
         verification,
@@ -273,9 +301,9 @@ def test_post_verification_mount_tamper_is_detected_by_lineage_revalidation(
         operator_corpus_verification=verification_path,
     )
     assert audit["audit_scope"]["operator_corpus_authoritative"] is False
-    assert "operator_corpus_content_revalidation_failed" in audit["audit_scope"][
-        "authority_blockers"
-    ]
+    assert (
+        "operator_corpus_content_revalidation_failed" in audit["audit_scope"]["authority_blockers"]
+    )
     assert audit["processed_file_inventory"]["orphan_rows"] is None
 
 

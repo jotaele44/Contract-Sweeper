@@ -34,4 +34,6 @@ def test_official_registry_parser_expands_clients_and_preserves_registration() -
 
 def test_registry_parser_fails_closed_when_authoritative_table_shape_is_missing() -> None:
     with pytest.raises(RuntimeError, match="expected headers"):
-        parse_registry_html("<html><body><table><tr><td>not the registry</td></tr></table></body></html>")
+        parse_registry_html(
+            "<html><body><table><tr><td>not the registry</td></tr></table></body></html>"
+        )

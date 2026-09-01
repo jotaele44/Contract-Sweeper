@@ -69,9 +69,7 @@ def _processed_inventory(root: Path) -> set[str]:
     if not processed.exists():
         return set()
     return {
-        path.relative_to(root).as_posix()
-        for path in processed.rglob("*.csv")
-        if path.is_file()
+        path.relative_to(root).as_posix() for path in processed.rglob("*.csv") if path.is_file()
     }
 
 
@@ -131,6 +129,8 @@ def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any
             actual_sha = sha256_file(artifact)
             actual_bytes = artifact.stat().st_size
             actual_rows = csv_rows(artifact)
+            if artifact.suffix.lower() == ".csv" and actual_rows is None:
+                raise RuntimeError(f"unreadable CSV for {source_id}: {rel}")
             if output.get("sha256") != actual_sha:
                 raise RuntimeError(f"sha256 mismatch for {source_id}: {rel}")
             if output.get("bytes") != actual_bytes:
@@ -197,7 +197,9 @@ def build(*, root: Path, receipts_dir: Path, corpus_root: Path) -> dict[str, Any
     }
     manifest["corpus_id"] = manifest_digest(manifest)
     manifest_path = corpus_root / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     return manifest
 
 

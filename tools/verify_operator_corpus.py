@@ -57,9 +57,7 @@ def _processed_inventory(root: Path) -> set[str]:
     if not processed.exists():
         return set()
     return {
-        path.relative_to(root).as_posix()
-        for path in processed.rglob("*.csv")
-        if path.is_file()
+        path.relative_to(root).as_posix() for path in processed.rglob("*.csv") if path.is_file()
     }
 
 
@@ -167,9 +165,7 @@ def verify(
                 source_errors.append("receipt_unreadable")
             receipt = payload if isinstance(payload, dict) else {}
             receipt_contract_errors = validate_receipt(receipt)
-            source_errors.extend(
-                f"receipt_contract:{item}" for item in receipt_contract_errors
-            )
+            source_errors.extend(f"receipt_contract:{item}" for item in receipt_contract_errors)
             if receipt.get("source_id") != source_id:
                 source_errors.append("receipt_source_id_mismatch")
             receipt_registry = receipt.get("registry")
@@ -226,7 +222,10 @@ def verify(
                     source_errors.append(f"{label}_sha256_mismatch:{rel}")
                 if path.stat().st_size != expected_bytes:
                     source_errors.append(f"{label}_bytes_mismatch:{rel}")
-                if csv_rows(path) != expected_rows:
+                actual_rows = csv_rows(path, logical_path=rel)
+                if Path(rel).suffix.lower() == ".csv" and actual_rows is None:
+                    source_errors.append(f"{label}_csv_unreadable:{rel}")
+                if actual_rows != expected_rows:
                     source_errors.append(f"{label}_rows_mismatch:{rel}")
 
         missing_expected = [
@@ -288,7 +287,9 @@ def verify(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "verification_scope": {
             "operator_snapshot_required": require_operator_snapshot,
-            "mode": "full_operator_snapshot" if require_operator_snapshot else "content_revalidation",
+            "mode": "full_operator_snapshot"
+            if require_operator_snapshot
+            else "content_revalidation",
         },
         "verified": verified,
         "operator_corpus_authoritative": verified and require_operator_snapshot,

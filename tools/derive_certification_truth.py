@@ -280,9 +280,7 @@ def _freshness_state(
         "enabled": automatable,
         "update_cadence": cadence,
         "freshness_sla_hours": float(sla or 0),
-        "last_materialized_at": (
-            completed_at.isoformat() if completed_at is not None else None
-        ),
+        "last_materialized_at": (completed_at.isoformat() if completed_at is not None else None),
         "age_hours": round(age_hours, 3) if age_hours is not None else None,
         "freshness_status": status,
         "receipt_valid": receipt_valid,
@@ -348,9 +346,7 @@ def derive(
         coverage_counts[coverage_status] += 1
 
         total_rows = sum(
-            int(output["rows"] or 0)
-            for output in outputs
-            if output.get("rows") is not None
+            int(output["rows"] or 0) for output in outputs if output.get("rows") is not None
         )
         if materialization == "not_materialized":
             materiality = "empty"
@@ -388,9 +384,7 @@ def derive(
                 "coverage_blockers": coverage_blockers,
                 "materiality_label": materiality,
                 "receipt_present": receipt is not None,
-                "receipt_valid": bool(
-                    receipt is not None and not validate_receipt(receipt)
-                ),
+                "receipt_valid": bool(receipt is not None and not validate_receipt(receipt)),
                 "outputs": outputs,
             }
         )
@@ -400,25 +394,18 @@ def derive(
         for path_type, count in path_counts.items()
         if PATH_TYPES.get(path_type, (False, ""))[0]
     )
-    queued = {
-        path_type: path_counts.get(path_type, 0)
-        for path_type in QUEUED_PATH_TYPES
-    }
+    queued = {path_type: path_counts.get(path_type, 0) for path_type in QUEUED_PATH_TYPES}
     queued_total = sum(queued.values())
 
     evidence_class = (
-        "verified_operator_corpus_mount"
-        if operator_corpus_id
-        else "checkout_or_operator_workspace"
+        "verified_operator_corpus_mount" if operator_corpus_id else "checkout_or_operator_workspace"
     )
     truth = {
         "schema_version": TRUTH_SCHEMA_VERSION,
         "as_of": as_of.isoformat(),
         "registry": {
             "total_sources": len(sources),
-            "required_sources": sum(
-                source.get("required") is True for source in sources
-            ),
+            "required_sources": sum(source.get("required") is True for source in sources),
             "source_ids_sha256": registry_digest,
             "registry_paths": registry_paths,
         },
@@ -498,9 +485,7 @@ def derive(
     completeness = {
         "schema_version": "completeness_matrix_scope_v1",
         "total_sources": len(sources),
-        "contracted_sources": sum(
-            bool(source.get("validation_threshold")) for source in sources
-        ),
+        "contracted_sources": sum(bool(source.get("validation_threshold")) for source in sources),
         "by_materialization_status": dict(sorted(status_counts.items())),
         "by_coverage_status": dict(sorted(coverage_counts.items())),
         "by_materiality_label": dict(sorted(materiality_counts.items())),
@@ -537,9 +522,7 @@ def derive(
         ]
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(
-            sorted(freshness_rows, key=lambda item: item["source_id"])
-        )
+        writer.writerows(sorted(freshness_rows, key=lambda item: item["source_id"]))
 
     truth_path = scope_reports / "certification_truth.json"
     truth_path.write_text(
@@ -604,11 +587,7 @@ def main() -> int:
     root = args.root.resolve()
     evidence_root = (args.evidence_root or root).resolve()
     receipts_dir = args.receipts_dir.resolve() if args.receipts_dir else None
-    as_of = (
-        _parse_datetime(args.as_of)
-        if args.as_of
-        else datetime.now(timezone.utc)
-    )
+    as_of = _parse_datetime(args.as_of) if args.as_of else datetime.now(timezone.utc)
     if as_of is None:
         raise SystemExit("--as-of must be an ISO-8601 timestamp")
 
@@ -628,12 +607,8 @@ def main() -> int:
                 "required_fully_materialized": result["truth"]["summary"][
                     "required_fully_materialized"
                 ],
-                "automatable_total": result["truth"]["summary"][
-                    "automatable_total"
-                ],
-                "queued_excluded_total": result["truth"]["summary"][
-                    "queued_excluded_total"
-                ],
+                "automatable_total": result["truth"]["summary"]["automatable_total"],
+                "queued_excluded_total": result["truth"]["summary"]["queued_excluded_total"],
             },
             indent=2,
             sort_keys=True,

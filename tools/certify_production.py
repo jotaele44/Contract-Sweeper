@@ -242,24 +242,17 @@ def build_report(
     status_counts = Counter(row["pipeline_status"] for row in status_rows)
     required = [row for row in status_rows if _bool(row["required"])]
     required_counts = Counter(row["pipeline_status"] for row in required)
-    required_blockers = [
-        row
-        for row in required
-        if row["pipeline_status"] != "fully_materialized"
-    ]
+    required_blockers = [row for row in required if row["pipeline_status"] != "fully_materialized"]
 
     recovery_by_id = {row["source_id"]: row for row in recovery_rows}
     automatable = {
-        row["source_id"]
-        for row in recovery_rows
-        if _bool(row.get("automatable", "false"))
+        row["source_id"] for row in recovery_rows if _bool(row.get("automatable", "false"))
     }
     missing_recovery = sorted(unique_ids - set(recovery_by_id))
     automatable_unmaterialized = sorted(
         row["source_id"]
         for row in status_rows
-        if row["source_id"] in automatable
-        and row["pipeline_status"] != "fully_materialized"
+        if row["source_id"] in automatable and row["pipeline_status"] != "fully_materialized"
     )
 
     freshness_by_id = {row["source_id"]: row for row in freshness_rows}
@@ -274,8 +267,7 @@ def build_report(
     open_reviews = [
         row
         for row in entity_reviews
-        if row.get("status", "").lower()
-        not in {"closed", "resolved", "accepted"}
+        if row.get("status", "").lower() not in {"closed", "resolved", "accepted"}
     ]
 
     total = readiness["total_sources"]
@@ -309,8 +301,7 @@ def build_report(
     truth_scope_id = truth_scope.get("scope_id") if truth_scope else None
     truth_identity = truth_scope.get("scope_identity") if truth_scope else {}
     truth_digest_match = (
-        truth_root is None
-        or truth_identity.get("registry_source_ids_sha256") == digest
+        truth_root is None or truth_identity.get("registry_source_ids_sha256") == digest
     )
     g0 = (
         bool(HEX40.fullmatch(scope_sha))
@@ -361,8 +352,7 @@ def build_report(
         and federation.get("source_truth", {}).get("total_sources") == total
         and historical_registry.get("total_sources") == total
         and historical_registry.get("source_ids_sha256") == digest
-        and readiness.get("automatable_total")
-        == readiness.get("automatable_ready")
+        and readiness.get("automatable_total") == readiness.get("automatable_ready")
         and not missing_recovery
     )
     gates.append(
@@ -397,11 +387,7 @@ def build_report(
             _gate(
                 "G2_STRICT_PREFLIGHT",
                 PASS if g2 else FAIL,
-                (
-                    "Strict preflight passed."
-                    if g2
-                    else "Strict preflight found structural errors."
-                ),
+                ("Strict preflight passed." if g2 else "Strict preflight found structural errors."),
                 {
                     "mode": "executed",
                     "checked_sources": pf.get("checked_sources"),
@@ -409,8 +395,7 @@ def build_report(
                     "status_counts": pf.get("status_counts"),
                     "structural_errors": pf.get("structural_errors"),
                     "missing_key_source_ids": [
-                        item["source_id"]
-                        for item in pf.get("missing_keys", [])
+                        item["source_id"] for item in pf.get("missing_keys", [])
                     ],
                 },
                 list(pf.get("structural_errors") or []),
@@ -451,9 +436,7 @@ def build_report(
                         "authentication": row["authentication"],
                         "producer_script": row["producer_script"],
                         "expected_outputs": [
-                            item
-                            for item in row["expected_outputs"].split(";")
-                            if item
+                            item for item in row["expected_outputs"].split(";") if item
                         ],
                         "blocker_notes": row["blocker_notes"],
                     }
@@ -467,11 +450,7 @@ def build_report(
 
     allowed = set(config["requirements"]["allowed_pipeline_states"])
     invalid_states = sorted(
-        {
-            row["pipeline_status"]
-            for row in status_rows
-            if row["pipeline_status"] not in allowed
-        }
+        {row["pipeline_status"] for row in status_rows if row["pipeline_status"] not in allowed}
     )
     g4 = len(status_rows) == total and len(unique_ids) == total and not invalid_states
     gates.append(
@@ -563,18 +542,10 @@ def build_report(
                 "open_review_count": len(open_reviews),
                 "open_review_ids": [row["review_id"] for row in open_reviews],
                 "issue_types": dict(
-                    sorted(
-                        Counter(
-                            row["issue_type"] for row in open_reviews
-                        ).items()
-                    )
+                    sorted(Counter(row["issue_type"] for row in open_reviews).items())
                 ),
-                "advisory_low_confidence_count": entity_audit.get(
-                    "advisory_low_confidence_rows"
-                ),
-                "blocking_review_count": entity_audit.get(
-                    "blocking_review_items"
-                ),
+                "advisory_low_confidence_count": entity_audit.get("advisory_low_confidence_rows"),
+                "blocking_review_count": entity_audit.get("blocking_review_items"),
                 "canonical_review_queue_open_rows": entity_audit.get(
                     "canonical_review_queue_open_rows"
                 ),
@@ -615,12 +586,8 @@ def build_report(
                 "current_registry_total_sources": total,
                 "coverage_audit_orphan_rows": orphan_rows,
                 "operator_corpus_authoritative": operator_authoritative,
-                "operator_corpus_id": coverage.get("audit_scope", {}).get(
-                    "operator_corpus_id"
-                ),
-                "registry_paths": coverage.get("audit_scope", {}).get(
-                    "registry_paths"
-                ),
+                "operator_corpus_id": coverage.get("audit_scope", {}).get("operator_corpus_id"),
+                "registry_paths": coverage.get("audit_scope", {}).get("registry_paths"),
                 "historical_unresolved_lineage_rows": historical_status.get(
                     "materialization_coverage", {}
                 )
@@ -646,15 +613,9 @@ def build_report(
             {
                 "canonical_graph_gate": canonical_gate,
                 "review_queue_open": canonical_review,
-                "edge_evidence_coverage_pct": canonical_graph.get(
-                    "edge_evidence_coverage_pct"
-                ),
+                "edge_evidence_coverage_pct": canonical_graph.get("edge_evidence_coverage_pct"),
             },
-            (
-                []
-                if g9
-                else ["certified_canonical_master_invariant_receipt_missing"]
-            ),
+            ([] if g9 else ["certified_canonical_master_invariant_receipt_missing"]),
         )
     )
 
@@ -696,22 +657,16 @@ def build_report(
             {
                 "production_status": federation.get("production_status"),
                 "ready_for_hub_discovery": fg.get("ready_for_hub_discovery"),
-                "ready_for_hub_live_execution": fg.get(
-                    "ready_for_hub_live_execution"
-                ),
+                "ready_for_hub_live_execution": fg.get("ready_for_hub_live_execution"),
                 "blocking_conditions": fg.get("blocking_conditions", []),
             },
             list(fg.get("blocking_conditions") or []),
         )
     )
 
-    upstream_nonpass = [
-        gate["id"] for gate in gates if gate["state"] != PASS
-    ]
+    upstream_nonpass = [gate["id"] for gate in gates if gate["state"] != PASS]
     activation = bool(
-        historical_status.get("preservation", {}).get(
-            "production_activation_authorized"
-        )
+        historical_status.get("preservation", {}).get("production_activation_authorized")
     )
     g12 = not upstream_nonpass and activation
     gates.append(
@@ -727,8 +682,7 @@ def build_report(
                 "upstream_nonpass_gates": upstream_nonpass,
                 "production_activation_authorized": activation,
             },
-            upstream_nonpass
-            + ([] if activation else ["production_activation_not_authorized"]),
+            upstream_nonpass + ([] if activation else ["production_activation_not_authorized"]),
         )
     )
 
@@ -744,11 +698,7 @@ def build_report(
                 "required": _bool(row["required"]),
                 "authentication": row["authentication"],
                 "producer_script": row["producer_script"],
-                "expected_outputs": [
-                    item
-                    for item in row["expected_outputs"].split(";")
-                    if item
-                ],
+                "expected_outputs": [item for item in row["expected_outputs"].split(";") if item],
                 "update_cadence": row["update_cadence"],
                 "pipeline_status": row["pipeline_status"],
                 "blocker_notes": row["blocker_notes"],
@@ -758,9 +708,7 @@ def build_report(
                 "freshness_status": fresh.get("freshness_status", ""),
                 "last_status": fresh.get("last_status", ""),
                 "last_success_at": fresh.get("last_success_at", ""),
-                "last_materialized_at": fresh.get(
-                    "last_materialized_at", ""
-                ),
+                "last_materialized_at": fresh.get("last_materialized_at", ""),
             }
         )
 
@@ -784,9 +732,7 @@ def build_report(
         },
         "source_universe": {
             "pipeline_status_counts": dict(sorted(status_counts.items())),
-            "required_pipeline_status_counts": dict(
-                sorted(required_counts.items())
-            ),
+            "required_pipeline_status_counts": dict(sorted(required_counts.items())),
             "automatable_total": len(automatable),
             "queued_excluded_total": excluded,
             "queued_excluded": readiness.get("queued_excluded"),
@@ -795,14 +741,10 @@ def build_report(
         },
         "gates": gates,
         "certification_state": (
-            config["states"]["certified"]
-            if all_pass
-            else config["states"]["non_production"]
+            config["states"]["certified"] if all_pass else config["states"]["non_production"]
         ),
         "production_eligible": all_pass,
-        "nonpass_gate_ids": [
-            gate["id"] for gate in gates if gate["state"] != PASS
-        ],
+        "nonpass_gate_ids": [gate["id"] for gate in gates if gate["state"] != PASS],
     }
 
 

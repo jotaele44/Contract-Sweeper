@@ -35,12 +35,13 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def csv_rows(path: Path) -> int | None:
-    if path.suffix.lower() != ".csv":
+def csv_rows(path: Path, *, logical_path: str | Path | None = None) -> int | None:
+    content_path = Path(logical_path) if logical_path is not None else path
+    if content_path.suffix.lower() != ".csv":
         return None
     try:
         with path.open("r", encoding="utf-8-sig", newline="") as fh:
-            return max(sum(1 for _ in csv.reader(fh)) - 1, 0)
+            return max(sum(1 for _ in csv.reader(fh, strict=True)) - 1, 0)
     except (OSError, UnicodeDecodeError, csv.Error):
         return None
 
@@ -69,10 +70,7 @@ def load_sources(root: Path) -> tuple[list[dict[str, Any]], list[str]]:
             if extension_sources is None:
                 continue
             if not isinstance(extension_sources, list):
-                raise RuntimeError(
-                    "source registry extension must contain sources list: "
-                    f"{path}"
-                )
+                raise RuntimeError(f"source registry extension must contain sources list: {path}")
             sources.extend(extension_sources)
             registry_paths.append(path.relative_to(root).as_posix())
 
@@ -80,9 +78,7 @@ def load_sources(root: Path) -> tuple[list[dict[str, Any]], list[str]]:
     if any(not source_id for source_id in source_ids):
         raise RuntimeError("source registry contains an empty source_id")
     counts = {source_id: source_ids.count(source_id) for source_id in source_ids}
-    duplicates = sorted(
-        source_id for source_id, count in counts.items() if count > 1
-    )
+    duplicates = sorted(source_id for source_id, count in counts.items() if count > 1)
     if duplicates:
         raise RuntimeError("duplicate source IDs: " + ", ".join(duplicates))
     return sources, registry_paths
@@ -152,9 +148,7 @@ def validate_receipt(receipt: dict[str, Any]) -> list[str]:
         errors.append("unexpected_top_level_keys:" + ",".join(extra_top))
     if receipt.get("schema_version") != RECEIPT_SCHEMA_VERSION:
         errors.append("receipt_schema_version_mismatch")
-    if not isinstance(receipt.get("source_id"), str) or not str(
-        receipt.get("source_id")
-    ).strip():
+    if not isinstance(receipt.get("source_id"), str) or not str(receipt.get("source_id")).strip():
         errors.append("receipt_source_id_missing")
 
     acquisition = receipt.get("acquisition")
@@ -172,9 +166,10 @@ def validate_receipt(receipt: dict[str, Any]) -> list[str]:
     extra_acquisition = sorted(set(acquisition) - allowed_acquisition)
     if extra_acquisition:
         errors.append("unexpected_acquisition_keys:" + ",".join(extra_acquisition))
-    if not isinstance(acquisition.get("producer"), str) or not acquisition.get(
-        "producer", ""
-    ).strip():
+    if (
+        not isinstance(acquisition.get("producer"), str)
+        or not acquisition.get("producer", "").strip()
+    ):
         errors.append("receipt_producer_missing")
     if not _is_hex(acquisition.get("producer_sha"), 40):
         errors.append("receipt_producer_sha_invalid")
@@ -182,9 +177,10 @@ def validate_receipt(receipt: dict[str, Any]) -> list[str]:
         errors.append("receipt_completed_at_invalid")
     if "started_at" in acquisition and not _is_datetime(acquisition.get("started_at")):
         errors.append("receipt_started_at_invalid")
-    if not isinstance(acquisition.get("source_url"), str) or not acquisition.get(
-        "source_url", ""
-    ).strip():
+    if (
+        not isinstance(acquisition.get("source_url"), str)
+        or not acquisition.get("source_url", "").strip()
+    ):
         errors.append("receipt_source_url_missing")
     http_status = acquisition.get("http_status")
     if http_status is not None and (
@@ -198,9 +194,7 @@ def validate_receipt(receipt: dict[str, Any]) -> list[str]:
     if not isinstance(registry, dict):
         errors.append("receipt_registry_missing")
         registry = {}
-    extra_registry = sorted(
-        set(registry) - {"source_ids_sha256", "source_definition_sha256"}
-    )
+    extra_registry = sorted(set(registry) - {"source_ids_sha256", "source_definition_sha256"})
     if extra_registry:
         errors.append("unexpected_registry_keys:" + ",".join(extra_registry))
     if not _is_hex(registry.get("source_ids_sha256"), 64):
@@ -221,9 +215,7 @@ def validate_receipt(receipt: dict[str, Any]) -> list[str]:
             continue
         extra_output = sorted(set(output) - allowed_output)
         if extra_output:
-            errors.append(
-                f"{prefix}_unexpected_keys:" + ",".join(extra_output)
-            )
+            errors.append(f"{prefix}_unexpected_keys:" + ",".join(extra_output))
         path = output.get("path")
         if not isinstance(path, str) or not path.strip():
             errors.append(f"{prefix}_path_missing")
@@ -242,9 +234,7 @@ def validate_receipt(receipt: dict[str, Any]) -> list[str]:
         if not isinstance(size, int) or isinstance(size, bool) or size < 0:
             errors.append(f"{prefix}_bytes_invalid")
         rows = output.get("rows")
-        if rows is not None and (
-            not isinstance(rows, int) or isinstance(rows, bool) or rows < 0
-        ):
+        if rows is not None and (not isinstance(rows, int) or isinstance(rows, bool) or rows < 0):
             errors.append(f"{prefix}_rows_invalid")
         if "rows" not in output:
             errors.append(f"{prefix}_rows_missing")
