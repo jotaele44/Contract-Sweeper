@@ -1,0 +1,89 @@
+name: CEE OCPR all amendments v0.4
+
+on:
+  push:
+    branches: [cee-ocpr-row-denominator-v0-4]
+    paths: [.github/workflows/cee-ocpr-all-amendments-v0-4.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Enumerate complete current CEE original plus amendment graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet requests beautifulsoup4
+          python - <<'PY'
+          from __future__ import annotations
+          import hashlib,json,re,time
+          from collections import Counter
+          from datetime import datetime,timezone
+          from pathlib import Path
+          import requests
+          from bs4 import BeautifulSoup
+          BASE='https://consultacontratos.ocpr.gov.pr'; EID='1410'
+          OUT=Path('cee_ocpr_v04_complete_graph'); RAW=OUT/'raw_amendment_families'; RAW.mkdir(parents=True,exist_ok=True)
+          captured=datetime.now(timezone.utc).isoformat()
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4 (+complete current manifestation graph)'})
+          boot=s.get(BASE+'/contract',timeout=60); boot.raise_for_status(); (OUT/'search_bootstrap.html').write_bytes(boot.content)
+          token=BeautifulSoup(boot.text,'html.parser').find('input',{'name':'__RequestVerificationToken'}).get('value')
+          hdr={'Accept':'application/json, text/javascript, */*; q=0.01','Content-Type':'application/json; charset=utf-8','Referer':BASE+'/contract','X-Requested-With':'XMLHttpRequest','__RequestVerificationToken':token}
+          payload={'draw':1,'start':0,'length':5000,'order':[{'column':1,'dir':'desc'}],'search':{'value':'','regex':False},'EntityId':EID,'ContractNumber':None,'ContractorName':None,'DateOfGrantFrom':None,'DateOfGrantTo':None,'EffectiveDateFrom':None,'EffectiveDateTo':None,'AmountFrom':None,'AmountTo':None,'ServiceGroupId':None,'ServiceId':None,'FundId':None,'ContractingFormId':None,'PCONumber':None}
+          rr=s.post(BASE+'/contract/search',headers=hdr,json=payload,timeout=120); rr.raise_for_status(); search=rr.json(); originals=search.get('data') or []
+          (OUT/'search_all_originals.json').write_text(json.dumps(search,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+          expected=int(search.get('recordsFiltered') or 0)
+          if len(originals)!=expected: raise SystemExit(f'ORIGINAL_COUNT_MISMATCH {len(originals)} {expected}')
+          if len({str(x.get('ContractId')) for x in originals})!=len(originals): raise SystemExit('ORIGINAL_ID_DUP')
+          parents=sorted({str(x.get('ContractNumber') or '').strip() for x in originals if x.get('HasAmendments') and x.get('ContractNumber')})
+          children=[]
+          for i,n in enumerate(parents,1):
+              ar=s.post(BASE+'/contract/getamendments',headers=hdr,json={'model':{'ContractNumber':n,'EntityId':EID}},timeout=60); ar.raise_for_status(); data=ar.json()
+              if not isinstance(data,list): raise SystemExit('NON_LIST '+n)
+              raw=json.dumps(data,ensure_ascii=False,indent=2,sort_keys=True); (RAW/f'{n}.json').write_text(raw,encoding='utf-8')
+              for x in data:
+                  z=dict(x); z['_parent_contract_number']=n; children.append(z)
+              if i%100==0: print('FAMILIES',i,'CHILDREN',len(children))
+              time.sleep(0.03)
+          child_ids=[str(x.get('ContractId')) for x in children]
+          if len(child_ids)!=len(set(child_ids)): raise SystemExit('CHILD_ID_DUP')
+          orig_ids={str(x.get('ContractId')) for x in originals}; overlap=orig_ids & set(child_ids)
+          if overlap: raise SystemExit(f'ORIGINAL_CHILD_ID_OVERLAP {len(overlap)}')
+          def msdate(v):
+              if not v:return None
+              m=re.search(r'/Date\((-?\d+)',str(v));
+              return datetime.fromtimestamp(int(m.group(1))/1000,tz=timezone.utc).date().isoformat() if m else str(v)
+          def fy(v):
+              d=msdate(v)
+              if not d or not re.match(r'^\d{4}-\d{2}-\d{2}$',d):return 'UNKNOWN'
+              y,m,_=map(int,d.split('-')); return f'{y}-{y+1}' if m>=7 else f'{y-1}-{y}'
+          oc=Counter(fy(x.get('DateOfGrant')) for x in originals); ac=Counter(fy(x.get('DateOfGrant')) for x in children)
+          allc=oc+ac
+          rows=[]
+          for kind,seq in [('ORIGINAL',originals),('AMENDMENT',children)]:
+              for x in seq:
+                  rows.append({'manifestation_type':kind,'source_contract_id':x.get('ContractId'),'contract_number':x.get('ContractNumber'),'amendment':x.get('Amendment'),'date_of_grant':msdate(x.get('DateOfGrant')),'fiscal_year':fy(x.get('DateOfGrant')),'has_amendments':x.get('HasAmendments'),'raw_row':x})
+          with (OUT/'complete_manifestations.jsonl').open('w',encoding='utf-8') as f:
+              for x in rows:f.write(json.dumps(x,ensure_ascii=False,sort_keys=True)+'\n')
+          receipt={'status':'PASS','captured_at_utc':captured,'entity_id':EID,'original_count':len(originals),'parent_families_with_amendments':len(parents),'amendment_count':len(children),'total_manifestations':len(rows),'original_counts_by_grant_fy':dict(sorted(oc.items())),'amendment_counts_by_grant_fy':dict(sorted(ac.items())),'combined_counts_by_grant_fy':dict(sorted(allc.items())),'target_comparison':{'2022-2023':{'audit_registry_total':108,'current_graph_count_by_grant_fy':allc['2022-2023'],'difference_current_minus_audit':allc['2022-2023']-108},'2023-2024':{'audit_registry_total':159,'current_graph_count_by_grant_fy':allc['2023-2024'],'difference_current_minus_audit':allc['2023-2024']-159}},'all_source_contract_ids_unique':len({str(x['source_contract_id']) for x in rows})==len(rows)}
+          (OUT/'receipt.json').write_text(json.dumps(receipt,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+          files=[]
+          for p in sorted(OUT.rglob('*')):
+              if p.is_file():b=p.read_bytes();files.append({'path':str(p.relative_to(OUT)),'size':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+          (OUT/'SHA256_MANIFEST.json').write_text(json.dumps({'files':files},indent=2,sort_keys=True),encoding='utf-8')
+          print(json.dumps(receipt,ensure_ascii=False,indent=2))
+          PY
+          tar -czf cee_ocpr_v04_complete_graph.tar.gz cee_ocpr_v04_complete_graph
+          sha256sum cee_ocpr_v04_complete_graph.tar.gz | tee cee_ocpr_v04_complete_graph.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cee-ocpr-v04-complete-graph
+          path: |
+            cee_ocpr_v04_complete_graph/
+            cee_ocpr_v04_complete_graph.tar.gz
+            cee_ocpr_v04_complete_graph.tar.gz.sha256
+          retention-days: 30
