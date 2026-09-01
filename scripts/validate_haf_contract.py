@@ -21,9 +21,13 @@ EXPECTED = {
     "identity_policy": "EVIDENCE_PRIORITY_FAIL_CLOSED",
     "unresolved_policy": "FAIL_CLOSED",
     "canonical_export_required": True,
+    "adapter_state": "COMPATIBLE_PENDING_CI",
     "native_contract": "federation.json",
 }
-ALLOWED_ADAPTER_STATES = {"COMPATIBLE_PENDING_CI", "COMPATIBLE"}
+COMMAND_BINDINGS = {
+    "native_test_command": "test_suite",
+    "canonical_export_command": "export_canonical",
+}
 
 
 def validate(root: Path, repository: str) -> list[str]:
@@ -32,7 +36,7 @@ def validate(root: Path, repository: str) -> list[str]:
         return [f"missing HAF contract: {CONTRACT}"]
     try:
         contract = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         return [f"invalid HAF contract: {exc}"]
     if not isinstance(contract, dict):
         return ["HAF contract root must be an object"]
@@ -44,8 +48,6 @@ def validate(root: Path, repository: str) -> list[str]:
     ]
     if contract.get("repository_full_name") != repository:
         errors.append("repository_full_name does not match GITHUB_REPOSITORY")
-    if contract.get("adapter_state") not in ALLOWED_ADAPTER_STATES:
-        errors.append("adapter_state is not an allowed compatible state")
 
     native_path = root / str(contract.get("native_contract", ""))
     if not native_path.is_file():
@@ -53,28 +55,51 @@ def validate(root: Path, repository: str) -> list[str]:
     else:
         try:
             native = json.loads(native_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             errors.append(f"invalid native contract: {exc}")
         else:
-            if not isinstance(native, dict) or native.get("program_id") != contract.get(
-                "program_id"
-            ):
-                errors.append("native contract program_id does not match HAF contract")
+            if not isinstance(native, dict):
+                errors.append("native contract root must be an object")
+            else:
+                for key in ("program_id", "repository_full_name", "federation_role"):
+                    if native.get(key) != contract.get(key):
+                        errors.append(f"native contract {key} does not match HAF contract")
 
-    for key in ("native_test_command", "canonical_export_command"):
+                commands = native.get("hub_callable_commands")
+                if not isinstance(commands, dict):
+                    errors.append("native contract hub_callable_commands must be an object")
+                else:
+                    for contract_key, native_key in COMMAND_BINDINGS.items():
+                        if contract.get(contract_key) != commands.get(native_key):
+                            errors.append(
+                                f"{contract_key} does not match native contract "
+                                f"hub_callable_commands.{native_key}"
+                            )
+
+    for key in COMMAND_BINDINGS:
         command = contract.get(key)
         if not isinstance(command, str) or not command.strip():
             errors.append(f"{key} must be a non-empty command")
             continue
-        parts = shlex.split(command)
-        script_args = [part for part in parts if part.endswith(".py")]
-        if script_args and not all((root / part).is_file() for part in script_args):
-            errors.append(f"{key} references a missing script")
+        try:
+            parts = shlex.split(command)
+        except ValueError as exc:
+            errors.append(f"{key} is malformed: {exc}")
+            continue
+        for part in (item for item in parts if item.endswith(".py")):
+            script_path = Path(part)
+            if script_path.is_absolute() or ".." in script_path.parts:
+                errors.append(f"{key} references a script outside the repository")
+            elif not (root / script_path).is_file():
+                errors.append(f"{key} references a missing script")
     return errors
 
 
 def main() -> int:
-    repository = os.environ.get("GITHUB_REPOSITORY", "jotaele44/moneysweep-pr")
+    repository = os.environ.get("GITHUB_REPOSITORY", "")
+    if not repository:
+        print("HAF_CONTRACT_FAIL: GITHUB_REPOSITORY is required")
+        return 1
     errors = validate(ROOT, repository)
     if errors:
         for error in errors:
