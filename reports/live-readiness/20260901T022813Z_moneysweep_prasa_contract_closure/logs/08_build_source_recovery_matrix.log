@@ -1,0 +1,4 @@
+wrote reports/source_recovery_matrix.csv (162 rows)
+wrote reports/source_recovery_matrix.md
+wrote reports/materialization_readiness.json
+  automatable_ready=113/113  queued=49

@@ -1,0 +1,8 @@
+started_utc=2026-09-01T00:55:22Z
+2026-08-31 20:55:23 [INFO]   Reading Donaciones_20260320.csv...
+2026-08-31 20:55:27 [INFO]     → 4,686 donation rows after mapping
+2026-08-31 20:55:27 [INFO]   Reading pr_donaciones.csv...
+2026-08-31 20:55:30 [INFO]     → 4,579 donation rows after mapping
+
+CEE donations: 9,156 rows — OK
+finished_utc=2026-09-01T00:55:31Z

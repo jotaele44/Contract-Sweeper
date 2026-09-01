@@ -1,0 +1,204 @@
+{
+  "branch": "audit/moneysweep-startup-setup-unblock-20260831",
+  "carta_skill_status": "Skill tool unavailable after select:Skill discovery; Carta not applicable to MoneySweep repo closure",
+  "certification_summary": {
+    "certified_complete": 1,
+    "provisional": 16,
+    "uncertified": 145
+  },
+  "closed_or_reclassified_blockers": {
+    "oficina_contralor": "removed from blocker wording after source-drop materialization",
+    "pr_cabilderos": "removed from blocker wording after source-drop materialization",
+    "source_count_wording": "updated to 11/16 required sources using current completeness/materialization evidence"
+  },
+  "command_receipts": [
+    {
+      "command": "refresh_materialization_and_export",
+      "exit_code": 0,
+      "raw_exit_code_state": "UNPARSEABLE_EXIT_CODE_ROW",
+      "state": "PASS"
+    },
+    {
+      "command": "focused_tests_no_cov",
+      "exit_code": 0,
+      "raw_exit_code_state": "UNPARSEABLE_EXIT_CODE_ROW",
+      "state": "PASS"
+    }
+  ],
+  "command_receipts_note": "normalized_command_exit_codes.csv contains blank shell exit-code fields from zsh PIPESTATUS capture; PASS/FAIL was adjudicated from preserved logs and command completion.",
+  "completion_claim": "Bounded continuation: source-drop/materialization evidence refreshed and stale blocker wording corrected; PRASA/HUD DRGR remain partial/unresolved, so MoneySweep live execution remains false.",
+  "coverage_local_truth_summary": {
+    "coverage_rate_fully": 0.1049,
+    "fully_materialized": 17,
+    "materialized_any_data": 18,
+    "no_outputs_declared": 0,
+    "not_materialized": 142,
+    "partially_materialized": 3,
+    "required_fully_materialized": 11,
+    "required_sources": 16,
+    "tier_bulk": 14,
+    "tier_empty": 144,
+    "tier_moderate": 2,
+    "tier_seed_stub": 2,
+    "total_local_rows": 81662,
+    "total_sources": 162
+  },
+  "federation_export": {
+    "manifest_path": "data/exports/canonical_v1_federation/manifest.json",
+    "mode": "test",
+    "ok": true,
+    "package_id": "pkg_be6ec7c2a3b0cd5fe98ea99862f6f374",
+    "stream_counts": {
+      "entities": 207,
+      "relationships": 66,
+      "sources": 4508
+    }
+  },
+  "federation_readiness_gate": {
+    "blocking_conditions": [
+      "manual-source Tranche B remains partial for hud_drgr_authorized and prasa; pr_cabilderos and oficina_contralor were source-drop staged and materialized in reports/live-readiness/20260901T005414Z_moneysweep_live_readiness/",
+      "cor3 live endpoints return no data (portal likely requires JavaScript rendering); manual CSV export fallback documented",
+      "PR-gov scraper-needed queue: 13 of 15 sources promoted to api_producer; 2 true stubs remain (hacienda_sut_ivu, pr_act_154_excise)",
+      "PROPUBLICA_API_KEY not supplied (nonprofits adapter)",
+      "source-count wording must stay reconciled to reports/materialization_readiness.json truth"
+    ],
+    "ready_for_hub_discovery": true,
+    "ready_for_hub_live_execution": false,
+    "resolved_conditions": [
+      "runtime API keys supplied and 11/16 required sources live-materialized (usaspending_prime/subawards, fsrs, fema_pa_openfema_v2, cor3, hud_cdbg_dr_public, oficina_contralor, emma_bonds, lda, pr_cabilderos, fec, sam_entities via parent_collapse); validation_gates failed count 20 -> 10"
+    ]
+  },
+  "generated_at_utc": "2026-09-01T02:02:39Z",
+  "head_sha": "a7686ed815786c133acbc0f58cded6b5b804344e",
+  "lumen_status": "LUMEN_UNAVAILABLE_OR_UNHEALTHY; bounded local inspection used",
+  "materialization_summary": {
+    "fully_materialized": 17,
+    "not_materialized": 142,
+    "partially_materialized": 3
+  },
+  "newly_explicit_partial_artifacts": [
+    {
+      "absolute_source_path": "/Users/jotaele/Documents/Financials/Documents/contractdata/data/staging/processed/pr_prasa_contracts.csv",
+      "byte_size": 146,
+      "classification": "PARTIAL",
+      "inclusion_decision": "manifest_only_documentary_support",
+      "logical_rows": 0,
+      "note": "External PRASA contract master exists but is header-only; does not close PRASA contract export.",
+      "source_id": "prasa"
+    },
+    {
+      "absolute_source_path": "/Users/jotaele/Documents/Financials/2024/CER/FY2024 PRASA CER_Final.pdf",
+      "byte_size": 3577630,
+      "classification": "PARTIAL",
+      "inclusion_decision": "manifest_only_documentary_support",
+      "logical_rows": null,
+      "note": "PRASA support exists; vendor-level contract master remains header-only.",
+      "source_id": "prasa"
+    },
+    {
+      "absolute_source_path": "/Users/jotaele/Documents/Financials/2024/ACT/transicion2024_archive/files/by_agency/163/Informe_Inventario_de_Propiedad/Inventario_Activos_AAA_hasta_2024.xlsx",
+      "byte_size": 10634882,
+      "classification": "PARTIAL",
+      "inclusion_decision": "manifest_only_documentary_support",
+      "logical_rows": null,
+      "note": "PRASA asset inventory exists; not a PRASA contract export.",
+      "source_id": "prasa"
+    },
+    {
+      "absolute_source_path": "/Users/jotaele/Documents/Financials/Documents/contractdata/data/normalized/hud_drgr_projects.parquet",
+      "byte_size": 6220,
+      "classification": "PARTIAL_UNRESOLVED",
+      "inclusion_decision": "manifest_only_not_authorized_export",
+      "logical_rows": null,
+      "note": "DRGR-shaped artifact is zero-row and does not prove authorized export delivery.",
+      "source_id": "hud_drgr_authorized"
+    },
+    {
+      "absolute_source_path": "/Users/jotaele/Documents/Financials/Documents/contractdata/data/normalized/hud_drgr_responsible_orgs_resolved.parquet",
+      "byte_size": 3546,
+      "classification": "PARTIAL_UNRESOLVED",
+      "inclusion_decision": "manifest_only_not_authorized_export",
+      "logical_rows": null,
+      "note": "DRGR responsible-org artifact is zero-row and does not prove authorized export delivery.",
+      "source_id": "hud_drgr_authorized"
+    },
+    {
+      "absolute_source_path": "/Users/jotaele/Documents/Financials/Documents/contractdata/data/staging/processed/pr_hud_hcv.csv",
+      "byte_size": 336,
+      "classification": "PARTIAL_UNRESOLVED",
+      "inclusion_decision": "manifest_only_not_authorized_export",
+      "logical_rows": 2,
+      "note": "HUD HCV/Section 8 rows exist; this is not an authorized DRGR activity/project export.",
+      "source_id": "hud_drgr_authorized"
+    }
+  ],
+  "origin_main_sha": "a7686ed815786c133acbc0f58cded6b5b804344e",
+  "preserved_blockers": {
+    "hud_drgr_authorized": {
+      "reason": "HUD HCV rows are not DRGR; DRGR projects and responsible-org files remain 0 rows; authorized export not proven.",
+      "reviewed_artifact_count": 3,
+      "state": "PARTIAL_UNRESOLVED"
+    },
+    "prasa": {
+      "contract_rows": 0,
+      "reason": "External PRASA contract master remains 0 rows; CER/asset files are documentary support only.",
+      "reviewed_artifact_count": 3,
+      "state": "PARTIAL"
+    }
+  },
+  "repo_id": "moneysweep-pr",
+  "result_state": "PROVISIONAL_LIVE_READINESS_BLOCKER_TEXT_RECONCILED",
+  "row_counts": {
+    "contralor_electoral": {
+      "byte_size": 554203,
+      "exists": true,
+      "path": "data/staging/processed/pr_oce_donations.csv",
+      "rows": 6474
+    },
+    "cor3": {
+      "byte_size": 196718,
+      "exists": true,
+      "path": "data/staging/processed/pr_cor3_projects.csv",
+      "rows": 1481
+    },
+    "donaciones_pr": {
+      "byte_size": 1122141,
+      "exists": true,
+      "path": "data/staging/processed/pr_donaciones.csv",
+      "rows": 9156
+    },
+    "oce_socrata_live": {
+      "byte_size": 554203,
+      "exists": true,
+      "path": "data/staging/processed/pr_oce_donations.csv",
+      "rows": 6474
+    },
+    "oficina_contralor": {
+      "byte_size": 4090,
+      "exists": true,
+      "path": "data/staging/processed/pr_contralor_audits.csv",
+      "rows": 85
+    },
+    "pr_cabilderos": {
+      "byte_size": 522002,
+      "exists": true,
+      "path": "data/staging/processed/pr_cabilderos.csv",
+      "rows": 2668
+    },
+    "prasa": {
+      "byte_size": 146,
+      "exists": true,
+      "path": "data/staging/processed/pr_prasa_contracts.csv",
+      "rows": 0
+    }
+  },
+  "run_id": "20260901T015715Z_moneysweep_live_readiness_continuation",
+  "schema_version": "moneysweep_live_readiness_continuation_v1",
+  "source_drop_arithmetic": {
+    "found": 12,
+    "missing_files": 0,
+    "partial_or_unresolved": 6,
+    "staged": 9,
+    "total": 18
+  }
+}
