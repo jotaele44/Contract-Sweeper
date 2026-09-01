@@ -27,6 +27,7 @@ from desktop.config import DIST_DIR, FRONTEND_DIR, REPO_ROOT, REQUIREMENT_FILES 
 VENV_DIR = REPO_ROOT / ".venv"
 MARKER = Path(__file__).resolve().parent / ".setup-complete"
 MIN_PYTHON = (3, 10)
+NODE_ENGINE = "^20.19.0 || ^22.13.0 || >=24.0.0"
 
 
 def venv_python() -> Path:
@@ -61,11 +62,32 @@ def setup_python() -> None:
         run([str(venv_python()), "-m", "pip", "install", "--quiet", *extra])
 
 
+def node_version_supported(raw_version: str) -> bool:
+    token = raw_version.strip().removeprefix("v").split("-", 1)[0]
+    parts = token.split(".")
+    if len(parts) != 3 or not all(part.isdigit() for part in parts):
+        return False
+    version = tuple(int(part) for part in parts)
+    return (
+        (version[0] == 20 and version >= (20, 19, 0))
+        or (version[0] == 22 and version >= (22, 13, 0))
+        or version >= (24, 0, 0)
+    )
+
+
 def setup_frontend() -> None:
     npm = shutil.which("npm")
-    if npm is None:
+    node = shutil.which("node")
+    if npm is None or node is None:
         raise SystemExit(
             "npm not found. Install Node.js (https://nodejs.org) and re-run python desktop/setup.py"
+        )
+    installed_node = subprocess.run(
+        [node, "--version"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    if not node_version_supported(installed_node):
+        raise SystemExit(
+            f"Node.js {NODE_ENGINE} required by the dashboard, found {installed_node or 'unknown'}"
         )
     env = dict(os.environ)
     env["VITE_API_BASE"] = ""
