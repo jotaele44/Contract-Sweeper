@@ -179,7 +179,6 @@ def _parse_df(df: pd.DataFrame, source_file: str) -> pd.DataFrame:
         )
     ]
     donor = out_df["donor_name"].fillna("").astype(str).str.strip()
-    amount = out_df["amount"].fillna("").astype(str).str.strip()
     evidence_fields = [
         "amount",
         "contribution_date",
