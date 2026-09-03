@@ -42,8 +42,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
-
+          node-version: "22.22.2"
       - name: Build frontend (same-origin)
         env:
           VITE_API_BASE: ""
@@ -52,11 +51,17 @@ jobs:
           npm run build
         working-directory: dashboard
 
+      - name: Assert isolated checkout
+        shell: bash
+        run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
+
       - name: Install Python dependencies
         shell: bash
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.longpaths
+          GIT_CONFIG_VALUE_0: "true"
         run: |
-          # PRII_FETCH_HUB: ensure shared federation libs resolve
-          if [ ! -d ../thehub-pr ]; then git clone --depth 1 --branch "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" https://github.com/jotaele44/thehub-pr.git ../thehub-pr || git clone --depth 1 https://github.com/jotaele44/thehub-pr.git ../thehub-pr; fi
           python -m pip install --upgrade pip
           pip install -r server/backend/requirements.txt -r requirements-desktop.txt pyinstaller
 

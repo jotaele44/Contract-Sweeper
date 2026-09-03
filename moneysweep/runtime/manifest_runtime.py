@@ -387,7 +387,9 @@ def write_canonical_manifest(root: Path, files: list[dict[str, Any]]) -> dict[st
     ]
     csv_path = out_dir / "source_manifest.csv"
     with csv_path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=csv_fields, extrasaction="ignore")
+        writer = csv.DictWriter(
+            f, fieldnames=csv_fields, extrasaction="ignore", lineterminator="\n"
+        )
         writer.writeheader()
         writer.writerows(files)
     return {"json": json_path, "csv": csv_path}

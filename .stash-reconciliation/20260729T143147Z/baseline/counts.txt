@@ -1,1 +1,0 @@
-stash_count=1

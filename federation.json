@@ -16,9 +16,9 @@
   "pause_lock_required": true,
   "source_truth": {
     "source_of_truth_file": "reports/materialization_readiness.json",
-    "total_sources": 158,
-    "automatable_total": 109,
-    "automatable_ready": 109,
+    "total_sources": 164,
+    "automatable_total": 115,
+    "automatable_ready": 115,
     "queued_excluded_total": 49,
     "queued_excluded": {
       "manual_export": 42,
@@ -29,7 +29,7 @@
     }
   },
   "hub_callable_commands": {
-    "setup": "python3 run_all.py --only-setup",
+    "setup": "python3 -m pip install -r requirements.txt && python3 run_all.py --only-setup",
     "strict_preflight": "python3 run_all.py --only-setup --strict-preflight",
     "full_pipeline": "python3 run_all.py --strict-preflight",
     "materialization_matrix": "python3 scripts/build_source_recovery_matrix.py",
@@ -75,14 +75,14 @@
     "ready_for_hub_discovery": true,
     "ready_for_hub_live_execution": false,
     "blocking_conditions": [
-      "manual-source Tranche B not materialized (hud_drgr_authorized, prasa, oficina_contralor, pr_cabilderos await operator file drops)",
+      "manual-source Tranche B remains partial/unresolved for hud_drgr_authorized; prasa, pr_cabilderos, and oficina_contralor were source-drop staged or parsed and materialized in reports/live-readiness/20260901T022813Z_moneysweep_prasa_contract_closure/",
       "cor3 live endpoints return no data (portal likely requires JavaScript rendering); manual CSV export fallback documented",
       "PR-gov scraper-needed queue: 13 of 15 sources promoted to api_producer; 2 true stubs remain (hacienda_sut_ivu, pr_act_154_excise)",
       "PROPUBLICA_API_KEY not supplied (nonprofits adapter)",
       "source-count wording must stay reconciled to reports/materialization_readiness.json truth"
     ],
     "resolved_conditions": [
-      "runtime API keys supplied and 9/14 required sources live-materialized (usaspending_prime/subawards, fsrs, fema_pa_openfema_v2, hud_cdbg_dr_public, emma_bonds, lda, fec, sam_entities via parent_collapse); validation_gates failed count 20 -> 10"
+      "runtime API keys supplied and 12/16 required sources live-materialized (usaspending_prime/subawards, fsrs, fema_pa_openfema_v2, cor3, hud_cdbg_dr_public, oficina_contralor, emma_bonds, lda, pr_cabilderos, prasa, fec, sam_entities via parent_collapse); validation_gates failed count 20 -> 10"
     ]
   }
 }

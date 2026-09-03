@@ -151,6 +151,8 @@ ports_authority,infrastructure,False,manual_export,1,0,1,0,not_materialized,0,1,
 pr_act_154_excise,territorial,False,none,1,0,1,0,not_materialized,0,0,data/staging/processed/pr_act_154_excise.csv,"Act 154 excise tax on foreign controlled corporations — historically ~$1.8B/yr and 13-21% of the General Fund, the single largest GF revenue line. Hacienda statistics surface; queued for a scraping ad",empty,uncontracted,uncertified
 pr_act_60_decrees,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_act60_decrees.csv,,empty,uncontracted,uncertified
 pr_corporate_registry,manual_export,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_corporate_registry.csv,,empty,uncontracted,uncertified
+pr_fomb,territorial_fiscal_oversight,False,none,5,0,5,0,not_materialized,0,1,data/manifests/fomb_documents_manifest.jsonl,"Financial Oversight and Management Board for Puerto Rico public source family. Enumerates documents, contract reviews, fiscal plans, budgets, fiscal correspondence, reapportionments, quarterly financi",empty,uncontracted,uncertified
+pr_fomb_special_reports,territorial_fiscal_oversight,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_fomb_special_reports.csv,Dedicated special and investigative report surface. Kept distinct from /fomb-reports/ so monthly/annual financial reporting and special-purpose reports retain separate provenance.,empty,uncontracted,uncertified
 pr_general_fund_revenues,territorial,False,none,1,0,1,0,not_materialized,0,0,data/staging/processed/pr_general_fund_revenues.csv,"Consolidated PR General Fund net revenues by source (Instituto de Estadisticas ""Ingresos Netos al Fondo General"") — one authoritative series covering Act 154, income tax, IVU, arbitrios, licenses, lot",empty,uncontracted,uncertified
 pr_income_tax_collections,territorial,False,none,1,0,1,0,not_materialized,0,0,data/staging/processed/pr_income_tax_collections.csv,PR individual & corporate income tax collections — the income-contribution series from the Instituto de Estadisticas / Datos.PR CKAN portal. Largest recurring General Fund revenue category. Automatabl,empty,uncontracted,uncertified
 pr_pensions,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_pension_funds.csv,,empty,uncontracted,uncertified
@@ -168,6 +170,7 @@ prepa_luma_rate_revenue,infrastructure_revenue,False,manual_export,1,0,1,0,not_m
 promesa_creditors,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_promesa_creditors.csv,,empty,uncontracted,uncertified
 prpha_housing_subsidy,territorial,False,manual_export,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_prpha_subsidies.csv,"PR Public Housing Administration (AVP/PRPHA) operating subsidies and RAD conversions. Distinct from HUD Section-8 HCV. Operator-delivered exports.
 ",empty,uncontracted,uncertified
+rdc_demandas_civiles,territorial,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_rdc_demandas_civiles.csv,"Registro de Demandas Civiles — the registry the Departamento de Justicia must publish under Ley Núm. 1-2003: every civil claim filed against a government agency, instrumentality or municipality, with ",empty,below_contract,uncertified
 research_grants,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_research_master.csv,,empty,uncontracted,uncertified
 roadwatch_corridor_join,infrastructure,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/roadwatch_corridor_join_candidates.csv,"Derived corridor-join ledger. Maps STIP/TIP roadway projects onto the
 RoadWatch segment network via route-km measures and spatial overlay, then
@@ -180,8 +183,12 @@ sba_disaster_loans_pr,manual_export,False,manual_export,2,0,2,0,not_materialized
 sba_loans,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sba_loans_master.csv,,empty,uncontracted,uncertified
 sba_ppp,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sba_ppp.csv,,empty,uncontracted,uncertified
 sbir,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sbir.csv,,empty,uncontracted,uncertified
+sec_13f_bpop_8q_certification,capital_control,False,none,3,0,3,0,not_materialized,0,1,data/staging/processed/capital_control/sec13f_pr_golden_holdings.csv,Bounded fail-closed BPOP eight-quarter ownership certification plus OFG/EVTC parser regressions. Deep Dive promotion is a separate downstream vector.,empty,uncontracted,uncertified
+sec_13f_bpop_golden_freeze,capital_control,False,none,1,0,1,0,not_materialized,0,1,data/manifests/capital_control/bpop_8q_freeze_manifest.json,"Exact eight-archive authoritative byte freeze for BPOP 2024Q2-2026Q1, with archive/member SHA-256.",empty,uncontracted,uncertified
 sec_13f_nport,federal,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sec_holdings.csv,,empty,uncontracted,uncertified
 sec_edgar,federal,False,none,2,0,2,0,not_materialized,0,1,data/staging/processed/pr_sec_companies.csv,,empty,uncontracted,uncertified
+sec_equity_identity_v2,capital_control,False,none,4,0,4,0,not_materialized,0,1,data/staging/processed/pr_sec_companies_v2.csv,Fail-closed BPOP/OFG/EVTC ticker-CIK rematerialization. No name-only repair or synthetic financial fallback.,empty,uncontracted,uncertified
+sec_holdings_discovery_v2,capital_control,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sec_holdings_discovery_v2.csv,Preserves legacy municipal/debt discovery while separating FORM13FFILENUMBER from CIK and prohibiting corporate-equity promotion.,empty,uncontracted,uncertified
 sec_officers,entity_resolution,False,none,1,0,1,0,not_materialized,0,1,data/staging/processed/pr_sec_officers.csv,"Free, keyless officers/directors of PR-domiciled SEC filers, parsed from
 Form 3/4/5 insider-filing ownership XML. Replaces the OpenCorporates
 officers slice (whose seeds were all SEC filers).

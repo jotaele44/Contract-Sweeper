@@ -1,5 +1,0 @@
-RECOVERED_HIGHERGOV_SHA256.txt
-data/raw/HigherGov/HigherGov PR Data (IDV Awards).pdf
-data/raw/HigherGov/HigherGov PR Data (Municipal Awards).pdf
-data/raw/HigherGov/HigherGov PR Data (Prime Awards).pdf
-data/raw/HigherGov/HigherGov PR Data (Sub Awards).pdf
