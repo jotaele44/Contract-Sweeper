@@ -17,7 +17,7 @@ def test_evtc_vector_declares_independent_zero_residue_pass() -> None:
     payload = json.loads(VECTOR.read_text(encoding="utf-8"))
     assert payload["state"] == "PASS"
     assert payload["promotion_state"] == "PROMOTION_ELIGIBLE"
-    assert payload["parent_main_sha"] == "b5661dd29b5905015016041057136b6c945ddf5a"
+    assert payload["parent_main_sha"] == "f5068c8e2583f790f945aa09903ddce312fad27d"
     assert payload["true_head_lock_main_sha"] == payload["parent_main_sha"]
     assert payload["parent_bpop_certification"] == "BPOP_SEC13F_8Q_v1_REFERENCE_ONLY_NOT_INHERITED"
     assert payload["parent_ofg_certification"] == "OFG_SEC13F_v1_REFERENCE_ONLY_NOT_INHERITED"
