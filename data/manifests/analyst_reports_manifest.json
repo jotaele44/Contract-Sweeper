@@ -28,18 +28,10 @@
     "docs/foia_letters/FOIA_95021847de4153af.md",
     "docs/foia_letters/FOIA_7ef254a89545013c.md",
     "docs/foia_letters/FOIA_220df26653119d96.md",
-    "docs/foia_letters/FOIA_7fef81739082ae00.md",
-    "docs/foia_letters/FOIA_6a101e8132668932.md",
-    "docs/foia_letters/FOIA_28acfdfc52c7d4c7.md",
-    "docs/foia_letters/FOIA_76abdbeacc216b2d.md",
-    "docs/foia_letters/FOIA_c119512bb6f6c274.md",
-    "docs/foia_letters/FOIA_7920259648af5a1f.md",
-    "docs/foia_letters/FOIA_ae9cdf30acf8ff9a.md",
-    "docs/foia_letters/FOIA_418c782a189df400.md",
-    "docs/foia_letters/FOIA_f602370eb7484340.md"
+    "docs/foia_letters/FOIA_7fef81739082ae00.md"
   ],
   "output": "exports/reports/analyst_reports_manifest.json",
-  "row_count": 34,
+  "row_count": 26,
   "gates": [
     "debt_fiscal",
     "entity_master",
@@ -48,5 +40,5 @@
     "graph_export",
     "influence"
   ],
-  "generated_at": "2026-09-01T05:36:12.086815+00:00"
+  "generated_at": "2026-08-18T18:19:42.825473+00:00"
 }

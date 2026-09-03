@@ -7,7 +7,7 @@
     "reports/top_form_gap_matrix.csv"
   ],
   "output": "exports/dashboard/index.html",
-  "report_count": 34,
+  "report_count": 26,
   "lineage_count": 21,
-  "generated_at": "2026-09-01T05:36:12.266774+00:00"
+  "generated_at": "2026-08-18T18:19:53.435809+00:00"
 }

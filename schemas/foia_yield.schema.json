@@ -6,7 +6,6 @@
     "request_id",
     "target_source_id",
     "request_status",
-    "tracking_state",
     "records_received",
     "yield_status",
     "unresolved_gap",
@@ -30,7 +29,6 @@
         "superseded"
       ]
     },
-    "tracking_state": {"type": "string", "enum": ["OPEN", "SUPERSEDED"]},
     "records_received": {"type": "integer", "minimum": 0},
     "yield_status": {
       "type": "string",

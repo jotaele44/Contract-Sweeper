@@ -158,7 +158,7 @@
       "format": "csv",
       "producer_script": "scripts/build_foia_tracker.py",
       "status": "done",
-      "row_count": 17
+      "row_count": 15
     },
     {
       "report_id": "RPT_4c0f975db7527f36",
@@ -168,11 +168,11 @@
       "format": "csv",
       "producer_script": "scripts/build_foia_yield_tracking.py",
       "status": "done",
-      "row_count": 17
+      "row_count": 15
     },
     {
       "report_id": "RPT_ee8f5ebbcf2ea458",
-      "title": "FOIA Letter \u2014 hud_drgr_authorized",
+      "title": "FOIA Letter \u2014 HUD DRGR",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_c509296376f145b1.md",
       "format": "md",
@@ -182,7 +182,7 @@
     },
     {
       "report_id": "RPT_78d52f575c9b9e52",
-      "title": "FOIA Letter \u2014 prasa",
+      "title": "FOIA Letter \u2014 PRASA",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_3429122f5837fd47.md",
       "format": "md",
@@ -192,7 +192,7 @@
     },
     {
       "report_id": "RPT_8ff9e07ee02b6925",
-      "title": "FOIA Letter \u2014 oficina_contralor",
+      "title": "FOIA Letter \u2014 OCPR",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_aef916ac9b8ed071.md",
       "format": "md",
@@ -202,7 +202,7 @@
     },
     {
       "report_id": "RPT_00185373eb9fe652",
-      "title": "FOIA Letter \u2014 cor3",
+      "title": "FOIA Letter \u2014 COR3",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_f7d5acaf207ff8a5.md",
       "format": "md",
@@ -212,7 +212,7 @@
     },
     {
       "report_id": "RPT_7028a7390d7dd1ff",
-      "title": "FOIA Letter \u2014 fsrs_subawards",
+      "title": "FOIA Letter \u2014 GSA FSRS",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_64d22dfe3108f7b1.md",
       "format": "md",
@@ -222,7 +222,7 @@
     },
     {
       "report_id": "RPT_5e604ed1c4c73a29",
-      "title": "FOIA Letter \u2014 sam_entities",
+      "title": "FOIA Letter \u2014 SAM.gov",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_95021847de4153af.md",
       "format": "md",
@@ -232,7 +232,7 @@
     },
     {
       "report_id": "RPT_5499858586dfbe94",
-      "title": "FOIA Letter \u2014 pr_cabilderos",
+      "title": "FOIA Letter \u2014 OEG (Cabilderos)",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_7ef254a89545013c.md",
       "format": "md",
@@ -242,7 +242,7 @@
     },
     {
       "report_id": "RPT_733bb9d2429e7ea9",
-      "title": "FOIA Letter \u2014 donaciones_pr",
+      "title": "FOIA Letter \u2014 CEE (Donaciones)",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_220df26653119d96.md",
       "format": "md",
@@ -252,89 +252,9 @@
     },
     {
       "report_id": "RPT_27e64cdbaac36682",
-      "title": "FOIA Letter \u2014 compras_pr",
+      "title": "FOIA Letter \u2014 compras.pr.gov",
       "gate": "foia",
       "path": "docs/foia_letters/FOIA_7fef81739082ae00.md",
-      "format": "md",
-      "producer_script": "scripts/build_foia_letters.py",
-      "status": "done",
-      "row_count": 0
-    },
-    {
-      "report_id": "RPT_eaeae1c7b1f2e38c",
-      "title": "FOIA Letter \u2014 act_toll_revenue",
-      "gate": "foia",
-      "path": "docs/foia_letters/FOIA_6a101e8132668932.md",
-      "format": "md",
-      "producer_script": "scripts/build_foia_letters.py",
-      "status": "done",
-      "row_count": 0
-    },
-    {
-      "report_id": "RPT_621db368b9e7e448",
-      "title": "FOIA Letter \u2014 transit_fare_revenue",
-      "gate": "foia",
-      "path": "docs/foia_letters/FOIA_28acfdfc52c7d4c7.md",
-      "format": "md",
-      "producer_script": "scripts/build_foia_letters.py",
-      "status": "done",
-      "row_count": 0
-    },
-    {
-      "report_id": "RPT_38a491797970dbe7",
-      "title": "FOIA Letter \u2014 ports_airports_revenue",
-      "gate": "foia",
-      "path": "docs/foia_letters/FOIA_76abdbeacc216b2d.md",
-      "format": "md",
-      "producer_script": "scripts/build_foia_letters.py",
-      "status": "done",
-      "row_count": 0
-    },
-    {
-      "report_id": "RPT_41540b035b0aaaee",
-      "title": "FOIA Letter \u2014 prasa_rate_revenue",
-      "gate": "foia",
-      "path": "docs/foia_letters/FOIA_c119512bb6f6c274.md",
-      "format": "md",
-      "producer_script": "scripts/build_foia_letters.py",
-      "status": "done",
-      "row_count": 0
-    },
-    {
-      "report_id": "RPT_2dd7745934e6f77d",
-      "title": "FOIA Letter \u2014 prepa_luma_rate_revenue",
-      "gate": "foia",
-      "path": "docs/foia_letters/FOIA_7920259648af5a1f.md",
-      "format": "md",
-      "producer_script": "scripts/build_foia_letters.py",
-      "status": "done",
-      "row_count": 0
-    },
-    {
-      "report_id": "RPT_31d4ed9c6ffbe2d1",
-      "title": "FOIA Letter \u2014 dtop_road_contracts",
-      "gate": "foia",
-      "path": "docs/foia_letters/FOIA_ae9cdf30acf8ff9a.md",
-      "format": "md",
-      "producer_script": "scripts/build_foia_letters.py",
-      "status": "done",
-      "row_count": 0
-    },
-    {
-      "report_id": "RPT_509b8943acf1fa24",
-      "title": "FOIA Letter \u2014 ports_airports_contracts",
-      "gate": "foia",
-      "path": "docs/foia_letters/FOIA_418c782a189df400.md",
-      "format": "md",
-      "producer_script": "scripts/build_foia_letters.py",
-      "status": "done",
-      "row_count": 0
-    },
-    {
-      "report_id": "RPT_3069979940bb2dfa",
-      "title": "FOIA Letter \u2014 transit_contracts",
-      "gate": "foia",
-      "path": "docs/foia_letters/FOIA_f602370eb7484340.md",
       "format": "md",
       "producer_script": "scripts/build_foia_letters.py",
       "status": "done",

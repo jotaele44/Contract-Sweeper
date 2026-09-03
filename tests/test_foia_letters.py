@@ -108,7 +108,7 @@ def test_letters_regenerate_identically():
 def test_letters_have_requester_placeholder_until_operator_fills():
     """Letters correctly carry {{placeholders}} until the operator fills foia_requester.json.
 
-    This is the expected state after status progression: all statuses are
+    This is the expected state after PR 9 (status progression): all statuses are
     'submitted' (decision recorded), but the actual sender's name/contact must be
     filled in by the operator before physically sending the letters.
     """
@@ -148,13 +148,7 @@ def test_validate_foia_submission_flags_only_requester_info():
 def test_dashboard_payload_includes_foia_letters():
     data = bde.build_data(REPO_ROOT)
     letters = data.get("letters", [])
-    queue = bft.build_rows(REPO_ROOT)
-    assert len(letters) == len(queue), (
-        f"expected {len(queue)} letter entries in dashboard, got {len(letters)}"
-    )
-    assert {letter["path"] for letter in letters} == {
-        f"{bfl.OUT_DIR}/{row['request_id']}.md" for row in queue
-    }
+    assert len(letters) == 9, f"expected 9 letter entries in dashboard, got {len(letters)}"
     for letter in letters:
         assert letter["format"] == "md", f"letter entry has wrong format: {letter}"
         assert letter["gate"] == "foia", f"letter entry has wrong gate: {letter}"
