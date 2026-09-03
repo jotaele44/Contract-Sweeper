@@ -31,6 +31,7 @@ def test_p3_surface_contributes_projects_the_seed_lacks(built):
     names = {r["project_name"] for r in built["project_rows"]}
     assert "Luis Muñoz Marín Airport" in names
     assert "PRASA O&M Agreement" in names
+    assert "Teodoro Moscoso Bridge Toll Concession" in names
 
 
 @pytest.mark.integration
@@ -61,6 +62,9 @@ def test_site_extent_projects_carry_a_municipality(built):
     # LMM is in Carolina, not San Juan, despite the common name.
     lmm = next(r for r in built["project_rows"] if "Muñoz Marín" in r["project_name"])
     assert lmm["municipality_id"] == "muni_pr_carolina"
+    # The bridge itself sits in San Juan.
+    bridge = next(r for r in built["project_rows"] if "Moscoso" in r["project_name"])
+    assert bridge["municipality_id"] == "muni_pr_san_juan"
 
 
 @pytest.mark.unit

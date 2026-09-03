@@ -26,15 +26,15 @@
     "main_identical_to_merge_commit": true
   },
   "source_registry_current": {
-    "total_sources": 157,
-    "source_ids_sha256": "0f310cc6bb8b1941b38ef6c70dfedad15976cf8c3e22214c8301516525639e7b",
+    "total_sources": 162,
+    "source_ids_sha256": "353995f4595fde0f7643ff8d9987154bcd230abe30037cdcbe6e3abd7f4233d1",
     "required_sources": 16,
     "override_policy": "Existing source IDs only; source_id and required are immutable."
   },
   "materialization_readiness_truth": {
-    "total_sources": 157,
-    "automatable_total": 108,
-    "automatable_ready": 108,
+    "total_sources": 162,
+    "automatable_total": 113,
+    "automatable_ready": 113,
     "queued_excluded_total": 49,
     "queued_excluded": {
       "manual_export": 42,
@@ -46,7 +46,7 @@
   },
   "materialization_coverage": {
     "evidence_registry_total": 151,
-    "current_registry_total": 157,
+    "current_registry_total": 162,
     "denominator_comparable": false,
     "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_COMPLETE_DERIVED_LINEAGE",
     "probe_ran": false,
@@ -67,7 +67,7 @@
       "unadjudicated_orphan_rows": 0,
       "unresolved_lineage_rows_within_derived_outputs": 0
     },
-    "denominator_drift_note": "Six sources were registered after the certified operator corpus was measured: three PPP sources (act_transition_ppp, prasa_completed_projects_ppp, prasa_consulting_engineer_ppp) and three campaign-finance completion sources. The 67/151 snapshot below is unchanged and still valid for its own denominator; it must be re-measured on an operator machine before it can be compared against the 157-source registry."
+    "denominator_drift_note": "Eleven sources were registered after the certified 151-source operator corpus was measured. The 67/151 snapshot below is unchanged and remains valid only for its frozen denominator; it must be re-measured on an operator machine before comparison with the current 162-source registry."
   },
   "wave0_ci_certification": {
     "merged_reconciliation_pr": {

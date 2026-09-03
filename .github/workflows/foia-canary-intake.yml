@@ -31,7 +31,7 @@ jobs:
           if finding["extraction_confidence"] < 0.70:
               assert decision["disposition"] != "export"
           PY
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.client_payload.canary_branch }}
       - name: Persist namespaced receipt only
@@ -55,12 +55,14 @@ jobs:
               handle.write(f"duplicate={str(duplicate).lower()}\nrecord_id={record_id}\n")
           PY
       - name: Commit receipt to canary branch
+        env:
+          CANARY_BRANCH: ${{ github.event.client_payload.canary_branch }}
         run: |
           git config user.name foia-canary-bot
           git config user.email actions@users.noreply.github.com
           git add artifacts/foia_canary_receipts
           git diff --cached --quiet || git commit -m "test: persist FOIA canary receipt [skip ci]"
-          git push origin HEAD:${{ github.event.client_payload.canary_branch }}
+          git push origin "HEAD:$CANARY_BRANCH"
       - name: Callback acknowledgment
         env:
           TOKEN: ${{ secrets.FEDERATION_DISPATCH_TOKEN }}

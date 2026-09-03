@@ -184,12 +184,14 @@ Deterministic, so re-runs are idempotent (same rule the repo uses for
 ```python
 import hashlib
 
+
 def _uid(prefix: str, *parts: str) -> str:
     key = "|".join(p.strip().lower() for p in parts)
     return prefix + hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
 
+
 segment_uid = _uid("seg_", route_id, km_start, km_end, direction)
-join_id     = _uid("cj_",  project_id, segment_uid)
+join_id = _uid("cj_", project_id, segment_uid)
 ```
 
 ---

@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   getHealth, getContracts, getEntities, getEdges, getMunicipalities, getStats,
+  getGovernmentChanges, getGovernmentChangeCandidates, getGovernmentChangeSummary,
   getCampaignFinanceSummary, getCampaignFinanceContributions,
   getCampaignFinanceEntities, getCampaignFinanceReports,
+  getApiKeys,
+  getOwnershipDeepDive, getOwnershipDeepDiveStatus,
 } from '@/lib/api'
 
 export const useHealth = () => useQuery({ queryKey: ['health'], queryFn: getHealth, refetchInterval: 15_000 })
@@ -14,6 +17,12 @@ export const useEntities = (filters = {}) =>
 export const useEdges = (filters = {}) =>
   useQuery({ queryKey: ['edges', filters], queryFn: () => getEdges(filters) })
 export const useMunicipalities = () => useQuery({ queryKey: ['municipalities'], queryFn: getMunicipalities })
+export const useGovernmentChanges = (filters = {}) =>
+  useQuery({ queryKey: ['government-changes', filters], queryFn: () => getGovernmentChanges(filters) })
+export const useGovernmentChangeCandidates = (filters = {}) =>
+  useQuery({ queryKey: ['government-change-candidates', filters], queryFn: () => getGovernmentChangeCandidates(filters) })
+export const useGovernmentChangeSummary = () =>
+  useQuery({ queryKey: ['government-change-summary'], queryFn: getGovernmentChangeSummary })
 
 export const useCampaignFinanceSummary = () =>
   useQuery({ queryKey: ['campaign-finance-summary'], queryFn: getCampaignFinanceSummary })
@@ -31,4 +40,15 @@ export const useCampaignFinanceReports = (filters = {}) =>
   useQuery({
     queryKey: ['campaign-finance-reports', filters],
     queryFn: () => getCampaignFinanceReports(filters),
+  })
+
+export const useApiKeys = () => useQuery({ queryKey: ['api-keys'], queryFn: getApiKeys })
+
+export const useOwnershipDeepDiveStatus = () =>
+  useQuery({ queryKey: ['ownership-deep-dive-status'], queryFn: getOwnershipDeepDiveStatus })
+export const useOwnershipDeepDive = (ticker = 'BPOP') =>
+  useQuery({
+    queryKey: ['ownership-deep-dive', ticker],
+    queryFn: () => getOwnershipDeepDive(ticker),
+    enabled: ticker === 'BPOP',
   })

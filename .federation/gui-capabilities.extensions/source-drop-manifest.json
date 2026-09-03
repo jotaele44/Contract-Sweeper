@@ -1,0 +1,24 @@
+{
+  "capabilities": [
+    {
+      "id": "source-drop-evidence-manifest",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": false,
+      "rationale": "Preservation-first source-drop inventory, hashing, schema inspection, and controlled staging are offline evidence-pipeline operations. The generated manifests feed existing ingestion workflows; they are not a separate interactive dashboard capability.",
+      "candidate_ids": [
+        "analysis_module:scripts/build_source_drop_manifest.py",
+        "analysis_symbol:scripts/build_source_drop_manifest.py:build_records",
+        "analysis_symbol:scripts/build_source_drop_manifest.py:inspect_csv",
+        "analysis_symbol:scripts/build_source_drop_manifest.py:inspect_path",
+        "analysis_symbol:scripts/build_source_drop_manifest.py:inspect_xlsx",
+        "analysis_symbol:scripts/build_source_drop_manifest.py:main",
+        "analysis_symbol:scripts/build_source_drop_manifest.py:sha256_file",
+        "analysis_symbol:scripts/build_source_drop_manifest.py:utc_now",
+        "analysis_symbol:scripts/build_source_drop_manifest.py:write_outputs",
+        "cli_surface:scripts/build_source_drop_manifest.py"
+      ]
+    }
+  ],
+  "exceptions": []
+}

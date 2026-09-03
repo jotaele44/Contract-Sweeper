@@ -1,0 +1,218 @@
+{
+  "branch": "audit/moneysweep-startup-setup-unblock-20260831",
+  "carta_skill_status": "Skill tool unavailable after select:Skill discovery; Carta not applicable to MoneySweep repo closure",
+  "closed_or_reclassified_blockers": {
+    "hud_drgr_authorized": "PRESERVED_PARTIAL_UNRESOLVED; no non-empty authorized DRGR activities/projects export found",
+    "prasa": "CLOSED_FOUND_STRUCTURED_FROM_AUTHORITY_TRANSITION_PDF; 642 contract rows and 309 vendor master rows generated from ACT agency 163 transition contract PDF"
+  },
+  "command_receipts": [
+    {
+      "command": "build_prasa_contracts_master",
+      "evidence": "log reports 309 PRASA vendor master rows",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "build_source_drop_manifest",
+      "evidence": "source-drop arithmetic {'found': 15, 'missing_files': 0, 'partial_or_unresolved': 4, 'staged': 9, 'total': 19}",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "audit_materialization_coverage",
+      "evidence": "required_fully_materialized=12/16",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "federation_export",
+      "evidence": "package_id=pkg_9642c2a411343e9c0c20891ac84f4f08",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "legacy_validate_export",
+      "evidence": "scripts/validate_export.py expects old five-stream manifest; preserved as compatibility issue",
+      "exit_code": 1,
+      "state": "FAIL_LEGACY_CONTRACT"
+    },
+    {
+      "command": "focused_tests_no_cov",
+      "evidence": "36 passed",
+      "exit_code": 0,
+      "state": "PASS"
+    },
+    {
+      "command": "hub_validate_package",
+      "evidence": "TheHub hub.cli validate-package returned VALID package",
+      "exit_code": 0,
+      "state": "PASS"
+    }
+  ],
+  "command_receipts_raw": [
+    {
+      "command": "build_prasa_contracts_master",
+      "raw_exit_code": ""
+    },
+    {
+      "command": "build_source_drop_manifest",
+      "raw_exit_code": ""
+    },
+    {
+      "command": "audit_materialization_coverage",
+      "raw_exit_code": ""
+    },
+    {
+      "command": "federation_export",
+      "raw_exit_code": ""
+    },
+    {
+      "command": "validate_export",
+      "raw_exit_code": ""
+    },
+    {
+      "command": "focused_tests",
+      "raw_exit_code": ""
+    },
+    {
+      "command": "hub_validate_package",
+      "raw_exit_code": ""
+    }
+  ],
+  "completion_claim": "Bounded MoneySweep closure: PRASA moved from partial/header-only to found structured transition-contract evidence; HUD authorized DRGR remains partial/unresolved, so MoneySweep live execution remains false.",
+  "federation_export": {
+    "manifest_path": "data/exports/canonical_v1_federation/manifest.json",
+    "manifest_sha256": "7069ec625d1bbcabf523e4066eceeb897973c74cb1e7f18e810a7fe8b4aa1fcc",
+    "mode": "test",
+    "package_id": "pkg_9642c2a411343e9c0c20891ac84f4f08",
+    "stream_counts": {
+      "entities": 207,
+      "relationships": 66,
+      "sources": 4508
+    }
+  },
+  "federation_readiness_gate": {
+    "blocking_conditions": [
+      "hud_drgr_authorized remains partial/unresolved without a non-empty authorized DRGR export",
+      "cor3 live endpoints return no data; manual CSV fallback remains documented",
+      "PR-gov scraper-needed queue still has hacienda_sut_ivu and pr_act_154_excise true stubs",
+      "PROPUBLICA_API_KEY not supplied for nonprofits adapter"
+    ],
+    "ready_for_hub_discovery": true,
+    "ready_for_hub_live_execution": false,
+    "resolved_conditions": [
+      "prasa source blocker closed from ACT agency 163 transition contract PDF parser and generated master rows"
+    ]
+  },
+  "generated_at_utc": "2026-09-01T02:33:22.930335Z",
+  "head_sha": "b65b98a7287d604fc03195d6e5fe587e0fb9d3f0",
+  "lumen_status": "LUMEN_UNAVAILABLE_OR_UNHEALTHY; bounded local inspection used",
+  "materialization_summary": {
+    "coverage_rate_fully": 0.1173,
+    "fully_materialized": 19,
+    "materialized_any_data": 20,
+    "no_outputs_declared": 0,
+    "not_materialized": 141,
+    "partially_materialized": 2,
+    "required_fully_materialized": 12,
+    "required_sources": 16,
+    "tier_bulk": 14,
+    "tier_empty": 142,
+    "tier_moderate": 4,
+    "tier_seed_stub": 2,
+    "total_local_rows": 82613,
+    "total_sources": 162
+  },
+  "origin_main_sha": "b65b98a7287d604fc03195d6e5fe587e0fb9d3f0",
+  "prasa_rows": {
+    "byte_size": 236557,
+    "header": [
+      "contract_id",
+      "vendor_name",
+      "vendor_normalized",
+      "contract_type",
+      "contract_value",
+      "award_date",
+      "start_date",
+      "end_date",
+      "status",
+      "description",
+      "municipality",
+      "source_file"
+    ],
+    "path": "data/staging/processed/pr_prasa_contracts.csv",
+    "rows": 642,
+    "sha256": "da4fe0b2a11f3e2817ae83380c725fb60ded0dfacfc146ac88db786be4a28c42"
+  },
+  "prasa_transition_manifest": "data/manifests/prasa/20260901T022705.656462Z.transition_contracts.json",
+  "prasa_transition_manifest_sha256": "da910ce67e537f913b44281858a902150d3a5b315da62dca2a4269dfaa775706",
+  "prasa_vendor_master": {
+    "byte_size": 98577,
+    "header": [
+      "vendor_normalized",
+      "vendor_name",
+      "contract_count",
+      "total_contract_value",
+      "first_award_date",
+      "last_award_date",
+      "agency",
+      "source_file"
+    ],
+    "path": "data/staging/processed/prasa_contracts_master.csv",
+    "rows": 309,
+    "sha256": "13df346e05f091dc24dc26a52924fd805175343af71f5cd4d2158a2bd811d43c"
+  },
+  "preserved_blockers": {
+    "hud_drgr_authorized": {
+      "reason": "No non-empty authorized DRGR export found. DRGR-shaped projects/responsible-org files remain zero-row; HUD HCV and public CDBG are not authorized DRGR exports.",
+      "reviewed_artifact_count": 3,
+      "state": "PARTIAL_UNRESOLVED"
+    }
+  },
+  "repo_id": "moneysweep-pr",
+  "result_state": "PROVISIONAL_LIVE_READINESS_PRASA_CLOSED_HUD_DRGR_PRESERVED",
+  "run_id": "20260901T022813Z_moneysweep_prasa_contract_closure",
+  "schema_version": "moneysweep_prasa_contract_closure_v1",
+  "source_drop_arithmetic": {
+    "found": 15,
+    "missing_files": 0,
+    "partial_or_unresolved": 4,
+    "staged": 9,
+    "total": 19
+  },
+  "source_drop_manifest": "reports/source_drops/20260901T022813Z_moneysweep_prasa_contract_closure/moneysweep_source_drop_manifest.json",
+  "source_status": {
+    "hud_drgr_authorized": {
+      "authentication": "manual_export",
+      "certification_status": "uncertified",
+      "coverage_status": "unverifiable",
+      "expected_output_count": 2,
+      "family": "manual_export",
+      "first_expected_output": "data/staging/processed/hud_drgr_activities.csv",
+      "local_rows": 0,
+      "local_status": "not_materialized",
+      "materiality_label": "empty",
+      "materiality_tier": "empty",
+      "min_rows_threshold": 1,
+      "present_count": 0,
+      "required": true,
+      "source_id": "hud_drgr_authorized"
+    },
+    "prasa": {
+      "authentication": "manual_export",
+      "certification_status": "provisional",
+      "coverage_status": "uncontracted",
+      "expected_output_count": 1,
+      "family": "infrastructure",
+      "first_expected_output": "data/staging/processed/pr_prasa_contracts.csv",
+      "local_rows": 642,
+      "local_status": "fully_materialized",
+      "materiality_label": "partial",
+      "materiality_tier": "moderate",
+      "min_rows_threshold": 1,
+      "present_count": 1,
+      "required": true,
+      "source_id": "prasa"
+    }
+  }
+}

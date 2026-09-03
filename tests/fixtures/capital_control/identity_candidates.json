@@ -1,0 +1,12 @@
+[
+  {
+    "candidate_id": "INV_blackrock_fund_advisors",
+    "binding_basis": "AUTHORITATIVE_BINDING",
+    "evidence_value": "distinct legal entity identifier"
+  },
+  {
+    "candidate_id": "INV_blackrock_advisors_llc",
+    "binding_basis": "HEURISTIC_DISCOVERY_ONLY",
+    "evidence_value": "shared BlackRock brand only"
+  }
+]

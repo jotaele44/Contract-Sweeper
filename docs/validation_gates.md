@@ -13,7 +13,8 @@ Programmatic use:
 
 ```python
 from scripts.validate_export import validate_package
-errors = validate_package(package_dir, mode="test")   # [] means valid
+
+errors = validate_package(package_dir, mode="test")  # [] means valid
 ```
 
 ## Gates
