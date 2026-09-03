@@ -1077,6 +1077,36 @@
         "python_symbol:server/backend/api_keys.py:list_api_keys",
         "python_symbol:server/backend/api_keys.py:set_api_key"
       ]
+    },
+    {
+      "id": "pr-assistance-denominator-pipeline",
+      "classification": "internal",
+      "status": "active",
+      "requires_terminal": false,
+      "rationale": "Batch acquisition and shard recovery for the Puerto Rico assistance denominator; operator-run CLIs executed offline against USAspending bulk jobs, not surfaced in the dashboard.",
+      "backend": {
+        "files": [
+          "scripts/download_pr_assistance_denominator.py",
+          "scripts/recover_pr_assistance_failed_shards.py"
+        ]
+      },
+      "tests": {
+        "backend": [
+          "tests/test_pr_assistance_denominator.py"
+        ]
+      },
+      "candidate_ids": [
+        "analysis_module:scripts/download_pr_assistance_denominator.py",
+        "analysis_module:scripts/recover_pr_assistance_failed_shards.py",
+        "analysis_symbol:scripts/download_pr_assistance_denominator.py:aggregate",
+        "analysis_symbol:scripts/download_pr_assistance_denominator.py:main",
+        "analysis_symbol:scripts/download_pr_assistance_denominator.py:run_shard",
+        "analysis_symbol:scripts/recover_pr_assistance_failed_shards.py:BulkJobFailed",
+        "analysis_symbol:scripts/recover_pr_assistance_failed_shards.py:main",
+        "analysis_symbol:scripts/recover_pr_assistance_failed_shards.py:recover_shard",
+        "cli_surface:scripts/download_pr_assistance_denominator.py",
+        "cli_surface:scripts/recover_pr_assistance_failed_shards.py"
+      ]
     }
   ],
   "exceptions": [
