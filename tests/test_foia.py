@@ -57,14 +57,11 @@ def test_foia_rows_validate_and_are_unique(foia_rows):
 
 
 @pytest.mark.unit
-def test_foia_targets_are_real_gaps_or_superseded_history(foia_rows):
+def test_foia_targets_are_real_unmet_gaps(foia_rows):
     status = bft._source_status_index(REPO_ROOT)
     for r in foia_rows:
         assert r["target_source_id"] in status, r["target_source_id"]
-        if r["request_status"] == "superseded":
-            assert status[r["target_source_id"]] == "fully_materialized"
-        else:
-            assert status[r["target_source_id"]] != "fully_materialized"
+        assert status[r["target_source_id"]] != "fully_materialized"
     # statute matches jurisdiction
     for r in foia_rows:
         if r["jurisdiction"] == "US":
@@ -103,13 +100,9 @@ def test_yield_one_row_per_request(yield_rows, foia_rows):
     for row in yield_rows:
         assert validate_row(row, schema) == [], row
     assert {r["request_id"] for r in yield_rows} == {r["request_id"] for r in foia_rows}
-    # Superseded requests preserve history after another evidence path closes
-    # the gap; every other request remains open with a non-empty blocker.
+    # nothing fulfilled yet -> every gap is still open with a non-empty blocker
     for r in yield_rows:
-        if r["request_status"] == "superseded":
-            assert r["yield_status"] == "gap_closed"
-        else:
-            assert r["yield_status"] in ("pending", "partial", "no_response")
+        assert r["yield_status"] in ("pending", "partial", "no_response")
         assert r["unresolved_gap"].strip()
         assert int(r["records_received"]) == 0
 
@@ -129,11 +122,11 @@ def test_yield_regenerates_identically(yield_rows):
 
 
 @pytest.mark.unit
-def test_foia_statuses_preserve_submitted_and_superseded_history(foia_rows):
-    superseded = {"oficina_contralor", "cor3", "pr_cabilderos", "donaciones_pr"}
+def test_foia_all_submitted(foia_rows):
     for r in foia_rows:
-        expected = "superseded" if r["target_source_id"] in superseded else "submitted"
-        assert r["request_status"] == expected
+        assert r["request_status"] == "submitted", (
+            f"{r['request_id']} expected submitted, got {r['request_status']}"
+        )
 
 
 # --------------------------------------------------------------------------- #
