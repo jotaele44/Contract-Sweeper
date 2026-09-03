@@ -20,5 +20,4 @@ if ! "$PYTHON" desktop/setup.py --ensure >"$LOG" 2>&1; then
   [ -t 0 ] && read -r -p "Press Enter to close…"
   exit 1
 fi
-rm -f "$LOG"
 exec .venv/bin/python desktop/launch.py "$@"
