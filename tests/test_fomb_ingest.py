@@ -130,10 +130,7 @@ def test_contract_ajax_normalization_and_stable_id():
 def test_rejects_cross_origin_dynamic_table_endpoint():
     html = '<script>const table = {ajax: "https://example.invalid/contracts.json"};</script>'
     assert (
-        fomb._discover_ajax_config(
-            html, "https://oversightboard.pr.gov/contract-review/"
-        )
-        is None
+        fomb._discover_ajax_config(html, "https://oversightboard.pr.gov/contract-review/") is None
     )
 
 
