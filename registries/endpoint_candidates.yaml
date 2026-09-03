@@ -108,6 +108,14 @@ endpoint_candidates:
     notes: RUL/RUP bidder registry. The subastas.pr.gov fallback is the Registro
       Unico de Subastas — the same vendor universe behind a SharePoint front end.
 
+  - source_id: rdc_demandas_civiles
+    url: https://justicia1.justicia.pr.gov/rdc
+    notes: Registro de Demandas Civiles (Ley 1-2003). Server-rendered paginated
+      table (?pg=N, six rows a page); per-case detail at /rdc/Home/Details/{case}.
+      No API, no JSON endpoint and no bulk export — probed 2026-08-16. A page past
+      the end answers 200 with an empty tbody rather than clamping, so the sweep
+      terminates on the first empty page.
+
   - source_id: aafaf
     url: https://www.aafaf.pr.gov/
 

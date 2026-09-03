@@ -1,0 +1,15 @@
+started_utc=2026-09-01T00:55:13Z
+2026-08-31 20:55:14 [INFO] Starting Oficina del Contralor data ingestion...
+2026-08-31 20:55:14 [INFO]   Found 1 Contralor file(s) in /Users/jotaele/fed-repos/moneysweep-pr/data/raw/Oficina del Contralor
+2026-08-31 20:55:14 [INFO]   Processing pr_contralor_audits.csv...
+2026-08-31 20:55:14 [INFO]   Read 85 rows from pr_contralor_audits.csv
+2026-08-31 20:55:14 [INFO]   → 85 audit records from pr_contralor_audits.csv
+2026-08-31 20:55:14 [INFO] ============================================================
+2026-08-31 20:55:14 [INFO] CONTRALOR SUMMARY
+2026-08-31 20:55:14 [INFO] ============================================================
+2026-08-31 20:55:14 [INFO]   Total audit records:  85
+2026-08-31 20:55:14 [INFO]   Unique entities:      85
+2026-08-31 20:55:14 [INFO]   Open findings:        0
+
+Contralor ingestion complete: 85 audit records
+finished_utc=2026-09-01T00:55:15Z

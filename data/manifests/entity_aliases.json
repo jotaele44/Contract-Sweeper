@@ -7,7 +7,7 @@
     "data/reference/agency_master.csv"
   ],
   "output": "data/reference/entity_aliases.csv",
-  "row_count": 234,
-  "distinct_entities": 107,
-  "generated_at": "2026-08-09T21:26:45.088265+00:00"
+  "row_count": 236,
+  "distinct_entities": 108,
+  "generated_at": "2026-08-17T20:24:26.961966+00:00"
 }

@@ -26,6 +26,9 @@ jobs:
           ITEM_ID: ${{ github.event.client_payload.item_id }}
         run: |
           if [ -z "$ITEM_ID" ]; then echo "missing client_payload.item_id"; exit 1; fi
+          case "$ITEM_ID" in
+            *[!A-Za-z0-9_-]*) echo "invalid client_payload.item_id" >&2; exit 1;;
+          esac
           mkdir -p intake
           printf '%s' "$SIGNAL" > "intake/${ITEM_ID}.json"
           echo "Wrote intake/${ITEM_ID}.json"
@@ -77,10 +80,12 @@ jobs:
             echo "No FEDERATION_DISPATCH_TOKEN — skipping Hub dispatch."
             exit 0
           fi
+          body=$(jq -nc --arg item_id "$ITEM_ID" \
+            '{event_type:"moneysweep-export",client_payload:{item_id:$item_id,producer:"moneysweep-pr"}}')
           curl -sSf -X POST \
             -H "Authorization: Bearer $FEDERATION_DISPATCH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/jotaele44/thehub-pr/dispatches \
-            -d "{\"event_type\":\"moneysweep-export\",\"client_payload\":{\"item_id\":\"${ITEM_ID}\",\"producer\":\"moneysweep-pr\"}}"
+            -d "$body"
           echo "Dispatched moneysweep-export → thehub-pr"
