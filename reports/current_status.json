@@ -29,15 +29,15 @@
     "main_identical_to_merge_commit": true
   },
   "source_registry_current": {
-    "total_sources": 162,
-    "source_ids_sha256": "353995f4595fde0f7643ff8d9987154bcd230abe30037cdcbe6e3abd7f4233d1",
+    "total_sources": 164,
+    "source_ids_sha256": "4c551385f00ca6df4332ee1643d0ef7a6ab85172632d945d35be285cd94f5826",
     "required_sources": 16,
     "override_policy": "Existing source IDs only; source_id and required are immutable."
   },
   "materialization_readiness_truth": {
-    "total_sources": 162,
-    "automatable_total": 113,
-    "automatable_ready": 113,
+    "total_sources": 164,
+    "automatable_total": 115,
+    "automatable_ready": 115,
     "queued_excluded_total": 49,
     "queued_excluded": {
       "manual_export": 42,
@@ -49,7 +49,7 @@
   },
   "materialization_coverage": {
     "evidence_registry_total": 151,
-    "current_registry_total": 162,
+    "current_registry_total": 164,
     "denominator_comparable": false,
     "regeneration_status": "CERTIFIED_OPERATOR_CORPUS_WITH_COMPLETE_DERIVED_LINEAGE",
     "probe_ran": false,

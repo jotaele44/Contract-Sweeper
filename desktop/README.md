@@ -10,7 +10,7 @@ Double-click the launcher for your system in the repo root:
 
 The **first run** needs an internet connection once: it creates a private
 `.venv`, installs the Python dependencies, and builds the dashboard
-(requires [Python 3.10+](https://www.python.org/downloads/) and
+(requires [Python 3.11+](https://www.python.org/downloads/) and
 [Node.js](https://nodejs.org) to be installed). Every later run starts
 instantly and **works offline** — the app serves the data committed in this
 repository from a local server and shows it in a native window.
@@ -91,5 +91,6 @@ somewhere else in Finder. Moving it defeats translocation on its own, which is
 why dragging the folder out of Downloads (or the Trash) is usually quickest.
 
 Genuine setup failures — no internet on the first run, or Node.js missing —
-write their output to `$TMPDIR/prii-moneysweep-pr-setup.log`, and the failure
-message names that file.
+write their output to a unique
+`$TMPDIR/prii-moneysweep-pr-setup.XXXXXX` file, and the failure message names
+that file.
