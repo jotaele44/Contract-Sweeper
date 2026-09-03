@@ -30,5 +30,5 @@ def health() -> dict[str, str]:
         case_manager_api._services()
         case_manager_api._repository.connection.execute("SELECT 1").fetchone()
     except Exception as exc:
-        raise HTTPException(500, str(exc)) from exc
+        raise HTTPException(500, "case database unavailable") from exc
     return {"status": "ok", "service": "case-manager-phase-1"}
