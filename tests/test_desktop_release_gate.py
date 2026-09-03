@@ -21,7 +21,7 @@ from moneysweep.validation import production_status as ps
 REPO_ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ".github/workflows/desktop-build.yml"
 TAG_CONDITION = "startsWith(github.ref, 'refs/tags/desktop-v')"
-GATE = "Refuse to publish unless the pipeline is production-validated"
+GATE = "Refuse public release unless production-validated"
 ATTACH = "Attach to release"
 INSTALL = "Install Python dependencies"
 
