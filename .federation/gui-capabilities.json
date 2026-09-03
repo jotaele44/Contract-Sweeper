@@ -350,13 +350,14 @@
       "classification": "internal",
       "status": "active",
       "requires_terminal": false,
-      "rationale": "Batch ingestion/materialization for OM contract-universe, PPP coverage, and the federal financial-program registry; run offline, not surfaced in the dashboard.",
+      "rationale": "Batch ingestion/materialization for OM contract-universe, PRASA transition contracts, PPP coverage, and the federal financial-program registry; run offline, not surfaced in the dashboard.",
       "backend": {
         "files": [
           "scripts/build_om_contract_universe.py",
           "scripts/validate_om_contract_universe.py",
           "scripts/build_federal_financial_program_registry.py",
           "scripts/build_ppp_coverage.py",
+          "scripts/ingest_prasa_transition_contracts.py",
           "scripts/parse_act_transition_ppp.py",
           "scripts/materialize_ocpr_contracts_resumable.py",
           "scripts/download_p3.py"
@@ -368,13 +369,15 @@
           "tests/test_ppp_coverage.py",
           "tests/test_parse_act_transition_ppp.py",
           "tests/test_act_transition_ingest.py",
-          "tests/test_act_transition_materialization.py"
+          "tests/test_act_transition_materialization.py",
+          "tests/test_ingest_prasa_transition_contracts.py"
         ]
       },
       "candidate_ids": [
         "analysis_module:scripts/build_federal_financial_program_registry.py",
         "analysis_module:scripts/build_om_contract_universe.py",
         "analysis_module:scripts/build_ppp_coverage.py",
+        "analysis_module:scripts/ingest_prasa_transition_contracts.py",
         "analysis_module:scripts/materialize_ocpr_contracts_resumable.py",
         "analysis_module:scripts/parse_act_transition_ppp.py",
         "analysis_module:scripts/validate_om_contract_universe.py",
@@ -396,6 +399,9 @@
         "analysis_symbol:scripts/build_ppp_coverage.py:build_report",
         "analysis_symbol:scripts/build_ppp_coverage.py:main",
         "analysis_symbol:scripts/download_p3.py:promote",
+        "analysis_symbol:scripts/ingest_prasa_transition_contracts.py:main",
+        "analysis_symbol:scripts/ingest_prasa_transition_contracts.py:parse_prasa_transition_contracts",
+        "analysis_symbol:scripts/ingest_prasa_transition_contracts.py:run",
         "analysis_symbol:scripts/materialize_ocpr_contracts_resumable.py:append_rows",
         "analysis_symbol:scripts/materialize_ocpr_contracts_resumable.py:atomic_json",
         "analysis_symbol:scripts/materialize_ocpr_contracts_resumable.py:fetch_page_with_reauth",
@@ -415,6 +421,7 @@
         "cli_surface:scripts/build_federal_financial_program_registry.py",
         "cli_surface:scripts/build_om_contract_universe.py",
         "cli_surface:scripts/build_ppp_coverage.py",
+        "cli_surface:scripts/ingest_prasa_transition_contracts.py",
         "cli_surface:scripts/materialize_ocpr_contracts_resumable.py",
         "cli_surface:scripts/parse_act_transition_ppp.py",
         "cli_surface:scripts/validate_om_contract_universe.py"
