@@ -12,6 +12,17 @@ The pipeline acquires, normalizes, validates, and cross-links public procurement
 > (`thehub-pr/server/frontend`), which renders this producer's data alongside
 > the other engines. See `thehub-pr/docs/adr/0001-federated-engines-single-hub.md`.
 
+## Desktop app
+
+Double-click launchers at the repo root start the local desktop app (first run
+installs dependencies, later runs work offline):
+
+- `PRII-MONEYSWEEP.command` (macOS) / `PRII-MONEYSWEEP.app`
+- `PRII-MONEYSWEEP.bat` (Windows)
+- `PRII-MONEYSWEEP.sh` (Linux)
+
+See [`desktop/README.md`](desktop/README.md) for details.
+
 ## Federation role
 
 | Field | Value |
