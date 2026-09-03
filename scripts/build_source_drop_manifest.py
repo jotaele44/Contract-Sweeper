@@ -282,9 +282,7 @@ def write_outputs(records: list[dict[str, Any]], out_dir: Path, *, stage: bool) 
             "total": len(records),
             "found": sum(1 for r in records if r["classification"].startswith("FOUND")),
             "partial_or_unresolved": sum(
-                1
-                for r in records
-                if not r["classification"].startswith("FOUND")
+                1 for r in records if not r["classification"].startswith("FOUND")
             ),
             "missing_files": sum(1 for r in records if not r.get("exists")),
             "staged": sum(1 for r in records if r.get("staged")),
