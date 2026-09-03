@@ -136,7 +136,7 @@ jobs:
         shell: bash
         run: test ! -e "$GITHUB_WORKSPACE/../thehub-pr"
 
-      - name: Install complete frozen runtime
+      - name: Install Python dependencies
         shell: bash
         env:
           GIT_CONFIG_COUNT: "1"
