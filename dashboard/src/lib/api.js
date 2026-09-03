@@ -6,13 +6,18 @@ export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 
 const OFFLINE = import.meta.env.VITE_OFFLINE === '1'
 
+export const resolveOfflineSnapshot = (path, offlineFallback = null) => {
+  if (Object.prototype.hasOwnProperty.call(snapshot, path)) return snapshot[path]
+  const key = path.split('?')[0]
+  return Object.prototype.hasOwnProperty.call(snapshot, key) ? snapshot[key] : offlineFallback
+}
+
 async function requestJSON(path, options = {}, offlineFallback = null) {
   if (OFFLINE) {
-    const key = path.split('?')[0]
     if ((options.method ?? 'GET') !== 'GET') {
       throw new Error('Materialization controls are unavailable in static offline exports')
     }
-    return key in snapshot ? snapshot[key] : offlineFallback
+    return resolveOfflineSnapshot(path, offlineFallback)
   }
 
   const { timeout = 8000, ...fetchOptions } = options
@@ -63,7 +68,9 @@ export const getGovernmentChangeSummary = () => fetchJSON('/government-changes/s
 
 export const getCampaignFinanceSummary = () => fetchJSON('/campaign-finance/summary', {
   sources: [], totalContributionRows: 0, totalContributionAmount: 0,
-  totalFederalOutflowRows: 0, derived: {},
+  totalFederalOutflowRows: 0, derived: {}, hasData: false,
+  materializedFileCount: 0, updatedAt: null,
+  emptyState: 'No campaign-finance datasets are materialized in this repository checkout.',
 })
 export const getCampaignFinanceContributions = (f = {}) =>
   fetchJSON(`/campaign-finance/contributions${qs(f)}`, { rows: [], total: 0, limit: f.limit ?? 500, offset: f.offset ?? 0 })

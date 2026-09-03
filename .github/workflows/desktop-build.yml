@@ -54,7 +54,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: "22"
+          node-version: "22.22.2"
 
       - name: Derive desktop build identity
         shell: python
@@ -138,6 +138,10 @@ jobs:
 
       - name: Install complete frozen runtime
         shell: bash
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.longpaths
+          GIT_CONFIG_VALUE_0: "true"
         run: |
           python -m pip install --upgrade pip
           pip install \

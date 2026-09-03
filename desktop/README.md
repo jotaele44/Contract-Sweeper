@@ -9,7 +9,7 @@ The repository-root launchers (`PRII-MONEYSWEEP.command`, `.bat`, `.sh`, and the
 committed lightweight `PRII-MONEYSWEEP.app`) are developer conveniences around
 the source checkout. They may create a private `.venv`, install dependencies,
 and build the dashboard. First setup can therefore require externally installed
-Python/Node and network access.
+Python 3.11+, Node.js, and network access.
 
 **Do not certify the committed wrapper as the downloadable self-contained app.**
 
