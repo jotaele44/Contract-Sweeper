@@ -74,12 +74,12 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - name: Install production backend runtime
+      - name: Install application and backend runtime dependencies
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           if [[ -f server/backend/requirements.txt ]]; then
-            python -m pip install -r server/backend/requirements.txt
+            python -m pip install -r requirements.txt -r server/backend/requirements.txt
           else
             python -m pip install -e ".[server]"
           fi
