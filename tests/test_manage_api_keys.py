@@ -41,9 +41,13 @@ def test_known_keys_parses_all_real_vars_with_expected_required_flags():
         "CENSUS_API_KEY",
         "FELT_API_KEY",
         "FINANCIALDATA_API_KEY",
+        "FINANCIALDATA_LICENSE_APPROVED",
         "X_API_KEY",
         "PROPUBLICA_API_KEY",
         "CMS_APP_TOKEN",
+        "SOCRATA_APP_TOKEN",
+        "MONEYSWEEP_CORS_ORIGINS",
+        "MONEYSWEEP_CASE_DB",
     ):
         assert keys[optional_name].required is False, optional_name
 
