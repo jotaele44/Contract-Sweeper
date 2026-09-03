@@ -58,11 +58,14 @@ def test_holding_rejects_report_before_as_of_date() -> None:
         validate_holding_observation(payload)
 
 
-def test_supersession_reference_requires_amended_status() -> None:
+def test_supersession_reference_requires_replacement_status() -> None:
     payload = _holding_payload()
     payload["supersedes_observation_id"] = "HOLD_prior"
     payload["amendment_status"] = "ORIGINAL"
-    with pytest.raises(ValidationError, match="requires AMENDED status"):
+    with pytest.raises(
+        ValidationError,
+        match="supersedes_observation_id requires AMENDED or AMENDED_RESTATEMENT status",
+    ):
         validate_holding_observation(payload)
 
 

@@ -656,7 +656,7 @@ def write_outputs(root: Path, audit: dict[str, Any]) -> tuple[Path, Path]:
         "first_expected_output",
     ]
     with csv_path.open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore", lineterminator="\n")
         w.writeheader()
         w.writerows(audit["sources"])
 
@@ -664,7 +664,10 @@ def write_outputs(root: Path, audit: dict[str, Any]) -> tuple[Path, Path]:
     files_csv = out_dir / "materialization_coverage_audit_files.csv"
     with files_csv.open("w", encoding="utf-8", newline="") as f:
         w = csv.DictWriter(
-            f, fieldnames=["file", "rows", "classification", "claimed_by"], extrasaction="ignore"
+            f,
+            fieldnames=["file", "rows", "classification", "claimed_by"],
+            extrasaction="ignore",
+            lineterminator="\n",
         )
         w.writeheader()
         w.writerows(audit["processed_file_inventory"]["files"])
