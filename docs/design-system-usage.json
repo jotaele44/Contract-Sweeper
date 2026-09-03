@@ -1,0 +1,93 @@
+{
+  "repo": "moneysweep-pr",
+  "generatedAt": "2026-08-24",
+  "federationPackage": {
+    "spec": "https://github.com/jotaele44/thehub-pr/releases/download/federation-design-v0.4.1/pr-federation-react-0.4.1.tgz",
+    "resolvedVersion": "0.4.1",
+    "shipsTestHarnessContract": true,
+    "testHarnessContract": {
+      "path": "node_modules/@pr-federation/react/dist/test-harness.contract.json",
+      "version": "1.0.0",
+      "viewports": 6,
+      "themes": ["light", "dark"],
+      "states": ["populated", "loading", "empty", "filtered_empty", "error", "stale", "offline", "degraded", "partial", "long_labels", "keyboard_only"],
+      "requirements": { "axeCriticalSerious": 0, "minimumTouchTargetCssPx": 44, "horizontalOverflow": false, "keyboardCriticalWorkflows": "100%" },
+      "note": "The package's own contract requires zero critical/serious axe violations, no touch target under 44px, and no horizontal overflow. The live per-tab a11y scan in A11Y_AUDIT.md found moneysweep-pr's shipped app violating all three of those requirements (color-contrast + button-name axe violations, 24px-tall tab triggers, mobile horizontal overflow) -- the app does not currently meet the bar its own design-system dependency sets for it."
+    },
+    "importedSymbols": {
+      "FederationButton": { "count": 3, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "FederationPanel": { "count": 3, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "FederationStatusBadge": { "count": 11, "usedIn": ["src/components/StatsBar.jsx", "src/components/ContractsTable.jsx", "src/visual-tests/FederationPilotAtlas.jsx"] },
+      "FederationStatCard": { "count": 7, "usedIn": ["src/components/StatsBar.jsx", "src/visual-tests/FederationPilotAtlas.jsx"] },
+      "FederationEmptyState": { "count": 2, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "FederationLoadingState": { "count": 2, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "FederationErrorState": { "count": 2, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "FederationFilteredEmptyState": { "count": 2, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "FederationOfflineState": { "count": 3, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "FederationDegradedState": { "count": 2, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "FederationStaleDataState": { "count": 2, "usedIn": ["src/components/QueryBoundary.jsx"] },
+      "unused": [
+        "FederationThemeProvider", "useFederationTheme", "FederationIconButton",
+        "FederationSemanticBadge", "FederationEvidenceTierBadge", "FederationConfidenceBadge",
+        "FederationProvenanceBadge", "FederationFreshnessBadge", "FederationSourceBadge",
+        "FederationPartialDataState", "FederationAsyncState"
+      ],
+      "note": "Counts are raw textual occurrences (import line + JSX usage) from a repo grep, not distinct call sites. All async/loading/empty/error UI is centralized in QueryBoundary.jsx and reused by ContractsTable, EntitiesTable, and RelationshipGraph. Roughly half of the package's exported surface is adopted; the badge variants for evidence tier / confidence / provenance / freshness / source, the icon button, and the whole theme-provider system are unused."
+    },
+    "pilotTooling": {
+      "role": "moneysweep-pr's package.json carries three pilot-specific scripts on top of the usual dev/build/test scripts, indicating this repo was used as a design-package integration pilot rather than a plain consumer.",
+      "scripts": {
+        "verify:federation-design": {
+          "path": "dashboard/scripts/verify-federation-design-package.mjs",
+          "purpose": "Asserts the installed @pr-federation/react package.json/lockfile resolution, downloads the pinned GitHub release tarball, and checks its sha256 against a hardcoded expected hash; also asserts shape of the package's release manifest, API snapshot (35 exports, 0 removed), design tokens (v2.0.0), and test-harness contract.",
+          "result": "PASS",
+          "output": { "package": "@pr-federation/react", "version": "0.4.1", "release": "federation-design-v0.4.1", "apiExports": 35, "tokenVersion": "2.0.0", "viewports": 6 }
+        },
+        "test:pilot": {
+          "path": "dashboard/tests/federation-pilot.test.mjs",
+          "purpose": "Node --test suite of static source-text assertions: verifies QueryBoundary wires every required shared async state, reacts to online/offline + stale-deadline events in the right branch order, that filterable views delegate to QueryBoundary instead of hand-rolling empty states, and that pilot components contain no hard-coded semantic Tailwind color utilities (forcing use of package tokens instead).",
+          "result": "PASS (8/8 assertions)"
+        },
+        "test:visual": {
+          "path": "dashboard/scripts/run-federation-pilot-visual-checks.mjs",
+          "purpose": "Spawns its own Vite dev server on :4173, loads an isolated QueryBoundary fixture page (src/visual-tests/FederationPilotAtlas.jsx) at 6 viewports x 2 themes (light+dark, via a ?theme= query param), asserts every runtime state (loading/error/empty/filtered-empty/stale/offline incl. offline-precedes-loading and cached-data-visible-while-offline), runs axe + a 44px touch-target sweep + horizontal-overflow check per viewport/theme, and writes screenshots + a JSON report to docs/evidence/moneysweep-federation-design-pilot-v0-1/.",
+          "result": "BLOCKED - did not complete",
+          "reason": "chromium.launch() in this script has no explicit executablePath and falls back to the default revision named in this repo's playwright-core 1.62.1 (chromium revision 1234). Only chromium revision 1194 is provisioned on disk in this environment (used by the shared a11y-runner via an explicit executablePath override). Running `npx playwright install` to fetch revision 1234 was explicitly out of scope for this audit, so the script was left failing with Playwright's own 'Executable doesn't exist' / run-install message rather than worked around. Its orphaned dev-server child process (spawned before the crash, on :4173) was found and killed as part of cleanup; no files were left behind by the aborted run.",
+          "implication": "The pilot's dedicated 6-viewport x 2-theme visual/axe/touch-target harness -- the most thorough check this repo owns -- is currently non-functional in a from-scratch environment because it doesn't pin its own browser executablePath the way the shared a11y-runner does. It could not be used to corroborate or refute this audit's findings; the live per-tab scan in A11Y_AUDIT.md is the only executed a11y evidence for this pass."
+        },
+        "verify:pilot": { "purpose": "Composite: runs verify:federation-design + test:pilot + lint + build.", "result": "not run standalone (its components were run individually above; lint/build were out of scope for this audit)" }
+      }
+    }
+  },
+  "shadcn": {
+    "componentsJsonPresent": true,
+    "style": "new-york",
+    "baseColor": "neutral",
+    "iconLibrary": "lucide",
+    "localUiPrimitives": ["badge.jsx", "button.jsx", "input.jsx", "select.jsx", "sheet.jsx", "skeleton.jsx", "table.jsx", "tabs.jsx"],
+    "note": "components/ui/button.jsx is generated and present but is not imported anywhere in src/ -- all real button surfaces in the app come from either FederationButton (via QueryBoundary) or bespoke raw <button> elements (ErrorBoundary.jsx, PageNotFound.jsx), never the shadcn primitive. components/ui/tabs.jsx (Radix Tabs) is the primary navigation control (grid-cols-6 TabsList) and is what overflows/overlaps at mobile width; see A11Y_AUDIT.md."
+  },
+  "controlSourceMap": {
+    "button": "mixed: package FederationButton for QueryBoundary's retry/'Clear filters' actions; bespoke raw <button> in ErrorBoundary.jsx and lib/PageNotFound.jsx; local shadcn button.jsx exists but is unused",
+    "dialog": "local-shadcn: Radix-based Sheet (components/ui/sheet.jsx) renders the Contract detail panel (ContractsTable.jsx) and Entity detail panel (EntitiesTable.jsx); the federation package has no dialog/sheet primitive",
+    "statusBadge": "mixed: package FederationStatusBadge for contract/operational status in ContractsTable.jsx and StatsBar.jsx; local shadcn Badge for entity-type tags (EntitiesTable.jsx) and severity/ledger-state tags (GovernmentChanges.jsx) -- the package's own semantic/evidence/confidence/provenance badge variants are never used for these",
+    "emptyState": "package: FederationEmptyState / FederationFilteredEmptyState / FederationOfflineState / FederationDegradedState / FederationStaleDataState / FederationErrorState / FederationLoadingState, all centralized through QueryBoundary.jsx and reused by every filterable tab",
+    "toggleControl": "local (Radix Select via TypeFilterSelect.jsx -> components/ui/select.jsx), used for the Entities and Relationships type filters -- this is the control that fails axe's button-name check, see A11Y_AUDIT.md"
+  },
+  "themeSupport": {
+    "light": false,
+    "dark": true,
+    "toggleFound": false,
+    "note": "The shipped app hardcodes document.documentElement.dataset.theme = 'dark' in main.jsx with no toggle control anywhere in the UI, and never imports FederationThemeProvider/useFederationTheme even though the package exports them. A separate, non-shipped fixture (src/visual-tests/FederationPilotAtlas.jsx, driven only by scripts/run-federation-pilot-visual-checks.mjs) does render both themes via a ?theme= query param for the pilot's own visual-regression checks, but it has no in-app entry point and is not part of the deployed dashboard, so 'light theme' is not reachable by an end user of this app."
+  },
+  "screenshots": [
+    { "file": "docs/a11y-evidence/badge-contracts-desktop-1280x800.png", "shows": "FederationStatusBadge ('active', green) in the Contracts table", "viewport": "1280x800", "theme": "dark (only theme)" },
+    { "file": "docs/a11y-evidence/badge-contracts-mobile-390x844.png", "shows": "Same Contracts table + status badge at mobile width; also shows the table overflowing horizontally with the Status column pushed off-screen", "viewport": "390x844", "theme": "dark (only theme)" },
+    { "file": "docs/a11y-evidence/button-clearfilters-desktop-1280x800.png", "shows": "FederationButton 'Clear filters' rendered inside FederationFilteredEmptyState on the Entities tab", "viewport": "1280x800", "theme": "dark (only theme)" },
+    { "file": "docs/a11y-evidence/button-clearfilters-mobile-390x844.png", "shows": "Same filtered-empty state + FederationButton at mobile width; tab bar overlap already visible behind it", "viewport": "390x844", "theme": "dark (only theme)" },
+    { "file": "docs/a11y-evidence/dialog-contract-sheet-desktop-1280x800.png", "shows": "shadcn Sheet (Radix Dialog) contract detail panel; note the subtitle line is truncated with no ellipsis/affordance", "viewport": "1280x800", "theme": "dark (only theme)" },
+    { "file": "docs/a11y-evidence/dialog-contract-sheet-mobile-390x844.png", "shows": "Same Sheet at mobile width, full-bleed", "viewport": "390x844", "theme": "dark (only theme)" },
+    { "file": "docs/a11y-evidence/tabbar-overflow-mobile-390x844.png", "shows": "Primary TabsList (6 tabs, grid-cols-6) overlapping/unreadable at 390px width -- captured live during the per-tab scan", "viewport": "390x844", "theme": "dark (only theme)" },
+    { "file": "docs/a11y-evidence/entities-select-button-name-desktop-1280x800.png", "shows": "Entities tab with the TypeFilterSelect (Radix Select trigger) that axe flags for button-name (no accessible name)", "viewport": "1280x800", "theme": "dark (only theme)" }
+  ]
+}

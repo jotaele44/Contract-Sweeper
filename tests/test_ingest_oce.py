@@ -107,6 +107,36 @@ def test_maps_oce_donor_search_headers(tmp_path):
 
 
 @pytest.mark.unit
+def test_preserves_partial_oce_rows_without_amount(tmp_path):
+    raw = tmp_path / "data" / "raw" / "OCE"
+    raw.mkdir(parents=True)
+    pd.DataFrame(
+        [
+            {
+                "cycle": "2018",
+                "donor_name": "BANK FIRST",
+                "donor_city": "SAN JUAN",
+                "amount": "",
+                "contribution_date": "2018-12-31",
+                "source_file": "oce_historicos_2018_normalized.csv",
+            },
+            {
+                "cycle": "2018",
+                "donor_name": "",
+                "amount": "",
+                "contribution_date": "2018-12-31",
+            },
+        ]
+    ).to_csv(raw / "pr_oce_donations.csv", index=False)
+    result = ingest_oce.run(root=tmp_path, force=True)
+    assert result["rows"] == 1
+    row = pd.read_csv(Path(result["path"]), dtype=str).fillna("").iloc[0]
+    assert row["donor_name"] == "BANK FIRST"
+    assert row["amount"] == ""
+    assert row["contribution_date"] == "2018-12-31"
+
+
+@pytest.mark.unit
 def test_report_exports_are_separated(tmp_path):
     raw = tmp_path / "data" / "raw" / "OCE"
     raw.mkdir(parents=True)

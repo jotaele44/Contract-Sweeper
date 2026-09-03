@@ -324,6 +324,46 @@ skills:
     review_queue_policy: required_for_ambiguity
 
   - schema_version: prii_skill_contract_v1
+    skill_id: moneysweep-ownership-capital
+    owner_repo: jotaele44/moneysweep-pr
+    federation_role: public_money_intelligence_node
+    trigger_intents:
+      - "institutional ownership, SEC Form 13F holders, and ownership history"
+      - "ownership-and-capital Deep Dive eligibility or certified position review"
+      - "amendment/restatement lineage and historical issuer-share percentages"
+    allowed_modes: [read_only, offline_write]
+    default_mode: read_only
+    command_ids: []
+    local_scripts: [scripts/certify_bpop_sec13f_8q.py]
+    reads:
+      - registries/capital_control_golden_cases.json
+      - docs/SEC_OWNERSHIP_HARDENING_V0_3.md
+    outputs:
+      - "bounded certification state, stable IDs, whole observations, amendment lineage, denominators, provider-equivalence state"
+    stop_conditions:
+      - "certification receipt absent or state is not PASS"
+      - "requested issuer/security outside the independently certified scope"
+      - "exact historical denominator is unresolved"
+      - "ambiguous identity or amendment lineage"
+      - "provider equivalence would be promoted without semantic proof"
+      - "requested aggregation would synthesize a source record"
+    evidence_requirements:
+      - "exact CIK/CUSIP/accession/INFOTABLE_SK bindings and source hashes"
+      - "active + superseded arithmetic closes inside the certified period partition"
+      - "OFG/EVTC regression coverage remains distinct from issuer certification"
+    boundary_owner: moneysweep-pr
+    forbidden_operations:
+      - "name-only holder/issuer identity promotion"
+      - "cross-holder or brand-family summation presented as a source record"
+      - "nearest-date/current-share denominator substitution"
+      - "fabricating row-level supersession identity"
+      - "promoting Morningstar/provider equivalence without authoritative semantic proof"
+    synthetic_data_policy: reject_in_production
+    provenance_policy: required
+    confidence_policy: required_when_inferred
+    review_queue_policy: required_for_ambiguity
+
+  - schema_version: prii_skill_contract_v1
     skill_id: prii-check-producer-contract
     owner_repo: jotaele44/moneysweep-pr
     federation_role: public_money_intelligence_node

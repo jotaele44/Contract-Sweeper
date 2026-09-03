@@ -1,0 +1,9 @@
+{
+  "schema_version": "government_organization_change_monitor_v1",
+  "detector_version": "government_change_phrase_scan_v1",
+  "scope_claim": "BOUNDED_NOT_EXHAUSTIVE",
+  "event_schema": "schemas/government_organization_change_events.schema.json",
+  "candidate_ledger": "data/staging/processed/government_organization_change_candidates.json",
+  "event_ledger": "data/derived/government_organization_change_events.json",
+  "bindings": []
+}

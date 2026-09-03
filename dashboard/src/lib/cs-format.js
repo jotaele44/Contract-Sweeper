@@ -1,5 +1,7 @@
 // moneysweep-pr display helpers.
 
+import { lookup } from '@/lib/utils'
+
 export function fmtMoney(v) {
   if (v == null) return '—'
   try {
@@ -12,7 +14,7 @@ export function fmtMoney(v) {
 // Badge/label palettes. A single lookup helper applies the shared slate fallback
 // so every caller degrades the same way.
 const SLATE_BADGE = 'bg-slate-500/15 text-slate-300 border-slate-500/30'
-const tone = (map, key) => map[key] ?? SLATE_BADGE
+const tone = (map, key) => lookup(map, key, SLATE_BADGE)
 
 const ENTITY_TONE = {
   agency: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
@@ -32,7 +34,7 @@ const STATUS_ROLE = {
   amended: 'warning',
   executed: 'info',
 }
-export const statusRole = (s) => STATUS_ROLE[s] ?? 'neutral'
+export const statusRole = (s) => lookup(STATUS_ROLE, s, 'neutral')
 
 const EDGE_TONE = {
   LOCATED_IN: 'text-teal-300',
@@ -41,7 +43,7 @@ const EDGE_TONE = {
   AFFILIATED_WITH: 'text-violet-300',
   SUBSIDIARY_OF: 'text-sky-300',
 }
-export const edgeTone = (t) => EDGE_TONE[t] ?? 'text-slate-300'
+export const edgeTone = (t) => lookup(EDGE_TONE, t, 'text-slate-300')
 
 // Tranche A caveat: award amounts are frequently unpopulated. Centralized here so
 // StatsBar and MunicipalityAggregates agree on when to warn.
