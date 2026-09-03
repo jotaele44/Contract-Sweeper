@@ -8,6 +8,6 @@
   ],
   "output": "reports/foia_yield_tracking.csv",
   "row_count": 15,
-  "open_gaps": 11,
-  "generated_at": "2026-09-01T03:44:57.500574+00:00"
+  "open_gaps": 15,
+  "generated_at": "2026-09-03T01:50:17.619620+00:00"
 }
