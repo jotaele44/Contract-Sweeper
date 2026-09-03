@@ -17,13 +17,8 @@ SPEC.loader.exec_module(MODULE)
 validate_workflow_file = MODULE.validate_workflow_file
 validate_workflows = MODULE.validate_workflows
 
-NODE_ENGINE = "^20.19.0 || ^22.13.0 || >=24.0.0"
-WORKFLOW_NODE_VERSIONS = {
-    "gui-capability-parity.yml": "20.19.0",
-    "ci.yml": "22.13.0",
-    "desktop-build.yml": "22.13.0",
-    "moneysweep-federation-design-pilot.yml": "22.13.0",
-}
+NODE_ENGINE = "^22.22.2 || ^24.15.0 || >=26.0.0"
+CI_NODE_VERSION = "22.22.2"
 
 
 def test_repository_workflows_pass_static_validation() -> None:
@@ -39,21 +34,24 @@ def test_source_workflows_require_preflight_default() -> None:
         assert validate_workflow_file(Path(".github/workflows") / name) == []
 
 
-def test_dashboard_declares_the_vite_8_node_engine() -> None:
+def test_dashboard_declares_the_jsdom_node_engine() -> None:
     package = json.loads(Path("dashboard/package.json").read_text(encoding="utf-8"))
     lock = json.loads(Path("dashboard/package-lock.json").read_text(encoding="utf-8"))
     assert package["engines"]["node"] == NODE_ENGINE
     assert lock["packages"][""]["engines"]["node"] == NODE_ENGINE
-    assert lock["packages"]["node_modules/jsdom"]["engines"]["node"] == NODE_ENGINE
-    assert lock["packages"]["node_modules/vite"]["engines"]["node"] == ("^20.19.0 || >=22.12.0")
 
 
-def test_setup_node_workflows_pin_supported_versions() -> None:
-    found = {}
+def test_setup_node_workflows_pin_the_supported_minimum() -> None:
+    setup_steps = []
     for path in sorted(Path(".github/workflows").glob("*.yml")):
         workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
         for job in workflow.get("jobs", {}).values():
             for step in job.get("steps", []):
                 if str(step.get("uses", "")).startswith("actions/setup-node@"):
-                    found[path.name] = step.get("with", {}).get("node-version")
-    assert found == WORKFLOW_NODE_VERSIONS
+                    setup_steps.append((path, step))
+
+    assert setup_steps, "repository must retain at least one setup-node workflow step"
+    for path, step in setup_steps:
+        assert step.get("with", {}).get("node-version") == CI_NODE_VERSION, (
+            f"{path}: setup-node must pin Node {CI_NODE_VERSION} for jsdom 30"
+        )

@@ -27,7 +27,7 @@ from desktop.config import DIST_DIR, FRONTEND_DIR, REPO_ROOT, REQUIREMENT_FILES 
 VENV_DIR = REPO_ROOT / ".venv"
 MARKER = Path(__file__).resolve().parent / ".setup-complete"
 MIN_PYTHON = (3, 10)
-NODE_ENGINE = "^20.19.0 || ^22.13.0 || >=24.0.0"
+NODE_ENGINE = "^22.22.2 || ^24.15.0 || >=26.0.0"
 
 
 def venv_python() -> Path:
@@ -68,10 +68,11 @@ def node_version_supported(raw_version: str) -> bool:
     if len(parts) != 3 or not all(part.isdigit() for part in parts):
         return False
     version = tuple(int(part) for part in parts)
+    major = version[0]
     return (
-        (version[0] == 20 and version >= (20, 19, 0))
-        or (version[0] == 22 and version >= (22, 13, 0))
-        or version >= (24, 0, 0)
+        (major == 22 and version >= (22, 22, 2))
+        or (major == 24 and version >= (24, 15, 0))
+        or major >= 26
     )
 
 
