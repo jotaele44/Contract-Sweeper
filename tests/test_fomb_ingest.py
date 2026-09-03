@@ -39,7 +39,7 @@ class DummySession:
         self.docs = docs or {}
 
     def get(self, url, params=None, timeout=None, allow_redirects=True):
-        if "example.invalid/contracts.json" in url:
+        if "oversightboard.pr.gov/contracts.json" in url:
             start = int((params or {}).get("start", 0))
             length = int((params or {}).get("length", 500))
             rows = self.ajax_rows[start : start + length]
@@ -71,7 +71,7 @@ class DummySession:
 def _page(*links: tuple[str, str], ajax=False):
     anchors = "".join(f'<a href="{href}">{text}</a>' for href, text in links)
     script = (
-        '<script>const table = {ajax: "https://example.invalid/contracts.json"};</script>'
+        '<script>const table = {ajax: "https://oversightboard.pr.gov/contracts.json"};</script>'
         if ajax
         else ""
     )
@@ -118,13 +118,23 @@ def test_contract_ajax_normalization_and_stable_id():
         "2026-08-09T12:00:00Z",
         type("L", (), {"warning": lambda *args, **kwargs: None})(),
     )
-    assert ajax_url == "https://example.invalid/contracts.json"
+    assert ajax_url == "https://oversightboard.pr.gov/contracts.json"
     assert len(rows) == 1
     assert rows[0]["amount_numeric"] == 1_250_000.0
     assert rows[0]["currency"] == "USD"
     assert rows[0]["contract_number_candidate"] == "2026-000123"
     assert rows[0]["review_document_url"].endswith("review.pdf")
     assert len(rows[0]["fomb_review_id"]) == 24
+
+
+def test_rejects_cross_origin_dynamic_table_endpoint():
+    html = '<script>const table = {ajax: "https://example.invalid/contracts.json"};</script>'
+    assert (
+        fomb._discover_ajax_config(
+            html, "https://oversightboard.pr.gov/contract-review/"
+        )
+        is None
+    )
 
 
 def test_versions_preserve_and_link_superseded_records():

@@ -359,6 +359,10 @@ def _discover_ajax_config(page_html: str, page_url: str) -> AjaxConfig | None:
         if not candidate or "{{" in candidate or "<%" in candidate:
             continue
         url = urljoin(page_url, candidate)
+        parsed = urlparse(url)
+        page = urlparse(page_url)
+        if parsed.scheme != "https" or parsed.netloc.lower() != page.netloc.lower():
+            continue
         extra: dict[str, str] = {}
         if "admin-ajax" in url:
             actions = [
