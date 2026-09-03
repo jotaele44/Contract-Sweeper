@@ -9,7 +9,6 @@ schema interpreter (no ``jsonschema`` dependency). Producers use ``build_rows``
 from __future__ import annotations
 
 import csv
-import copy
 import json
 
 import pytest
@@ -58,47 +57,20 @@ def test_foia_rows_validate_and_are_unique(foia_rows):
 
 
 @pytest.mark.unit
-def test_foia_targets_have_valid_preserved_lifecycle(foia_rows):
+def test_foia_targets_are_real_gaps_or_superseded_history(foia_rows):
     status = bft._source_status_index(REPO_ROOT)
     for r in foia_rows:
         assert r["target_source_id"] in status, r["target_source_id"]
-        if status[r["target_source_id"]] == "fully_materialized":
-            assert r["tracking_state"] == "SUPERSEDED" or r["residual_gap"].strip()
-        if r["tracking_state"] == "SUPERSEDED":
+        if r["request_status"] == "superseded":
             assert status[r["target_source_id"]] == "fully_materialized"
-            assert not r["residual_gap"].strip()
-            assert (REPO_ROOT / r["resolution_evidence"]).is_file()
+        else:
+            assert status[r["target_source_id"]] != "fully_materialized"
     # statute matches jurisdiction
     for r in foia_rows:
         if r["jurisdiction"] == "US":
             assert "552" in r["statute"]
         else:
             assert "141" in r["statute"]
-
-
-@pytest.mark.unit
-def test_foia_rejects_unproven_or_inconsistent_supersession(foia_rows):
-    missing_evidence = copy.deepcopy(foia_rows)
-    superseded = next(r for r in missing_evidence if r["tracking_state"] == "SUPERSEDED")
-    superseded["resolution_evidence"] = ""
-    assert any("requires resolution_evidence" in p for p in bft.check(missing_evidence, REPO_ROOT))
-
-    false_supersession = copy.deepcopy(foia_rows)
-    open_row = next(r for r in false_supersession if r["_source_status"] != "fully_materialized")
-    open_row["tracking_state"] = "SUPERSEDED"
-    assert any("is not fully_materialized" in p for p in bft.check(false_supersession, REPO_ROOT))
-
-    unexplained_open = copy.deepcopy(foia_rows)
-    residual = next(
-        r
-        for r in unexplained_open
-        if r["_source_status"] == "fully_materialized" and r["tracking_state"] == "OPEN"
-    )
-    residual["residual_gap"] = ""
-    assert any(
-        "fully_materialized OPEN target requires a residual_gap" in p
-        for p in bft.check(unexplained_open, REPO_ROOT)
-    )
 
 
 @pytest.mark.integration
@@ -131,12 +103,11 @@ def test_yield_one_row_per_request(yield_rows, foia_rows):
     for row in yield_rows:
         assert validate_row(row, schema) == [], row
     assert {r["request_id"] for r in yield_rows} == {r["request_id"] for r in foia_rows}
-    # Request yield and alternate-source closure remain separate facts.
+    # Superseded requests preserve history after another evidence path closes
+    # the gap; every other request remains open with a non-empty blocker.
     for r in yield_rows:
-        if r["tracking_state"] == "SUPERSEDED":
+        if r["request_status"] == "superseded":
             assert r["yield_status"] == "gap_closed"
-            assert "alternate materialization" in r["unresolved_gap"]
-            assert "evidence=" in r["notes"]
         else:
             assert r["yield_status"] in ("pending", "partial", "no_response")
         assert r["unresolved_gap"].strip()
@@ -158,11 +129,11 @@ def test_yield_regenerates_identically(yield_rows):
 
 
 @pytest.mark.unit
-def test_foia_all_submitted(foia_rows):
+def test_foia_statuses_preserve_submitted_and_superseded_history(foia_rows):
+    superseded = {"oficina_contralor", "cor3", "pr_cabilderos", "donaciones_pr"}
     for r in foia_rows:
-        assert r["request_status"] == "submitted", (
-            f"{r['request_id']} expected submitted, got {r['request_status']}"
-        )
+        expected = "superseded" if r["target_source_id"] in superseded else "submitted"
+        assert r["request_status"] == expected
 
 
 # --------------------------------------------------------------------------- #

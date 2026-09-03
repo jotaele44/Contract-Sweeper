@@ -26,7 +26,8 @@
         "partial_yield",
         "fulfilled",
         "denied",
-        "appealed"
+        "appealed",
+        "superseded"
       ]
     },
     "tracking_state": {"type": "string", "enum": ["OPEN", "SUPERSEDED"]},

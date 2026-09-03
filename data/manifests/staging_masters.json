@@ -140,10 +140,20 @@
       "sha256": "9c88d0568cf1ab6ef14644186441c0fb43f9343a7209d39c373caab7cf22fcf8",
       "size_bytes": 149812
     },
+    "data/staging/processed/pr_cabilderos.csv": {
+      "row_count": 2668,
+      "sha256": "3ceafe6cc8e8dd0f0b35e4ba05d58dd500bc8d7a11a038eef352e7f52d156d2b",
+      "size_bytes": 522002
+    },
     "data/staging/processed/pr_cdbg_dr_master.csv": {
       "row_count": 3808,
       "sha256": "18e33b1d79024e302d6e0f1ae272c3dcd621b6ae70316857289b886a4089404e",
       "size_bytes": 2707911
+    },
+    "data/staging/processed/pr_contralor_audits.csv": {
+      "row_count": 85,
+      "sha256": "4a08a41080322c1cefc2bc728978ddfe6ad40b4ab0cda391a82b982ba0bd14aa",
+      "size_bytes": 4090
     },
     "data/staging/processed/pr_contracts_master.csv": {
       "row_count": 5147,
@@ -154,16 +164,6 @@
       "row_count": 1481,
       "sha256": "5abfc4385c69f19ed4963516bf4a393a116f4627817e4273d5b8302a62afd04b",
       "size_bytes": 196718
-    },
-    "data/staging/processed/pr_cabilderos.csv": {
-      "row_count": 2668,
-      "sha256": "3ceafe6cc8e8dd0f0b35e4ba05d58dd500bc8d7a11a038eef352e7f52d156d2b",
-      "size_bytes": 522002
-    },
-    "data/staging/processed/pr_contralor_audits.csv": {
-      "row_count": 85,
-      "sha256": "4a08a41080322c1cefc2bc728978ddfe6ad40b4ab0cda391a82b982ba0bd14aa",
-      "size_bytes": 4090
     },
     "data/staging/processed/pr_donaciones.csv": {
       "row_count": 9156,
@@ -209,6 +209,12 @@
       "row_count": 6474,
       "sha256": "469c010f33f062deb489dbb4267043daed4308805e60e16af340c869777b0f7b",
       "size_bytes": 554203
+    },
+    "data/staging/processed/pr_prasa_contracts.csv": {
+      "row_count": 0,
+      "sha256": "1ed890263aec8cb89d5701ac1b4ce5007ddab715e246e27a356ec62aa440b140",
+      "size_bytes": 146,
+      "status": "header_only"
     },
     "data/staging/processed/pr_subawards_master.csv": {
       "row_count": 5989,
