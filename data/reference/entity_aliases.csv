@@ -35,6 +35,8 @@ ENT_ALIAS_c9c59498503a3210,ENT_ORG_299e165490469537,LUMA,LUMA,pr_public_money_en
 ENT_ALIAS_3ecebd8028b70369,ENT_ORG_0f8f1789b2c687ed,Genera,GENERA,pr_public_money_entities,T1,0.95,
 ENT_ALIAS_764888156cba7ba9,ENT_ORG_0f8f1789b2c687ed,Genera Puerto Rico,GENERA PUERTO RICO,pr_public_money_entities,T1,0.95,
 ENT_ALIAS_e33794b2007d1f15,ENT_ORG_3719113e87688e83,Metropistas,METROPISTAS,pr_public_money_entities,T1,0.95,
+ENT_ALIAS_6d6cfe770090e09a,ENT_ORG_5c5e771df611c784,Autopistas de Puerto Rico,AUTOPISTAS DE PUERTO RICO,pr_public_money_entities,T1,0.95,
+ENT_ALIAS_580e21ca77930734,ENT_ORG_5c5e771df611c784,APR,APR,pr_public_money_entities,T1,0.95,
 ENT_ALIAS_c6b6c5ceaf6ebde0,ENT_AGENCY_7cf79ff780fb8279,PRIFA,PRIFA,pr_public_money_entities,T1,0.95,
 ENT_ALIAS_58dc453d73d4f714,ENT_AGENCY_7cf79ff780fb8279,AFI,AFI,pr_public_money_entities,T1,0.95,
 ENT_ALIAS_ece9241e2f5f7496,ENT_AGENCY_7cf79ff780fb8279,Autoridad para el Financiamiento de la Infraestructura,AUTORIDAD PARA EL FINANCIAMIENTO DE LA INFRAESTRUCTURA,pr_public_money_entities,T1,0.95,

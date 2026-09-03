@@ -44,6 +44,29 @@ sources:
     output_change_policy: row_count_or_hash
     atomic_output_required: true
 
+  # The RDC list sweep is ~7,451 pages at the shared page_sleep, so it runs
+  # well past the 60-minute default a GitHub-hosted runner would give it. The
+  # registry is append-ordered, which is what makes a page cursor meaningful
+  # here: a resumed run picks up where it stopped rather than restarting.
+  #
+  # NOTE the detail-enrichment pass (scripts/enrich_rdc_details.py) is
+  # deliberately NOT scheduled. It is ~44,700 further requests against a small
+  # government host and is meant to be run in bounded batches by an operator.
+  - source_id: rdc_demandas_civiles
+    trigger_type: schedule
+    enabled: true
+    cadence: monthly
+    runner: scripts/scrape_rdc_demandas.py
+    execution_backend: self_hosted
+    timeout_minutes: 240
+    max_retries: 1
+    checkpoint_strategy: page_cursor
+    max_pages_per_run: 2000
+    freshness_sla_hours: 1080
+    empty_result_policy: preserve_previous
+    output_change_policy: row_count_or_hash
+    atomic_output_required: true
+
   - source_id: sam_entities
     trigger_type: schedule
     enabled: true

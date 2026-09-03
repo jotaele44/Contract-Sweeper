@@ -1,0 +1,15 @@
+started_utc=2026-09-01T00:55:11Z
+2026-08-31 20:55:13 [INFO] Starting Cabilderos (PR state lobbyists) ingestion...
+2026-08-31 20:55:13 [INFO]   Found 1 Cabilderos file(s) in /Users/jotaele/fed-repos/moneysweep-pr/data/raw/Cabilderos
+2026-08-31 20:55:13 [INFO]   Processing pr_lda_filings.csv...
+2026-08-31 20:55:13 [INFO]   Read 2,668 rows from pr_lda_filings.csv
+2026-08-31 20:55:13 [INFO]   → 2,668 cabildero records from pr_lda_filings.csv
+2026-08-31 20:55:13 [INFO] ============================================================
+2026-08-31 20:55:13 [INFO] CABILDEROS SUMMARY
+2026-08-31 20:55:13 [INFO] ============================================================
+2026-08-31 20:55:13 [INFO]   Total records:       2,668
+2026-08-31 20:55:13 [INFO]   Unique lobbyists:    4
+2026-08-31 20:55:13 [INFO]   Unique clients:      164
+
+Cabilderos ingestion complete: 2,668 records
+finished_utc=2026-09-01T00:55:13Z

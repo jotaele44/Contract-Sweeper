@@ -1,0 +1,60 @@
+started_utc=2026-09-01T01:05:15Z
+{"found": 12, "missing_files": 0, "partial_or_unresolved": 3, "staged": 0, "total": 15}
+{"found": 12, "missing_files": 0, "partial_or_unresolved": 3, "staged": 9, "total": 15}
+{
+  "cor3": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/cor3/20260901T010628Z.json"
+  },
+  "hud_drgr_authorized": {
+    "file_count": 0,
+    "manifest_path": null
+  },
+  "prasa": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/prasa/20260901T010628Z.json"
+  },
+  "oficina_contralor": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/oficina_contralor/20260901T010628Z.json"
+  },
+  "pr_cabilderos": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/pr_cabilderos/20260901T010628Z.json"
+  },
+  "donaciones_pr": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/donaciones_pr/20260901T010629Z.json"
+  },
+  "contralor_electoral": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/contralor_electoral/20260901T010629Z.json"
+  },
+  "oce_socrata_live": {
+    "file_count": 1,
+    "manifest_path": "data/manifests/oce_socrata_live/20260901T010629Z.json"
+  },
+  "_canonical": {
+    "json": "data/manifests/source_manifest.json",
+    "csv": "data/manifests/source_manifest.csv",
+    "total_files": 521
+  }
+}
+{
+  "committed_ci_fully_materialized": 11,
+  "local_fully_materialized": 17,
+  "local_partially_materialized": 3,
+  "local_sources_with_any_data": 18,
+  "total_sources": 162,
+  "registry_accounted_local_rows": 81662,
+  "total_rows_on_disk": 20758,
+  "orphan_rows_not_in_registry": 238,
+  "orphan_file_count": 1,
+  "probe_ran": false,
+  "outputs": [
+    "/Users/jotaele/fed-repos/moneysweep-pr/reports/materialization_coverage_audit.json",
+    "/Users/jotaele/fed-repos/moneysweep-pr/reports/materialization_coverage_audit.csv"
+  ]
+}
+reports/live-readiness/20260901T005414Z_moneysweep_live_readiness
+finished_utc=2026-09-01T01:08:49Z

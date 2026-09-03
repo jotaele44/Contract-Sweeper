@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moneysweep.pr/schemas/capital_control_investor.schema.json",
+  "title": "Capital and Control Investor Identity",
+  "type": "object",
+  "required": [
+    "investor_id",
+    "raw_name",
+    "identity_level",
+    "identity_status",
+    "source_id"
+  ],
+  "properties": {
+    "investor_id": {
+      "type": "string",
+      "pattern": "^INV_[A-Za-z0-9_.:-]+$"
+    },
+    "raw_name": {"type": "string", "minLength": 1},
+    "normalized_name": {"type": ["string", "null"]},
+    "canonical_name": {"type": ["string", "null"]},
+    "legal_entity_id": {"type": ["string", "null"]},
+    "investor_family_id": {"type": ["string", "null"]},
+    "ultimate_parent_id": {"type": ["string", "null"]},
+    "identity_level": {
+      "type": "string",
+      "enum": [
+        "LEGAL_ENTITY",
+        "FUND_OR_VEHICLE",
+        "INVESTOR_FAMILY",
+        "ULTIMATE_PARENT",
+        "PERSON",
+        "UNKNOWN"
+      ]
+    },
+    "identity_status": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "PROVISIONAL",
+        "CANDIDATE_NOT_IDENTITY",
+        "UNRESOLVED",
+        "SUPERSEDED"
+      ]
+    },
+    "binding_basis": {
+      "type": "string",
+      "enum": [
+        "STABLE_ID",
+        "AUTHORITATIVE_BINDING",
+        "AUTHORITATIVE_ALIAS_WITH_CORROBORATION",
+        "HISTORICAL_CONTINUITY_WITH_CORROBORATION",
+        "HEURISTIC_DISCOVERY_ONLY",
+        "NONE"
+      ]
+    },
+    "source_id": {"type": "string", "minLength": 1},
+    "valid_from": {"type": ["string", "null"], "format": "date"},
+    "valid_to": {"type": ["string", "null"], "format": "date"},
+    "notes": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"identity_status": {"const": "PASS"}},
+        "required": ["identity_status"]
+      },
+      "then": {
+        "required": ["binding_basis"],
+        "properties": {
+          "binding_basis": {
+            "enum": [
+              "STABLE_ID",
+              "AUTHORITATIVE_BINDING",
+              "AUTHORITATIVE_ALIAS_WITH_CORROBORATION",
+              "HISTORICAL_CONTINUITY_WITH_CORROBORATION"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": true
+}
