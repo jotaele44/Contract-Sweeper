@@ -6,10 +6,10 @@
     "data/reference/pr_public_money_entities.csv"
   ],
   "output": "data/reference/entity_master.csv",
-  "row_count": 29,
+  "row_count": 30,
   "entity_types": [
     "government_agency",
     "organization"
   ],
-  "generated_at": "2026-08-09T21:24:08.409162+00:00"
+  "generated_at": "2026-08-17T20:24:26.885527+00:00"
 }

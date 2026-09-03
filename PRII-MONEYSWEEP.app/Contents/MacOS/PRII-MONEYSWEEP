@@ -12,15 +12,17 @@ notify() { osascript -e "display dialog \"$1\" buttons {\"OK\"} with title \"Mon
 # /private/var/folders/…/AppTranslocation/ path. Only the bundle is copied
 # there, so the checkout next to it is gone and setup cannot write a .venv. The
 # generic setup failure below would blame the network, so name the real cause.
+# Note that "Open Anyway" permits one launch without clearing the quarantine
+# flag, so it leaves the bundle translocated and lands people here.
 case "$HERE" in
   */AppTranslocation/*)
-    notify "macOS is running this app from a temporary read-only copy, so it cannot see the rest of the MoneySweep folder.\n\nFix it once:\n1. Move the folder that contains this app out of Downloads (or the Trash) — your home folder is fine.\n2. Double-click Fix-Gatekeeper.command in that folder.\n3. Open this app again."
+    notify "macOS is running this app from a temporary read-only copy, so it cannot see the rest of the checkout.\n\nFix it once:\n1. Move the folder that contains this app out of Downloads (or the Trash) — your home folder is fine.\n2. Double-click Fix-Gatekeeper.command in that folder.\n3. Open this app again."
     exit 1
     ;;
 esac
 
 if [ ! -f "$REPO/desktop/setup.py" ]; then
-  notify "This app must stay inside the MoneySweep checkout — desktop/setup.py was not found next to it.\n\nLooked in: $REPO\n\nMove PRII-MONEYSWEEP.app back beside the desktop, server and dashboard folders of the checkout, and open it from there."
+  notify "This app must stay inside its checkout — desktop/setup.py was not found next to it.\n\nLooked in: $REPO\n\nMove PRII-MONEYSWEEP.app back beside the checkout's desktop folder and open it from there."
   exit 1
 fi
 
@@ -39,7 +41,7 @@ fi
 
 # Finder discards the launcher's output, so keep a log the failure text can point
 # at. It lives in the temp dir because the folder itself may not be writable.
-LOG="${TMPDIR:-/tmp}/prii-moneysweep-setup.log"
+LOG="$(mktemp "${TMPDIR:-/tmp}/prii-moneysweep-pr-setup.XXXXXX")"
 if ! "$PY" desktop/setup.py --ensure >"$LOG" 2>&1; then
   notify "First-run setup could not finish. It needs internet the first time (and Node.js for the dashboard build).\n\nDetails: $LOG\n\nOpen Terminal in $REPO and run: python3 desktop/setup.py"
   exit 1

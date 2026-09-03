@@ -181,6 +181,30 @@ KNOWN_P3_PROJECTS = [
         "canonical_project_number": "PREPA-GEN-OMA-2023",
         "source_doc": "known_p3_seed",
     },
+    {
+        "project_id": "P3-006",
+        "project_name": "Teodoro Moscoso Bridge Toll Concession",
+        "sector": "transport",
+        "concessionaire_name": "Autopistas de Puerto Rico y Compañía",
+        # No single documented total concession value — only line-item ACT
+        # contract amounts exist (data/reference/pr_ppp_concession_contracts.csv),
+        # and those price individual services, not the concession itself. Left
+        # empty rather than substituting a line-item figure for a concession
+        # total the source never states.
+        "contract_value": "",
+        "term_years": "",
+        # Earliest ACT contract start (1992-000228 C/D) documenting the
+        # concession; no single award date is otherwise on record.
+        "award_date": "1991-12-20",
+        "financial_close_date": "",
+        "federal_funding_flag": "",
+        "status": "active",
+        # The bridge itself sits in San Juan.
+        "municipality": "San Juan",
+        "spatial_extent": "site",
+        "canonical_project_number": "",
+        "source_doc": "known_p3_seed",
+    },
 ]
 
 

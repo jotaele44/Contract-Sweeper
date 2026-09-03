@@ -13,6 +13,7 @@ ENT_AGENCY_42ffd9ad9ab45e6a,government_agency,Puerto Rico Public Buildings Autho
 ENT_ORG_299e165490469537,organization,LUMA Energy,PR,pr_public_money_entities,T1,0.95,aliases=LUMA
 ENT_ORG_0f8f1789b2c687ed,organization,Genera PR,PR,pr_public_money_entities,T1,0.95,aliases=Genera|Genera Puerto Rico
 ENT_ORG_3719113e87688e83,organization,Autopistas Metropolitanas de Puerto Rico,PR,pr_public_money_entities,T1,0.95,aliases=Metropistas
+ENT_ORG_5c5e771df611c784,organization,Autopistas de Puerto Rico y Compañía,PR,pr_public_money_entities,T1,0.95,aliases=Autopistas de Puerto Rico|APR
 ENT_AGENCY_7cf79ff780fb8279,government_agency,Puerto Rico Infrastructure Financing Authority,PR,pr_public_money_entities,T1,0.95,aliases=PRIFA|AFI|Autoridad para el Financiamiento de la Infraestructura
 ENT_AGENCY_c6aa8887d7248228,government_agency,Puerto Rico Housing Finance Authority,PR,pr_public_money_entities,T1,0.95,aliases=PRHFA|AFV|Autoridad para el Financiamiento de la Vivienda
 ENT_AGENCY_5f99300da364ea64,government_agency,Puerto Rico Industrial Development Company,PR,pr_public_money_entities,T1,0.95,aliases=PRIDCO|PRIDCO Real Estate|Compania de Fomento Industrial

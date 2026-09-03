@@ -12,7 +12,7 @@ PYTHON_BASELINE ?= 3.11
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install-dev lint format format-check type test test-fast cov \
+.PHONY: help install-dev compileall lint format format-check type test test-fast cov \
         lock lock-check precommit check
 
 help:  ## List available targets
@@ -22,6 +22,9 @@ help:  ## List available targets
 
 install-dev:  ## Install dev + runtime tooling (ruff, mypy, pytest, …)
 	$(PIP) install -r requirements-dev.txt
+
+compileall:  ## Byte-compile moneysweep/scripts/tests (matches ci.yml's compile step)
+	$(PYTHON) -m compileall moneysweep scripts tests
 
 lint:  ## ruff lint (gating in .github/workflows/lint.yml)
 	ruff check .
@@ -55,4 +58,4 @@ lock-check:  ## Fail if requirements.lock is stale vs requirements.in (CI: lockf
 precommit:  ## Run every pre-commit hook over the whole tree (CI: pre-commit.yml)
 	pre-commit run --all-files
 
-check: lint format-check type test  ## Run the full gating quality bar locally
+check: compileall lint format-check type test  ## Run the full gating quality bar locally
