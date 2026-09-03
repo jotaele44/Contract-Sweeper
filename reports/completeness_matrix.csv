@@ -125,6 +125,7 @@ prepa_luma_genera,infrastructure,False,api_producer,wired_producer,automated,not
 prepa_luma_rate_revenue,infrastructure_revenue,False,manual_export,manual_dropzone,not_acquired,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,data/manual/prepa_rate_revenue/,no coverage contract declared
 promesa_creditors,territorial,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 prpha_housing_subsidy,territorial,False,manual_export,manual_dropzone,not_acquired,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,data/raw/PRPHA/,no coverage contract declared
+rdc_demandas_civiles,territorial,False,api_producer,wired_producer,automated,not_materialized,below_contract,not_applicable,unknown,uncertified,empty,True,0,1,False,,coverage 0.0% of 44706 < floor 95.0%
 research_grants,federal,False,api_adapter,wired_adapter,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 roadwatch_corridor_join,infrastructure,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 rum_cover_over,territorial,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
@@ -135,8 +136,12 @@ sba_disaster_loans_pr,manual_export,False,manual_export,manual_dropzone,not_acqu
 sba_loans,federal,False,api_adapter,wired_adapter,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 sba_ppp,federal,False,api_adapter,wired_adapter,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 sbir,federal,False,api_adapter,wired_adapter,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
+sec_13f_bpop_8q_certification,capital_control,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
+sec_13f_bpop_golden_freeze,capital_control,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 sec_13f_nport,federal,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 sec_edgar,federal,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
+sec_equity_identity_v2,capital_control,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,True,,no coverage contract declared
+sec_holdings_discovery_v2,capital_control,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 sec_officers,entity_resolution,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 sf133_budget_execution,federal,False,api_producer,wired_producer,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared
 slfrf,federal,False,api_adapter,wired_adapter,automated,not_materialized,uncontracted,not_applicable,unknown,uncertified,empty,False,0,1,False,,no coverage contract declared

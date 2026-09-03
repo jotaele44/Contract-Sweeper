@@ -1,0 +1,73 @@
+{
+  "manifest_type": "per_source_ingest_snapshot",
+  "schema_version": "r5_v1",
+  "source_id": "donaciones_pr",
+  "source_url": "https://www.ceepur.org/",
+  "producer_script": "scripts/ingest_donaciones.py",
+  "generated_at": "2026-09-01T01:06:29.047641+00:00",
+  "file_count": 1,
+  "files": [
+    {
+      "file_name": "pr_donaciones.csv",
+      "relative_path": "data/staging/processed/pr_donaciones.csv",
+      "extension": ".csv",
+      "size_bytes": 1122141,
+      "sha256": "9ce470071eb16ff00b418cd02a3a26feb2b10a819dab9f412dc49ea42c188a6b",
+      "ingestion_timestamp_utc": "2026-09-01T01:06:28.765049+00:00",
+      "source_system": "donaciones_pr",
+      "source_url": "https://www.ceepur.org/",
+      "schema_version": "r5_v1",
+      "expected_years": null,
+      "row_count": 9156,
+      "column_count": 17,
+      "columns": [
+        "cycle",
+        "donor_name",
+        "donor_city",
+        "donor_zip_code",
+        "donor_employer",
+        "donor_occupation",
+        "amount",
+        "contribution_date",
+        "candidate_or_committee",
+        "party",
+        "office_sought",
+        "election_type",
+        "report_type",
+        "candidacy_type",
+        "payment_method",
+        "event_name",
+        "source_file"
+      ],
+      "empty_or_header_only": false,
+      "field_completeness_pct_by_column": {
+        "cycle": 1.0,
+        "donor_name": 1.0,
+        "donor_city": 0.9986893840104849,
+        "donor_zip_code": 0.49770642201834864,
+        "donor_employer": 0.0,
+        "donor_occupation": 0.0,
+        "amount": 1.0,
+        "contribution_date": 1.0,
+        "candidate_or_committee": 0.5,
+        "party": 0.5,
+        "office_sought": 0.0,
+        "election_type": 0.0,
+        "report_type": 0.0,
+        "candidacy_type": 0.5,
+        "payment_method": 0.5,
+        "event_name": 0.5,
+        "source_file": 1.0
+      },
+      "monetary_totals": {
+        "amount": 9252476.74
+      },
+      "entity_match_rate_pct": null,
+      "actual_years": [],
+      "duplicate_rate": 0.0,
+      "pk_field": null,
+      "year_coverage_pct": null,
+      "validation_status": "present"
+    }
+  ]
+}

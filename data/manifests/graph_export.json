@@ -17,7 +17,7 @@
     "exports/graph/neo4j_nodes.csv",
     "exports/graph/neo4j_edges.csv"
   ],
-  "node_count": 167,
+  "node_count": 168,
   "edge_count": 30,
   "node_types": [
     "government_agency",
@@ -31,5 +31,5 @@
     "REGISTERED_LOBBYING_FOR",
     "RELATED_TO"
   ],
-  "generated_at": "2026-08-09T21:26:45.181406+00:00"
+  "generated_at": "2026-08-17T20:24:27.039837+00:00"
 }

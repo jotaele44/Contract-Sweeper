@@ -59,6 +59,11 @@ CANONICAL_GRAINS = frozenset(
         "security",
         "loan",
         "payment",
+        # A claim asserted against a government entity: a demanded amount and,
+        # once resolved, an adjudicated one. Distinct from `payment` (money that
+        # moved) and from `filing` (a disclosure document) — a claim may be
+        # dismissed and never become either.
+        "claim",
     }
 )
 GEOGRAPHY_SCOPES = frozenset({"PR", "US_PR", "US", "global"})

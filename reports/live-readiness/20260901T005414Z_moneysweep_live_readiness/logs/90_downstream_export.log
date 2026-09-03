@@ -1,0 +1,85 @@
+started_utc=2026-09-01T00:55:31Z
+usage: write_source_manifests.py [-h] [--root ROOT] [--sources SOURCES]
+                                 [--required-only] [--dry-run]
+write_source_manifests.py: error: unrecognized arguments: pr_cabilderos oficina_contralor oce donaciones prasa hud_drgr_authorized
+wrote reports/source_recovery_matrix.csv (162 rows)
+wrote reports/source_recovery_matrix.md
+wrote reports/materialization_readiness.json
+  automatable_ready=113/113  queued=49
+{
+  "schema_version": "completeness_matrix_v1",
+  "total_sources": 162,
+  "contracted_sources": 23,
+  "by_wired_status": {
+    "deferred": 2,
+    "manual_dropzone": 42,
+    "scraper_stub": 2,
+    "semantic_duplicate": 3,
+    "wired_adapter": 41,
+    "wired_producer": 72
+  },
+  "by_acquisition_status": {
+    "acquired_ingested": 5,
+    "automated": 112,
+    "not_acquired": 45
+  },
+  "by_materialization_status": {
+    "fully_materialized": 15,
+    "not_materialized": 142,
+    "partially_materialized": 5
+  },
+  "by_coverage_status": {
+    "below_contract": 3,
+    "meets_contract": 3,
+    "uncontracted": 139,
+    "unverifiable": 17
+  },
+  "by_reconciliation_status": {
+    "not_applicable": 160,
+    "not_evaluated": 2
+  },
+  "by_certification_status": {
+    "certified_complete": 1,
+    "provisional": 14,
+    "uncertified": 147
+  },
+  "by_materiality_label": {
+    "empty": 146,
+    "partial": 1,
+    "seed": 2,
+    "substantial": 10,
+    "validated_complete": 3
+  },
+  "outputs": [
+    "reports/completeness_matrix.csv",
+    "reports/completeness_matrix.json"
+  ]
+}
+{
+  "committed_ci_fully_materialized": 11,
+  "local_fully_materialized": 15,
+  "local_partially_materialized": 5,
+  "local_sources_with_any_data": 16,
+  "total_sources": 162,
+  "registry_accounted_local_rows": 68714,
+  "total_rows_on_disk": 14284,
+  "orphan_rows_not_in_registry": 238,
+  "orphan_file_count": 1,
+  "probe_ran": false,
+  "outputs": [
+    "/Users/jotaele/fed-repos/moneysweep-pr/reports/materialization_coverage_audit.json",
+    "/Users/jotaele/fed-repos/moneysweep-pr/reports/materialization_coverage_audit.csv"
+  ]
+}
+{
+  "ok": true,
+  "package_id": "pkg_854045816fac89ed4fc333e465f4019b",
+  "mode": "test",
+  "out": "/Users/jotaele/fed-repos/moneysweep-pr/data/exports/canonical_v1_federation",
+  "stream_counts": {
+    "sources": 4508,
+    "entities": 207,
+    "relationships": 66
+  }
+}
+finished_utc=2026-09-01T00:55:39Z

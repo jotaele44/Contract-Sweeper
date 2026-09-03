@@ -4,3 +4,4 @@ P3-002,PR-22 and PR-5 Highway,transport,Metropistas,METROPISTAS,1100000000,40,20
 P3-003,PRASA O&M Agreement,water,Veolia Water Puerto Rico,VEOLIA WATER PUERTO RICO,500000000,10,2009-01-01,2009-01-01,Y,expired,,islandwide,,known_p3_seed
 P3-004,LUMA Energy T&D System,energy,LUMA Energy LLC,LUMA ENERGY,2000000000,15,2020-06-22,2021-06-01,Y,active,,islandwide,PREPA-TD-OMA-2020,known_p3_seed
 P3-005,PREPA Generation Privatization,energy,Genera PR LLC,GENERA PR,3500000000,20,2023-01-01,2023-06-01,Y,active,,islandwide,PREPA-GEN-OMA-2023,known_p3_seed
+P3-006,Teodoro Moscoso Bridge Toll Concession,transport,Autopistas de Puerto Rico y Compañía,AUTOPISTAS DE PUERTO RICO Y COMPAÑÍA,,,1991-12-20,,,active,San Juan,site,,known_p3_seed

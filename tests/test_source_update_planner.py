@@ -116,7 +116,8 @@ def test_manual_not_due_in_scan():
 
 def test_plan_is_read_only_and_orders_selection():
     items = build_plan(policies=POLICIES, due_only=False)
-    assert len(items) == 157
+    assert len(items) == len(POLICIES)
+    assert {item.source_id for item in items} == set(POLICIES)
     # deterministic order indices
     assert [it.order_index for it in items] == sorted(it.order_index for it in items)
 

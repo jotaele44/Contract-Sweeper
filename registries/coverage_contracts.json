@@ -361,6 +361,21 @@
       "minimum_coverage_pct": 95.0,
       "pagination_required": true,
       "notes": "Measured 2026-07-27: 47 declared pages at 100 vendors, last page 65 -> 4,665 registered bidders. Each vendor occupies two table rows (a summary row and a collapsed detail row), so a naive row count doubles the denominator; registration_id (the ASG Licitador ID) is the uniqueness key."
+    },
+    {
+      "source_id": "rdc_demandas_civiles",
+      "contract_version": 1,
+      "canonical_grain": "claim",
+      "geography_scope": "PR",
+      "authoritative_universe_method": "portal_count",
+      "authoritative_universe_ref": "https://justicia1.justicia.pr.gov/rdc",
+      "authoritative_universe_total": 44706,
+      "uniqueness_key": [
+        "rdc_case_uid"
+      ],
+      "minimum_coverage_pct": 95.0,
+      "pagination_required": true,
+      "notes": "Measured 2026-08-16: the \"Ultima\" pagination link declares 7,451 pages at six rows, and page 7451 was fetched and found full at six -> 44,706 cases. That is a portal_count denominator in the sense this file requires, not a maximum identifier range. The registry is append-ordered, so the total grows; a shortfall against it means the sweep stopped early, not that the corpus shrank.\nGrain is `claim`, not `payment`: Cuant\u00eda Reclamada is an amount demanded and most rows never become a disbursement. Cantidad Adjudicada is the awarded figure where one exists, and is blank on unresolved cases \u2014 it must not be read as money paid.\nuniqueness_key is the surrogate rdc_case_uid rather than N\u00fam del Caso, which is not unique across the corpus. Coverage is counted over the list sweep; detail enrichment (scripts/enrich_rdc_details.py) fills the party fields incrementally and is deliberately not part of this denominator."
     }
   ]
 }

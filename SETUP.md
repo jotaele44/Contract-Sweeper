@@ -3,7 +3,7 @@
 **Local federation baseline:** Python 3.11  
 **Supported systems:** macOS and Ubuntu/Debian
 
-MoneySweep is one producer in the PRII federation. A final long-lived clone must be created as an immediate sibling of `thehub-pr` through the certified TheHub workspace procedure. The standalone clone instructions below are for isolated repository development only.
+MoneySweep is one producer in the PRII federation. It installs and runs from an isolated clone — no `thehub-pr` sibling checkout is required; the shared `prii-*` packages resolve via a pinned `git+https` reference in `requirements.txt` (see ADR 0007 in `thehub-pr`).
 
 ## Python policy
 
@@ -12,42 +12,33 @@ The following surfaces must remain aligned:
 - `.python-version`: `3.11`
 - `pyproject.toml` mypy target: `3.11`
 - `pyproject.toml` Ruff target: `py311`
-- gating Python workflows: `3.11`
 - `Makefile` lock compiler baseline: `3.11`
 - `requirements.lock` generation provenance: `--python-version 3.11`
 
+Only the workflows that are meant to mirror this exact local baseline are pinned
+to `3.11`: `ci.yml`, `lint.yml`, `mypy.yml`, `lockfile.yml`. `make check` (below)
+reproduces these locally, so a clean `make check` on `.venv` is a faithful
+preview of them. The rest of the gating CI surface — `tests.yml`,
+`pre-commit.yml`, `production-status-gate.yml`, and most automation/source
+workflows — currently runs on `3.13` (`template-drift.yml` and
+`gui-capability-parity.yml` run on `3.12`); nothing enforces that these track
+`3.11`, and there is no committed rationale for the split. Contributors should
+not assume a green `make check` implies these other workflows will also pass —
+verify against actual CI on the PR.
+
 Do not use one virtual environment for the entire federation. Every repository owns a private `.venv`.
 
-## 1. Repository placement
-
-Canonical federation topology:
-
-```text
-PRII_ROOT/
-├── thehub-pr/
-├── moneysweep-pr/
-├── spiderweb-pr/
-├── skywatcher-pr/
-├── centinelas-pr/
-├── aguayluz-pr/
-└── ovnis-pr/
-```
-
-`moneysweep-pr` depends on shared packages under the sibling checkout:
-
-```text
-../thehub-pr/packages/prii_maintenance
-../thehub-pr/packages/prii_export_utils
-```
-
-Do not nest MoneySweep inside TheHub or another producer.
-
-For isolated development only:
+## 1. Clone the repository
 
 ```bash
 git clone https://github.com/jotaele44/moneysweep-pr.git
 cd moneysweep-pr
 ```
+
+No sibling checkout is required. `moneysweep-pr` resolves the shared
+`prii-maintenance` package via a pinned `git+https` dependency declared in
+`requirements.txt` — installing it fetches that commit directly, regardless
+of where this clone lives on disk.
 
 ## 2. Create the private environment
 
@@ -89,6 +80,15 @@ cp .env.example .env
 ```
 
 Tests do not require real API keys. Credentials are needed only for explicitly authorized live data acquisition. Follow `docs/SECRET_HANDLING_POLICY.md`; never commit `.env` or key material.
+
+Instead of hand-editing `.env`, `scripts/set_api_key.py` can set individual keys:
+
+```bash
+python3 scripts/set_api_key.py --list        # show which keys are set/missing
+python3 scripts/set_api_key.py SAM_API_KEY    # prompts for the value (hidden input)
+```
+
+The diagnostic dashboard's "API Keys" tab (see `dashboard/README.md`) offers the same thing from the browser.
 
 ## 5. Run the local quality bar
 
@@ -169,7 +169,7 @@ Desktop and packaged-app procedures are governed separately by the shared `prii_
 | Problem | Resolution |
 |---|---|
 | Python is not 3.11 | Recreate `.venv` with `python3.11 -m venv .venv` |
-| Shared package cannot resolve | Verify `thehub-pr` is an immediate sibling and contains both shared package directories |
+| Shared package cannot resolve | Confirm network access to GitHub — the `prii-maintenance` dependency is fetched from a pinned `git+https` URL on install, not a local path |
 | `pip` writes outside the repository | Deactivate the global environment, activate `.venv`, and use `python -m pip` |
 | Lockfile drift fails | Run `make lock` under Python 3.11 and review the complete diff |
 | Tests need absent local directories | Run `python scripts/setup_directories.py` |
