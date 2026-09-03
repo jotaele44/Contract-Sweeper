@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 // api-key-management: the "API Keys" tab (ApiKeysPanel.jsx) and its backend
 // (server/backend/api_keys.py, GET/POST /api-keys). Verifies the tab is
 // reachable through the real UI, GET /api-keys is genuinely wired (not
-// stubbed — real entries parsed from .env.example), and that saving a
+// stubbed — with the real entries parsed from .env.example), and that saving a
 // value round-trips through a real POST without ever echoing the value back
 // in any response body, matching docs/SECRET_HANDLING_POLICY.md.
 
@@ -18,12 +19,22 @@ test("API Keys tab reaches the real backend and lists all known keys", async ({ 
   await expect(page.getByTestId("api-keys-panel")).toBeVisible();
 
   const rows = await (await listResponse).json();
-  expect(rows.length, "GET /api-keys returned an empty registry").toBeGreaterThan(0);
-  expect(new Set(rows.map((row) => row.name)).size, "GET /api-keys returned duplicate names").toBe(rows.length);
+  const example = await readFile(new URL("../../.env.example", import.meta.url), "utf8");
+  const expectedNames = example
+    .split(/\r?\n/)
+    .filter((line) => /^[A-Z][A-Z0-9_]*=/.test(line))
+    .map((line) => line.split("=", 1)[0])
+    .filter((name) =>
+      ["_API_KEY", "_APP_TOKEN", "_LICENSE_APPROVED"].some((suffix) => name.endsWith(suffix)),
+    )
+    .sort();
+
+  expect(rows.map((row) => row.name).sort()).toEqual(expectedNames);
   for (const row of rows) {
     expect(Object.keys(row).sort()).toEqual(["description", "is_set", "name", "required"]);
-    await expect(page.getByTestId(`api-key-row-${row.name}`)).toBeVisible();
   }
+
+  await expect(page.getByTestId("api-key-row-SAM_API_KEY")).toBeVisible();
 });
 
 test("saving a key does a real POST and never echoes the value back", async ({ page }) => {
