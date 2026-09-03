@@ -46,7 +46,9 @@ export const getGovernmentChangeSummary = () => fetchJSON('/government-changes/s
 
 export const getCampaignFinanceSummary = () => fetchJSON('/campaign-finance/summary', {
   sources: [], totalContributionRows: 0, totalContributionAmount: 0,
-  totalFederalOutflowRows: 0, derived: {},
+  totalFederalOutflowRows: 0, derived: {}, hasData: false,
+  materializedFileCount: 0, updatedAt: null,
+  emptyState: 'No campaign-finance datasets are materialized in this repository checkout.',
 })
 export const getCampaignFinanceContributions = (f = {}) =>
   fetchJSON(`/campaign-finance/contributions${qs(f)}`, { rows: [], total: 0, limit: f.limit ?? 500, offset: f.offset ?? 0 })

@@ -16,7 +16,8 @@
       "schema_version": "r5_v1",
       "validation_threshold": {
         "min_rows": 1,
-        "year_coverage_pct": 0.95
+        "year_coverage_pct": 0.95,
+        "parent_uei_coverage_pct": 0.05
       },
       "update_cadence": "weekly",
       "notes": "USAspending API + bulk archive. No key required.\nTop recipients are PR government agencies (PRDOH, ADSEF, PRDE, PRHA) \u2014\nno corporate parent_uei is expected for these entities.\n"
@@ -51,7 +52,8 @@
       ],
       "schema_version": "r5_v1",
       "validation_threshold": {
-        "min_rows": 1
+        "min_rows": 1,
+        "parent_uei_coverage_pct": 0.9
       },
       "update_cadence": "quarterly",
       "notes": "FPDS Report Builder FY2018-2024 ingestion. Supplements USAspending."
@@ -69,7 +71,8 @@
       "schema_version": "r5_v1",
       "validation_threshold": {
         "min_rows": 1,
-        "linkage_rate_pct": 0.85
+        "linkage_rate_pct": 0.85,
+        "parent_uei_coverage_pct": 0.9
       },
       "update_cadence": "weekly",
       "notes": "FSRS prime-to-sub reporting. Joins with USAspending subaward stream."
@@ -159,7 +162,8 @@
       "schema_version": "r5_v1",
       "validation_threshold": {
         "min_rows": 1,
-        "year_coverage_pct": 0.95
+        "year_coverage_pct": 0.95,
+        "parent_uei_coverage_pct": 0.05
       },
       "update_cadence": "monthly",
       "notes": "Preferred FEMA PA route. OpenFEMA v2 PA projects API."
