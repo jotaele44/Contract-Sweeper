@@ -332,21 +332,26 @@ def _build(root: Path, out: Path) -> dict:
 
 
 def _check(root: Path, expected_out: Path) -> dict:
-    with tempfile.TemporaryDirectory(prefix="moneysweep-source-recovery-") as tmp:
-        generated = Path(tmp)
-        result = _build(root, generated)
-        mismatches: list[str] = []
-        for name in OUTPUT_NAMES:
-            expected = expected_out / name
-            candidate = generated / name
-            if not expected.is_file():
-                mismatches.append(f"missing expected output: {expected}")
-            elif expected.read_bytes() != candidate.read_bytes():
-                mismatches.append(f"byte mismatch: {expected}")
-        result["status"] = "PASS" if not mismatches else "FAIL"
-        result["mismatches"] = mismatches
-        result["outputs"] = [str(expected_out / name) for name in OUTPUT_NAMES]
-        return result
+    global OUT_CSV, OUT_MD, OUT_JSON
+    original_outputs = (OUT_CSV, OUT_MD, OUT_JSON)
+    try:
+        with tempfile.TemporaryDirectory(prefix="moneysweep-source-recovery-") as tmp:
+            generated = Path(tmp)
+            result = _build(root, generated)
+            mismatches: list[str] = []
+            for name in OUTPUT_NAMES:
+                expected = expected_out / name
+                candidate = generated / name
+                if not expected.is_file():
+                    mismatches.append(f"missing expected output: {expected}")
+                elif expected.read_bytes() != candidate.read_bytes():
+                    mismatches.append(f"byte mismatch: {expected}")
+            result["status"] = "PASS" if not mismatches else "FAIL"
+            result["mismatches"] = mismatches
+            result["outputs"] = [str(expected_out / name) for name in OUTPUT_NAMES]
+            return result
+    finally:
+        OUT_CSV, OUT_MD, OUT_JSON = original_outputs
 
 
 def _parse_args(argv: list[str]) -> tuple[Path, Path, bool, bool]:
