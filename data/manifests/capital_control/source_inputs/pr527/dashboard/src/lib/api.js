@@ -46,9 +46,7 @@ export const getGovernmentChangeSummary = () => fetchJSON('/government-changes/s
 
 export const getCampaignFinanceSummary = () => fetchJSON('/campaign-finance/summary', {
   sources: [], totalContributionRows: 0, totalContributionAmount: 0,
-  totalFederalOutflowRows: 0, derived: {}, hasData: false,
-  materializedFileCount: 0, updatedAt: null,
-  emptyState: 'No campaign-finance datasets are materialized in this repository checkout.',
+  totalFederalOutflowRows: 0, derived: {},
 })
 export const getCampaignFinanceContributions = (f = {}) =>
   fetchJSON(`/campaign-finance/contributions${qs(f)}`, { rows: [], total: 0, limit: f.limit ?? 500, offset: f.offset ?? 0 })
@@ -56,21 +54,6 @@ export const getCampaignFinanceEntities = (f = {}) =>
   fetchJSON(`/campaign-finance/entities${qs(f)}`, [])
 export const getCampaignFinanceReports = (f = {}) =>
   fetchJSON(`/campaign-finance/reports${qs(f)}`, [])
-
-// API-key store: local-dev-only write path (see ApiKeysPanel.jsx). Not
-// available in the OFFLINE/standalone export — there is no backend to write
-// to there, so the panel that calls these is hidden entirely in that build.
-export const getApiKeys = () => fetchJSON('/api-keys', [])
-export const setApiKey = async (name, value) => {
-  const res = await fetch(`${API_BASE}/api-keys/${encodeURIComponent(name)}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ value }),
-    signal: AbortSignal.timeout(8000),
-  })
-  if (!res.ok) throw new Error(`set ${name} → HTTP ${res.status}`)
-  return res.json()
-}
 
 export const getOwnershipDeepDiveStatus = () => fetchJSON('/deep-dive/ownership/status', {
   available: false,
