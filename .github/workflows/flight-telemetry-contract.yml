@@ -6,6 +6,7 @@ on:
       - ".federation/flight_telemetry_contract.json"
       - ".federation/flight_telemetry_binding.json"
       - "scripts/validate_flight_telemetry_contract.py"
+      - "scripts/validate_flight_telemetry_federation_lockstep.py"
       - "scripts/discover_flight_provider_capabilities.py"
       - ".github/workflows/flight-telemetry-contract.yml"
   push:
@@ -14,6 +15,7 @@ on:
       - ".federation/flight_telemetry_contract.json"
       - ".federation/flight_telemetry_binding.json"
       - "scripts/validate_flight_telemetry_contract.py"
+      - "scripts/validate_flight_telemetry_federation_lockstep.py"
       - "scripts/discover_flight_provider_capabilities.py"
       - ".github/workflows/flight-telemetry-contract.yml"
   workflow_dispatch:
@@ -33,5 +35,9 @@ jobs:
         run: python scripts/validate_flight_telemetry_contract.py
       - name: Negative breaking-change regression
         run: python scripts/validate_flight_telemetry_contract.py --negative-regression
+      - name: Negative cross-repo lockstep regression
+        run: python scripts/validate_flight_telemetry_federation_lockstep.py --self-test
+      - name: Enforce coordinated peer contract bytes
+        run: python scripts/validate_flight_telemetry_federation_lockstep.py
       - name: Provider capability discovery interface smoke test
         run: python scripts/discover_flight_provider_capabilities.py --require-no-secret-output
