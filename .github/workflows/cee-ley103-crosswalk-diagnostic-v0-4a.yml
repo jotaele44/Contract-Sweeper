@@ -1,0 +1,70 @@
+name: CEE Ley103 crosswalk diagnostic v0.4a
+on:
+  push:
+    branches: [cee-ley103-crosswalk-v0-4a]
+    paths: ['.github/workflows/cee-ley103-crosswalk-diagnostic-v0-4a.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Diagnose frozen artifact and Ley103 extraction
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          python -m pip install --quiet requests pypdf
+          python - <<'PY'
+          import hashlib,json,os,re,zipfile,traceback
+          from pathlib import Path
+          import requests
+          from pypdf import PdfReader
+          OUT=Path('diag'); OUT.mkdir(exist_ok=True)
+          rec={'phases':[]}
+          def mark(name,**kw):
+              rec['phases'].append({'name':name,**kw}); (OUT/'diagnostic.json').write_text(json.dumps(rec,indent=2,ensure_ascii=False),encoding='utf-8')
+          try:
+              api='https://api.github.com/repos/jotaele44/moneysweep-pr/actions/artifacts/9782398935/zip'
+              r=requests.get(api,headers={'Authorization':f'Bearer {os.environ["GH_TOKEN"]}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'},timeout=120)
+              mark('artifact_http',status=r.status_code,size=len(r.content),content_type=r.headers.get('Content-Type'))
+              r.raise_for_status(); (OUT/'graph_artifact.zip').write_bytes(r.content)
+              with zipfile.ZipFile(OUT/'graph_artifact.zip') as z: z.extractall(OUT/'artifact')
+              files=[str(x) for x in (OUT/'artifact').rglob('*') if x.is_file()]
+              graph=list((OUT/'artifact').rglob('complete_manifestations.jsonl'))
+              mark('artifact_extracted',file_count=len(files),graph_candidates=[str(x) for x in graph])
+              if graph:
+                  lines=[x for x in graph[0].read_text(encoding='utf-8').splitlines() if x.strip()]
+                  mark('graph_lines',count=len(lines))
+              u='https://senado.pr.gov/document_vault/agency_reports/2497/document/CEE%20-%20Certificaci%C3%B3n%20AF2023%20-%20Ley%20103-2006.pdf'
+              p=requests.get(u,headers={'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4a'},timeout=120)
+              mark('ley103_http',status=p.status_code,size=len(p.content),content_type=p.headers.get('Content-Type'),sha256=hashlib.sha256(p.content).hexdigest())
+              p.raise_for_status(); (OUT/'ley103.pdf').write_bytes(p.content)
+              rr=PdfReader(str(OUT/'ley103.pdf')); texts=[]
+              for i,page in enumerate(rr.pages):
+                  t=page.extract_text() or ''; texts.append(t); (OUT/f'page_{i:03d}.txt').write_text(t,encoding='utf-8')
+              marker_pages=[i for i,t in enumerate(texts) if 'Contratos (71)' in t]
+              mark('pdf_text',pages=len(texts),marker_pages=marker_pages,page_lengths=[len(x) for x in texts])
+              pat=re.compile(r'\b(20\d{2}-\d{6}(?:-[A-Z])?)\b')
+              for window in (8,10,12,16,24):
+                  if marker_pages:
+                      start=marker_pages[0]; txt='\n'.join(texts[start:min(len(texts),start+window)])
+                      seq=pat.findall(txt); seen=[]
+                      for x in seq:
+                          if x not in seen: seen.append(x)
+                      mark('key_window',window=window,unique_count=len(seen),keys=seen)
+              allseq=pat.findall('\n'.join(texts)); allseen=[]
+              for x in allseq:
+                  if x not in allseen: allseen.append(x)
+              mark('all_pdf_keys',unique_count=len(allseen),keys=allseen)
+          except Exception as e:
+              mark('exception',error=repr(e),traceback=traceback.format_exc())
+          print(json.dumps(rec,indent=2,ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cee-ley103-crosswalk-diagnostic-v04a
+          path: diag/
+          retention-days: 30
