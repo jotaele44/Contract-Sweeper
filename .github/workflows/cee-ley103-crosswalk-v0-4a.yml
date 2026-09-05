@@ -1,0 +1,223 @@
+name: CEE Ley103 OCPR crosswalk v0.4a
+on:
+  push:
+    branches: [cee-ley103-crosswalk-v0-4a]
+    paths: ['.github/workflows/cee-ley103-crosswalk-v0-4a.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  crosswalk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Crosswalk authoritative CEE Ley103 ledger to frozen OCPR graph
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet requests pypdf beautifulsoup4
+          python - <<'PY'
+          from __future__ import annotations
+          import hashlib, json, os, re, subprocess, sys, time, zipfile
+          from collections import Counter, defaultdict
+          from pathlib import Path
+          from urllib.parse import quote
+          import requests
+          from pypdf import PdfReader
+          from bs4 import BeautifulSoup
+
+          OUT=Path('cee_ley103_crosswalk_v04a'); RAW=OUT/'raw'; DETAILS=OUT/'anchor_contract_details'
+          RAW.mkdir(parents=True,exist_ok=True); DETAILS.mkdir(parents=True,exist_ok=True)
+          REPO='jotaele44/moneysweep-pr'; ARTIFACT_ID=9782398935
+          LEY103='https://senado.pr.gov/document_vault/agency_reports/2497/document/CEE%20-%20Certificaci%C3%B3n%20AF2023%20-%20Ley%20103-2006.pdf'
+          OCPR='https://consultacontratos.ocpr.gov.pr'
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 MoneySweep-CEE-v0.4a (+bounded public-source recovery)'})
+          def sha(b:bytes): return hashlib.sha256(b).hexdigest()
+
+          # 1) Reuse the already-frozen v0.4 complete-graph artifact, do not refresh OCPR search.
+          az=RAW/'v04_complete_graph_artifact.zip'
+          api=f'https://api.github.com/repos/{REPO}/actions/artifacts/{ARTIFACT_ID}/zip'
+          r=requests.get(api,headers={'Authorization':f'Bearer {os.environ["GH_TOKEN"]}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'},timeout=120)
+          r.raise_for_status(); az.write_bytes(r.content)
+          with zipfile.ZipFile(az) as z: z.extractall(RAW/'artifact')
+          candidates=list((RAW/'artifact').rglob('complete_manifestations.jsonl'))
+          if len(candidates)!=1: raise SystemExit(f'GRAPH_FILE_COUNT {len(candidates)}')
+          graph_path=candidates[0]
+          graph=[json.loads(x) for x in graph_path.read_text(encoding='utf-8').splitlines() if x.strip()]
+          if len(graph)!=3696: raise SystemExit(f'GRAPH_CARDINALITY_DRIFT {len(graph)}')
+          ids=[str(x.get('source_contract_id')) for x in graph]
+          if len(ids)!=len(set(ids)): raise SystemExit('GRAPH_CONTRACTID_DUP')
+
+          # 2) Freeze authoritative CEE Ley103 PDF bytes and extract only the contract-table pages.
+          pr=s.get(LEY103,timeout=120); pr.raise_for_status(); pdfb=pr.content
+          pdf=RAW/'CEE_AF2023_Ley103.pdf'; pdf.write_bytes(pdfb)
+          reader=PdfReader(str(pdf))
+          page_text=[]
+          for idx,p in enumerate(reader.pages):
+              txt=p.extract_text() or ''
+              page_text.append(txt)
+          alltext='\n'.join(page_text)
+          marker='Contratos (71)'
+          marker_pages=[i for i,t in enumerate(page_text) if marker in t]
+          if not marker_pages: raise SystemExit('LEY103_TABLE_MARKER_NOT_FOUND')
+          start=marker_pages[0]
+          # The contract table is rendered as eight consecutive report pages; cap at start+8.
+          table_text='\n'.join(page_text[start:min(len(page_text),start+8)])
+          (RAW/'ley103_contract_table_extracted_text.txt').write_text(table_text,encoding='utf-8')
+
+          # Contract rows are explicit 4-digit year + six digits with optional Ley103 suffix.
+          pat=re.compile(r'\b(20\d{2}-\d{6}(?:-[A-Z])?)\b')
+          seq=pat.findall(table_text)
+          # Page extraction may repeat headers but not row keys. Preserve first occurrence order.
+          seen=set(); keys=[]
+          for x in seq:
+              if x not in seen:
+                  seen.add(x); keys.append(x)
+          if len(keys)!=71:
+              raise SystemExit(f'LEY103_EXPECTED_71_UNIQUE_CONTRACT_ROWS_GOT_{len(keys)}')
+          (OUT/'ley103_contract_keys.json').write_text(json.dumps(keys,indent=2),encoding='utf-8')
+
+          # 3) Build exact authoritative OCPR index from frozen graph.
+          exact=defaultdict(list); base_orig=defaultdict(list); amend=defaultdict(list)
+          for x in graph:
+              typ=x.get('manifestation_type'); num=str(x.get('contract_number') or '').strip(); a=str(x.get('amendment') or '').strip()
+              if typ=='ORIGINAL' and num:
+                  exact[num].append(x); base_orig[num].append(x)
+              elif typ=='AMENDMENT':
+                  parent=str((x.get('raw_row') or {}).get('_parent_contract_number') or x.get('contract_number') or '').strip()
+                  if parent and a: amend[(parent,a)].append(x)
+                  # Some endpoint representations include base ContractNumber; index explicit suffix form too.
+                  if parent and a: exact[parent+'-'+a].append(x)
+                  if num and a and num!=parent: exact[num+'-'+a].append(x)
+
+          rows=[]
+          for rawkey in keys:
+              matches=exact.get(rawkey,[])
+              method='EXACT_CONTRACT_NUMBER'
+              classification=None
+              base=rawkey; suffix=''
+              m=re.match(r'^(20\d{2}-\d{6})-([A-Z])$',rawkey)
+              if not matches and m:
+                  base,suffix=m.group(1),m.group(2)
+                  if suffix!='Z':
+                      matches=amend.get((base,suffix),[]); method='BASE_PLUS_AMENDMENT_CODE'
+                  elif base_orig.get(base):
+                      # Z is a Ley103 presentation/status suffix observed on zero-disbursement rows, not promoted to OCPR amendment identity.
+                      classification='LEY103_Z_SHADOW_BASE_PRESENT'; method='Z_SUFFIX_BASE_ONLY'
+              if len(matches)>1: raise SystemExit(f'AMBIGUOUS_OCPR_BINDING {rawkey} {len(matches)}')
+              if len(matches)==1:
+                  x=matches[0]; classification='PRESENT_CURRENT'
+                  rows.append({'ley103_raw_contract_key':rawkey,'classification':classification,'binding_method':method,'ocpr_contract_id':str(x.get('source_contract_id')),'ocpr_manifestation_type':x.get('manifestation_type'),'ocpr_contract_number':x.get('contract_number'),'ocpr_amendment':x.get('amendment'),'ocpr_date_of_grant':x.get('date_of_grant'),'ocpr_fiscal_year':x.get('fiscal_year'),'ocpr_raw_row':x.get('raw_row')})
+              else:
+                  rows.append({'ley103_raw_contract_key':rawkey,'classification':classification or 'HISTORICAL_ONLY_CANDIDATE','binding_method':method,'ocpr_contract_id':None,'ocpr_manifestation_type':None,'ocpr_contract_number':base if m else rawkey,'ocpr_amendment':suffix or None,'ocpr_date_of_grant':None,'ocpr_fiscal_year':None,'ocpr_raw_row':None})
+
+          with (OUT/'ley103_ocpr_crosswalk.jsonl').open('w',encoding='utf-8') as f:
+              for x in rows: f.write(json.dumps(x,ensure_ascii=False,sort_keys=True)+'\n')
+
+          # 4) Required anchors.
+          anchors=['2023-000045','2023-000038','2023-000039','2023-000035','2023-000035-A','2023-000025','2023-000025-A']
+          anchor={k:next((x for x in rows if x['ley103_raw_contract_key']==k),None) for k in anchors}
+          missing_anchor_keys=[k for k,v in anchor.items() if v is None]
+          if missing_anchor_keys: raise SystemExit('ANCHORS_NOT_IN_LEY103 '+','.join(missing_anchor_keys))
+          for k,v in anchor.items():
+              if v['classification']!='PRESENT_CURRENT' or not v['ocpr_contract_id']:
+                  raise SystemExit(f'ANCHOR_NOT_STABLY_BOUND {k} {v}')
+
+          # 5) Recover authoritative OCPR detail HTML for anchors and enumerate public document links.
+          for k,v in anchor.items():
+              cid=v['ocpr_contract_id']; dr=s.get(OCPR+'/contract/details',params={'contractid':cid},timeout=60)
+              rec={'contract_key':k,'contract_id':cid,'url':dr.url,'status_code':dr.status_code,'sha256':sha(dr.content),'size':len(dr.content),'links':[]}
+              if dr.status_code==200:
+                  fn=DETAILS/f'{k.replace("/","_")}_{cid}.html'; fn.write_bytes(dr.content)
+                  soup=BeautifulSoup(dr.text,'html.parser')
+                  for a in soup.find_all('a',href=True):
+                      href=a.get('href'); label=' '.join(a.stripped_strings)
+                      if any(t in (href or '').lower() for t in ('doc','file','attach','download','open')) or any(t in label.lower() for t in ('contrato','document','archivo','ver')):
+                          rec['links'].append({'label':label,'href':href})
+              (DETAILS/f'{k.replace("/","_")}_{cid}.receipt.json').write_text(json.dumps(rec,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+
+          # 6) Wayback/CDX probe for the currently missing official FY2023-24 fiscal export.
+          target=OCPR+'/contract/downloadfrequentsearchfiscalyeardocument?q=2023-2024'
+          cdx_queries=[]; captures=[]
+          variants=[target,target.replace('https://','http://'),OCPR+'/contract/downloadfrequentsearchfiscalyeardocument*']
+          for u in variants:
+              cdx='https://web.archive.org/cdx/search/cdx?url='+quote(u,safe='')+'&output=json&fl=timestamp,original,statuscode,mimetype,digest&filter=statuscode:200&collapse=digest'
+              try:
+                  cr=s.get(cdx,timeout=60)
+                  cdx_queries.append({'target':u,'cdx_url':cdx,'status_code':cr.status_code,'sha256':sha(cr.content),'size':len(cr.content)})
+                  if cr.status_code==200:
+                      (RAW/('cdx_'+str(len(cdx_queries))+'.json')).write_bytes(cr.content)
+                      try:
+                          data=cr.json()
+                          if isinstance(data,list) and len(data)>1:
+                              headers=data[0]
+                              for row in data[1:]: captures.append(dict(zip(headers,row)))
+                      except Exception: pass
+              except Exception as e:
+                  cdx_queries.append({'target':u,'error':repr(e)})
+          # Deduplicate capture identity.
+          uniq=[]; cseen=set()
+          for c in captures:
+              key=(c.get('timestamp'),c.get('original'),c.get('digest'))
+              if key not in cseen: cseen.add(key); uniq.append(c)
+          captures=uniq
+          recovered=[]
+          for i,c in enumerate(captures[:10]):
+              ts=c.get('timestamp'); orig=c.get('original')
+              if not ts or not orig: continue
+              wu=f'https://web.archive.org/web/{ts}id_/{orig}'
+              try:
+                  wr=s.get(wu,timeout=120)
+                  item={'timestamp':ts,'original':orig,'url':wu,'status_code':wr.status_code,'size':len(wr.content),'sha256':sha(wr.content),'content_type':wr.headers.get('Content-Type')}
+                  if wr.status_code==200 and len(wr.content)>100:
+                      p=RAW/f'fy2023-24_wayback_{ts}.bin'; p.write_bytes(wr.content); item['path']=str(p)
+                  recovered.append(item)
+              except Exception as e: recovered.append({'timestamp':ts,'original':orig,'url':wu,'error':repr(e)})
+          (OUT/'fy2023_24_wayback_receipt.json').write_text(json.dumps({'target':target,'cdx_queries':cdx_queries,'captures':captures,'recovered':recovered},ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+
+          # 7) Summary and invariants. No scalar annual-certification equivalence is computed.
+          counts=Counter(x['classification'] for x in rows)
+          historical=[x for x in rows if x['classification']=='HISTORICAL_ONLY_CANDIDATE']
+          zshadow=[x for x in rows if x['classification']=='LEY103_Z_SHADOW_BASE_PRESENT']
+          summary={
+            'status':'PASS',
+            'source_policy':{
+              'v04_graph_reused_not_refreshed':True,
+              'graph_artifact_id':ARTIFACT_ID,
+              'graph_count':len(graph),
+              'ley103_pdf_url':LEY103,
+              'ley103_pdf_sha256':sha(pdfb),
+              'ley103_pdf_size':len(pdfb),
+              'ley103_contract_row_count':len(keys),
+              'ocda132_111_156_remain_scalar':True,
+              'set_equivalence_with_ocda132':'PROHIBITED_NONCOMPARABLE'
+            },
+            'classification_counts':dict(sorted(counts.items())),
+            'historical_only_candidate_keys':[x['ley103_raw_contract_key'] for x in historical],
+            'z_shadow_keys':[x['ley103_raw_contract_key'] for x in zshadow],
+            'anchors':anchor,
+            'negative_regression':{'name':'74_plus_34_equals_108','expected':'FAIL','reason':'amendment fiscal membership must use amendment DateOfGrant; count equality does not establish identity'},
+            'fy2022_23_historical_registry_residue_target':3,
+            'candidate_count_vs_residue':{'candidate_count':len(historical),'residue':3,'identity_resolution':('CANDIDATE_COUNT_EQUALS_RESIDUE_NOT_IDENTITY' if len(historical)==3 else 'COUNT_MISMATCH_OR_NONIDENTITY')},
+            'wayback_fy2023_24_capture_count':len(captures),
+          }
+          (OUT/'summary.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2,sort_keys=True),encoding='utf-8')
+
+          # 8) Hash all evidence members.
+          files=[]
+          for p in sorted(OUT.rglob('*')):
+              if p.is_file():
+                  b=p.read_bytes(); files.append({'path':str(p.relative_to(OUT)),'size':len(b),'sha256':sha(b)})
+          (OUT/'SHA256_MANIFEST.json').write_text(json.dumps({'files':files},indent=2,sort_keys=True),encoding='utf-8')
+          print(json.dumps(summary,ensure_ascii=False,indent=2))
+          PY
+          tar -czf cee_ley103_crosswalk_v04a.tar.gz cee_ley103_crosswalk_v04a
+          sha256sum cee_ley103_crosswalk_v04a.tar.gz | tee cee_ley103_crosswalk_v04a.tar.gz.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cee-ley103-crosswalk-v04a
+          path: |
+            cee_ley103_crosswalk_v04a/
+            cee_ley103_crosswalk_v04a.tar.gz
+            cee_ley103_crosswalk_v04a.tar.gz.sha256
+          retention-days: 30
