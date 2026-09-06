@@ -75,8 +75,7 @@ def validate(root: Path = REPO_ROOT) -> dict[str, object]:
     dev_direct = _names(dev_lines)
 
     if not any(
-        line in {"-r requirements.txt", "--requirement requirements.txt"}
-        for line in dev_lines
+        line in {"-r requirements.txt", "--requirement requirements.txt"} for line in dev_lines
     ):
         raise DependencyPlaneError("development requirements must include requirements.txt")
 
@@ -106,9 +105,7 @@ def validate(root: Path = REPO_ROOT) -> dict[str, object]:
             f"Hub setup must prepare the audit/test profile with {DEV_REQUIREMENTS}"
         )
     if RUNTIME_REQUIREMENTS not in runtime_setup or DEV_REQUIREMENTS in runtime_setup:
-        raise DependencyPlaneError(
-            f"Hub runtime_setup must install only {RUNTIME_REQUIREMENTS}"
-        )
+        raise DependencyPlaneError(f"Hub runtime_setup must install only {RUNTIME_REQUIREMENTS}")
     if "pytest" not in test_suite:
         raise DependencyPlaneError("Hub test_suite must execute the declared test runner")
 
