@@ -1,6 +1,8 @@
 from __future__ import annotations
+
 import importlib.util
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -17,6 +19,17 @@ class UnifiedSkillpackConformanceTests(unittest.TestCase):
     def test_full_conformance(self) -> None:
         result = MODULE.validate(ROOT)
         self.assertEqual(result["status"], "success", result["errors"])
+
+    def test_change_scope_can_use_current_integration_base(self) -> None:
+        head = subprocess.run(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        result = MODULE.validate(ROOT, enforce_change_scope=True, change_base=head)
+        self.assertEqual(result["status"], "success", result["errors"])
+        self.assertIn("change_base_ancestry", result["checks"])
 
     def test_dispatch_metadata_is_complete(self) -> None:
         manifest = json.loads((ROOT / ".claude/skillpacks/MANIFEST.json").read_text())
